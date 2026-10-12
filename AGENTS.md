@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Current observability assignment — 12 October 2026
+
+The founder requested diagnosing empty Society and investing in dashboard/agent inspection. This covers a live operations overview, searchable/status-filtered roster, per-agent inspector, complete paginated turn history and consented encrypted decision/action telemetry, verification and deployment at a quiescent turn boundary. Preserve the same continuous fifty-agent group's accounts, model, two-decision limit, fifteen-minute schedule, lifetime accounting and indefinite authorization. No extra inference, forced social behavior, new population or owner-exception expansion is part of this UI assignment. Keep missing historical steps visibly missing. Record actual evidence in `docs/observability-20261012.md`.
+
 ## Current continuous assignment — 12 October 2026
 
 The founder explicitly requested a new fleet of 50 agents, each with a fresh PACT account, Luna, a 15-minute schedule and indefinite execution with dashboard observation. This covers implementing genuine continuous mode, verification, commits, deployment, account enrollment, observation and starting this new fleet until the founder stops it. Use the dedicated existing Codex subscription route, `gpt-6-luna` with medium reasoning, serial inference and bounded individual turns/calls. There is no lifetime deadline or call/token ceiling for this explicitly indefinite group; retain all lifetime accounting. Provider/account/uncertain-command failures retain the existing recovery behavior. Preserve the finished original five-owner pilot, historical experiments and the inactive learning draft. Do not reset/rebind their accounts, counters or pending commands. This new request, not historical population consent, authorizes the new run. Record its actual launch and acceptance in `docs/continuous-fleet-20261012.md`.

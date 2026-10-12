@@ -13,6 +13,7 @@ import {
 } from "./domain.js";
 import type { GameAdapter } from "./game.js";
 import { RemoteRejection } from "./http.js";
+import { Observability } from "./observability.js";
 import type { Claim, Store } from "./store.js";
 import { schemaChanged, validateTool } from "./tools.js";
 
@@ -51,11 +52,13 @@ export class Engine {
       summary = "",
       notes: string | undefined;
     const communications = new Communications(this.store, this.adapter.normalizeCommunications);
+    const observation = new Observability(this.store);
     const { actionKinds, actionSchema, boundedReads, mergeReads } = this.adapter;
     const isRead = (tool: import("./domain.js").Tool) =>
       tool.annotations?.readOnlyHint === true && this.adapter.isRead(tool);
     try {
       await this.store.active(claim);
+      await observation.record(claim, "observing", "Reading current game state");
       game = await this.game(claim.agentId);
       const profile = await game.profile();
       if (profile.accountId !== claim.agent.account_id) throw new FleetError("IDENTITY_MISMATCH");
@@ -86,6 +89,7 @@ export class Engine {
           if (!tool) continue;
           await this.store.active(claim);
           validateTool(tool, args);
+          await observation.record(claim, "reading", "Reading a participating exchange", { tool: name, args });
           const result = await connectedGame.read(name, args);
           await communications.ingest(claim.agentId, peer, name, result);
           if (Buffer.byteLength(JSON.stringify(result)) < 6000) reads.push({ tool: name, args, result });
@@ -99,6 +103,11 @@ export class Engine {
         }
       };
       const contacts = this.adapter.peers(facts);
+      await observation.record(claim, "ready", "Game context ready", {
+        contacts: contacts.length,
+        availableReads: tools.filter(isRead).length,
+        retainedReads: previousReads.length,
+      });
       if (contacts.length) {
         const turns = (
           await this.store.pool.query("SELECT count(*)::int n FROM turns WHERE agent_id=$1", [claim.agentId])
@@ -157,6 +166,7 @@ export class Engine {
         if (bytes > b.inputByteLimit || bytes + b.maxOutputTokens + 1024 > b.perCallTokenLimit)
           throw new FleetError("CONTEXT_LIMIT");
         const reservation = await this.store.reserveCall(claim);
+        await observation.record(claim, "thinking", "Waiting for the model decision", { execution: n + 1 });
         if (this.stopping) throw new FleetError("CLAIM_FENCED");
         const controller = new AbortController();
         this.controller = controller;
@@ -189,6 +199,14 @@ export class Engine {
         const parsed = Decision.safeParse(response.decision);
         if (!parsed.success) throw new FleetError("INVALID_DECISION");
         const decision = parsed.data;
+        await observation.record(claim, "deciding", "Model selected the next step", {
+          kind: decision.kind,
+          summary: decision.summary,
+          ...(decision.kind === "read" ? { tool: decision.tool } : {}),
+          ...(decision.kind === "action" ? { actionKind: String(decision.action.kind ?? "action") } : {}),
+          inputTokens: response.inputTokens,
+          outputTokens: response.outputTokens,
+        });
         summary = decision.summary;
         if (decision.kind === "wait") {
           notes = decision.notes ?? notes;
@@ -201,20 +219,37 @@ export class Engine {
           if (decision.tool === "fleet_action_schema") {
             if (typeof decision.args.kind !== "string" || Object.keys(decision.args).length !== 1)
               throw new FleetError("INVALID_TOOL_ARGUMENTS");
+            await observation.record(claim, "reading", "Looking up an action schema", {
+              tool: decision.tool,
+              args: decision.args,
+            });
             result = { schema: actionSchema(decision.args.kind) };
           } else if (decision.tool === "fleet_read_schema") {
             const tool = tools.find((t) => t.name === decision.args.name && isRead(t));
             if (!tool || Object.keys(decision.args).length !== 1) throw new FleetError("INVALID_TOOL_ARGUMENTS");
+            await observation.record(claim, "reading", "Looking up a read schema", {
+              tool: decision.tool,
+              args: decision.args,
+            });
             result = { inputSchema: tool.inputSchema, description: tool.description };
           } else {
             const t = tools.find((t) => t.name === decision.tool && isRead(t));
             if (!t) throw new FleetError("READ_TOOL_FORBIDDEN");
             validateTool(t, decision.args);
+            await observation.record(claim, "reading", "Reading additional game facts", {
+              tool: t.name,
+              args: decision.args,
+            });
             result = await game.read(t.name, decision.args);
             const peer = this.adapter.readPeer(t.name, decision.args);
             if (typeof peer === "string") await communications.ingest(claim.agentId, peer, t.name, result);
           }
           reads.push({ tool: decision.tool, args: decision.args, result, observedAt: this.store.now().toISOString() });
+          await observation.record(claim, "ready", "Read completed", {
+            tool: decision.tool,
+            resultFields: Object.keys(result).slice(0, 24),
+            resultBytes: Buffer.byteLength(JSON.stringify(result)),
+          });
           await this.store.rememberReads(claim, boundedReads(mergeReads([...previousReads, ...reads]), 24000));
           lastCode = "READ";
           continue;

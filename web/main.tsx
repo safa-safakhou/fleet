@@ -1,6 +1,16 @@
 import { StrictMode, useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
+import {
+  AgentInspector,
+  agentStatus,
+  type CohortStats,
+  type ObservedAgent,
+  Overview,
+  type RecordedTurn,
+  Status,
+  TurnHistory,
+} from "./observe.js";
 
 type Obj = Record<string, unknown>;
 type Agent = {
@@ -16,7 +26,7 @@ type Agent = {
   last_turn_at: string | null;
   reason: string | null;
   strategy: { profile: string; objective: string; riskTolerance: number; patience: number; horizon: string };
-};
+} & ObservedAgent;
 type Cohort = {
   id: string;
   name: string;
@@ -41,7 +51,7 @@ type Turn = {
   calls: number;
   actions: number;
   pending_command: string | null;
-};
+} & RecordedTurn;
 type State = {
   cohorts: Cohort[];
   agents: Agent[];
@@ -55,7 +65,9 @@ type State = {
     input_tokens: string;
     output_tokens: string;
     unknown_calls: number;
+    reserved_calls: number;
   }[];
+  cohortStats: CohortStats[];
   liveEnabled: boolean;
   demo: boolean;
   asOf: string;
@@ -86,14 +98,17 @@ function App() {
     [state, setState] = useState<State | null>(null),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
-    [tab, setTab] = useState("society"),
+    [tab, setTab] = useState("overview"),
     [cohortId, setCohortId] = useState(""),
     [selected, setSelected] = useState<Pair | null>(null),
     [thread, setThread] = useState<Thread | null>(null),
     [modal, setModal] = useState<"create" | "configure" | "permissions" | "provision" | null>(null),
     [agentId, setAgentId] = useState(""),
     [search, setSearch] = useState(""),
-    [kind, setKind] = useState("all");
+    [kind, setKind] = useState("all"),
+    [inspectionId, setInspectionId] = useState(""),
+    [agentSearch, setAgentSearch] = useState(""),
+    [agentFilter, setAgentFilter] = useState("all");
   const api = useCallback(
     async <T,>(path: string, body?: unknown): Promise<T> => {
       const r = await fetch(`/api${path}`, {
@@ -140,7 +155,7 @@ function App() {
     void refresh().catch((e) => setNotice(e.message));
     const timer = setInterval(() => {
       void refresh().catch((e) => setNotice(e.message));
-    }, 10000);
+    }, 5000);
     return () => clearInterval(timer);
   }, [csrf, refresh]);
   useEffect(() => {
@@ -186,6 +201,26 @@ function App() {
     pairs = state?.pairs.filter((p) => agents.some((a) => a.id === p.owner_agent_id)) ?? [],
     turns = state?.turns.filter((t) => t.cohort_id === cohortId) ?? [],
     usage = state?.usage.find((u) => u.cohort_id === cohortId);
+  const cohortStats = state?.cohortStats?.find((s) => s.cohort_id === cohortId);
+  const visibleAgents = agents.filter((a) => {
+    const match = `${a.name} ${a.strategy.profile} ${a.account_id ?? ""} ${a.kingdom_id ?? ""}`
+      .toLowerCase()
+      .includes(agentSearch.toLowerCase());
+    const status = agentStatus(a, cohort?.state ?? "draft");
+    return (
+      match &&
+      (agentFilter === "all" ||
+        (agentFilter === "active" && a.latest_state === "running" && cohort?.state === "running") ||
+        (agentFilter === "attention" && status === "Needs attention") ||
+        (agentFilter === "scheduled" && ["Scheduled", "Queued"].includes(status)) ||
+        (agentFilter === "paused" && ["Paused", "Fleet paused"].includes(status)))
+    );
+  });
+  const recoverTurn = (t: RecordedTurn) =>
+    void act(async () => {
+      if (t.pending_command) await api(`/turns/${t.id}/reconcile`, {});
+      else await api(`/turns/${t.id}/review`, {});
+    });
   const agent = (id: string) => state?.agents.find((a) => a.id === id),
     peer = (id: string) => state?.agents.find((a) => a.kingdom_id === id)?.name ?? `Kingdom ${id.slice(0, 8)}`;
   if (!csrf)
@@ -234,14 +269,15 @@ function App() {
     <div className="shell">
       <aside className="sidebar">
         <a href="/" className="brand">
-          <span className="brand-mark small">P</span>
+          <span className="brand-mark small">F</span>
           <span>
-            PACT<span className="brand-sub">AGENT FLEET</span>
+            FLEET<span className="brand-sub">PACT · OPERATIONS</span>
           </span>
         </a>
         <p className="sidebar-label">WORKSPACE</p>
         <nav>
           {[
+            ["overview", "◉", "Overview"],
             ["society", "◎", "Society"],
             ["agents", "◈", "Agents"],
             ["activity", "↗", "Turn history"],
@@ -281,13 +317,15 @@ function App() {
           <div>
             <p className="eyebrow">YOUR PERSISTENT WORLD</p>
             <h1>
-              {tab === "society"
-                ? "The society"
-                : tab === "agents"
-                  ? "Your agents"
-                  : tab === "activity"
-                    ? "Turn history"
-                    : "Fleet settings"}
+              {tab === "overview"
+                ? "Fleet overview"
+                : tab === "society"
+                  ? "The society"
+                  : tab === "agents"
+                    ? "Your agents"
+                    : tab === "activity"
+                      ? "Turn history"
+                      : "Fleet settings"}
             </h1>
           </div>
           <div className="header-actions">
@@ -298,6 +336,7 @@ function App() {
                 setCohortId(e.target.value);
                 setSelected(null);
                 setThread(null);
+                setInspectionId("");
               }}
             >
               <option value="">Choose a fleet</option>
@@ -344,13 +383,15 @@ function App() {
           </div>
           <div>
             <span>COMMITTED ACTIONS</span>
-            <strong>{turns.reduce((n, t) => n + t.actions, 0)}</strong>
-            <small>Latest {turns.length} recorded turns</small>
+            <strong>{fmt(cohortStats?.actions ?? 0)}</strong>
+            <small>Across {fmt(cohortStats?.turns ?? 0)} lifetime turns</small>
           </div>
           <div>
             <span>{cohort?.model?.route === "codex-cli" ? "CODEX EXECUTIONS" : "MODEL CALLS"}</span>
             <strong>{fmt(usage?.calls ?? 0)}</strong>
-            <small>{fmt(usage?.unknown_calls ?? 0)} without complete usage</small>
+            <small>
+              {fmt(usage?.reserved_calls ?? 0)} in flight · {fmt(usage?.unknown_calls ?? 0)} unknown
+            </small>
           </div>
         </section>
         {!cohort ? (
@@ -365,6 +406,16 @@ function App() {
               Create a fleet
             </button>
           </div>
+        ) : tab === "overview" ? (
+          <Overview
+            cohort={cohort}
+            agents={agents}
+            turns={turns}
+            stats={cohortStats}
+            inspect={setInspectionId}
+            history={() => setTab("activity")}
+            society={() => setTab("society")}
+          />
         ) : tab === "society" ? (
           <>
             <div className="section-heading">
@@ -405,7 +456,19 @@ function App() {
                   </div>
                 ) : pairs.length === 0 ? (
                   <div className="small-empty">
-                    No observed exchanges yet. A model plan does not count as a conversation.
+                    <h3>No conversations observed yet</h3>
+                    <p>
+                      Observation is on. Agents have recorded {fmt(cohortStats?.turns ?? 0)} turns and{" "}
+                      {fmt(cohortStats?.actions ?? 0)} committed actions, but no participating exchange is in the
+                      journal.
+                    </p>
+                    <p>
+                      Reading and construction do not appear as conversations. Follow their work in Overview or inspect
+                      an agent.
+                    </p>
+                    <button type="button" onClick={() => setTab("overview")}>
+                      See live activity →
+                    </button>
                   </div>
                 ) : (
                   pairs
@@ -534,12 +597,34 @@ function App() {
               </div>
               <span className="badge">Every {cohort.interval_minutes} minutes</span>
             </div>
+            <div className="roster-toolbar">
+              <input
+                aria-label="Search agents"
+                placeholder="Search name, strategy, account or kingdom…"
+                value={agentSearch}
+                onChange={(e) => setAgentSearch(e.target.value)}
+              />
+              <select
+                aria-label="Filter agents by status"
+                value={agentFilter}
+                onChange={(e) => setAgentFilter(e.target.value)}
+              >
+                <option value="all">All statuses</option>
+                <option value="active">Working now</option>
+                <option value="scheduled">Scheduled / queued</option>
+                <option value="attention">Needs attention</option>
+                <option value="paused">Paused</option>
+              </select>
+              <span>
+                {visibleAgents.length} of {agents.length} agents
+              </span>
+            </div>
             <div className="agent-grid">
-              {agents.map((a) => (
+              {visibleAgents.map((a) => (
                 <article className="agent-card" key={a.id}>
                   <div className="agent-top">
                     <span className={`avatar ${a.strategy.profile}`}>{String(a.ordinal + 1).padStart(2, "0")}</span>
-                    <span className="badge">{a.state.replaceAll("_", " ")}</span>
+                    <Status agent={a} state={cohort.state} />
                   </div>
                   <h3>{a.name}</h3>
                   <p className="profile">{a.strategy.profile}</p>
@@ -549,18 +634,12 @@ function App() {
                       <dt>Account</dt>
                       <dd>{a.account_id ? "Connected" : "Not connected"}</dd>
                     </div>
-                    {a.account_id && (
-                      <div>
-                        <dt>Account ID</dt>
-                        <dd style={{ overflowWrap: "anywhere" }}>{a.account_id}</dd>
-                      </div>
-                    )}
-                    {a.kingdom_id && (
-                      <div>
-                        <dt>Kingdom ID</dt>
-                        <dd style={{ overflowWrap: "anywhere" }}>{a.kingdom_id}</dd>
-                      </div>
-                    )}
+                    <div>
+                      <dt>Lifetime turns / commits</dt>
+                      <dd>
+                        {a.total_turns ?? 0} / {a.committed_actions ?? 0}
+                      </dd>
+                    </div>
                     <div>
                       <dt>Next turn</dt>
                       <dd>{date(a.next_due_at)}</dd>
@@ -570,8 +649,15 @@ function App() {
                       <dd>{date(a.last_turn_at)}</dd>
                     </div>
                   </dl>
+                  <div className="agent-intent">
+                    <span>{a.latest_state === "running" ? "Current work" : "Latest recorded intent"}</span>
+                    <p>{a.current_label ?? a.latest_summary ?? "No recorded turn yet."}</p>
+                  </div>
                   {a.reason && <p className="reason">{a.reason.replaceAll("_", " ")}</p>}
                   <div className="card-actions">
+                    <button type="button" className="primary" onClick={() => setInspectionId(a.id)}>
+                      Inspect agent →
+                    </button>
                     {!a.account_id || a.credential_state !== "ready" ? (
                       <>
                         <button
@@ -614,78 +700,19 @@ function App() {
                 </article>
               ))}
             </div>
+            {visibleAgents.length === 0 && (
+              <p className="small-empty">No agents match this search and status filter.</p>
+            )}
           </>
         ) : tab === "activity" ? (
-          <section className="panel">
-            <div className="section-heading">
-              <div>
-                <h2>Receipts over intentions</h2>
-                <p>Actual execution, waiting and interrupted work.</p>
-              </div>
-            </div>
-            {turns.length === 0 ? (
-              <p className="small-empty">No turns have run.</p>
-            ) : (
-              <div className="table-wrap">
-                <table>
-                  <thead>
-                    <tr>
-                      <th>Agent</th>
-                      <th>When</th>
-                      <th>Result</th>
-                      <th>Calls / actions</th>
-                      <th>Summary</th>
-                      <th>Recovery</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {turns.map((t) => (
-                      <tr key={t.id}>
-                        <td>{agent(t.agent_id)?.name}</td>
-                        <td>{date(t.started_at)}</td>
-                        <td>
-                          <span className="badge">{t.code ?? t.state}</span>
-                        </td>
-                        <td>
-                          {t.calls} / {t.actions}
-                        </td>
-                        <td>{t.summary ?? "—"}</td>
-                        <td>
-                          {t.pending_command ? (
-                            <button
-                              type="button"
-                              disabled={busy || !state?.liveEnabled}
-                              onClick={() =>
-                                void act(async () => {
-                                  await api(`/turns/${t.id}/reconcile`, {});
-                                })
-                              }
-                            >
-                              Check receipt
-                            </button>
-                          ) : t.state === "needs_owner" ? (
-                            <button
-                              type="button"
-                              disabled={busy}
-                              onClick={() =>
-                                void act(async () => {
-                                  await api(`/turns/${t.id}/review`, {});
-                                })
-                              }
-                            >
-                              Mark reviewed
-                            </button>
-                          ) : (
-                            "—"
-                          )}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
-          </section>
+          <TurnHistory
+            key={`${cohort.id}:${cohort.observation_consent}`}
+            cohort={cohort}
+            agents={agents}
+            api={api}
+            inspect={setInspectionId}
+            recover={recoverTurn}
+          />
         ) : (
           <section className="settings-grid">
             <article className="panel">
@@ -831,6 +858,19 @@ function App() {
         <footer>
           Independent fleet state · Last refreshed {date(state?.asOf ?? null)} Berlin · Game rules enforced by PACT
         </footer>
+        {inspectionId && cohort && (
+          <AgentInspector
+            key={`${inspectionId}:${cohort.observation_consent}`}
+            id={inspectionId}
+            api={api}
+            close={() => setInspectionId("")}
+            pause={(a) =>
+              void act(async () => {
+                await api(`/agents/${a.id}/state`, { state: a.state === "paused" ? "ready" : "paused" });
+              })
+            }
+          />
+        )}
       </main>
       {modal && (
         <div className="modal-backdrop">

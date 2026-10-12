@@ -10,6 +10,7 @@ import { Communications } from "./games/pact/communications.js";
 import { actionKinds } from "./games/pact/contracts.js";
 import type { CredentialBroker } from "./games/pact/credentials.js";
 import { OwnerPolicy } from "./games/pact/owner.js";
+import { Observability } from "./observability.js";
 import type { Store } from "./store.js";
 
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -197,6 +198,15 @@ export function buildServer(options: {
       );
     },
   );
+  const historyQuery = z.object({ beforeAt: z.iso.datetime().optional(), beforeId: z.uuid().optional() }).strict();
+  app.get<{ Params: { id: string } }>("/api/agents/:id/inspection", async (r) => {
+    const q = historyQuery.parse(r.query);
+    return new Observability(store).inspect(z.uuid().parse(r.params.id), q);
+  });
+  app.get<{ Params: { id: string } }>("/api/cohorts/:id/turns", async (r) => {
+    const q = historyQuery.extend({ agentId: z.uuid().optional() }).parse(r.query);
+    return new Observability(store).history(z.uuid().parse(r.params.id), q.agentId, q);
+  });
   app.post<{ Params: { id: string } }>("/api/turns/:id/reconcile", async (r) =>
     options.engine.reconcile(z.uuid().parse(r.params.id)),
   );

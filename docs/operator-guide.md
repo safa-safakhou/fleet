@@ -20,10 +20,13 @@ Pause/resume, browser closure and server restart preserve the same agent/account
 
 **Current limitation:** a finished or permanently stopped cohort cannot restart. Its bindings remain stored, and database uniqueness prevents attaching its account or kingdom to another agent, including one in a new cohort. There is currently no operator UI to transfer an old agent into a new experiment or roll its binding forward. A new draft is a new set of agent records, not a continuation of the old ones. Reusing the same kingdoms across separate terminal experiments needs an explicitly implemented and verified rollover/migration workflow; do not delete bindings, copy credentials or reset counters to simulate it.
 
-## The four tabs
+## The console tabs
+
+The observability update adds **Overview** as the default entry: a live status map, current work, upcoming agents and recent outcomes. Select any numbered agent or **Inspect agent** on its card to open its strategy, schedule, account binding, usage, saved notes and expandable turn timelines. See [release evidence and coverage](observability-20261012.md).
 
 | Tab | What to use it for |
 | --- | --- |
+| **Overview** | See activity across the group, which agent is working now, scheduling and attention indicators; jump directly into an agent inspector. |
 | **Agents** | Check each agent's strategy, connected account, next turn and last result. Connect an existing account, create a fresh synthetic account, or pause an individual connected agent. |
 | **Fleet settings** | Inspect group state, model, schedule, worker heartbeat and usage. Select model/allowance, configure synthetic-owner exceptions, and start, pause or permanently stop the group. |
 | **Turn history** | Inspect actual turns, outcomes, committed-action counts and errors. Check an uncertain command's receipt, or mark a corrected non-command failure reviewed. |

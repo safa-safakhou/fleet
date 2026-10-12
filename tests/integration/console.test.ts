@@ -83,6 +83,8 @@ describe("private operator console", () => {
     for (const path of [
       "/api/state",
       "/api/session",
+      "/api/agents/anything/inspection",
+      "/api/cohorts/anything/turns",
       "/api/agents/anything/thread?peer=x",
       "/api/oauth/callback?state=x&code=y",
     ]) {

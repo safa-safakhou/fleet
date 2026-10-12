@@ -81,6 +81,9 @@ export class Communications {
     });
   }
   async prune(retentionDays = 30) {
+    await this.store.pool.query("DELETE FROM turn_events WHERE occurred_at<$1", [
+      new Date(this.store.now().getTime() - retentionDays * 86400000),
+    ]);
     await this.store.pool.query(
       "UPDATE agents SET read_memory_cipher=NULL,read_memory_updated_at=NULL WHERE read_memory_updated_at<$1",
       [new Date(this.store.now().getTime() - retentionDays * 86400000)],

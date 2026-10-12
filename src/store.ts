@@ -14,6 +14,7 @@ import {
   type Strategy,
   strategy,
 } from "./domain.js";
+import { Observability } from "./observability.js";
 import type { Vault } from "./vault.js";
 
 export interface AgentRow {
@@ -124,7 +125,10 @@ export class Store {
     await transaction(this.pool, async (c) => {
       await this.cohort(id, c);
       await c.query("UPDATE cohorts SET observation_consent=$2 WHERE id=$1", [id, enabled]);
-      if (!enabled) await c.query("DELETE FROM communications WHERE cohort_id=$1", [id]);
+      if (!enabled) {
+        await c.query("DELETE FROM communications WHERE cohort_id=$1", [id]);
+        await c.query("UPDATE turn_events SET detail_cipher=NULL WHERE cohort_id=$1", [id]);
+      }
       await this.audit(c, id, "observation.consent", { enabled });
     });
   }
@@ -198,16 +202,29 @@ export class Store {
       await this.audit(c, a.cohort_id, `agent.${state}`, { agentId: id });
     });
   }
-  async publicState() {
-    const cohorts = (await this.pool.query<CohortRow>("SELECT * FROM cohorts ORDER BY created_at DESC,id")).rows;
-    const agents = (
+  async agentOverview(id?: string) {
+    return (
       await this.pool.query(
-        "SELECT id,cohort_id,ordinal,name,strategy,account_id,kingdom_id,state,next_due_at,last_turn_at,reason,credential_state FROM agents ORDER BY cohort_id,ordinal",
+        `SELECT a.id,a.cohort_id,a.ordinal,a.name,a.strategy,a.account_id,a.kingdom_id,a.state,a.next_due_at,a.last_turn_at,a.reason,a.credential_state,
+         coalesce(s.total_turns,0)::int total_turns,coalesce(s.committed_actions,0)::int committed_actions,
+         t.id latest_turn_id,t.summary latest_summary,t.code latest_code,t.state latest_state,t.started_at latest_started_at,
+         CASE WHEN t.state='running' THEN e.stage ELSE NULL END current_stage,
+         CASE WHEN t.state='running' THEN e.label ELSE NULL END current_label
+         FROM agents a
+         LEFT JOIN (SELECT agent_id,count(*) total_turns,sum(actions) committed_actions FROM turns GROUP BY agent_id) s ON s.agent_id=a.id
+         LEFT JOIN LATERAL (SELECT id,state,summary,code,started_at FROM turns WHERE agent_id=a.id ORDER BY started_at DESC,id DESC LIMIT 1) t ON true
+         LEFT JOIN LATERAL (SELECT stage,label FROM turn_events WHERE turn_id=t.id ORDER BY sequence DESC LIMIT 1) e ON true
+         WHERE ($1::uuid IS NULL OR a.id=$1) ORDER BY a.cohort_id,a.ordinal`,
+        [id ?? null],
       )
     ).rows;
+  }
+  async publicState() {
+    const cohorts = (await this.pool.query<CohortRow>("SELECT * FROM cohorts ORDER BY created_at DESC,id")).rows;
+    const agents = await this.agentOverview();
     const usage = (
       await this.pool.query(
-        "SELECT cohort_id,count(*)::int calls,coalesce(sum(tokens),0)::text allocated_tokens,coalesce(sum(input_tokens),0)::text input_tokens,coalesce(sum(output_tokens),0)::text output_tokens,count(*) FILTER(WHERE status<>'reported')::int unknown_calls FROM compute_ledger GROUP BY cohort_id",
+        "SELECT cohort_id,count(*)::int calls,coalesce(sum(tokens),0)::text allocated_tokens,coalesce(sum(input_tokens),0)::text input_tokens,coalesce(sum(output_tokens),0)::text output_tokens,count(*) FILTER(WHERE status='unknown')::int unknown_calls,count(*) FILTER(WHERE status='reserved')::int reserved_calls FROM compute_ledger GROUP BY cohort_id",
       )
     ).rows;
     const turns = (
@@ -221,7 +238,16 @@ export class Store {
         "SELECT owner_agent_id,peer_kingdom_id,count(*)::int events,max(occurred_at) last_at,count(*) FILTER(WHERE kind='message')::int messages FROM communications x JOIN cohorts c ON c.id=x.cohort_id WHERE c.observation_consent GROUP BY owner_agent_id,peer_kingdom_id ORDER BY last_at DESC LIMIT 200",
       )
     ).rows;
-    return { cohorts, agents, usage, turns, hosts, pairs, asOf: this.now().toISOString() };
+    const cohortStats = (
+      await this.pool.query(
+        `SELECT cohort_id,count(*)::int turns,coalesce(sum(actions),0)::text actions,
+       count(*) FILTER(WHERE state='running')::int running,count(*) FILTER(WHERE state='pending')::int pending,
+       count(*) FILTER(WHERE state='needs_owner' OR (code IS NOT NULL AND code NOT IN('READ','WAIT','COMMITTED','ALREADY_COMMITTED','TURN_ACTION_LIMIT','CLAIM_FENCED')))::int errors,
+       count(*) FILTER(WHERE state='finished' AND actions=0 AND code='READ')::int read_only,
+       count(*) FILTER(WHERE code='WAIT')::int waits FROM turns GROUP BY cohort_id`,
+      )
+    ).rows;
+    return { cohorts, agents, usage, turns, hosts, pairs, cohortStats, asOf: this.now().toISOString() };
   }
   async heartbeat(worker: string, liveEnabled: boolean) {
     await this.pool.query(
@@ -385,15 +411,29 @@ export class Store {
     await transaction(this.pool, async (c) => {
       await this.check(c, claim);
       await c.query("UPDATE turns SET pending_command=$2,pending_action=$3 WHERE id=$1", [claim.id, id, action]);
+      await new Observability(this).record(claim, "acting", "Submitting game action", { commandId: id, action }, c);
     });
   }
   async receipt(claim: Claim, receipt: Data) {
     await transaction(this.pool, async (c) => {
-      const row = (await c.query("SELECT pending_command FROM turns WHERE id=$1 FOR UPDATE", [claim.id])).rows[0];
+      const row = (await c.query("SELECT pending_command,pending_action FROM turns WHERE id=$1 FOR UPDATE", [claim.id]))
+        .rows[0];
       if (!row?.pending_command || receipt.commandId !== row.pending_command) throw new FleetError("RECEIPT_MISMATCH");
       await c.query(
         "UPDATE turns SET pending_command=NULL,pending_action=NULL,actions=actions+$2,code=$3 WHERE id=$1",
         [claim.id, ["COMMITTED", "ALREADY_COMMITTED"].includes(String(receipt.code)) ? 1 : 0, String(receipt.code)],
+      );
+      await new Observability(this).record(
+        claim,
+        "result",
+        "Game returned an action result",
+        {
+          commandId: receipt.commandId,
+          code: receipt.code,
+          action: row.pending_action,
+          committed: ["COMMITTED", "ALREADY_COMMITTED"].includes(String(receipt.code)),
+        },
+        c,
       );
     });
   }
@@ -434,6 +474,7 @@ export class Store {
         code,
         summary.slice(0, 400),
       ]);
+      await new Observability(this).record(claim, "finished", "Turn completed", { code, summary, state: result }, c);
       if (fenced) return;
       const backoff = ["RUN_ALREADY_ACTIVE", "RATE_LIMITED"].includes(code) ? 60000 : 0;
       const anchor = claim.cohort.anchor_at ?? now,
