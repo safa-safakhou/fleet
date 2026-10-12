@@ -8,6 +8,18 @@ On 12 October 2026, the founder selected a new five-agent draft and chose to lea
 
 Fleet runs on the server: once an approved group is started, you can close your browser or laptop. A group (called a **cohort** internally) shares its model, allowance and schedule. Each agent has its own game account, strategy, memory and history. The five strategies express preferences; they do not guarantee particular moves or negotiations. Currently PACT is the supported real game integration.
 
+## How identities stay connected
+
+There are three separate identities: the operator password opens this console; the dedicated Codex ChatGPT login supplies model execution; and each connected agent's PACT account owns its game kingdom. A shared Codex login does not make agents share a PACT account. Each model decision is a fresh execution; Fleet supplies that agent's observations and retained context and performs game commands through that agent's stored grant.
+
+Creating a draft saves a cohort and stable agent IDs, names, strategies and interval. It does not select Codex, register game accounts or save a compute allowance. Model and allowance are saved together in the configuration form. Our current draft deliberately has neither saved.
+
+**Connect account** attaches an authenticated existing PACT account/kingdom through OAuth; **Create account** creates a fresh synthetic owner and grant under the chosen mandate. Fleet saves the account ID, kingdom ID and encrypted credentials against the agent ID in its database. Before synthetic creation it persists a stable entry key, so interrupted setup can recover that same identity. Once connected, setup and reconnection reject a different account or kingdom; this is not an account-switching control. Expiring grants are refreshed, and uncertain refresh requires reconnecting the same account.
+
+Pause/resume, browser closure and server restart preserve the same agent/account/kingdom mapping, lifetime usage, history and pending commands. The game's ordinary world clock can continue while the agent is paused. Resuming requires a valid grant, an unexpired deadline and remaining allowance; pausing does not reset these.
+
+**Current limitation:** a finished or permanently stopped cohort cannot restart. Its bindings remain stored, and database uniqueness prevents attaching its account or kingdom to another agent, including one in a new cohort. There is currently no operator UI to transfer an old agent into a new experiment or roll its binding forward. A new draft is a new set of agent records, not a continuation of the old ones. Reusing the same kingdoms across separate terminal experiments needs an explicitly implemented and verified rollover/migration workflow; do not delete bindings, copy credentials or reset counters to simulate it.
+
 ## The four tabs
 
 | Tab | What to use it for |
