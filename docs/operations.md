@@ -1,6 +1,6 @@
 # Current Fleet deployment — 12 October 2026
 
-The current assignment rebuilds the service from the independent sibling `fleet` repository. The intended new release root is `/opt/fleet/current`, Compose project `fleet`, and protected configuration/state/backups `/var/lib/fleet`. The five-agent pilot remains finished; live execution is disabled. Historical installation and pilot notes below preserve provenance. Consult [the migration report](repository-migration-20261012.md) for actual completion evidence.
+The current assignment rebuilds the service from the independent sibling `fleet` repository. The current release root is `/opt/fleet/current`, Compose project `fleet`, and protected configuration/state/backups `/var/lib/fleet`. The five-agent pilot remains finished; live execution is disabled. Historical installation and pilot notes below preserve provenance. Consult [the migration report](repository-migration-20261012.md) for actual completion evidence.
 
 ## Reproducible deployment
 
