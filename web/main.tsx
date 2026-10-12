@@ -549,6 +549,18 @@ function App() {
                       <dt>Account</dt>
                       <dd>{a.account_id ? "Connected" : "Not connected"}</dd>
                     </div>
+                    {a.account_id && (
+                      <div>
+                        <dt>Account ID</dt>
+                        <dd style={{ overflowWrap: "anywhere" }}>{a.account_id}</dd>
+                      </div>
+                    )}
+                    {a.kingdom_id && (
+                      <div>
+                        <dt>Kingdom ID</dt>
+                        <dd style={{ overflowWrap: "anywhere" }}>{a.kingdom_id}</dd>
+                      </div>
+                    )}
                     <div>
                       <dt>Next turn</dt>
                       <dd>{date(a.next_due_at)}</dd>
@@ -692,12 +704,26 @@ function App() {
                   <dt>Model</dt>
                   <dd>{cohort.model?.model ?? "Not selected"}</dd>
                 </div>
+                {cohort.model?.reasoningEffort && (
+                  <div>
+                    <dt>Reasoning</dt>
+                    <dd>{cohort.model.reasoningEffort}</dd>
+                  </div>
+                )}
+                {cohort.budget && (
+                  <div>
+                    <dt>Decisions per turn</dt>
+                    <dd>{String(cohort.budget.maxCallsPerTurn)}</dd>
+                  </div>
+                )}
                 <div>
                   <dt>Budget</dt>
                   <dd>
-                    {cohort.budget
-                      ? `${fmt(String(cohort.budget.callLimit))} ${cohort.model?.route === "codex-cli" ? "executions" : "calls"} · ${String(cohort.budget.mode)}`
-                      : "Not selected"}
+                    {cohort.budget?.mode === "continuous"
+                      ? "Until stopped · lifetime usage retained"
+                      : cohort.budget
+                        ? `${fmt(String(cohort.budget.callLimit))} ${cohort.model?.route === "codex-cli" ? "executions" : "calls"} · ${String(cohort.budget.mode)}`
+                        : "Not selected"}
                   </dd>
                 </div>
                 <div>
@@ -1010,9 +1036,10 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
           model: { route, model, ...(route === "codex-cli" ? { reasoningEffort } : {}) },
           budget: {
             mode,
-            callLimit: calls,
-            tokenLimit: tokens,
-            deadlineAt: new Date(deadline).toISOString(),
+            callLimit: mode === "continuous" ? null : calls,
+            tokenLimit: mode === "continuous" ? null : tokens,
+            deadlineAt: mode === "continuous" ? null : new Date(deadline).toISOString(),
+            ...(mode === "continuous" ? { continuousExecutionAccepted: true } : {}),
             perCallTokenLimit: 40000,
             maxOutputTokens: 2000,
             inputByteLimit: 24000,
@@ -1058,24 +1085,34 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
         <select value={mode} onChange={(e) => setMode(e.target.value)}>
           <option value="finite">Total, fixed experiment</option>
           <option value="daily">Recurring daily, UTC midnight</option>
+          <option value="continuous">Until stopped · no total allowance or end date</option>
         </select>
       </label>
-      <div className="form-row">
-        <label>
-          {route === "codex-cli" ? "Maximum Codex executions" : "Maximum calls"}
-          <input required type="number" min={1} value={calls} onChange={(e) => setCalls(Number(e.target.value))} />
-        </label>
-        <label>
-          Token allocation
-          <input
-            required
-            type="number"
-            min={40000}
-            value={tokens}
-            onChange={(e) => setTokens(Number(e.target.value))}
-          />
-        </label>
-      </div>
+      {mode !== "continuous" && (
+        <div className="form-row">
+          <label>
+            {route === "codex-cli" ? "Maximum Codex executions" : "Maximum calls"}
+            <input required type="number" min={1} value={calls} onChange={(e) => setCalls(Number(e.target.value))} />
+          </label>
+          <label>
+            Token allocation
+            <input
+              required
+              type="number"
+              min={40000}
+              value={tokens}
+              onChange={(e) => setTokens(Number(e.target.value))}
+            />
+          </label>
+        </div>
+      )}
+      {mode === "continuous" && (
+        <p className="muted">
+          Runs until you pause or stop it, with no lifetime call/token ceiling or automatic end date. Every turn remains
+          bounded and all usage is retained. Provider limits, uncertain results and excessive per-execution usage can
+          still pause admission. Saving explicitly accepts continuous execution; it does not start agents.
+        </p>
+      )}
       {route === "codex-cli" && (
         <label className="execution-consent">
           <input
@@ -1090,10 +1127,12 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
           </span>
         </label>
       )}
-      <label>
-        Original deadline, browser local time
-        <input type="datetime-local" required value={deadline} onChange={(e) => setDeadline(e.target.value)} />
-      </label>
+      {mode !== "continuous" && (
+        <label>
+          Original deadline, browser local time
+          <input type="datetime-local" required value={deadline} onChange={(e) => setDeadline(e.target.value)} />
+        </label>
+      )}
       <p className="muted">
         The picker uses this browser's timezone; the saved deadline is an exact UTC instant. Usage is recorded
         separately from reserved allowance.

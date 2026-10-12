@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { Communications } from "../../src/games/pact/communications.js";
 import { CredentialBroker } from "../../src/games/pact/credentials.js";
 import { buildServer } from "../../src/server.js";
-import { FakeModel, fixture, ready } from "../helpers.js";
+import { continuousBudget, FakeModel, fixture, ready } from "../helpers.js";
 import { Engine } from "../pact-engine.js";
 
 const origin = "http://127.0.0.1:8820",
@@ -36,6 +36,48 @@ async function login(app: ReturnType<typeof buildServer>) {
   return { cookie: String(r.headers["set-cookie"]).split(";")[0], origin, "x-csrf-token": r.json().csrf };
 }
 describe("private operator console", () => {
+  it("saves and exposes continuous selection without enrolling or starting any agent", async () => {
+    const f = await setup(),
+      headers = await login(f.app);
+    const created = await f.app.inject({
+      method: "POST",
+      url: "/api/cohorts",
+      headers,
+      payload: {
+        name: "Continuous fixture",
+        count: 50,
+        intervalMinutes: 15,
+        seed: "synthetic",
+        strategies: ["guardian"],
+      },
+    });
+    const id = created.json().id;
+    const selected = await f.app.inject({
+      method: "POST",
+      url: `/api/cohorts/${id}/configure`,
+      headers,
+      payload: {
+        model: { route: "codex-cli", model: "synthetic-luna", reasoningEffort: "medium" },
+        budget: continuousBudget,
+      },
+    });
+    expect(selected.statusCode).toBe(200);
+    const response = await f.app.inject({ url: "/api/state", headers });
+    const state = response.json();
+    expect(state.cohorts[0].budget.deadlineAt).toBe(null);
+    expect(state.cohorts[0].budget.mode).toBe("continuous");
+    expect(state.cohorts[0].state).toBe("draft");
+    expect(state.agents).toHaveLength(50);
+    expect(state.agents.every((a: { account_id: string | null }) => a.account_id === null)).toBe(true);
+    expect(state.turns).toHaveLength(0);
+    const start = await f.app.inject({
+      method: "POST",
+      url: `/api/cohorts/${id}/state`,
+      headers,
+      payload: { state: "running" },
+    });
+    expect(start.json().error.code).toBe("LIVE_EXECUTION_DISABLED");
+  });
   it("requires login for every private route, including anonymous callback", async () => {
     const f = await setup();
     for (const path of [

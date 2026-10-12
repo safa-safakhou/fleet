@@ -18,6 +18,16 @@ export const budget = {
   maxActionsPerTurn: 3,
   concurrency: 2,
 };
+export const continuousBudget = {
+  ...budget,
+  mode: "continuous",
+  callLimit: null,
+  tokenLimit: null,
+  deadlineAt: null,
+  concurrency: 1,
+  continuousExecutionAccepted: true,
+  executionAccountingAccepted: true,
+};
 export async function fixture() {
   const target = new URL(testUrl);
   if (!["127.0.0.1", "localhost"].includes(target.hostname) || target.pathname !== "/fleet_test")

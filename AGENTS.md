@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Current continuous assignment — 12 October 2026
+
+The founder explicitly requested a new fleet of 50 agents, each with a fresh PACT account, Luna, a 15-minute schedule and indefinite execution with dashboard observation. This covers implementing genuine continuous mode, verification, commits, deployment, account enrollment, observation and starting this new fleet until the founder stops it. Use the dedicated existing Codex subscription route, `gpt-6-luna` with medium reasoning, serial inference and bounded individual turns/calls. There is no lifetime deadline or call/token ceiling for this explicitly indefinite group; retain all lifetime accounting. Provider/account/uncertain-command failures retain the existing recovery behavior. Preserve the finished original five-owner pilot, historical experiments and the inactive learning draft. Do not reset/rebind their accounts, counters or pending commands. This new request, not historical population consent, authorizes the new run. Record its actual launch and acceptance in `docs/continuous-fleet-20261012.md`.
+
 Fleet is an independent Node 24 / TypeScript / Fastify / React / PostgreSQL 17 repository. The 12 October assignment authorizes moving the deployed fleet into this repository, extracting a reusable game integration boundary, synthetic verification, verified commits and a fresh deployment. Preserve the terminal five-agent pilot and historical experiments; deployment never authorizes a new cohort, account, inference call or deadline extension.
 
 Prefer codebase-memory-mcp discovery; index this repository if needed. Use ordinary file reads for docs/configuration or insufficient graph results. Do not delegate unless explicitly requested.

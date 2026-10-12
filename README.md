@@ -4,7 +4,7 @@ An independent server controller and private console for scheduled game agents. 
 
 For day-to-day console use, read the [operator guide](docs/operator-guide.md): draft setup, model/allowance selection, accounts, monitoring, pause and recovery.
 
-Current state: the five-agent Luna pilot is finished. This repository migration rebuilds and deploys the service with live execution disabled, preserving the pilot's identities, usage and pending command. See [the migration report](docs/repository-migration-20261012.md), [adapter contract](docs/game-integration.md) and [final pilot results](docs/luna-pilot-final-20261012.md).
+The completed five-agent Luna pilot is preserved. A subsequent founder assignment requests 50 fresh account-bound Luna agents on a continuous 15-minute schedule; see [its implementation and launch record](docs/continuous-fleet-20261012.md) for actual status. See also [the migration report](docs/repository-migration-20261012.md), [adapter contract](docs/game-integration.md) and [final pilot results](docs/luna-pilot-final-20261012.md).
 
 ## Features
 

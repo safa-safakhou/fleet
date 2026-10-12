@@ -1,11 +1,50 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { budget, fixture, ready } from "../helpers.js";
+import { budget, continuousBudget, fixture, ready } from "../helpers.js";
 
 let cleanup: (() => Promise<void>) | undefined;
 afterEach(async () => {
   await cleanup?.();
 });
 describe("durable fleet scheduler", () => {
+  it("continuous 50-owner schedules retain bindings and lifetime usage across cycles, years and resume", async () => {
+    const f = await fixture();
+    cleanup = () => f.pool.end();
+    const id = await ready(f.store, 50);
+    await f.store.setState(id, "paused", true);
+    await f.store.configure(id, { model: { route: "codex-cli", model: "synthetic-luna" }, budget: continuousBudget });
+    const identities = (await f.store.publicState()).agents.map((a) => [a.id, a.account_id, a.kingdom_id]);
+    await f.store.setState(id, "running", true);
+    const cycles: string[][] = [[], []];
+    for (const cycle of cycles) {
+      for (let i = 0; i < 50; i++) {
+        const claim = await f.store.claim("synthetic-worker");
+        if (!claim) throw Error("missing staggered turn");
+        expect(claim.deadline.getTime() - f.now().getTime()).toBe(120000);
+        cycle.push(claim.agentId);
+        const reservation = await f.store.reserveCall(claim);
+        await f.store.recordUsage(reservation, 123, 45);
+        await f.store.finish(claim, "WAIT");
+        f.advance(18000);
+      }
+    }
+    expect(new Set(cycles[0]).size).toBe(50);
+    expect(cycles[1]).toEqual(cycles[0]);
+    await f.store.setState(id, "paused", true);
+    f.advance(3653 * 86400000);
+    await f.store.setState(id, "running", true);
+    const later = await f.store.claim("replacement-worker");
+    if (!later) throw Error("missing continuous turn after years");
+    expect(later.deadline.getTime() - f.now().getTime()).toBe(120000);
+    for (let i = 0; i < 3; i++) await f.store.reserveCall(later);
+    await expect(f.store.reserveCall(later)).rejects.toThrow("TURN_CALL_LIMIT");
+    expect((await f.store.publicState()).usage[0].calls).toBe(103);
+    expect((await f.store.publicState()).agents.map((a) => [a.id, a.account_id, a.kingdom_id])).toEqual(identities);
+    expect((await f.store.cohort(id)).state).toBe("running");
+    await f.store.setState(id, "paused", true);
+    await expect(f.store.active(later)).rejects.toThrow("CLAIM_FENCED");
+    await f.store.setState(id, "stopped", true);
+    await expect(f.store.setState(id, "running", true)).rejects.toThrow("TERMINAL_COHORT");
+  });
   it("repeated start is idempotent and cohort resume preserves individually paused agents", async () => {
     const f = await fixture();
     cleanup = () => f.pool.end();

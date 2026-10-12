@@ -30,23 +30,39 @@ export const ModelConfig = z
     reasoningEffort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional(),
   })
   .strict();
+const executionLimits = {
+  perCallTokenLimit: z.number().int().min(100).max(40000),
+  maxOutputTokens: z.number().int().min(1).max(2000),
+  inputByteLimit: z.number().int().min(500).max(24000),
+  maxCallsPerTurn: z.number().int().min(1).max(3),
+  maxActionsPerTurn: z.number().int().min(1).max(3),
+  concurrency: z.number().int().min(1).max(16),
+  executionAccountingAccepted: z.literal(true).optional(),
+};
 export const Budget = z
-  .object({
-    mode: z.enum(["finite", "daily"]),
-    callLimit: z.number().int().min(1).max(1000000),
-    tokenLimit: z.number().int().min(1).max(1000000000),
-    deadlineAt: z.iso.datetime(),
-    perCallTokenLimit: z.number().int().min(100).max(40000),
-    maxOutputTokens: z.number().int().min(1).max(2000),
-    inputByteLimit: z.number().int().min(500).max(24000),
-    maxCallsPerTurn: z.number().int().min(1).max(3),
-    maxActionsPerTurn: z.number().int().min(1).max(3),
-    concurrency: z.number().int().min(1).max(16),
-    executionAccountingAccepted: z.literal(true).optional(),
-  })
-  .strict()
+  .discriminatedUnion("mode", [
+    z
+      .object({
+        ...executionLimits,
+        mode: z.enum(["finite", "daily"]),
+        callLimit: z.number().int().min(1).max(1000000),
+        tokenLimit: z.number().int().min(1).max(1000000000),
+        deadlineAt: z.iso.datetime(),
+      })
+      .strict(),
+    z
+      .object({
+        ...executionLimits,
+        mode: z.literal("continuous"),
+        callLimit: z.null(),
+        tokenLimit: z.null(),
+        deadlineAt: z.null(),
+        continuousExecutionAccepted: z.literal(true),
+      })
+      .strict(),
+  ])
   .refine(
-    (b) => b.tokenLimit >= b.perCallTokenLimit && b.perCallTokenLimit > b.maxOutputTokens,
+    (b) => (b.mode === "continuous" || b.tokenLimit >= b.perCallTokenLimit) && b.perCallTokenLimit > b.maxOutputTokens,
     "Budget must cover one complete call",
   );
 export type BudgetConfig = z.infer<typeof Budget>;

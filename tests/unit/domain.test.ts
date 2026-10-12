@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { Budget, Draft, nextSlot, safeCode, strategy } from "../../src/domain.js";
 import { actionContract, actionKinds, actionSchema, isRead, validateTool } from "../../src/games/pact/contracts.js";
 import { Vault } from "../../src/vault.js";
-import { budget, key } from "../helpers.js";
+import { budget, continuousBudget, key } from "../helpers.js";
 
 describe("schedule and values", () => {
   it("skips missed slots rather than replaying an outage", () => {
@@ -21,6 +21,16 @@ describe("schedule and values", () => {
   });
   it("redacts raw provider failures", () => {
     expect(safeCode(Error("secret-private-token"))).toBe("TRANSPORT_UNCERTAIN");
+  });
+  it("continuous execution needs explicit consent and cannot hide finite limits or deadlines", () => {
+    expect(Budget.safeParse(continuousBudget).success).toBe(true);
+    expect(Budget.safeParse({ ...continuousBudget, continuousExecutionAccepted: undefined }).success).toBe(false);
+    expect(Budget.safeParse({ ...continuousBudget, callLimit: 100 }).success).toBe(false);
+    expect(Budget.safeParse({ ...continuousBudget, deadlineAt: budget.deadlineAt }).success).toBe(false);
+    expect(Budget.safeParse({ ...budget, deadlineAt: null }).success).toBe(false);
+    expect(Budget.safeParse({ ...continuousBudget, perCallTokenLimit: 1000, maxOutputTokens: 2000 }).success).toBe(
+      false,
+    );
   });
 });
 describe("independent public contracts and vault", () => {

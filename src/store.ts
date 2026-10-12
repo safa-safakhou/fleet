@@ -109,7 +109,7 @@ export class Store {
       budget = Budget.parse(v.budget);
     if (model.route === "codex-cli" && (!budget.executionAccountingAccepted || budget.concurrency !== 1))
       throw new FleetError("CODEX_EXECUTION_BUDGET_REQUIRED");
-    if (new Date(budget.deadlineAt) <= this.now()) throw new FleetError("DEADLINE_PASSED");
+    if (budget.deadlineAt && new Date(budget.deadlineAt) <= this.now()) throw new FleetError("DEADLINE_PASSED");
     await transaction(this.pool, async (c) => {
       const row = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];
       if (!row) throw new FleetError("NOT_FOUND");
@@ -139,7 +139,7 @@ export class Store {
       if (state === "running") {
         if (!liveAllowed) throw new FleetError("LIVE_EXECUTION_DISABLED");
         if (!row.model || !row.budget) throw new FleetError("MODEL_AND_BUDGET_REQUIRED");
-        if (new Date(row.budget.deadlineAt) <= now) throw new FleetError("DEADLINE_PASSED");
+        if (row.budget.deadlineAt && new Date(row.budget.deadlineAt) <= now) throw new FleetError("DEADLINE_PASSED");
         const ready = (
           await c.query(
             "SELECT count(*)::int n FROM agents WHERE cohort_id=$1 AND account_id IS NOT NULL AND credential_state='ready'",
@@ -273,7 +273,9 @@ export class Store {
       ).rows[0].n;
       if (concurrent >= cohort.budget.concurrency) return null;
       const fence = Number(a.fence) + 1,
-        deadline = new Date(Math.min(now.getTime() + 120000, Date.parse(cohort.budget.deadlineAt))),
+        deadline = new Date(
+          Math.min(now.getTime() + 120000, cohort.budget.deadlineAt ? Date.parse(cohort.budget.deadlineAt) : Infinity),
+        ),
         id = randomUUID();
       await c.query("UPDATE agents SET fence=$2 WHERE id=$1", [a.id, fence]);
       await c.query(
@@ -325,14 +327,16 @@ export class Store {
       const turn = (await c.query("SELECT calls FROM turns WHERE id=$1 FOR UPDATE", [claim.id])).rows[0];
       if (turn.calls >= b.maxCallsPerTurn) throw new FleetError("TURN_CALL_LIMIT");
       const period = b.mode === "daily" ? now.toISOString().slice(0, 10) : "lifetime";
-      const used = (
-        await c.query(
-          "SELECT count(*)::int calls,coalesce(sum(tokens),0)::text tokens FROM compute_ledger WHERE cohort_id=$1 AND period=$2",
-          [claim.cohortId, period],
-        )
-      ).rows[0];
-      if (used.calls >= b.callLimit || BigInt(used.tokens) + BigInt(b.perCallTokenLimit) > BigInt(b.tokenLimit))
-        throw new FleetError("BUDGET_EXHAUSTED");
+      if (b.mode !== "continuous") {
+        const used = (
+          await c.query(
+            "SELECT count(*)::int calls,coalesce(sum(tokens),0)::text tokens FROM compute_ledger WHERE cohort_id=$1 AND period=$2",
+            [claim.cohortId, period],
+          )
+        ).rows[0];
+        if (used.calls >= b.callLimit || BigInt(used.tokens) + BigInt(b.perCallTokenLimit) > BigInt(b.tokenLimit))
+          throw new FleetError("BUDGET_EXHAUSTED");
+      }
       const id = randomUUID();
       await c.query(
         "INSERT INTO compute_ledger(id,cohort_id,turn_id,period,tokens,created_at) VALUES($1,$2,$3,$4,$5,$6)",

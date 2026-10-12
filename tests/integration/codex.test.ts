@@ -3,14 +3,14 @@ import { join } from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
 import { CodexModel } from "../../src/codex.js";
 import { codexFixture } from "../codex-fixture.js";
-import { budget, FakeGame, fixture, ready } from "../helpers.js";
+import { budget, continuousBudget, FakeGame, fixture, ready } from "../helpers.js";
 import { Engine } from "../pact-engine.js";
 
 let cleanup: (() => Promise<void>) | undefined;
 afterEach(async () => {
   await cleanup?.();
 });
-async function setup(mode = "ok") {
+async function setup(mode = "ok", continuous = false) {
   const f = await fixture(),
     cli = await codexFixture(mode);
   cleanup = async () => {
@@ -21,7 +21,7 @@ async function setup(mode = "ok") {
   await f.store.setState(id, "paused", true);
   await f.store.configure(id, {
     model: { route: "codex-cli", model: "synthetic-model" },
-    budget: { ...budget, concurrency: 1, executionAccountingAccepted: true },
+    budget: continuous ? continuousBudget : { ...budget, concurrency: 1, executionAccountingAccepted: true },
   });
   await f.store.setState(id, "running", true);
   const claim = await f.store.claim("fixture");
@@ -31,6 +31,18 @@ async function setup(mode = "ok") {
   return { ...f, cli, id, claim, game, model, engine: new Engine(f.store, model, async () => game, true) };
 }
 describe("Codex scheduling and accounting", () => {
+  it("continuous mode still pauses uncertain usage without changing account identity or resetting usage", async () => {
+    const f = await setup("unknown", true);
+    await f.engine.run(f.claim);
+    expect((await f.store.cohort(f.id)).state).toBe("paused");
+    expect((await f.store.publicState()).usage[0].unknown_calls).toBe(1);
+    expect((await f.store.publicState()).usage[0].allocated_tokens).toBe("40000");
+    expect(f.game.submits).toHaveLength(0);
+    f.advance(3653 * 86400000);
+    expect(await f.store.claim("replacement")).toBe(null);
+    expect((await f.store.cohort(f.id)).state).toBe("paused");
+    expect((await f.store.agent(f.claim.agentId)).account_id).toBe(f.claim.agent.account_id);
+  });
   it("requires explicit execution accounting consent and serial cohort admission", async () => {
     const f = await fixture();
     cleanup = () => f.pool.end();
