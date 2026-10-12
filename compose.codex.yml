@@ -1,0 +1,12 @@
+# Dedicated native Codex login is visible only to the worker, never the console.
+services:
+  worker:
+    user: "${FLEET_WORKER_UID:-995}:${FLEET_WORKER_GID:-983}"
+    mem_limit: 512m
+    volumes:
+      - /opt/pact-codex:/opt/pact-codex:ro
+      - /var/lib/pact-codex:/var/lib/pact-codex
+      - ${FLEET_HOST_STATE_PATH:-/var/lib/fleet/state}:/app/.state
+  console:
+    volumes:
+      - ${FLEET_HOST_STATE_PATH:-/var/lib/fleet/state}:/app/.state:ro

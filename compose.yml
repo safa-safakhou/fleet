@@ -1,0 +1,44 @@
+name: fleet
+services:
+  database:
+    image: postgres:17.8-bookworm
+    environment:
+      POSTGRES_USER: fleet
+      POSTGRES_DB: fleet
+      POSTGRES_PASSWORD: ${FLEET_DB_PASSWORD:?Set a private fleet database password}
+    volumes: [fleet_database:/var/lib/postgresql/data]
+    mem_limit: 512m
+    cpus: 0.4
+    healthcheck: {test: [CMD-SHELL, "pg_isready -U fleet -d fleet"], interval: 5s, timeout: 3s, retries: 10}
+    restart: unless-stopped
+  console:
+    build: .
+    command: [node, dist/server/main.js]
+    env_file: .env
+    environment: {FLEET_BIND: 0.0.0.0}
+    ports: ["127.0.0.1:8820:8820"]
+    volumes: [fleet_state:/app/.state]
+    depends_on: {database: {condition: service_healthy}}
+    mem_limit: 256m
+    cpus: 0.3
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+  worker:
+    build: .
+    command: [node, dist/server/worker.js]
+    env_file: .env
+    volumes: [fleet_state:/app/.state]
+    depends_on: {database: {condition: service_healthy}}
+    mem_limit: 256m
+    cpus: 0.3
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    restart: unless-stopped
+volumes:
+  fleet_database:
+  fleet_state:

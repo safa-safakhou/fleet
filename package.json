@@ -1,0 +1,42 @@
+{
+  "name": "fleet",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "dev": "tsx src/main.ts",
+    "dev:web": "vite --host 127.0.0.1",
+    "build": "tsc -p tsconfig.server.json && vite build",
+    "check": "tsc --noEmit && biome check .",
+    "test": "vitest run tests/unit",
+    "test:integration": "vitest run tests/integration --maxWorkers=1",
+    "db:migrate": "tsx scripts/migrate.ts",
+    "start": "node dist/server/main.js",
+    "worker": "node dist/server/worker.js",
+    "demo": "tsx scripts/demo.ts",
+    "check:boundaries": "node scripts/check-boundaries.mjs"
+  },
+  "dependencies": {
+    "ajv": "8.20.0",
+    "fastify": "5.12.5",
+    "pg": "8.23.0",
+    "zod": "4.6.5",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
+  },
+  "devDependencies": {
+    "@types/node": "24.10.1",
+    "@types/pg": "8.23.1",
+    "@types/react": "19.3.0",
+    "@types/react-dom": "19.3.0",
+    "@vitejs/plugin-react": "6.1.1",
+    "@biomejs/biome": "2.5.14",
+    "vite": "8.3.0",
+    "typescript": "7.0.2",
+    "tsx": "4.23.14",
+    "vitest": "5.0.1"
+  }
+}

@@ -1,0 +1,9 @@
+name: fleet-test
+services:
+  database:
+    image: postgres:17.8-bookworm
+    environment: {POSTGRES_USER: fleet_test, POSTGRES_PASSWORD: isolated_fixture, POSTGRES_DB: fleet_test}
+    ports: ["127.0.0.1:5437:5432"]
+    mem_limit: 384m
+    cpus: 0.5
+    healthcheck: {test: [CMD-SHELL, "pg_isready -U fleet_test -d fleet_test"], interval: 2s, timeout: 3s, retries: 15}
