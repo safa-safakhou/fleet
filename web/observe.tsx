@@ -321,6 +321,40 @@ export function Overview({
     </div>
   );
 }
+function ConstructionRecovery({ value }: { value: Record<string, unknown> }) {
+  const blocks = Array.isArray(value.blockedInstructions) ? value.blockedInstructions : [];
+  return (
+    <div className="trace-coverage">
+      <strong>Construction recovery</strong>
+      <p>{String(value.guidance ?? "")}</p>
+      <ul>
+        {blocks
+          .filter((b) => b && typeof b === "object")
+          .map((raw) => {
+            const b = raw as Record<string, unknown>;
+            const missing = Array.isArray(b.missingBuildings) ? b.missingBuildings : [];
+            return (
+              <li key={String(b.instructionId)}>
+                {readable(String(b.building))} {String(b.targetLevel)} · Builder {String(b.slot)}
+                <p>
+                  Needs{" "}
+                  {missing.map((m) => `${String(m.kind)} ${String(m.level)}`).join(", ") ||
+                    "a fresh prerequisite check"}
+                  .
+                </p>
+                <small>Instruction: {String(b.instructionId)}</small>
+              </li>
+            );
+          })}
+      </ul>
+      <p>
+        Only the account owner can cancel construction. Review a blocked waiting instruction in PACT to free a queue
+        position, then re-read and build its missing prerequisite before re-queueing. Fleet has submitted no
+        cancellation.
+      </p>
+    </div>
+  );
+}
 function Steps({ turn }: { turn: RecordedTurn }) {
   if (!turn.events?.length)
     return (
@@ -341,6 +375,10 @@ function Steps({ turn }: { turn: RecordedTurn }) {
           {e.detail && (
             <>
               <p>{typeof e.detail.summary === "string" ? e.detail.summary : ""}</p>
+              {typeof e.detail.guidance === "string" && <p>{e.detail.guidance}</p>}
+              {e.detail.constructionRecovery && typeof e.detail.constructionRecovery === "object" && (
+                <ConstructionRecovery value={e.detail.constructionRecovery as Record<string, unknown>} />
+              )}
               {e.detail.tool != null && <span className="tool-tag">{readable(String(e.detail.tool))}</span>}
               {e.detail.code != null && <span className="tool-tag">{readable(String(e.detail.code))}</span>}
               {e.detail.action && typeof e.detail.action === "object" && (

@@ -39,7 +39,24 @@ const guide = [
 const stable = (e: Data) =>
   e.tool === "fleet_action_schema" ||
   e.tool === "fleet_read_schema" ||
-  (e.tool === "pact_agent_guide_v1" && object(e.args).topic !== "start");
+  (e.tool === "pact_agent_guide_v1" && ["development", "diplomacy", "military"].includes(String(object(e.args).topic)));
+export function narrowRead(entry: Data, limit: number): Data {
+  const projected = projectRead(entry, Math.max(800, limit - 400));
+  const local = ["fleet_read_schema", "fleet_action_schema"].includes(String(entry.tool));
+  return {
+    ...projected,
+    tool: entry.tool,
+    args: entry.args,
+    observedAt: entry.observedAt,
+    narrowing: {
+      omittedFields: object(projected.coverage).omittedFields ?? Object.keys(object(entry.result)),
+      ...(local ? {} : { schemaLookup: { tool: "fleet_read_schema", args: { name: entry.tool } } }),
+      guidance: local
+        ? "Incomplete schema lookup. Executable shapes are whole or omitted, never truncated. If the schema is omitted, choose a smaller supported read/action or defer; do not invent arguments from a partial schema."
+        : "Incomplete observation. Inspect this tool's exact input schema, then use supported topic, ID, filter or paging arguments to request the missing section. If no narrower filter exists, defer the dependent action. Do not assume omitted records are empty or invent unsupported filters.",
+    },
+  };
+}
 // Atomic values, especially executable shapes and message text, are kept whole or omitted.
 export function projectRead(raw: Data, limit = 6000): Data {
   const entry = legacy(raw);
@@ -51,6 +68,7 @@ export function projectRead(raw: Data, limit = 6000): Data {
     tool: entry.tool,
     args: entry.args,
     observedAt: entry.observedAt,
+    ...(entry.requested === true ? { requested: true } : {}),
     result: output,
     coverage: { complete: false, originalBytes: bytes(entry), omittedFields: [], pages: {} },
     observationNotice: "Incomplete observation; retained actions and records are whole. Missing sections are unknown.",
@@ -129,7 +147,19 @@ export function projectRead(raw: Data, limit = 6000): Data {
       if (Object.keys(parties).length < Object.keys(value).length) omitted.push(key);
     } else add(key, value);
   }
-  projected.coverage = { complete: false, originalBytes: bytes(entry), omittedFields: omitted, pages };
+  const prior = object(entry.coverage);
+  for (const [key, rawPage] of Object.entries(pages)) {
+    const page = object(rawPage),
+      old = object(object(prior.pages)[key]);
+    if (typeof old.observed === "number" && typeof page.retained === "number")
+      pages[key] = { ...page, observed: old.observed, omitted: old.observed - page.retained };
+  }
+  projected.coverage = {
+    complete: false,
+    originalBytes: prior.originalBytes ?? bytes(entry),
+    omittedFields: [...new Set([...(Array.isArray(prior.omittedFields) ? prior.omittedFields : []), ...omitted])],
+    pages: { ...object(prior.pages), ...pages },
+  };
   if (bytes(projected) > limit) return object(boundedObservation(entry, limit));
   return projected;
 }

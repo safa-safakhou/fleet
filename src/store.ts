@@ -333,12 +333,13 @@ export class Store {
     await this.check(client, claim);
   }
   async rememberReads(claim: Claim, reads: unknown[]) {
+    if (reads.length > 8 || Buffer.byteLength(JSON.stringify(reads)) > 24000) throw new FleetError("READ_MEMORY_LIMIT");
     await transaction(this.pool, async (c) => {
       await c.query("SELECT id FROM cohorts WHERE id=$1 FOR UPDATE", [claim.cohortId]);
       await this.check(c, claim);
       await c.query("UPDATE agents SET read_memory_cipher=$2,read_memory_updated_at=$3 WHERE id=$1", [
         claim.agentId,
-        this.vault.encrypt(reads.slice(-3), `read-memory:${claim.agentId}`),
+        this.vault.encrypt(reads, `read-memory:${claim.agentId}`),
         this.now(),
       ]);
     });

@@ -44,7 +44,7 @@ interface ResolutionRow {
   action_cipher: string;
 }
 const secretKey = /password|secret|token$|(^|[_-])(token|tokens)([_-]|$)|cookie|authorization|credential|api[_-]?key/i;
-function scrub(value: unknown): unknown {
+export function scrub(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(scrub);
   if (value && typeof value === "object")
     return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, secretKey.test(k) ? "[redacted]" : scrub(v)]));

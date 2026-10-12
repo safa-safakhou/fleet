@@ -14,9 +14,9 @@ import {
 } from "./domain.js";
 import type { GameAdapter } from "./game.js";
 import { RemoteRejection } from "./http.js";
-import { Observability } from "./observability.js";
+import { Observability, scrub } from "./observability.js";
 import type { Claim, Store } from "./store.js";
-import { schemaChanged, validateTool } from "./tools.js";
+import { schemaChanged, ToolArgumentError, validateTool } from "./tools.js";
 
 export interface OwnerPort {
   prepare(claim: Claim, action: Data): Promise<Data>;
@@ -74,7 +74,10 @@ export class Engine {
         name: claim.cohort.name,
       };
       const facts: Data = await this.adapter.initial(game, claim.agent.kingdom_id, initialContext);
+      const attention = this.adapter.attention?.(facts);
+      if (attention) await observation.record(claim, "result", attention.label, attention.detail);
       const reads: Data[] = [];
+      let requestedRead: Data | undefined;
       const decisionFeedback: Data[] = [];
       const lastIntent = (
         await this.store.pool.query(
@@ -93,6 +96,9 @@ export class Engine {
                 typeof e.observedAt === "string" && Date.parse(e.observedAt) > this.store.now().getTime() - 86400000,
             )
           : [];
+      // A request made on the last decision of a turn still needs feedback at the
+      // next eligible scheduled decision. Legacy checkpoints have no such marker.
+      requestedRead = previousReads.find((r) => r.requested === true);
       const connectedGame = game;
       const observePeer = async (peer: string) => {
         for (const { name, args } of this.adapter.peerReads(peer)) {
@@ -103,7 +109,8 @@ export class Engine {
           await observation.record(claim, "reading", "Reading a participating exchange", { tool: name, args });
           const result = await connectedGame.read(name, args);
           await communications.ingest(claim.agentId, peer, name, result);
-          if (Buffer.byteLength(JSON.stringify(result)) < 6000) reads.push({ tool: name, args, result });
+          if (Buffer.byteLength(JSON.stringify(result)) < 6000)
+            reads.push({ tool: name, args, result, observedAt: this.store.now().toISOString() });
           else
             reads.push({
               tool: name,
@@ -141,7 +148,14 @@ export class Engine {
             deadlineAt: claim.deadline.toISOString(),
           },
           environment: this.adapter.compactFacts(facts),
-          readResults: boundedReads([...previousReads, ...reads]),
+          readResults: boundedReads(
+            [...previousReads, ...reads].filter(
+              (r) =>
+                !requestedRead ||
+                JSON.stringify([r.tool, r.args]) !== JSON.stringify([requestedRead.tool, requestedRead.args]),
+            ),
+          ),
+          requestedRead,
           commandResults: reads
             .filter((r) => typeof r.commandId === "string")
             .map((r) => ({
@@ -155,6 +169,21 @@ export class Engine {
           gameActionKinds: capability?.kinds ?? actionKinds,
           suppliedActionSchemas: capability?.schemas ?? [],
           humanOnlyActionKinds: capability?.humanOnly ?? [],
+          actionPermissions: capability?.matrix
+            ? {
+                requiredMandates: Object.fromEntries(
+                  capability.matrix.filter((c) => c.requiredMandate).map((c) => [String(c.kind), c.requiredMandate]),
+                ),
+                ownerPolicyKinds: capability.matrix
+                  .filter((c) => c.route === "owner_policy_only" && !c.blocked)
+                  .map((c) => c.kind),
+                blocked: capability.matrix
+                  .filter((c) => c.blocked && !capability.humanOnly.includes(String(c.kind)))
+                  .map((c) => ({ kind: c.kind, code: c.blocked })),
+              }
+            : undefined,
+          permissionCoverage:
+            "Action advertisement is conditional, not a grant. Authentication, command scope, live write lease, current mandate, social delegation, owner policy, exact permits, targets, quotas, stock and prerequisites are checked by the server on each submission.",
           decisionFeedback,
           availableReads: tools
             .filter(isRead)
@@ -169,10 +198,22 @@ export class Engine {
           decisionSchema,
           b.inputByteLimit,
           boundedReads,
+          this.adapter.narrowRead,
         );
         const bytes = Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(decisionSchema));
         if (bytes > b.inputByteLimit || bytes + b.maxOutputTokens + 1024 > b.perCallTokenLimit)
           throw new FleetError("CONTEXT_LIMIT");
+        if (requestedRead) {
+          const delivered = object(object(JSON.parse(messages[1].content)).requestedRead);
+          await observation.record(claim, "ready", "Requested read delivered to decision", {
+            tool: requestedRead.tool,
+            observedAt: requestedRead.observedAt,
+            inputBytes: bytes,
+            complete: !delivered.omitted && !delivered.coverage && !delivered.narrowing,
+            narrowing: delivered.narrowing,
+            coverage: delivered.coverage,
+          });
+        }
         const reservation = await this.store.reserveCall(claim);
         await observation.record(claim, "thinking", "Waiting for the model decision", { execution: n + 1 });
         if (this.stopping) throw new FleetError("CLAIM_FENCED");
@@ -206,6 +247,11 @@ export class Engine {
         await this.store.active(claim);
         const parsed = Decision.safeParse(response.decision);
         if (!parsed.success) throw new FleetError("INVALID_DECISION");
+        if (requestedRead) {
+          for (const entry of [...previousReads, ...reads]) delete entry.requested;
+          requestedRead = undefined;
+          await this.store.rememberReads(claim, boundedReads(mergeReads([...previousReads, ...reads]), 23800));
+        }
         const decision = parsed.data;
         await observation.record(claim, "deciding", "Model selected the next step", {
           kind: decision.kind,
@@ -243,22 +289,53 @@ export class Engine {
           } else {
             const t = tools.find((t) => t.name === decision.tool && isRead(t));
             if (!t) throw new FleetError("READ_TOOL_FORBIDDEN");
-            validateTool(t, decision.args);
+            const attemptedArgs = object(scrub(structuredClone(decision.args)));
+            try {
+              validateTool(t, decision.args);
+            } catch (error) {
+              if (!(error instanceof ToolArgumentError)) throw error;
+              const feedback = {
+                code: error.code,
+                tool: t.name,
+                attemptedArgs,
+                ...error.detail,
+                schemaLookup: { tool: "fleet_read_schema", args: { name: t.name } },
+                guidance:
+                  "Correct these fields using the exact input schema. No read or command was submitted. Remaining decision budget is unchanged.",
+              };
+              decisionFeedback.push(feedback);
+              await observation.record(claim, "result", "Read arguments rejected before submission", feedback);
+              lastCode = error.code;
+              continue;
+            }
             await observation.record(claim, "reading", "Reading additional game facts", {
               tool: t.name,
               args: decision.args,
             });
             result = await game.read(t.name, decision.args);
+            this.adapter.applyRead?.(facts, t.name, decision.args, result, claim.agent.kingdom_id);
             const peer = this.adapter.readPeer(t.name, decision.args);
             if (typeof peer === "string") await communications.ingest(claim.agentId, peer, t.name, result);
           }
-          reads.push({ tool: decision.tool, args: decision.args, result, observedAt: this.store.now().toISOString() });
+          requestedRead = {
+            tool: decision.tool,
+            args: decision.args,
+            result,
+            observedAt: this.store.now().toISOString(),
+          };
+          reads.push(requestedRead);
           await observation.record(claim, "ready", "Read completed", {
             tool: decision.tool,
             resultFields: Object.keys(result).slice(0, 24),
             resultBytes: Buffer.byteLength(JSON.stringify(result)),
           });
-          await this.store.rememberReads(claim, boundedReads(mergeReads([...previousReads, ...reads]), 24000));
+          const remembered = boundedReads(mergeReads([...previousReads, ...reads]), 23800).map((r) => {
+            const { requested: _oldMarker, ...entry } = r;
+            return JSON.stringify([r.tool, r.args]) === JSON.stringify([requestedRead?.tool, requestedRead?.args])
+              ? { ...entry, requested: true }
+              : entry;
+          });
+          await this.store.rememberReads(claim, remembered);
           lastCode = "READ";
           continue;
         }
@@ -266,13 +343,21 @@ export class Engine {
           lastCode = "TURN_ACTION_LIMIT";
           break;
         }
-        const preflight = capability?.humanOnly.includes(String(decision.action.kind))
+        const permission = capability?.matrix?.find((c) => c.kind === decision.action.kind && c.blocked);
+        const preflight = permission
           ? {
-              code: "HUMAN_DECISION_REQUIRED",
+              code: String(permission.blocked),
+              permission,
               guidance:
-                "This action requires the actual owner. No command or approval was submitted. Choose another authorized step or wait.",
+                "The observed policy does not permit this route. No command or approval was submitted; the actual owner must review authority. Choose another authorized step or wait.",
             }
-          : this.adapter.preflight?.(decision.action, facts);
+          : capability?.humanOnly.includes(String(decision.action.kind))
+            ? {
+                code: "HUMAN_DECISION_REQUIRED",
+                guidance:
+                  "This action requires the actual owner. No command or approval was submitted. Choose another authorized step or wait.",
+              }
+            : this.adapter.preflight?.(decision.action, facts);
         if (preflight) {
           decisionFeedback.push({ action: decision.action, ...preflight });
           lastCode = String(preflight.code);

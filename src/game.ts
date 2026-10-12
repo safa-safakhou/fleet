@@ -15,12 +15,18 @@ export interface GameAdapter {
     expectedEntityId: string | null,
     context?: { ordinal: number; count: number; turn: number; name: string },
   ): Promise<Data>;
-  availableActions?(facts: Data, ownerPolicy: Data | null): { kinds: string[]; schemas: Data[]; humanOnly: string[] };
+  availableActions?(
+    facts: Data,
+    ownerPolicy: Data | null,
+  ): { kinds: string[]; schemas: Data[]; humanOnly: string[]; matrix?: Data[] };
   reviewableRejection?(code: string, action: Data): boolean;
   preflight?(action: Data, facts: Data): Data | undefined;
+  attention?(facts: Data): { label: string; detail: Data } | undefined;
   compactFacts(facts: Data): Data;
   mergeReads(reads: Data[]): Data[];
   boundedReads(reads: Data[], limit?: number): Data[];
+  narrowRead?(read: Data, limit: number): Data;
+  applyRead?(facts: Data, tool: string, args: Data, result: Data, expectedEntityId: string | null): void;
   peers(facts: Data): string[];
   peerReads(peer: string): { name: string; args: Data }[];
   readPeer(tool: string, args: Data): string | undefined;

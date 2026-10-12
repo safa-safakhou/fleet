@@ -9,6 +9,7 @@ export function fitMessages(
   schema: Data,
   limit: number,
   compactReads: (reads: Data[], limit: number) => Data[],
+  narrowRead?: (read: Data, limit: number) => Data,
 ) {
   const messages = (c: Data) => [
     { role: "system", content: instructions },
@@ -32,6 +33,20 @@ export function fitMessages(
       ],
     });
     if (fits(smaller)) return smaller;
+  }
+  // A requested result is indispensable feedback, separate from optional history.
+  // Only narrow it after evicting all optional reads, and never silently drop it.
+  if (context.requestedRead && narrowRead) {
+    for (const allowance of [6000, 4000, 2000, 1000]) {
+      const smaller = messages({
+        ...context,
+        availableReads: names,
+        readResults: [],
+        requestedRead: narrowRead(object(context.requestedRead), allowance),
+        omissions: ["Dated cache omitted. The requested read is explicitly incomplete; use its narrowing guidance."],
+      });
+      if (fits(smaller)) return smaller;
+    }
   }
   throw new FleetError("CONTEXT_LIMIT");
 }

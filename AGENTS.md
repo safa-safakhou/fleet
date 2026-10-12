@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Current P1 implementation assignment — 13 October 2026
+
+Founder assigned fresh reads, memory retention, permissions and construction recovery from PACT's `docs/implementation/fleet-agent-investigation-plan-20261013.md`. Codex owns this local implementation and synthetic cross-repository verification; record evidence in `docs/p1-controller-20261013.md`. Preserve all existing accounts, identities, counters, budgets, pending commands and unknown model usage. The existing continuous group is paused with one unknown execution; this assignment does not reconcile that usage, expand owner permissions or start new inference. Live rollout is separately reviewed under the plan's concrete execution-proposal requirement. No delegation is requested.
+
 ## Current recovery and communication assignment — 12 October 2026
 
 The founder requested repairing the seven blocked continuous owners, preventing recurrence, investigating communication blockers/incentives and explaining decision-model use. This covers verified controller corrections, authenticated receipt/state diagnosis, explicit audited rejection review preserving original commands, deployment and resuming these same owners. Keep unknown/transport outcomes pending, preserve historical terminal groups and the learning draft, and retain the existing accounts, Luna selection, schedule and lifetime usage. Improve access to public discovery, current rules and action schemas without forcing messages or expanding human-only authority. Record actual evidence in `docs/recovery-communication-20261012.md`.
