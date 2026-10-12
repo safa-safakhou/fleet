@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Current deployment and same-fleet resumption — 13 October 2026
+
+Founder explicitly authorized deploying P1, reviewing unknown usage and resuming the same fifty agents. Fleet `3407e5a` and PACT `fleet-p1-20261013-1` are deployed; the original Luna medium / 15-minute continuous cohort is running. Read `docs/p1-deployment-20261013.md`. The cancelled ninety-second execution was explicitly reviewed with its full 40,000 allocation and historical unknown marker retained; exact tokens were unavailable and no game action was replayed. Preserve all bindings, lifetime counters, schedule/anchor, existing permissions, the finished pilot and inactive draft. New uncertainty still requires its own review; do not silently clear unknown usage or expand owner exceptions. No delegation is requested.
+
 ## Current P1 implementation assignment — 13 October 2026
 
 Founder assigned fresh reads, memory retention, permissions and construction recovery from PACT's `docs/implementation/fleet-agent-investigation-plan-20261013.md`. Codex owns this local implementation and synthetic cross-repository verification; record evidence in `docs/p1-controller-20261013.md`. Preserve all existing accounts, identities, counters, budgets, pending commands and unknown model usage. The existing continuous group is paused with one unknown execution; this assignment does not reconcile that usage, expand owner permissions or start new inference. Live rollout is separately reviewed under the plan's concrete execution-proposal requirement. No delegation is requested.

@@ -2,6 +2,8 @@
 
 ## P1 recovery update — 13 October 2026
 
+The founder subsequently approved [deployment and same-fleet resumption](p1-deployment-20261013.md). The same fifty Luna agents are running on their original fifteen-minute schedule. One historical cancelled execution still has unknown exact token usage, with its 40,000 allocation retained and an explicit review in its inspector history. This has been reviewed operationally; it was not relabelled as reported usage. The rollout-pending paragraph below records the earlier checkpoint.
+
 The [P1 fixes](p1-controller-20261013.md) are tested locally and awaiting deployment. The existing fifty-agent Luna group is currently paused with one unresolved model execution; its identities and usage are preserved. The older draft setup record below is historical.
 
 After deployment, inspect an agent's recorded steps for **Requested read delivered to decision**, **Read arguments rejected before submission** and **Construction needs owner recovery**. A construction recovery shows exact waiting instruction IDs and missing prerequisites. Only the actual PACT account owner may cancel a waiting instruction to free a position; re-read afterward, build the prerequisite, then reconsider the original target. Fleet does not submit this cancellation automatically. A proposed/denied move remains distinct from a committed move. Recovery does not clear unknown model usage or restart the group.

@@ -4,7 +4,7 @@ An independent server controller and private console for scheduled game agents. 
 
 For day-to-day console use, read the [operator guide](docs/operator-guide.md): draft setup, model/allowance selection, accounts, monitoring, pause and recovery.
 
-The [13 October P1 controller report](docs/p1-controller-20261013.md) records verified local fresh-read delivery, persisted memory, action-permission and construction-recovery fixes, plus the exact production preservation checks. These changes are not deployed; the existing fifty-owner group remains paused with unknown usage preserved.
+The [13 October P1 controller report](docs/p1-controller-20261013.md) records verified fresh-read delivery, persisted memory, action-permission and construction-recovery fixes. The [subsequent deployment and recovery](docs/p1-deployment-20261013.md) deployed these changes and resumed the same fifty-owner Luna group, preserving its accounts, counters and fifteen-minute schedule. The reviewed cancelled execution's full allocation and historical unknown-usage marker remain visible.
 
 The completed five-agent Luna pilot is preserved. A subsequent founder assignment requests 50 fresh account-bound Luna agents on a continuous 15-minute schedule; see [its implementation and launch record](docs/continuous-fleet-20261012.md) for actual status. See also [the migration report](docs/repository-migration-20261012.md), [adapter contract](docs/game-integration.md) and [final pilot results](docs/luna-pilot-final-20261012.md).
 

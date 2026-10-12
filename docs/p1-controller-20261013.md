@@ -1,5 +1,7 @@
 # P1 controller implementation — 13 October 2026
 
+Subsequent checkpoint: the founder explicitly authorized deployment and same-fleet recovery. [Both releases are live and the original fifty-agent group resumed](p1-deployment-20261013.md), with its cancelled execution reviewed and full allocation preserved. The local verification and proposed-rollout sections below record the earlier checkpoint.
+
 Status: locally implemented and verified; not deployed. Assignee: Codex. Founder scope: requested read feedback, eight-entry encrypted memory, honest action permissions, construction dependency recovery and associated invalid-read correction from PACT's `docs/implementation/fleet-agent-investigation-plan-20261013.md`. No Linear issue was invented. P2 candidate ranking, motivation, offer timing and policy/game redesign remain deferred.
 
 ## Behavior
