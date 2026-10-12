@@ -1,0 +1,12 @@
+# Optional console-only connection to an existing HTTPS reverse proxy network.
+# The database and worker remain exclusively on Fleet's private network.
+services:
+  console:
+    networks:
+      default:
+      edge:
+        aliases: [fleet-console]
+networks:
+  edge:
+    external: true
+    name: ${FLEET_EDGE_NETWORK:?Set the existing HTTPS proxy Docker network}

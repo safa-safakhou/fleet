@@ -8,7 +8,15 @@ Configure a private `/var/lib/fleet/fleet.env` from `.env.example`, set `FLEET_G
 
 From a clean, verified, committed local checkout, run `./scripts/deploy.sh root@2.31.62.91`. It archives exactly HEAD, rebuilds the image on the server, runs only Fleet's idempotent migration, starts disabled services, checks health and any terminal state proof, then updates the current symlink. It refuses dirty/untracked source and an enabled configuration. No Git remote push is required for this archive deployment.
 
-The console remains private at server `127.0.0.1:8820`. Use an SSH tunnel. The Codex executable/login remain in their existing dedicated protected paths; only the worker sees the login. Base Compose caps are 1 GiB total; the Codex override raises the worker to 512 MiB (1.25 GiB total). Resource caps are not capacity certification.
+The console's host port remains private at server `127.0.0.1:8820`. For public HTTPS access, see the configuration below. The Codex executable/login remain in their existing dedicated protected paths; only the worker sees the login. Base Compose caps are 1 GiB total; the Codex override raises the worker to 512 MiB (1.25 GiB total). Resource caps are not capacity certification.
+
+## HTTPS console
+
+The 12 October founder assignment authorizes `https://fleet.tinyagenttools.com` access with the existing operator password and disabled execution. Set `FLEET_ORIGIN=https://fleet.tinyagenttools.com` and `FLEET_EDGE_NETWORK=pact-production_application` in the protected configuration. Deployment automatically includes `compose.edge.yml` when that network setting is present. Only the console joins the existing public edge's Docker network with alias `fleet-console`; Fleet's database and worker stay on its private network. Do not publish port 8820 to the Internet.
+
+Create an A record `fleet` pointing to `2.31.62.91` in Cloudflare (proxied, automatic TTL). Append `infra/fleet.caddy` to `/srv/pact/config/edge/Caddyfile`, validate it in `pact-production-public-edge-1`, and reload Caddy without restarting PACT. Caddy issues and renews the origin certificate. Preserve the existing HTTPS origin encryption settings; never bypass certificate validation to claim acceptance. The protected configuration's exact HTTPS origin enables Secure session cookies and the correct origin/CSRF checks. An SSH tunnel can still inspect health, but login through its HTTP URL is no longer accepted.
+
+Verify public HTTPS, HTTP-to-HTTPS redirect, existing operator login, Secure/HttpOnly/SameSite cookies, unauthorized API rejection, wrong-origin rejection and logout; then verify PACT health and the terminal migration state proof. No inference or cohort activation is part of this change. For rollback, remove only the Fleet Caddy block and reload, restore the previous protected origin, and recreate only Fleet console/worker with the previously selected Compose files. Keep the database volume and operator/vault secrets.
 
 ## Rollback
 

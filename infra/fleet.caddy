@@ -1,0 +1,6 @@
+# Append to the existing server edge Caddyfile. Attach the Fleet console using
+# compose.edge.yml; the reverse proxy must already belong to that network.
+fleet.tinyagenttools.com {
+  encode zstd gzip
+  reverse_proxy fleet-console:8820
+}

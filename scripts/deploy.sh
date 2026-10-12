@@ -26,6 +26,10 @@ tar -xzf "/tmp/fleet-$revision.tar.gz" -C "$release"
 rm "/tmp/fleet-$revision.tar.gz"
 ln -sfn "$private/fleet.env" "$release/.env"
 cd "$release"
+compose_files=(-f compose.yml -f compose.codex.yml -f compose.image.yml)
+if grep -q '^FLEET_EDGE_NETWORK=' "$private/fleet.env"; then
+  compose_files+=(-f compose.edge.yml)
+fi
 docker build --build-arg "FLEET_REVISION=$revision" -t "fleet:$revision" . > "$release/build.log" 2>&1
 cat > compose.image.yml <<YAML
 services:
@@ -34,7 +38,7 @@ services:
   worker:
     image: fleet:$revision
 YAML
-compose() { docker compose -f compose.yml -f compose.codex.yml -f compose.image.yml "$@"; }
+compose() { docker compose "${compose_files[@]}" "$@"; }
 if [ -L /opt/fleet/current ]; then readlink -f /opt/fleet/current > "$private/previous-release"; fi
 compose up -d --no-build database
 compose run --rm --no-deps -T --interactive=false console node dist/server/migrate.js
