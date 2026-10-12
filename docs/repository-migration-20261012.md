@@ -20,4 +20,4 @@ The final Linux build image passed type/format checks, the game-boundary check a
 
 The verification Docker target now includes migrations, fixtures and dev dependencies; the production image prunes dev dependencies separately. An initial packaging check caught missing migrations in the test image and was corrected before successful full acceptance. No real model calls were used in verification.
 
-Deployment results will be added after they have actually passed.
+The first remote deployment invocation exposed Compose's default interactive stdin consuming the remaining streamed shell script after starting the database. The script now explicitly disables stdin/TTY for one-off containers. No application or model execution started from that interrupted invocation; the terminal restored database remains intact. Actual deployment results follow after final checks.

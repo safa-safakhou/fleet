@@ -37,7 +37,7 @@ YAML
 compose() { docker compose -f compose.yml -f compose.codex.yml -f compose.image.yml "$@"; }
 if [ -L /opt/fleet/current ]; then readlink -f /opt/fleet/current > "$private/previous-release"; fi
 compose up -d --no-build database
-compose run --rm --no-deps console node dist/server/migrate.js
+compose run --rm --no-deps -T --interactive=false console node dist/server/migrate.js
 compose up -d --no-build console worker
 curl --retry 5 --retry-all-errors --retry-delay 1 -fsS http://127.0.0.1:8820/health > "$release/health.json"
 python3 - "$release/health.json" <<'PY'
@@ -47,7 +47,7 @@ assert x['ok'] and x['service']=='fleet' and x['game']=='pact' and x['liveEnable
 print('Fleet console healthy; game=pact; execution disabled.')
 PY
 if [ -f "$private/state/migration-proof.json" ]; then
-  compose run --rm --no-deps worker node scripts/state-proof.mjs verify /app/.state/migration-proof.json
+  compose run --rm --no-deps -T --interactive=false worker node scripts/state-proof.mjs verify /app/.state/migration-proof.json
 fi
 ln -sfn "$release" /opt/fleet/current
 printf '%s\n' "$revision" > "$private/deployed-revision"
