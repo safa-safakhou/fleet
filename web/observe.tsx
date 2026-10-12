@@ -43,6 +43,13 @@ export type RecordedTurn = {
   actions: number;
   pending_command: string | null;
   pending_action?: Record<string, unknown> | null;
+  resolutions?: {
+    commandId: string;
+    at: string;
+    code: string;
+    source: string;
+    action: Record<string, unknown> | null;
+  }[];
   input_tokens?: string;
   output_tokens?: string;
   events?: Step[];
@@ -419,6 +426,23 @@ function TurnList({
                   does not resubmit it.
                 </p>
                 <pre>{JSON.stringify(t.pending_action, null, 2)}</pre>
+              </details>
+            )}
+            {!!t.resolutions?.length && (
+              <details className="step-data">
+                <summary>Archived command outcomes ({t.resolutions.length})</summary>
+                <p>
+                  Original commands remain stored. An operator review is a reviewed rejection, not a game receipt or a
+                  replay.
+                </p>
+                {t.resolutions.map((r) => (
+                  <div key={r.commandId}>
+                    <p>
+                      {r.code} · {r.source.replaceAll("_", " ")} · {when(r.at)}
+                    </p>
+                    <pre>{JSON.stringify({ commandId: r.commandId, action: r.action }, null, 2)}</pre>
+                  </div>
+                ))}
               </details>
             )}
             <details className="identifiers">

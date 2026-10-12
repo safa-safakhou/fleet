@@ -35,6 +35,14 @@ interface EventRow {
   detail_cipher: string | null;
   observation_consent: boolean;
 }
+interface ResolutionRow {
+  command_id: string;
+  turn_id: string;
+  resolved_at: Date;
+  code: string;
+  source: string;
+  action_cipher: string;
+}
 const secretKey = /password|secret|token$|(^|[_-])(token|tokens)([_-]|$)|cookie|authorization|credential|api[_-]?key/i;
 function scrub(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(scrub);
@@ -49,7 +57,13 @@ function bounded(data: Data): Data {
 }
 export class Observability {
   constructor(private store: Store) {}
-  async record(claim: Claim, stage: Stage, label: string, detail: Data = {}, client?: PoolClient): Promise<void> {
+  async record(
+    claim: Pick<Claim, "id" | "agentId" | "cohortId">,
+    stage: Stage,
+    label: string,
+    detail: Data = {},
+    client?: PoolClient,
+  ): Promise<void> {
     if (!client) return transaction(this.store.pool, (c) => this.record(claim, stage, label, detail, c));
     const db = client ?? this.store.pool,
       id = randomUUID();
@@ -89,10 +103,28 @@ export class Observability {
       [turns.map((t) => t.id)],
     );
     const last = turns.at(-1);
+    const consent = (await this.store.cohort(cohortId)).observation_consent;
+    const resolutions = (
+      await this.store.pool.query<ResolutionRow>(
+        "SELECT command_id,turn_id,resolved_at,code,source,action_cipher FROM command_resolutions WHERE turn_id=ANY($1::uuid[]) ORDER BY resolved_at,command_id",
+        [turns.map((t) => t.id)],
+      )
+    ).rows;
     return {
       turns: turns.map((t) => ({
         ...t,
         pending_action: t.pending_action ? bounded(t.pending_action) : null,
+        resolutions: resolutions
+          .filter((r) => r.turn_id === t.id)
+          .map((r) => ({
+            commandId: r.command_id,
+            at: r.resolved_at,
+            code: r.code,
+            source: r.source,
+            action: consent
+              ? bounded(this.store.vault.decrypt<Data>(r.action_cipher, `command-resolution:${r.command_id}`))
+              : null,
+          })),
         events: events
           .filter((e) => e.turn_id === t.id)
           .map((e) => ({

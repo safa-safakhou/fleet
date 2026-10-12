@@ -30,6 +30,8 @@ For later Fleet releases, `/var/lib/fleet/previous-release` identifies the prior
 
 # Operating Fleet
 
+The 12 October continuous-owner repair adds encrypted command-resolution archival and explicit paused operator review for the diagnosed invalid-level/tick/policy rejections. Receipt absence alone never authorizes replay or dismissal. See [recovery criteria, communication diagnosis and acceptance](recovery-communication-20261012.md). Ordinary known denials permit the next scheduled turn; transport uncertainty, unsupported errors and unknown provider usage retain recovery gates. Court authority is unchanged.
+
 The independent server deployment and five-owner Luna medium pilot are authorized and recorded in [the pilot report](luna-pilot-20261011.md). Other installations must keep `FLEET_LIVE_ENABLED=0` until separately authorized. Do not import personal credentials, historical pending commands or stopped population state into this fleet.
 
 ## Activation checklist

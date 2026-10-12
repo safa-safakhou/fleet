@@ -59,7 +59,7 @@ describe("observe decide commit", () => {
       },
     }).run(f.claim);
     const t = (await f.store.publicState()).turns[0];
-    expect(t.code).toBe("SLOT_BUSY");
+    expect(t.code).toBe(status === 400 ? "SLOT_BUSY" : "TRANSPORT_UNCERTAIN");
     expect(t.actions).toBe(0);
     expect(t.state).toBe(status === 400 ? "finished" : "pending");
     expect(Boolean(t.pending_command)).toBe(status === 500);

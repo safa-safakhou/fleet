@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Current recovery and communication assignment — 12 October 2026
+
+The founder requested repairing the seven blocked continuous owners, preventing recurrence, investigating communication blockers/incentives and explaining decision-model use. This covers verified controller corrections, authenticated receipt/state diagnosis, explicit audited rejection review preserving original commands, deployment and resuming these same owners. Keep unknown/transport outcomes pending, preserve historical terminal groups and the learning draft, and retain the existing accounts, Luna selection, schedule and lifetime usage. Improve access to public discovery, current rules and action schemas without forcing messages or expanding human-only authority. Record actual evidence in `docs/recovery-communication-20261012.md`.
+
 ## Current observability assignment — 12 October 2026
 
 The founder requested diagnosing empty Society and investing in dashboard/agent inspection. This covers a live operations overview, searchable/status-filtered roster, per-agent inspector, complete paginated turn history and consented encrypted decision/action telemetry, verification and deployment at a quiescent turn boundary. Preserve the same continuous fifty-agent group's accounts, model, two-decision limit, fifteen-minute schedule, lifetime accounting and indefinite authorization. No extra inference, forced social behavior, new population or owner-exception expansion is part of this UI assignment. Keep missing historical steps visibly missing. Record actual evidence in `docs/observability-20261012.md`.

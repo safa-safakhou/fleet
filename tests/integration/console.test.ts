@@ -90,6 +90,9 @@ describe("private operator console", () => {
     ]) {
       expect((await f.app.inject(path)).statusCode).toBe(401);
     }
+    expect(
+      (await f.app.inject({ method: "POST", url: "/api/turns/anything/review-rejection", payload: {} })).statusCode,
+    ).toBe(401);
   });
   it("checks origin and CSRF for writes; permits safe authenticated reads", async () => {
     const f = await setup(),

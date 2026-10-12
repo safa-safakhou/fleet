@@ -210,6 +210,17 @@ export function buildServer(options: {
   app.post<{ Params: { id: string } }>("/api/turns/:id/reconcile", async (r) =>
     options.engine.reconcile(z.uuid().parse(r.params.id)),
   );
+  app.post<{ Params: { id: string } }>("/api/turns/:id/review-rejection", async (r) => {
+    const body = z
+      .object({
+        commandId: z.uuid(),
+        code: z.string().regex(/^[A-Z][A-Z0-9_]+$/),
+        note: z.string().trim().min(20).max(1000),
+      })
+      .strict()
+      .parse(r.body);
+    return options.engine.reviewRejected(z.uuid().parse(r.params.id), body.commandId, body.code, body.note);
+  });
   app.post<{ Params: { id: string } }>("/api/turns/:id/review", async (r) => {
     await store.reviewTurn(z.uuid().parse(r.params.id));
     return { reviewed: true };

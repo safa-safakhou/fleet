@@ -23,5 +23,6 @@ export async function migrate(pool: Pool) {
     await c.query("SELECT pg_advisory_xact_lock(19281461)");
     await c.query(await readFile(resolve("migrations/001_fleet.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/002_observability.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/003_command_resolutions.sql"), "utf8"));
   });
 }

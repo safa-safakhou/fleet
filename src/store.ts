@@ -414,24 +414,61 @@ export class Store {
       await new Observability(this).record(claim, "acting", "Submitting game action", { commandId: id, action }, c);
     });
   }
-  async receipt(claim: Claim, receipt: Data) {
+  private async archiveCommand(
+    c: PoolClient,
+    turn: { id: string; agent_id: string; cohort_id: string; pending_command: string; pending_action: Data },
+    code: string,
+    source: "receipt" | "explicit_rejection" | "operator_review",
+    evidence: Data,
+  ) {
+    await c.query(
+      "INSERT INTO command_resolutions(command_id,turn_id,agent_id,cohort_id,resolved_at,code,source,action_cipher,evidence) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
+      [
+        turn.pending_command,
+        turn.id,
+        turn.agent_id,
+        turn.cohort_id,
+        this.now(),
+        code,
+        source,
+        this.vault.encrypt(turn.pending_action, `command-resolution:${turn.pending_command}`),
+        evidence,
+      ],
+    );
+  }
+  async receipt(
+    claim: Pick<Claim, "id" | "agentId" | "cohortId">,
+    receipt: Data,
+    source: "receipt" | "explicit_rejection" = "receipt",
+    evidence: Data = {},
+    terminal = false,
+  ) {
     await transaction(this.pool, async (c) => {
-      const row = (await c.query("SELECT pending_command,pending_action FROM turns WHERE id=$1 FOR UPDATE", [claim.id]))
-        .rows[0];
+      const row = (await c.query("SELECT * FROM turns WHERE id=$1 FOR UPDATE", [claim.id])).rows[0];
       if (!row?.pending_command || receipt.commandId !== row.pending_command) throw new FleetError("RECEIPT_MISMATCH");
+      if (["RECEIPT_NOT_FOUND", "NOT_FOUND", "PENDING"].includes(String(receipt.code)))
+        throw new FleetError("TRANSPORT_UNCERTAIN");
+      await this.archiveCommand(c, row, String(receipt.code), source, evidence);
       await c.query(
-        "UPDATE turns SET pending_command=NULL,pending_action=NULL,actions=actions+$2,code=$3 WHERE id=$1",
-        [claim.id, ["COMMITTED", "ALREADY_COMMITTED"].includes(String(receipt.code)) ? 1 : 0, String(receipt.code)],
+        "UPDATE turns SET pending_command=NULL,pending_action=NULL,actions=actions+$2,code=$3,state=CASE WHEN $4 THEN 'finished' ELSE state END,finished_at=CASE WHEN $4 THEN $5 ELSE finished_at END WHERE id=$1",
+        [
+          claim.id,
+          ["COMMITTED", "ALREADY_COMMITTED"].includes(String(receipt.code)) ? 1 : 0,
+          String(receipt.code),
+          terminal,
+          this.now(),
+        ],
       );
       await new Observability(this).record(
         claim,
         "result",
-        "Game returned an action result",
+        source === "receipt" ? "Game returned an action result" : "Game rejected the action; no commit established",
         {
           commandId: receipt.commandId,
           code: receipt.code,
           action: row.pending_action,
           committed: ["COMMITTED", "ALREADY_COMMITTED"].includes(String(receipt.code)),
+          source,
         },
         c,
       );
@@ -513,6 +550,42 @@ export class Store {
       if (!t || t.state !== "needs_owner" || t.pending_command) throw new FleetError("RECOVERY_REQUIRED");
       await c.query("UPDATE turns SET state='cancelled' WHERE id=$1", [id]);
       await this.audit(c, t.cohort_id, "turn.reviewed", { turnId: id, originalCode: t.code });
+    });
+  }
+  async reviewRejectedCommand(id: string, commandId: string, code: string, note: string) {
+    await transaction(this.pool, async (c) => {
+      const t = (await c.query("SELECT * FROM turns WHERE id=$1 FOR UPDATE", [id])).rows[0];
+      if (!t || t.state !== "pending" || t.pending_command !== commandId || t.code !== code || note.trim().length < 20)
+        throw new FleetError("RECOVERY_REQUIRED");
+      const cohort = await this.cohort(t.cohort_id, c),
+        agent = await this.agent(t.agent_id, c);
+      if (cohort.state !== "paused" || agent.state !== "needs_owner") throw new FleetError("PAUSED_REVIEW_REQUIRED");
+      if ((await c.query("SELECT 1 FROM turns WHERE cohort_id=$1 AND state='running' LIMIT 1", [t.cohort_id])).rowCount)
+        throw new FleetError("QUIESCENT_REVIEW_REQUIRED");
+      if (
+        (
+          await c.query("SELECT 1 FROM compute_ledger WHERE turn_id=$1 AND status IN ('reserved','unknown') LIMIT 1", [
+            id,
+          ])
+        ).rowCount
+      )
+        throw new FleetError("USAGE_REVIEW_REQUIRED");
+      await this.archiveCommand(c, t, code, "operator_review", { receipt: "RECEIPT_NOT_FOUND", note });
+      await c.query(
+        "UPDATE turns SET state='finished',pending_command=NULL,pending_action=NULL,summary=$2 WHERE id=$1",
+        [
+          id,
+          "Reviewed rejection: original command retained in recovery archive; not replayed. Agent may replan within its existing authority.",
+        ],
+      );
+      await this.audit(c, t.cohort_id, "command.rejection.reviewed", { turnId: id, commandId, code, note });
+      await new Observability(this).record(
+        { id, agentId: t.agent_id, cohortId: t.cohort_id },
+        "result",
+        "Operator reviewed the rejected command; not replayed",
+        { commandId, code, source: "operator_review", action: t.pending_action, committed: false },
+        c,
+      );
     });
   }
 }

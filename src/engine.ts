@@ -63,8 +63,18 @@ export class Engine {
       const profile = await game.profile();
       if (profile.accountId !== claim.agent.account_id) throw new FleetError("IDENTITY_MISMATCH");
       const tools = await game.tools();
-      const facts: Data = await this.adapter.initial(game, claim.agent.kingdom_id);
+      const turnIndex = (
+        await this.store.pool.query("SELECT count(*)::int n FROM turns WHERE agent_id=$1", [claim.agentId])
+      ).rows[0].n;
+      const initialContext = {
+        ordinal: claim.agent.ordinal,
+        count: claim.cohort.count,
+        turn: turnIndex,
+        name: claim.cohort.name,
+      };
+      const facts: Data = await this.adapter.initial(game, claim.agent.kingdom_id, initialContext);
       const reads: Data[] = [];
+      const decisionFeedback: Data[] = [];
       const lastIntent = (
         await this.store.pool.query(
           "SELECT summary FROM turns WHERE agent_id=$1 AND id<>$2 AND state='finished' ORDER BY started_at DESC LIMIT 1",
@@ -118,6 +128,7 @@ export class Engine {
       let actions = 0;
       for (let n = 0; n < b.maxCallsPerTurn; n++) {
         await this.store.active(claim);
+        const capability = this.adapter.availableActions?.(facts, claim.cohort.synthetic_owner_policy);
         const context = {
           ownerValues: claim.agent.strategy,
           privateNotes: claim.agent.notes,
@@ -132,10 +143,18 @@ export class Engine {
           readResults: boundedReads([...previousReads, ...reads]),
           commandResults: reads
             .filter((r) => typeof r.commandId === "string")
-            .map((r) => ({ commandId: r.commandId, actionKind: object(r.action).kind, receipt: r.receipt })),
+            .map((r) => ({
+              commandId: r.commandId,
+              actionKind: object(r.action).kind,
+              outcomeSource: r.source,
+              receipt: r.receipt,
+            })),
           readHistoryCoverage:
             "Read entries can include observations from previous turns, dated by observedAt. Historical facts may be stale; they do not grant authority or prove current state. Current environment is freshly read. Obtain current facts before a dependent commitment.",
-          gameActionKinds: actionKinds,
+          gameActionKinds: capability?.kinds ?? actionKinds,
+          suppliedActionSchemas: capability?.schemas ?? [],
+          humanOnlyActionKinds: capability?.humanOnly ?? [],
+          decisionFeedback,
           availableReads: tools
             .filter(isRead)
             .map((t) => ({ name: t.name, description: t.description?.slice(0, 180) })),
@@ -258,13 +277,32 @@ export class Engine {
           lastCode = "TURN_ACTION_LIMIT";
           break;
         }
+        const preflight = capability?.humanOnly.includes(String(decision.action.kind))
+          ? {
+              code: "HUMAN_DECISION_REQUIRED",
+              guidance:
+                "This action requires the actual owner. No command or approval was submitted. Choose another authorized step or wait.",
+            }
+          : this.adapter.preflight?.(decision.action, facts);
+        if (preflight) {
+          decisionFeedback.push({ action: decision.action, ...preflight });
+          lastCode = String(preflight.code);
+          await observation.record(claim, "result", "Proposed action deferred before submission", {
+            ...preflight,
+            action: decision.action,
+            committed: false,
+          });
+          continue;
+        }
         if (schemaChanged(tools, await game.tools())) throw new FleetError("SCHEMA_CHANGED");
         await game.open();
         await this.store.active(claim);
         const action = this.owner ? await this.owner.prepare(claim, decision.action) : decision.action;
         const id = randomUUID();
         await this.store.pending(claim, id, action);
-        let receipt: Data;
+        let receipt: Data,
+          source: "receipt" | "explicit_rejection" = "receipt",
+          rejectionEvidence: Data = {};
         try {
           await this.store.active(claim);
           if (this.stopping) throw new FleetError("CLAIM_FENCED");
@@ -276,26 +314,43 @@ export class Engine {
             try {
               receipt = await this.owner.submit(claim, id, action);
             } catch (ownerError) {
-              const rejection = this.adapter.rejection(ownerError, true);
+              if (ownerError instanceof RemoteRejection && ownerError.status >= 500)
+                throw new FleetError("TRANSPORT_UNCERTAIN");
+              const rejection =
+                safeCode(ownerError) === "OWNER_APPROVAL_REQUIRED" && error instanceof RemoteRejection
+                  ? this.adapter.rejection(error, false)
+                  : this.adapter.rejection(ownerError, true);
               if (!rejection) throw ownerError;
               receipt = { commandId: id, code: rejection };
+              source = "explicit_rejection";
+              rejectionEvidence = {
+                code: rejection,
+                status: ownerError instanceof RemoteRejection ? ownerError.status : null,
+                path: "owner_policy_or_endpoint",
+              };
             }
           } else {
             const rejection = this.adapter.rejection(error, false);
             if (!rejection) throw error;
             receipt = { commandId: id, code: rejection };
+            source = "explicit_rejection";
+            rejectionEvidence = {
+              code: rejection,
+              status: error instanceof RemoteRejection ? error.status : null,
+              path: "game_submission",
+            };
           }
         }
-        await this.store.receipt(claim, receipt);
+        await this.store.receipt(claim, receipt, source, rejectionEvidence);
         lastCode = String(receipt.code);
         notes = decision.notes ?? notes;
         actions++;
-        reads.push({ commandId: id, action: decision.action, receipt });
+        reads.push({ commandId: id, action: decision.action, receipt, source });
         if (!["COMMITTED", "ALREADY_COMMITTED"].includes(lastCode)) break;
         const peer = this.adapter.actionPeer(action);
         if (peer) await observePeer(peer);
         await this.store.active(claim);
-        Object.assign(facts, await this.adapter.initial(game, claim.agent.kingdom_id));
+        Object.assign(facts, await this.adapter.initial(game, claim.agent.kingdom_id, initialContext));
       }
     } catch (error) {
       lastCode = safeCode(error);
@@ -310,6 +365,36 @@ export class Engine {
       await this.store.finish(claim, lastCode, summary, notes);
     }
   }
+  async reviewRejected(turnId: string, commandId: string, code: string, note: string) {
+    if (!this.liveAllowed) throw new FleetError("LIVE_EXECUTION_DISABLED");
+    const t = (await this.store.pool.query("SELECT * FROM turns WHERE id=$1", [turnId])).rows[0];
+    if (
+      !t ||
+      t.pending_command !== commandId ||
+      t.code !== code ||
+      !this.adapter.reviewableRejection?.(code, object(t.pending_action))
+    )
+      throw new FleetError("REJECTION_REVIEW_UNSUPPORTED");
+    const a = await this.store.agent(t.agent_id),
+      cohort = await this.store.cohort(t.cohort_id);
+    if (cohort.state !== "paused") throw new FleetError("PAUSED_REVIEW_REQUIRED");
+    const game = await this.game(t.agent_id);
+    try {
+      if ((await game.profile()).accountId !== a.account_id) throw new FleetError("IDENTITY_MISMATCH");
+      await this.adapter.initial(game, a.kingdom_id);
+      try {
+        await game.receipt(commandId);
+        throw new FleetError("RECEIPT_EXISTS_RECONCILE_REQUIRED");
+      } catch (error) {
+        if (!(error instanceof RemoteRejection) || error.status !== 200 || error.code !== "RECEIPT_NOT_FOUND")
+          throw error;
+      }
+      await this.store.reviewRejectedCommand(turnId, commandId, code, note);
+      return { commandId, code, source: "operator_review", replayed: false };
+    } finally {
+      await game.close();
+    }
+  }
   async reconcile(turnId: string) {
     if (!this.liveAllowed) throw new FleetError("LIVE_EXECUTION_DISABLED");
     const t = (await this.store.pool.query("SELECT * FROM turns WHERE id=$1 AND pending_command IS NOT NULL", [turnId]))
@@ -320,16 +405,7 @@ export class Engine {
       const receipt = await game.receipt(t.pending_command);
       if (receipt.commandId !== t.pending_command) throw new FleetError("RECEIPT_MISMATCH");
       if (["RECEIPT_NOT_FOUND", "NOT_FOUND", "PENDING"].includes(String(receipt.code))) return receipt;
-      await this.store.pool.query(
-        "UPDATE turns SET state='finished',code=$2,pending_command=NULL,pending_action=NULL,finished_at=$3,actions=actions+$5 WHERE id=$1 AND pending_command=$4",
-        [
-          t.id,
-          receipt.code,
-          this.store.now(),
-          t.pending_command,
-          ["COMMITTED", "ALREADY_COMMITTED"].includes(String(receipt.code)) ? 1 : 0,
-        ],
-      );
+      await this.store.receipt({ id: t.id, agentId: t.agent_id, cohortId: t.cohort_id }, receipt, "receipt", {}, true);
       return receipt;
     } finally {
       await game.close();

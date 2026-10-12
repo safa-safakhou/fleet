@@ -10,7 +10,14 @@ export interface GameAdapter {
   readonly actionKinds: string[];
   actionSchema(kind: string): Data;
   isRead(tool: Tool): boolean;
-  initial(game: GamePort, expectedEntityId: string | null): Promise<Data>;
+  initial(
+    game: GamePort,
+    expectedEntityId: string | null,
+    context?: { ordinal: number; count: number; turn: number; name: string },
+  ): Promise<Data>;
+  availableActions?(facts: Data, ownerPolicy: Data | null): { kinds: string[]; schemas: Data[]; humanOnly: string[] };
+  reviewableRejection?(code: string, action: Data): boolean;
+  preflight?(action: Data, facts: Data): Data | undefined;
   compactFacts(facts: Data): Data;
   mergeReads(reads: Data[]): Data[];
   boundedReads(reads: Data[], limit?: number): Data[];
