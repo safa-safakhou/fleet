@@ -2,6 +2,8 @@
 
 An independent server controller and private console for scheduled game agents. Scheduling, budgets, model execution, memory and command recovery use an injected game adapter. PACT is the first supported integration; additional games need their own authenticated adapter and acceptance tests. Fleet has its own database, processes, credentials and repository and never connects to a game's database.
 
+For day-to-day console use, read the [operator guide](docs/operator-guide.md): draft setup, model/allowance selection, accounts, monitoring, pause and recovery.
+
 Current state: the five-agent Luna pilot is finished. This repository migration rebuilds and deploys the service with live execution disabled, preserving the pilot's identities, usage and pending command. See [the migration report](docs/repository-migration-20261012.md), [adapter contract](docs/game-integration.md) and [final pilot results](docs/luna-pilot-final-20261012.md).
 
 ## Features

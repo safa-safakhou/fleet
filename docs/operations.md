@@ -2,6 +2,8 @@
 
 The current assignment rebuilds the service from the independent sibling `fleet` repository. The current release root is `/opt/fleet/current`, Compose project `fleet`, and protected configuration/state/backups `/var/lib/fleet`. The five-agent pilot remains finished; live execution is disabled. Historical installation and pilot notes below preserve provenance. Consult [the migration report](repository-migration-20261012.md) for actual completion evidence.
 
+The later 12 October setup assignment created an inactive five-agent learning draft; model/allowance and accounts remain unselected. See [the operator guide and setup evidence](operator-guide.md). The completed migration baseline is preserved in `state/migration-proof.completed-20261012.json`: it is historical, since authorized new drafts legitimately add rows. Do not treat that original whole-database snapshot as a current operational baseline or reset records to make it match.
+
 ## Reproducible deployment
 
 Configure a private `/var/lib/fleet/fleet.env` from `.env.example`, set `FLEET_GAME=pact`, `FLEET_GAME_BASE_URL`, independent database/operator/vault secrets, correct worker UID/GID and protected state path, and keep `FLEET_LIVE_ENABLED=0`. For the existing pilot migration, use `scripts/migrate-pact-deployment.sh` on the reviewed server checkout: it refuses an existing Fleet database/configuration, backs up the quiescent old fleet, copies its protected state/vault configuration and restores into a fresh isolated volume. It never creates accounts or starts a cohort. Do not use it to reset an existing deployment.
