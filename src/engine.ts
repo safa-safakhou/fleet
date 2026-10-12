@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { statfs } from "node:fs/promises";
 import { Communications } from "./communications.js";
+import { fitMessages } from "./context.js";
 import {
   type Data,
   Decision,
@@ -162,25 +163,13 @@ export class Engine {
           readSchemaLookup: { name: "fleet_read_schema", args: { name: "one availableReads name" } },
           decisionSchema,
         };
-        let messages = [
-          { role: "system", content: this.adapter.instructions },
-          { role: "user", content: JSON.stringify(context) },
-        ];
-        if (Buffer.byteLength(JSON.stringify(messages)) > b.inputByteLimit) {
-          const smaller = {
-            ...context,
-            availableReads: tools.filter(isRead).map((t) => ({ name: t.name })),
-            readResults: boundedReads([...previousReads, ...reads], 8000),
-            environment: this.adapter.compactFacts(facts),
-            omissions: [
-              "Read descriptions omitted for space; use fleet_read_schema for exact arguments. Partial observations label missing facts explicitly.",
-            ],
-          };
-          messages = [
-            { role: "system", content: this.adapter.instructions },
-            { role: "user", content: JSON.stringify(smaller) },
-          ];
-        }
+        const messages = fitMessages(
+          context,
+          this.adapter.instructions,
+          decisionSchema,
+          b.inputByteLimit,
+          boundedReads,
+        );
         const bytes = Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(decisionSchema));
         if (bytes > b.inputByteLimit || bytes + b.maxOutputTokens + 1024 > b.perCallTokenLimit)
           throw new FleetError("CONTEXT_LIMIT");
