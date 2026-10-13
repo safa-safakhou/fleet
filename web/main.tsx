@@ -33,7 +33,7 @@ type Cohort = {
   count: number;
   state: string;
   interval_minutes: number;
-  model: { route: string; model: string; reasoningEffort?: string; thinking?: boolean } | null;
+  model: { route: string; model: string; reasoningEffort?: string; thinking?: boolean; decisionPolicy?: string } | null;
   budget: Obj | null;
   observation_consent: boolean;
   synthetic_owner_policy: Obj | null;
@@ -731,6 +731,10 @@ function App() {
                   <dt>Model</dt>
                   <dd>{cohort.model?.model ?? "Not selected"}</dd>
                 </div>
+                <div>
+                  <dt>Decision mode</dt>
+                  <dd>{cohort.model?.decisionPolicy ? "LLM + Vowpal Wabbit focus policy" : "LLM only"}</dd>
+                </div>
                 {cohort.model?.reasoningEffort && (
                   <div>
                     <dt>Reasoning</dt>
@@ -850,7 +854,9 @@ function App() {
                 reset at UTC midnight only when explicitly configured.
               </p>
               <p className="muted">
-                The exact decision calculator is available through PACT. No trained decision selector is deployed.
+                {cohort.model?.decisionPolicy
+                  ? "Vowpal Wabbit learns a strategic focus from later observed progress. Inspect turn steps for choices, probabilities and feedback. It starts untrained; stronger play is not established."
+                  : "The exact decision calculator is available through PACT. Enable the optional learned focus policy when configuring a fresh fleet."}
               </p>
             </article>
           </section>
@@ -1062,6 +1068,7 @@ function Create({ busy, save }: { busy: boolean; save: (data: unknown) => void }
 function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => void }) {
   const [route, setRoute] = useState("openai-compatible"),
     [thinking, setThinking] = useState(false),
+    [decisionPolicy, setDecisionPolicy] = useState(false),
     [reasoningEffort, setReasoningEffort] = useState("medium"),
     [model, setModel] = useState(""),
     [mode, setMode] = useState("finite"),
@@ -1079,6 +1086,7 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
             model,
             ...(route === "codex-cli" ? { reasoningEffort } : {}),
             ...(route === "ollama" ? { thinking } : {}),
+            ...(decisionPolicy ? { decisionPolicy: "vw-focus-v1" } : {}),
           },
           budget: {
             mode,
@@ -1131,6 +1139,23 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
           <input type="checkbox" checked={thinking} onChange={(e) => setThinking(e.target.checked)} />
           <span>Enable model thinking · selected model must support this option</span>
         </label>
+      )}
+      <label>
+        Decision mode
+        <select
+          value={decisionPolicy ? "hybrid" : "llm"}
+          onChange={(e) => setDecisionPolicy(e.target.value === "hybrid")}
+        >
+          <option value="llm">LLM only</option>
+          <option value="hybrid">LLM + Vowpal Wabbit · experimental</option>
+        </select>
+      </label>
+      {decisionPolicy && (
+        <p className="muted">
+          Learns which strategic focus to consider from later observed development, contacts and active contracts.
+          Starts untrained. The LLM still chooses exact commands and may wait. Requires the local decision service; no
+          extra LLM calls. Apply to a fresh fleet before its first execution.
+        </p>
       )}
       <label>
         Budget period

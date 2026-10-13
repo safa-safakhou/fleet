@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { statfs } from "node:fs/promises";
 import { Communications } from "./communications.js";
 import { fitMessages } from "./context.js";
+import type { DecisionSupport } from "./decision.js";
 import {
   type Data,
   Decision,
@@ -36,6 +37,7 @@ export class Engine {
     private liveAllowed: boolean,
     private adapter: GameAdapter,
     private owner?: OwnerPort,
+    private decisionSupport?: DecisionSupport,
   ) {}
   async tick(worker: string, maxConcurrency = 1) {
     await this.store.heartbeat(worker, this.liveAllowed);
@@ -148,11 +150,18 @@ export class Engine {
         if (typeof peer === "string") await observePeer(peer);
       }
       let actions = 0;
+      let strategicFocus: Data | undefined;
+      if (m.decisionPolicy) {
+        if (!this.decisionSupport || !this.adapter.decisionObservation)
+          throw new FleetError("DECISION_MODEL_UNCONFIGURED");
+        strategicFocus = await this.decisionSupport.begin(claim, this.adapter.decisionObservation(facts));
+      }
       for (let n = 0; n < b.maxCallsPerTurn; n++) {
         await this.store.active(claim);
         const capability = this.adapter.availableActions?.(facts, claim.cohort.synthetic_owner_policy);
         const context = {
           ownerValues: claim.agent.strategy,
+          ...(strategicFocus ? { strategicFocus } : {}),
           privateNotes: claim.agent.notes,
           lastOutcome: claim.agent.reason,
           lastIntent,

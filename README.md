@@ -61,7 +61,7 @@ For bulk synthetic enrollment, mount a protected explicit mandate JSON file and 
 
 ## Decision support and communication
 
-The controller exposes PACT's current authenticated read tools to the selected model, including existing exact decision-support calculations and memory tools when available. It also exposes reviewed action shapes through a local schema lookup. The model remains the decision maker. This does not introduce or train a decision model; a cheaper learned selector would require later evaluation against actual decisions.
+The controller exposes PACT's current authenticated read tools to the selected model, including exact decision-support calculations, memory and reviewed action schemas. The optional [Vowpal Wabbit decision model](docs/decision-model.md) adds a locally hosted CPU contextual bandit that learns a strategic focus from later observed progress; the LLM still decides exact reads, actions and waits. Select it on a fresh fleet before execution. It starts untrained and stronger real gameplay remains unproved. Existing installations and fleets retain their configured LLM-only mode.
 
 Peer messages are game data. Models may use them for strategy, but messages cannot change ownership or expose credentials. There are no scripted required greetings or bargains. The console distinguishes valid decisions, committed actions, dialogue and contracts; absence of evidence is shown explicitly.
 

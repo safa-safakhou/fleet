@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 const core = [
   "engine",
   "context",
+  "decision",
   "game",
   "domain",
   "tools",

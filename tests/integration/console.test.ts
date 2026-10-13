@@ -36,6 +36,42 @@ async function login(app: ReturnType<typeof buildServer>) {
   return { cookie: String(r.headers["set-cookie"]).split(";")[0], origin, "x-csrf-token": r.json().csrf };
 }
 describe("private operator console", () => {
+  it("saves a fresh optional decision policy and exposes authenticated learning status without enrollment", async () => {
+    const f = await setup(),
+      headers = await login(f.app);
+    const { id } = await f.store.create({
+      name: "Hybrid fixture",
+      count: 5,
+      intervalMinutes: 15,
+      seed: "hybrid",
+      strategies: ["guardian"],
+    });
+    const selection = {
+      model: { route: "ollama", model: "synthetic-nemotron", thinking: true, decisionPolicy: "vw-focus-v1" },
+      budget: continuousBudget,
+    };
+    const rejected = await f.app.inject({
+      method: "POST",
+      url: `/api/cohorts/${id}/configure`,
+      headers,
+      payload: { ...selection, budget: { ...continuousBudget, concurrency: 2 } },
+    });
+    expect(rejected.json().error.code).toBe("DECISION_SERIAL_REQUIRED");
+    const saved = await f.app.inject({
+      method: "POST",
+      url: `/api/cohorts/${id}/configure`,
+      headers,
+      payload: selection,
+    });
+    expect(saved.statusCode).toBe(200);
+    const state = (await f.app.inject({ url: "/api/state", headers })).json();
+    expect(state.cohorts[0].model).toEqual(selection.model);
+    expect(state.agents.every((a: { account_id: string | null }) => a.account_id === null)).toBe(true);
+    expect(state.turns).toHaveLength(0);
+    const summary = await f.app.inject({ url: `/api/cohorts/${id}/decision-policy`, headers });
+    expect(summary.json().policy).toBe("vw-focus-v1");
+    expect(summary.json().counts).toEqual({});
+  });
   it("saves and exposes continuous selection without enrolling or starting any agent", async () => {
     const f = await setup(),
       headers = await login(f.app);
@@ -85,6 +121,7 @@ describe("private operator console", () => {
       "/api/session",
       "/api/agents/anything/inspection",
       "/api/cohorts/anything/turns",
+      "/api/cohorts/anything/decision-policy",
       "/api/agents/anything/thread?peer=x",
       "/api/oauth/callback?state=x&code=y",
     ]) {

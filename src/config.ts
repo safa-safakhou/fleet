@@ -30,6 +30,7 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
       "openai-compatible": env.MODEL_BASE_URL ? endpoint(env.MODEL_BASE_URL, allowHttp) : undefined,
     },
     apiKey: env.MODEL_API_KEY,
+    decisionEndpoint: env.FLEET_DECISION_URL ? decisionEndpoint(env.FLEET_DECISION_URL) : undefined,
     codex: { executable: env.FLEET_CODEX_EXECUTABLE, home: env.FLEET_CODEX_HOME },
     maxConcurrency: z.coerce
       .number()
@@ -44,4 +45,11 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
       .min(0)
       .parse(env.FLEET_MIN_FREE_BYTES ?? 10 * 1024 ** 3),
   };
+}
+
+function decisionEndpoint(value: string) {
+  const url = new URL(endpoint(value, true));
+  if (!["127.0.0.1", "localhost", "[::1]"].includes(url.hostname) || url.protocol !== "http:")
+    throw new FleetError("DECISION_LOOPBACK_REQUIRED");
+  return url.toString().replace(/\/$/, "");
 }

@@ -112,6 +112,7 @@ export class Store {
       budget = Budget.parse(v.budget);
     if (model.route === "codex-cli" && (!budget.executionAccountingAccepted || budget.concurrency !== 1))
       throw new FleetError("CODEX_EXECUTION_BUDGET_REQUIRED");
+    if (model.decisionPolicy && budget.concurrency !== 1) throw new FleetError("DECISION_SERIAL_REQUIRED");
     if (budget.deadlineAt && new Date(budget.deadlineAt) <= this.now()) throw new FleetError("DEADLINE_PASSED");
     await transaction(this.pool, async (c) => {
       const row = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];

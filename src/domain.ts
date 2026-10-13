@@ -29,6 +29,7 @@ export const ModelConfig = z
     model: z.string().min(1).max(100),
     reasoningEffort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional(),
     thinking: z.boolean().optional(),
+    decisionPolicy: z.enum(["vw-focus-v1"]).optional(),
   })
   .strict()
   .refine((m) => m.thinking === undefined || m.route === "ollama", "Thinking selection requires Ollama");

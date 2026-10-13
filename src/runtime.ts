@@ -1,6 +1,7 @@
 import { CodexModel } from "./codex.js";
 import { config } from "./config.js";
 import { connect } from "./db.js";
+import { DecisionSupport, VwDecision } from "./decision.js";
 import { Engine } from "./engine.js";
 import { pactAdapter } from "./games/pact/adapter.js";
 import { CredentialBroker } from "./games/pact/credentials.js";
@@ -15,6 +16,15 @@ export function runtime() {
   const broker = new CredentialBroker(store, settings.gameBase, settings.origin, settings.liveAllowed),
     model = new RoutedModel(new HttpModel(settings.routes, settings.apiKey), new CodexModel(settings.codex)),
     owner = new SyntheticOwner(store, broker);
-  const engine = new Engine(store, model, (id) => broker.game(id), settings.liveAllowed, pactAdapter, owner);
+  const decisionSupport = new DecisionSupport(store, new VwDecision(settings.decisionEndpoint));
+  const engine = new Engine(
+    store,
+    model,
+    (id) => broker.game(id),
+    settings.liveAllowed,
+    pactAdapter,
+    owner,
+    decisionSupport,
+  );
   return { settings, pool, store, broker, engine };
 }

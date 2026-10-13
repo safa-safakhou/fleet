@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Optional decision-model feature — 13 October 2026
+
+Founder requested a valid open-source locally hosted decision model alongside the LLM, then explicitly narrowed this assignment to feature implementation only: no comparison or new accounts yet. Codex owns implementation without delegation. Read `docs/decision-model.md` and `docs/decision-model-20261013.md`. The opt-in `vw-focus-v1` uses Vowpal Wabbit 9.11.9 for learned strategic focus, with encrypted cohort-local delayed progress feedback and unchanged exact-command authority/accounting. Preserve existing local Nemotron/server Luna cohorts, identities, counters, unknown records and runtime releases. Synthetic learning verification and local commits are covered; no live cohort, enrollment, runtime replacement or experiment launch is part of this assignment.
+
 ## Local repair and recoverability assignment — 13 October 2026
 
 Founder authorized fixing local Fleet model/output and sleep interruptions, reviewing the three exact unknown local executions with history/full allocations retained, resuming the same five accounts and verifying live operation. Preserve thinking true, original fifteen-minute anchor, counters, identities and permissions. No server Fleet rollout is part of this assignment. Use process-scoped macOS awake assertions only while the local fleet runs; preserve global power settings. Known non-committing model errors may replan inside existing budgets; uncertain commands require original-receipt reconciliation and new unknown usage needs explicit review. Record acceptance and recovery paths in `docs/local-repair-20261013.md`. Khanom investigation must preserve platform safety refusals; it does not authorize bypassing them or silently reenrolling its disabled ChatGPT automation.

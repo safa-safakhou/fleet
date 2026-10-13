@@ -4,6 +4,7 @@ import { resolve, sep } from "node:path";
 import Fastify from "fastify";
 import { z } from "zod";
 import { transaction } from "./db.js";
+import { DecisionSupport, VwDecision } from "./decision.js";
 import { FleetError, object, profiles, safeCode } from "./domain.js";
 import type { Engine } from "./engine.js";
 import { Communications } from "./games/pact/communications.js";
@@ -199,6 +200,9 @@ export function buildServer(options: {
     },
   );
   const historyQuery = z.object({ beforeAt: z.iso.datetime().optional(), beforeId: z.uuid().optional() }).strict();
+  app.get<{ Params: { id: string } }>("/api/cohorts/:id/decision-policy", async (r) =>
+    new DecisionSupport(store, new VwDecision()).summary(z.uuid().parse(r.params.id)),
+  );
   app.get<{ Params: { id: string } }>("/api/agents/:id/inspection", async (r) => {
     const q = historyQuery.parse(r.query);
     return new Observability(store).inspect(z.uuid().parse(r.params.id), q);

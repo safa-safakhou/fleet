@@ -30,6 +30,7 @@ try {
       await new Communications(r.store).prune();
       await r.pool.query("DELETE FROM operator_sessions WHERE expires_at<now()");
       await r.pool.query("DELETE FROM oauth_attempts WHERE expires_at<now()");
+      await r.pool.query("DELETE FROM decision_choices WHERE created_at<now()-interval '30 days'");
       await r.pool.query(
         "UPDATE agents SET decision_feedback_cipher=NULL,decision_feedback_at=NULL WHERE decision_feedback_at<now()-interval '30 days'",
       );
