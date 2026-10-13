@@ -33,7 +33,7 @@ type Cohort = {
   count: number;
   state: string;
   interval_minutes: number;
-  model: { route: string; model: string; reasoningEffort?: string } | null;
+  model: { route: string; model: string; reasoningEffort?: string; thinking?: boolean } | null;
   budget: Obj | null;
   observation_consent: boolean;
   synthetic_owner_policy: Obj | null;
@@ -1061,6 +1061,7 @@ function Create({ busy, save }: { busy: boolean; save: (data: unknown) => void }
 }
 function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => void }) {
   const [route, setRoute] = useState("openai-compatible"),
+    [thinking, setThinking] = useState(false),
     [reasoningEffort, setReasoningEffort] = useState("medium"),
     [model, setModel] = useState(""),
     [mode, setMode] = useState("finite"),
@@ -1073,7 +1074,12 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
       onSubmit={(e) => {
         e.preventDefault();
         save({
-          model: { route, model, ...(route === "codex-cli" ? { reasoningEffort } : {}) },
+          model: {
+            route,
+            model,
+            ...(route === "codex-cli" ? { reasoningEffort } : {}),
+            ...(route === "ollama" ? { thinking } : {}),
+          },
           budget: {
             mode,
             callLimit: mode === "continuous" ? null : calls,
@@ -1118,6 +1124,12 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
               </option>
             ))}
           </select>
+        </label>
+      )}
+      {route === "ollama" && (
+        <label className="execution-consent">
+          <input type="checkbox" checked={thinking} onChange={(e) => setThinking(e.target.checked)} />
+          <span>Enable model thinking · selected model must support this option</span>
         </label>
       )}
       <label>

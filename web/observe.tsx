@@ -28,7 +28,7 @@ type CohortView = {
   state: string;
   interval_minutes: number;
   observation_consent: boolean;
-  model: { model: string; route: string; reasoningEffort?: string } | null;
+  model: { model: string; route: string; reasoningEffort?: string; thinking?: boolean } | null;
 };
 export type RecordedTurn = {
   id: string;
@@ -199,6 +199,7 @@ export function Overview({
         </p>
         <p className="muted">
           {cohort.model?.model ?? "Choose a model"} · Every {cohort.interval_minutes} minutes · Staggered turns
+          {cohort.model?.thinking !== undefined ? ` · Thinking ${cohort.model.thinking ? "on" : "off"}` : ""}
         </p>
         <div className="operation-metrics">
           <div>

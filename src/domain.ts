@@ -28,8 +28,10 @@ export const ModelConfig = z
     route: z.enum(["ollama", "openai-compatible", "codex-cli"]),
     model: z.string().min(1).max(100),
     reasoningEffort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional(),
+    thinking: z.boolean().optional(),
   })
-  .strict();
+  .strict()
+  .refine((m) => m.thinking === undefined || m.route === "ollama", "Thinking selection requires Ollama");
 const executionLimits = {
   perCallTokenLimit: z.number().int().min(100).max(40000),
   maxOutputTokens: z.number().int().min(1).max(2000),

@@ -18,6 +18,7 @@ export class HttpModel implements ModelPort {
           stream: false,
           format: input.schema,
           keep_alive: 0,
+          ...(input.model.thinking !== undefined ? { think: input.model.thinking } : {}),
           options: { num_predict: input.maxOutputTokens, num_ctx: 32768 },
         }
       : {

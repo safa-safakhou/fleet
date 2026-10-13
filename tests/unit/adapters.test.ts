@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { ModelConfig } from "../../src/domain.js";
 import { McpGame } from "../../src/games/pact/mcp.js";
 import { endpoint, jsonRequest } from "../../src/http.js";
 import { HttpModel } from "../../src/model.js";
@@ -153,4 +154,33 @@ describe("transport boundaries", () => {
     await expect(game.profile()).rejects.toMatchObject({ code: "SLOT_BUSY", status: 200 });
     await game.close();
   });
+});
+
+it("sends an explicit Ollama thinking choice without changing defaults or allowing it on other routes", async () => {
+  const bodies: Record<string, unknown>[] = [];
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async (_url: unknown, init: RequestInit) => {
+      bodies.push(JSON.parse(String(init.body)));
+      return Response.json({
+        message: { content: '{"kind":"wait","summary":"fixture"}' },
+        prompt_eval_count: 10,
+        eval_count: 5,
+      });
+    }),
+  );
+  const provider = new HttpModel({ ollama: "http://127.0.0.1:11434" }, undefined);
+  for (const thinking of [undefined, false, true])
+    await provider.decide({
+      model: { route: "ollama", model: "fixture", ...(thinking === undefined ? {} : { thinking }) },
+      messages: [],
+      schema: {},
+      maxOutputTokens: 100,
+      signal: AbortSignal.timeout(1000),
+    });
+  expect(Object.hasOwn(bodies[0], "think")).toBe(false);
+  expect(bodies[1].think).toBe(false);
+  expect(bodies[2].think).toBe(true);
+  expect(ModelConfig.safeParse({ route: "codex-cli", model: "fixture", thinking: false }).success).toBe(false);
+  expect(ModelConfig.safeParse({ route: "ollama", model: "fixture", thinking: false }).success).toBe(true);
 });

@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Current local Nemotron assignment — 13 October 2026
+
+Founder requested five fresh accounts in a new fleet using this Mac's existing Ollama Nemotron model, explicitly selected fifteen-minute execution until stopped, and clarified that the controller itself must run on this machine. Codex owns setup, relevant verification and local commits without delegation. Use an independent local database/vault, native local controller/console and loopback Ollama; do not add a server cohort, move the Luna group or copy its credentials/state. PACT remains the hosted game reached through authenticated normal APIs. Record exact launch and host/sleep limitations in `docs/local-nemotron-20261013.md`.
+
 ## Current reliability follow-up — 13 October 2026
 
 Founder assigned fixing the observed context/argument/recovery failures, clear observability and thorough validation of the same fifty agents. Codex owns implementation without delegation; record evidence in `docs/reliability-follow-up-20261013.md`. Preserve accounts, history, allowance, permissions, model and fifteen-minute anchor. Founder explicitly approved the five exact waiting-job cancellations and Agent 36's 06:02:57 UTC timeout review with its full unknown allocation retained; both historical unknown records remain. Exact owner recovery grants no autonomous cancellation authority. The same cohort resumed. New uncertainty still requires its own review. Investigate Sign in with ChatGPT using official documentation; do not silently migrate the consumed cohort or reuse Codex OAuth credentials as another client.
