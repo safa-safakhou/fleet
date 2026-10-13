@@ -36,8 +36,46 @@ The local fleet was paused at a quiescent boundary at **14:39:10 Berlin / 12:39:
 
 ## Khanom investigation
 
-Read the actual ChatGPT chat **“Slave Game scheduler 1”** (`6acabd8b-2f54-83ed-808a-152014db7dc5`). Its final report says the gameplay write-session request was blocked by an **OpenAI safety check**, and the chat disabled its automation because autonomous gameplay was blocked. Earlier messages report safety-blocked introductions and a separate PACT permission refusal on construction cancellation. This explains the game-result gap; it is not a PACT database/authentication outage. The chat is idle. All of its game identities and pending construction remain intact.
+Read the actual ChatGPT chat **“Slave Game scheduler 1”** (`6acabd8b-2f54-83ed-808a-152014db7dc5`). Its final report says the gameplay write-session request was blocked by an **OpenAI safety check**, and the chat disabled its automation because autonomous gameplay was blocked. Earlier messages report safety-blocked introductions and a separate PACT permission refusal on construction cancellation. This explains the game-result gap; it is not a PACT database/authentication outage. The chat is idle. The actual ChatGPT Scheduled UI additionally confirms **PACT Khanom MNIM Steward** is **Paused**, with automation ID `6acabd90df748191aebf5bb19c989de9`. Its final report is visibly timestamped **09:38 Berlin**. The separate older Khanom task is also paused; Agha/Mashala steward tasks show their next hourly slots. All game identities and pending construction remain intact.
 
-This is direct chat-report evidence; the app's read tool exposes summaries/messages, not the safety review's detailed internal decision or authoritative schedule configuration. No blocked request was retried, no alternate route used, and the automation was not silently re-enabled. Legitimate recovery is owner review of that request and its existing app/task permissions in the same chat; if permitted, resume only its existing task without bypassing a denial. Any renewed failure should leave a clear blocked status rather than pretend success or endlessly retry.
+This is direct chat-report evidence; the app's read tool exposes summaries/messages, not the safety review's detailed internal decision. Schedule pause was separately verified in the browser UI, without changing it. No blocked request was retried, no alternate route used, and the automation was not silently re-enabled. Legitimate recovery is owner review of that request and its existing app/task permissions in the same chat; if permitted, resume only its existing task without bypassing a denial. Any renewed failure should leave a clear blocked status rather than pretend success or endlessly retry.
 
 Official [ChatGPT action-review documentation](https://learn.chatgpt.com/docs/dots/controls#how-action-review-works) explains that automatic review can require approval or a human step according to instructions, permissions and safeguards. It does not identify the exact reason for this particular refusal. The OpenAI Docs skill was used for this product investigation. Consumer scheduling/approval policy was not changed as part of repairing the native local fleet.
+
+## Actual local installation and reviewed recovery
+
+Pinned local release: **`a627cae3e386a038c6e072054ffc579be79b446e`**, built from the committed archive with independent production dependencies. Both per-user launch agents now reference that private release. The additive feedback migration is installed; all nine complete prior table hashes matched across replacement (new null feedback columns excluded). Protected configuration changed only by adding `FLEET_KEEP_AWAKE=1`. The first worker bootstrap returned a transient launchd I/O error; a fresh status inspection showed no worker service, and retry succeeded. The fleet remained paused throughout, with zero inference or command replay. This failure/recovery is recorded rather than counted as first-attempt success.
+
+The founder-authorized exact reviews completed at **14:55:15 Berlin / 12:55:15 UTC**:
+
+| Account | Original turn retained | Historical result |
+| --- | --- | --- |
+| Mac Nemotron 5 02 | `511a1174-d207-48ec-b7a7-5e53857f89a8` | INVALID_DECISION |
+| Mac Nemotron 5 05 | `3a010ba2-13e1-429f-8cc4-873a012364e5` | INVALID_DECISION |
+| Mac Nemotron 5 04 | `fe99bd10-91c9-4860-9c1c-c58c7c6110c8` | TRANSPORT_UNCERTAIN |
+
+All compute-ledger rows matched byte-for-byte across review. The three original records remain unknown with null measured usage and **40,000 allocation each (120,000 total)**; no refund or fabricated report was made. All original turn fields matched except the three reviewed states becoming cancelled. Agent identity, schedule, counters, notes and other fields matched except the approved readiness/fence changes. Audits and consented review events append the founder's explicit authorization and preservation facts. No pending game command existed on these three turns; nothing was replayed.
+
+Normal authenticated profile/owned-world MCP reads passed for all five with exact retained account/kingdom bindings. Expiring access tokens refreshed through the normal locked rotation flow; no account, grant authority or permission was replaced. The same cohort resumed at **14:56:00.491 Berlin / 12:56:00.491 UTC**. Its anchor remains `2026-10-13T10:07:02.661Z`, model remains `nemotron-3-nano:4b` / thinking true, and all original execution limits and continuous accounting remain.
+
+Real `pmset -g assertions` showed idle/system sleep prevention owned by the worker's caffeinate child, explicitly bound to its PID. Global power settings and display-sleep settings were not changed. Inspector UI readback showed account 02 scheduled for its next original phase, its old failure and unknown allocation still visible, and the new Recovery path explaining readiness. No scheduling/permission control was changed through the browser. Live post-repair acceptance follows below after the complete five-account round.
+
+Rollback: pause at a quiescent boundary and use the saved previous launch-agent paths to run the previous source against the **current** database. The new columns are additive. Preserve current credentials, pending commands and accumulated history; do not restore the pre-repair database over gameplay that has since committed. A disaster restore needs a matching protected database/vault/configuration backup and receipt/account reconciliation. The tested restore is evidence of backup integrity, not authorization to reset live progress.
+
+## Complete first post-repair round
+
+Fixed observation cutoff **15:11:22.873 Berlin / 13:11:22.873 UTC**, after the 14:56 resume: all five original agents finished one scheduled turn. All remained ready on their original phases; no active, pending or needs-owner turn remained at cutoff. **Six executions all reported usage: 38,127 input + 1,295 output = 39,422 measured tokens**. Their conservative allocations remain separately recorded. There were **zero new unknown calls, malformed-output final failures, invalid-action submissions or new owner blockers**. Existing historical unknown calls remain exactly three, reviewed/cancelled and fully allocated.
+
+| Account | Finished, Berlin | Calls | Final result |
+| --- | --- | --- | --- |
+| 01 | 15:07:20 | 1 | WAIT |
+| 02 | 15:10:17 | 1 | WAIT |
+| 03 | 14:58:45 | 2 | WAIT |
+| 04 | 15:01:20 | 1 | WAIT |
+| 05 | 15:04:18 | 1 | WAIT |
+
+Account 03 first proposed a busy building order. `OBSERVED_BUILDING_BUSY` deferred it before submission; it used its second permitted decision to wait. There were **zero committed actions** in this short round. This establishes recovered scheduling, bounded valid decision handling and accounting across all five, including the three reviewed owners; it does not establish useful planning, negotiation or guaranteed error-free future provider responses. Those limitations remain visible.
+
+Local health passed with execution enabled; both launch agents have live pinned-release PIDs, stderr remains empty, worker heartbeat is current and real sleep assertions remain present. Final identity checks matched all original bindings. Live acceptance uses only ordinary automatic turns on the original schedule; no extra manual inference or gameplay command was injected. The Mac fleet remains running until stopped. Server Fleet was not deployed or restarted by this assignment.
+
+Final source is the tested/installed a627cae snapshot. Separate concurrent decision-service source edits later appeared in the sibling working tree; they were not installed or included in this repair's evidence/commits. Only the scoped repair/report files were committed here. PACT planning validation passed at the final check: 168 tickets, acyclic dependencies, 37 criteria, matching source snapshots and six generated views. `git diff --check` passed. No GitHub push was performed.
