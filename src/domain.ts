@@ -118,7 +118,7 @@ export const Decision = z.discriminatedUnion("kind", [
   z
     .object({
       kind: z.literal("action"),
-      action: z.record(z.string(), z.unknown()),
+      action: z.object({ kind: z.string().min(1).max(100) }).catchall(z.unknown()),
       summary: z.string().max(400),
       notes: z.string().max(4000).optional(),
     })
@@ -148,5 +148,5 @@ export interface ModelPort {
     schema: Data;
     maxOutputTokens: number;
     signal: AbortSignal;
-  }): Promise<{ decision: unknown; inputTokens: number | null; outputTokens: number | null }>;
+  }): Promise<{ decision: unknown; inputTokens: number | null; outputTokens: number | null; decisionError?: string }>;
 }

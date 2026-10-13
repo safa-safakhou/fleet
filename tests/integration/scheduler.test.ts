@@ -155,7 +155,8 @@ describe("durable fleet scheduler", () => {
     ]);
     const t = await f.store.claim("one");
     if (!t) throw Error("missing");
-    await f.store.reserveCall(t);
+    const reservation = await f.store.reserveCall(t);
+    await f.store.recordUsage(reservation, 100, 10);
     await expect(f.store.reserveCall(t)).rejects.toThrow("BUDGET_EXHAUSTED");
     await f.store.finish(t, "WAIT");
     f.advance(13 * 3600000);

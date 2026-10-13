@@ -36,7 +36,7 @@ process.stdin.on('end', () => {
   }
   const output = args[args.indexOf('--output-last-message')+1];
   fs.writeFileSync(output, mode === 'bad-output' ? '{' : JSON.stringify({decisionJson: JSON.stringify(mode === 'action'
-    ? {kind:'action',action:{kind:'game.message.send',recipientKingdomId:'fixture-peer',body:'Synthetic offer'},summary:'Offer'}
+    ? {kind:'action',action:{kind:'game.message.send',recipientKingdomId:'00000000-0000-4000-8000-000000000001',body:'Synthetic offer'},summary:'Offer'}
     : {kind:'wait',summary:'Wait for observed changes'})}));
   console.log(JSON.stringify({type:'thread.started',thread_id:'fixture-thread'}));
   if (mode === 'bad-events') { console.log('bad json'); return; }

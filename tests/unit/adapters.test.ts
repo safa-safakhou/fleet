@@ -46,10 +46,12 @@ describe("bounded model adapters", () => {
     expect(String(fetcher.mock.calls[0]?.[1]?.body)).not.toContain("synthetic_key");
     expect(r.inputTokens).toBe(111);
   });
-  it("malformed JSON fails without masquerading as a game action", async () => {
+  it("malformed JSON preserves completed usage without masquerading as a game action", async () => {
     vi.stubGlobal(
       "fetch",
-      vi.fn(async (_url: unknown, _init: RequestInit) => Response.json({ message: { content: "not json" } })),
+      vi.fn(async (_url: unknown, _init: RequestInit) =>
+        Response.json({ message: { content: "not json" }, prompt_eval_count: 123, eval_count: 45 }),
+      ),
     );
     await expect(
       new HttpModel({ ollama: "http://fixture" }, undefined).decide({
@@ -59,7 +61,12 @@ describe("bounded model adapters", () => {
         maxOutputTokens: 10,
         signal: AbortSignal.timeout(1000),
       }),
-    ).rejects.toThrow("INVALID_DECISION");
+    ).resolves.toMatchObject({
+      decision: null,
+      decisionError: "INVALID_MODEL_OUTPUT",
+      inputTokens: 123,
+      outputTokens: 45,
+    });
   });
   it("missing provider setup invokes no network call", async () => {
     const fetcher = vi.fn();

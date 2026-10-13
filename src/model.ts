@@ -39,17 +39,27 @@ export class HttpModel implements ModelPort {
     );
     const choices = Array.isArray(data.choices) ? data.choices : [];
     const message = ollama ? object(data.message) : object(object(choices[0]).message);
-    if (typeof message.content !== "string") throw new FleetError("INVALID_DECISION");
-    let decision: unknown;
-    try {
-      decision = JSON.parse(message.content);
-    } catch {
-      throw new FleetError("INVALID_DECISION");
-    }
     const usage = object(data.usage),
       i = ollama ? data.prompt_eval_count : usage.prompt_tokens,
       o = ollama ? data.eval_count : usage.completion_tokens;
-    return { decision, inputTokens: typeof i === "number" ? i : null, outputTokens: typeof o === "number" ? o : null };
+    // Usage belongs to the completed execution, even when its answer is unusable.
+    let decision: unknown = null;
+    let decisionError: string | undefined;
+    try {
+      if (typeof message.content !== "string") throw new Error("missing content");
+      decision = JSON.parse(message.content);
+    } catch {
+      decisionError =
+        data.done_reason === "length" || object(choices[0]).finish_reason === "length"
+          ? "MODEL_OUTPUT_TRUNCATED"
+          : "INVALID_MODEL_OUTPUT";
+    }
+    return {
+      decision,
+      decisionError,
+      inputTokens: typeof i === "number" ? i : null,
+      outputTokens: typeof o === "number" ? o : null,
+    };
   }
 }
 

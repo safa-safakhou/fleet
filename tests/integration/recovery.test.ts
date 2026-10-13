@@ -41,9 +41,14 @@ describe("explicit recovery and owner boundaries", () => {
     const f = await setup();
     await f.store.reserveCall(f.claim);
     await f.store.finish(f.claim, "INVALID_DECISION");
+    await expect(f.store.reviewTurn(f.claim.id)).rejects.toThrow("PAUSED_REVIEW_REQUIRED");
+    await f.store.setState(f.id, "paused", true);
+    const ledger = (await f.pool.query("SELECT * FROM compute_ledger")).rows;
     await f.store.reviewTurn(f.claim.id);
+    expect((await f.pool.query("SELECT * FROM compute_ledger")).rows).toEqual(ledger);
+    expect((await f.store.cohort(f.id)).state).toBe("paused");
     expect((await f.store.publicState()).turns[0].state).toBe("cancelled");
-    expect((await f.store.agent(f.claim.agentId)).state).toBe("needs_owner");
+    expect((await f.store.agent(f.claim.agentId)).state).toBe("ready");
     expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger")).rows[0].n).toBe(1);
   });
   it("operator review cannot discard an unresolved exact command", async () => {

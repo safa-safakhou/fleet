@@ -18,6 +18,7 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
     gameBase,
     gameId: "pact",
     liveAllowed: env.FLEET_LIVE_ENABLED === "1",
+    keepAwake: env.FLEET_KEEP_AWAKE === "1",
     port: z.coerce
       .number()
       .int()

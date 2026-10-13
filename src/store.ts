@@ -36,6 +36,8 @@ export interface AgentRow {
   failure_count: number;
   read_memory_cipher: string | null;
   read_memory_updated_at: Date | null;
+  decision_feedback_cipher: string | null;
+  decision_feedback_at: Date | null;
 }
 export interface CohortRow {
   id: string;
@@ -346,6 +348,18 @@ export class Store {
       ]);
     });
   }
+  async rememberDecisionFeedback(claim: Claim, feedback: Data | null) {
+    if (feedback && Buffer.byteLength(JSON.stringify(feedback)) > 8000) throw new FleetError("FEEDBACK_LIMIT");
+    await transaction(this.pool, async (c) => {
+      await c.query("SELECT id FROM cohorts WHERE id=$1 FOR UPDATE", [claim.cohortId]);
+      await this.check(c, claim);
+      await c.query("UPDATE agents SET decision_feedback_cipher=$2,decision_feedback_at=$3 WHERE id=$1", [
+        claim.agentId,
+        feedback ? this.vault.encrypt(feedback, `decision-feedback:${claim.agentId}`) : null,
+        feedback ? this.now() : null,
+      ]);
+    });
+  }
   async reserveCall(claim: Claim) {
     const now = this.now(),
       b = claim.cohort.budget;
@@ -506,7 +520,16 @@ export class Store {
           [claim.cohortId, now],
         );
       }
-      const result = pending ? "pending" : bad || codexFailure ? "needs_owner" : fenced ? "cancelled" : "finished";
+      const unresolvedUsage = (
+        await c.query("SELECT 1 FROM compute_ledger WHERE turn_id=$1 AND status='unknown' LIMIT 1", [claim.id])
+      ).rowCount;
+      const result = pending
+        ? "pending"
+        : bad || codexFailure || unresolvedUsage
+          ? "needs_owner"
+          : fenced
+            ? "cancelled"
+            : "finished";
       await c.query("UPDATE turns SET state=$2,finished_at=$3,code=$4,summary=$5 WHERE id=$1", [
         claim.id,
         result,
@@ -537,7 +560,7 @@ export class Store {
           next,
           now,
           code,
-          pending || bad || Boolean(codexFailure),
+          pending || bad || Boolean(codexFailure) || Boolean(unresolvedUsage),
           notes?.slice(0, 4000) ?? null,
           ["WAIT", "COMMITTED", "ALREADY_COMMITTED"].includes(code),
         ],
@@ -547,12 +570,55 @@ export class Store {
   async audit(c: Pool | PoolClient, cohortId: string, kind: string, detail: Data) {
     await c.query("INSERT INTO audit_events(cohort_id,kind,detail) VALUES($1,$2,$3)", [cohortId, kind, detail]);
   }
-  async reviewTurn(id: string) {
+  async reviewTurn(
+    id: string,
+    note = "Owner reviewed this interrupted execution; historical usage and full allocations retained, without replay.",
+  ) {
+    if (note.trim().length < 20 || note.length > 1000) throw new FleetError("REVIEW_NOTE_REQUIRED");
     await transaction(this.pool, async (c) => {
+      await c.query("SELECT pg_advisory_xact_lock(19281462)");
       const t = (await c.query("SELECT * FROM turns WHERE id=$1 FOR UPDATE", [id])).rows[0];
       if (!t || t.state !== "needs_owner" || t.pending_command) throw new FleetError("RECOVERY_REQUIRED");
+      const cohort = await this.cohort(t.cohort_id, c);
+      if (cohort.state !== "paused") throw new FleetError("PAUSED_REVIEW_REQUIRED");
+      if ((await c.query("SELECT 1 FROM turns WHERE cohort_id=$1 AND state='running' LIMIT 1", [t.cohort_id])).rowCount)
+        throw new FleetError("QUIESCENT_REVIEW_REQUIRED");
+      const usage = (
+        await c.query(
+          "SELECT status,count(*)::int calls,sum(tokens)::text allocated_tokens FROM compute_ledger WHERE turn_id=$1 GROUP BY status",
+          [id],
+        )
+      ).rows;
+      if (usage.some((u) => u.status === "reserved")) throw new FleetError("EXECUTION_IN_FLIGHT");
       await c.query("UPDATE turns SET state='cancelled' WHERE id=$1", [id]);
-      await this.audit(c, t.cohort_id, "turn.reviewed", { turnId: id, originalCode: t.code });
+      const otherBlockers = (
+        await c.query(
+          "SELECT 1 FROM turns WHERE agent_id=$1 AND (state IN('running','pending','needs_owner') OR pending_command IS NOT NULL) LIMIT 1",
+          [t.agent_id],
+        )
+      ).rowCount;
+      if (!otherBlockers)
+        await c.query(
+          "UPDATE agents SET state=CASE WHEN credential_state='ready' THEN 'ready' ELSE 'needs_owner' END,fence=fence+1 WHERE id=$1",
+          [t.agent_id],
+        );
+      const detail = {
+        turnId: id,
+        originalCode: t.code,
+        originalState: t.state,
+        note,
+        usage,
+        replayed: false,
+        allocationRetained: true,
+      };
+      await this.audit(c, t.cohort_id, "turn.reviewed", detail);
+      await new Observability(this).record(
+        { id, agentId: t.agent_id, cohortId: t.cohort_id },
+        "result",
+        "Owner reviewed interruption; history and allocation retained",
+        detail,
+        c,
+      );
     });
   }
   async reviewRejectedCommand(id: string, commandId: string, code: string, note: string) {

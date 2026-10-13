@@ -74,6 +74,7 @@ type Usage = {
   unknown_calls: number;
 };
 type Inspection = Page & {
+  recovery?: { resumable: boolean; status: string; steps: { kind: string; instruction: string; turnId?: string }[] };
   agent: ObservedAgent;
   cohort: { state: string; model: CohortView["model"]; observation: boolean };
   usage: Usage;
@@ -119,7 +120,15 @@ export function agentStatus(a: ObservedAgent, state: string) {
   if (a.state === "needs_owner" || a.credential_state !== "ready") return "Needs attention";
   if (
     a.latest_state !== "running" &&
-    (["CONTEXT_LIMIT", "READ_TOOL_FORBIDDEN", "INVALID_TOOL_ARGUMENTS"].includes(a.latest_code ?? "") ||
+    ([
+      "CONTEXT_LIMIT",
+      "READ_TOOL_FORBIDDEN",
+      "INVALID_TOOL_ARGUMENTS",
+      "INVALID_MODEL_OUTPUT",
+      "MODEL_OUTPUT_TRUNCATED",
+      "INVALID_GAME_ACTION",
+      "OBSERVED_MANDATE_VERSION_MISMATCH",
+    ].includes(a.latest_code ?? "") ||
       a.game_attention_label)
   )
     return "Needs attention";
@@ -645,6 +654,14 @@ export function AgentInspector({
                 <dd>{data.usage.unknown_calls}</dd>
               </dl>
             </section>
+            {data.recovery && (
+              <section className="inspector-panel">
+                <h3>Recovery path</h3>
+                {data.recovery.steps.map((step, i) => (
+                  <p key={`${step.kind}:${step.turnId ?? i}`}>{step.instruction}</p>
+                ))}
+              </section>
+            )}
             <section className="inspector-panel">
               <h3>Strategy & continuity</h3>
               <p>{data.agent.strategy.objective}</p>

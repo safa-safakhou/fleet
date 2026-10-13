@@ -83,7 +83,16 @@ export class Engine {
       );
       const reads: Data[] = [];
       let requestedRead: Data | undefined;
-      const decisionFeedback: Data[] = [];
+      const decisionFeedback: Data[] =
+        claim.agent.decision_feedback_cipher &&
+        claim.agent.decision_feedback_at &&
+        claim.agent.decision_feedback_at.getTime() > this.store.now().getTime() - 86400000
+          ? [this.store.vault.decrypt<Data>(claim.agent.decision_feedback_cipher, `decision-feedback:${claim.agentId}`)]
+          : [];
+      const rememberFeedback = async (feedback: Data) => {
+        decisionFeedback.splice(0, decisionFeedback.length, feedback);
+        await this.store.rememberDecisionFeedback(claim, feedback);
+      };
       const lastIntent = (
         await this.store.pool.query(
           "SELECT summary FROM turns WHERE agent_id=$1 AND id<>$2 AND state='finished' ORDER BY started_at DESC LIMIT 1",
@@ -246,14 +255,22 @@ export class Engine {
           if (this.controller === controller) this.controller = undefined;
         }
         await this.store.recordUsage(reservation, response.inputTokens, response.outputTokens);
-        if (m.route === "codex-cli") {
-          if (response.inputTokens === null || response.outputTokens === null) throw new FleetError("USAGE_UNKNOWN");
-          if (response.inputTokens + response.outputTokens > b.perCallTokenLimit)
-            throw new FleetError("USAGE_EXCEEDED");
-        }
+        if (response.inputTokens === null || response.outputTokens === null) throw new FleetError("USAGE_UNKNOWN");
+        if (response.inputTokens + response.outputTokens > b.perCallTokenLimit) throw new FleetError("USAGE_EXCEEDED");
         await this.store.active(claim);
         const parsed = Decision.safeParse(response.decision);
-        if (!parsed.success) throw new FleetError("INVALID_DECISION");
+        if (response.decisionError || !parsed.success) {
+          lastCode = response.decisionError ?? "INVALID_MODEL_OUTPUT";
+          const feedback = {
+            code: lastCode,
+            errors: parsed.success ? [] : parsed.error.issues.map((e) => ({ path: e.path, code: e.code })),
+            guidance:
+              "Return exactly one JSON decision matching decisionSchema. An action needs action.kind and its arguments directly inside action. Keep the answer short enough to finish within the existing output limit. No read, lease or command was submitted by this invalid decision. Correct it using only the remaining decisions, or replan next scheduled turn.",
+          };
+          await rememberFeedback(feedback);
+          await observation.record(claim, "result", "Model output rejected; usage recorded", feedback);
+          continue;
+        }
         if (requestedRead) {
           for (const entry of [...previousReads, ...reads]) delete entry.requested;
           requestedRead = undefined;
@@ -270,6 +287,7 @@ export class Engine {
         });
         summary = decision.summary;
         if (decision.kind === "wait") {
+          await this.store.rememberDecisionFeedback(claim, null);
           notes = decision.notes ?? notes;
           lastCode = "WAIT";
           break;
@@ -379,7 +397,7 @@ export class Engine {
               }
             : this.adapter.preflight?.(decision.action, facts);
         if (preflight) {
-          decisionFeedback.push({ action: decision.action, ...preflight });
+          await rememberFeedback({ actionKind: decision.action.kind, ...preflight });
           lastCode = String(preflight.code);
           await observation.record(claim, "result", "Proposed action deferred before submission", {
             ...preflight,
@@ -388,7 +406,30 @@ export class Engine {
           });
           continue;
         }
+        let attemptedSchema: Data | undefined;
+        try {
+          attemptedSchema = actionSchema(String(decision.action.kind));
+          validateTool({ name: "game-action", inputSchema: attemptedSchema }, decision.action);
+        } catch (error) {
+          if (!(error instanceof FleetError)) throw error;
+          lastCode = "INVALID_GAME_ACTION";
+          const feedback = {
+            code: lastCode,
+            actionKind: decision.action.kind,
+            ...(error instanceof ToolArgumentError ? error.detail : {}),
+            ...(attemptedSchema && Buffer.byteLength(JSON.stringify(attemptedSchema)) < 5000
+              ? { inputSchema: attemptedSchema }
+              : {}),
+            availableKinds: capability?.kinds ?? actionKinds,
+            guidance:
+              "Choose an exact admitted game action kind and use fleet_action_schema for its fields. Put command arguments directly inside action. No lease or command was submitted.",
+          };
+          await rememberFeedback(feedback);
+          await observation.record(claim, "result", "Action shape rejected before submission", feedback);
+          continue;
+        }
         if (schemaChanged(tools, await game.tools())) throw new FleetError("SCHEMA_CHANGED");
+        await this.store.rememberDecisionFeedback(claim, null);
         await game.open();
         await this.store.active(claim);
         const action = this.owner ? await this.owner.prepare(claim, decision.action) : decision.action;

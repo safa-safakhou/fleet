@@ -465,6 +465,8 @@ describe("observe decide commit", () => {
       ]);
     await new Engine(f.store, model, async () => f.game, true).run(f.claim);
     expect(f.game.submits).toHaveLength(0);
-    expect((await f.store.publicState()).turns[0].code).toBe("INVALID_DECISION");
+    expect((await f.store.publicState()).turns[0].code).toBe("WAIT");
+    expect(model.inputs).toHaveLength(2);
+    expect(model.inputs[1].messages[1].content).toContain("INVALID_MODEL_OUTPUT");
   });
 });

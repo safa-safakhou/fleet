@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { transaction } from "./db.js";
 import { type Data, FleetError, object } from "./domain.js";
+import { recoveryPlan } from "./recovery.js";
 import type { Claim, Store } from "./store.js";
 
 export type Stage = "observing" | "ready" | "thinking" | "deciding" | "reading" | "acting" | "result" | "finished";
@@ -148,6 +149,12 @@ export class Observability {
     const a = await this.store.agent(agentId),
       cohort = await this.store.cohort(a.cohort_id);
     const history = await this.history(a.cohort_id, agentId, cursor);
+    const blockers = (
+      await this.store.pool.query(
+        "SELECT id,state,code,pending_command FROM turns WHERE agent_id=$1 AND (state IN('running','pending','needs_owner') OR pending_command IS NOT NULL) ORDER BY started_at",
+        [agentId],
+      )
+    ).rows;
     const { rows: usage } = await this.store.pool.query(
       `SELECT count(*)::int executions,coalesce(sum(l.input_tokens),0)::text input_tokens,
        coalesce(sum(l.output_tokens),0)::text output_tokens,coalesce(sum(l.tokens),0)::text allocated_tokens,
@@ -172,6 +179,7 @@ export class Observability {
         model: cohort.model,
         observation: cohort.observation_consent,
       },
+      recovery: recoveryPlan(cohort.state, a.credential_state, a.state, blockers),
       usage: usage[0],
       notes: cohort.observation_consent ? a.notes : null,
       memory: {

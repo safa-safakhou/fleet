@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Local repair and recoverability assignment — 13 October 2026
+
+Founder authorized fixing local Fleet model/output and sleep interruptions, reviewing the three exact unknown local executions with history/full allocations retained, resuming the same five accounts and verifying live operation. Preserve thinking true, original fifteen-minute anchor, counters, identities and permissions. No server Fleet rollout is part of this assignment. Use process-scoped macOS awake assertions only while the local fleet runs; preserve global power settings. Known non-committing model errors may replan inside existing budgets; uncertain commands require original-receipt reconciliation and new unknown usage needs explicit review. Record acceptance and recovery paths in `docs/local-repair-20261013.md`. Khanom investigation must preserve platform safety refusals; it does not authorize bypassing them or silently reenrolling its disabled ChatGPT automation.
+
 ## Current discovery assignment — 13 October 2026
 
 Founder requested improved agent discovery, selecting both trade and relationship discovery starting with trade. Codex owns verified local implementation without delegation. Prefer PACT's new authenticated `pact_kingdom_discover_v2` sample when advertised, supply its schema up front and retain legacy compatibility. Read `docs/discovery-20261013.md` and sibling PACT-167. No deployment, account/permission/counter reset or scheduler/provider change is recorded; existing local/server native releases remain pinned. Autonomous public advertising requires its own posting/authority workflow.
