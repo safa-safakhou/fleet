@@ -35,34 +35,20 @@ export function fitMessages(
     });
     if (fits(smaller)) return smaller;
   }
-  // A requested result is indispensable feedback, separate from optional history.
-  // Only narrow it after evicting all optional reads, and never silently drop it.
-  if (context.requestedRead && narrowRead) {
-    for (const allowance of [6000, 4000, 2000, 1000]) {
-      const smaller = messages({
-        ...context,
-        availableReads: names,
-        readResults: [],
-        requestedRead: narrowRead(object(context.requestedRead), allowance),
-        omissions: ["Dated cache omitted. The requested read is explicitly incomplete; use its narrowing guidance."],
-      });
-      if (fits(smaller)) return smaller;
-    }
-  }
   if (compactEnvironment) {
-    for (const allowance of [12000, 10000, 8000, 6000, 4000, 2000]) {
-      let environment: Data;
-      try {
-        environment = compactEnvironment(object(context.environment), allowance);
-      } catch (error) {
-        if (error instanceof FleetError && error.code === "CONTEXT_LIMIT") continue;
-        throw error;
-      }
-      // Try whole requested feedback first, then an explicitly incomplete projection.
-      const requested = context.requestedRead ? object(context.requestedRead) : undefined;
-      const feedback = [requested];
-      if (requested && narrowRead) for (const size of [4000, 2000, 1000]) feedback.push(narrowRead(requested, size));
-      for (const requestedRead of feedback) {
+    const requested = context.requestedRead ? object(context.requestedRead) : undefined;
+    const feedback = [requested];
+    if (requested && narrowRead) for (const size of [4000, 2000, 1000]) feedback.push(narrowRead(requested, size));
+    // Exhaust optional fresh-environment reductions before narrowing requested feedback.
+    for (const requestedRead of feedback) {
+      for (const allowance of [12000, 10000, 8000, 6000, 4000, 2000]) {
+        let environment: Data;
+        try {
+          environment = compactEnvironment(object(context.environment), allowance);
+        } catch (error) {
+          if (error instanceof FleetError && error.code === "CONTEXT_LIMIT") continue;
+          throw error;
+        }
         const reduced = {
           ...context,
           environment,
@@ -89,6 +75,20 @@ export function fitMessages(
         });
         if (fits(withoutNotes)) return withoutNotes;
       }
+    }
+  }
+  // A requested result is indispensable feedback, separate from optional history.
+  // Only narrow it after evicting all optional reads, and never silently drop it.
+  if (context.requestedRead && narrowRead) {
+    for (const allowance of [6000, 4000, 2000, 1000]) {
+      const smaller = messages({
+        ...context,
+        availableReads: names,
+        readResults: [],
+        requestedRead: narrowRead(object(context.requestedRead), allowance),
+        omissions: ["Dated cache omitted. The requested read is explicitly incomplete; use its narrowing guidance."],
+      });
+      if (fits(smaller)) return smaller;
     }
   }
   throw new FleetError("CONTEXT_LIMIT");

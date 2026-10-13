@@ -11,6 +11,7 @@ const environment = {
   balances: { iron: { ordinaryUnits: "12000" } },
   buildings: [{ kind: "hall", level: 1 }],
   builders: [{ slot: 1, state: null }],
+  nextUpgradeChecks: [{ kind: "hall", targetLevel: 2, missingBuildings: [{ kind: "barracks", level: 2 }] }],
   mandate: { allowedActions: ["building.queue"] },
   constructionRecovery: { status: "progress_possible" },
   socialDelegation: { mode: "agent_decides" },
@@ -54,6 +55,7 @@ it("pages a busy fresh environment, preserves core facts, whole records and a ti
   expect(kept.environment.profile).toEqual(environment.profile);
   expect(kept.environment.mandate).toEqual(environment.mandate);
   expect(kept.environment.builders).toEqual(environment.builders);
+  expect(kept.environment.nextUpgradeChecks).toEqual(environment.nextUpgradeChecks);
   expect(kept.commandResults).toEqual(context.commandResults);
   expect(kept.suppliedActionSchemas).toEqual(context.suppliedActionSchemas);
   expect(kept.environment.openSupplyOffers).toEqual(environment.openSupplyOffers);
@@ -61,6 +63,22 @@ it("pages a busy fresh environment, preserves core facts, whole records and a ti
   expect(kept.environment.coverage.pages.contactRequests.omitted).toBeGreaterThan(0);
   for (const request of kept.environment.contactRequests) expect(environment.contactRequests).toContainEqual(request);
   expect(environment).toEqual(original);
+});
+it("reduces optional fresh pages before narrowing an otherwise deliverable large requested result", () => {
+  const requestedRead = { tool: "pact_inbox_read_v1", args: {}, result: { relevant: "whole result".repeat(700) } };
+  const messages = fitMessages(
+    { environment, requestedRead },
+    "choose",
+    decisionSchema,
+    13000,
+    boundedReads,
+    narrowRead,
+    compactEnvironment,
+  );
+  expect(JSON.parse(messages[1].content).requestedRead).toEqual(requestedRead);
+  expect(
+    Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(decisionSchema)),
+  ).toBeLessThanOrEqual(13000);
 });
 it("rotates paged pending records instead of starving the same tail forever", () => {
   const first = compactEnvironment(environment, 2400),

@@ -76,6 +76,7 @@ export function compactFacts(input: Data) {
     ),
     buildings: world.buildings,
     builders: world.builders,
+    nextUpgradeChecks: world.nextUpgradeChecks,
     constructionRecovery: constructionRecovery(world),
     upkeep: world.upkeep,
     charges: world.charges,
