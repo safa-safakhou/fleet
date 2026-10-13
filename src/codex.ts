@@ -50,7 +50,7 @@ async function execute(
       kill("SIGTERM");
       timer = setTimeout(() => kill("SIGKILL"), 500);
     };
-    const abort = () => stop("CODEX_CANCELLED");
+    const abort = () => stop(signal.reason?.name === "TimeoutError" ? "CODEX_TIMEOUT" : "CODEX_CANCELLED");
     signal.addEventListener("abort", abort, { once: true });
     if (signal.aborted) abort();
     const consume = (chunk: Buffer, stdout: boolean) => {

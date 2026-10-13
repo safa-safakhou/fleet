@@ -1,8 +1,8 @@
 import { type Data, FleetError, object } from "./domain.js";
 
 // Count the serialized transport envelope plus the separately supplied output schema.
-// Keep executable shapes, command outcomes and current facts whole. Only the dated
-// observation cache and read descriptions are optional under the input allowance.
+// Keep executable shapes, command outcomes and authoritative core facts whole.
+// The game adapter can explicitly page optional fresh observations after cache eviction.
 export function fitMessages(
   context: Data,
   instructions: string,
@@ -10,6 +10,7 @@ export function fitMessages(
   limit: number,
   compactReads: (reads: Data[], limit: number) => Data[],
   narrowRead?: (read: Data, limit: number) => Data,
+  compactEnvironment?: (environment: Data, limit: number) => Data,
 ) {
   const messages = (c: Data) => [
     { role: "system", content: instructions },
@@ -46,6 +47,48 @@ export function fitMessages(
         omissions: ["Dated cache omitted. The requested read is explicitly incomplete; use its narrowing guidance."],
       });
       if (fits(smaller)) return smaller;
+    }
+  }
+  if (compactEnvironment) {
+    for (const allowance of [12000, 10000, 8000, 6000, 4000, 2000]) {
+      let environment: Data;
+      try {
+        environment = compactEnvironment(object(context.environment), allowance);
+      } catch (error) {
+        if (error instanceof FleetError && error.code === "CONTEXT_LIMIT") continue;
+        throw error;
+      }
+      // Try whole requested feedback first, then an explicitly incomplete projection.
+      const requested = context.requestedRead ? object(context.requestedRead) : undefined;
+      const feedback = [requested];
+      if (requested && narrowRead) for (const size of [4000, 2000, 1000]) feedback.push(narrowRead(requested, size));
+      for (const requestedRead of feedback) {
+        const reduced = {
+          ...context,
+          environment,
+          availableReads: names,
+          readResults: [],
+          requestedRead,
+          omissions: [
+            "Dated cache omitted; optional current observations are paged with explicit coverage. Core state, permissions, receipts and executable schemas remain whole. Missing records are unknown, not empty.",
+          ],
+        };
+        const wholeNotes = messages(reduced);
+        if (fits(wholeNotes)) return wholeNotes;
+        // Never destroy persisted notes. Oversized optional continuation prose can
+        // be omitted from this one input, with an explicit notice instead of truncation.
+        const withoutNotes = messages({
+          ...reduced,
+          privateNotes: undefined,
+          privateNotesCoverage: {
+            omitted: true,
+            originalBytes: Buffer.byteLength(JSON.stringify(context.privateNotes ?? null)),
+            notice:
+              "Stored private notes omitted from this input only. Fresh facts and requested feedback take priority; prior intent is not current state.",
+          },
+        });
+        if (fits(withoutNotes)) return withoutNotes;
+      }
     }
   }
   throw new FleetError("CONTEXT_LIMIT");

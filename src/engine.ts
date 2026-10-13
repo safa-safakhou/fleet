@@ -75,7 +75,12 @@ export class Engine {
       };
       const facts: Data = await this.adapter.initial(game, claim.agent.kingdom_id, initialContext);
       const attention = this.adapter.attention?.(facts);
-      if (attention) await observation.record(claim, "result", attention.label, attention.detail);
+      await observation.record(
+        claim,
+        attention ? "result" : "ready",
+        attention ? "Game needs owner recovery" : "Game blockers checked",
+        attention ? { ...attention.detail, label: attention.label } : { needsOwner: false },
+      );
       const reads: Data[] = [];
       let requestedRead: Data | undefined;
       const decisionFeedback: Data[] = [];
@@ -188,6 +193,7 @@ export class Engine {
           availableReads: tools
             .filter(isRead)
             .map((t) => ({ name: t.name, description: t.description?.slice(0, 180) })),
+          suppliedReadSchemas: this.adapter.suppliedReadSchemas?.(tools.filter(isRead)) ?? [],
           convenienceRead: { name: "fleet_action_schema", args: { kind: "one observed gameActionKinds value" } },
           readSchemaLookup: { name: "fleet_read_schema", args: { name: "one availableReads name" } },
           decisionSchema,
@@ -199,6 +205,7 @@ export class Engine {
           b.inputByteLimit,
           boundedReads,
           this.adapter.narrowRead,
+          this.adapter.compactEnvironment,
         );
         const bytes = Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(decisionSchema));
         if (bytes > b.inputByteLimit || bytes + b.maxOutputTokens + 1024 > b.perCallTokenLimit)
@@ -298,6 +305,7 @@ export class Engine {
                 code: error.code,
                 tool: t.name,
                 attemptedArgs,
+                inputSchema: t.inputSchema,
                 ...error.detail,
                 schemaLookup: { tool: "fleet_read_schema", args: { name: t.name } },
                 guidance:

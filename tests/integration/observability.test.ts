@@ -18,6 +18,16 @@ async function setup() {
   return { ...f, id, claim, observation: new Observability(f.store) };
 }
 describe("operator observability", () => {
+  it("exposes current game recovery separately from scheduler readiness and clears it only after a fresh check", async () => {
+    const f = await setup();
+    await f.observation.record(f.claim, "result", "Game needs owner recovery", { fixture: "blocked queue" });
+    expect((await f.store.agentOverview(f.claim.agentId))[0].game_attention_label).toBe("Game needs owner recovery");
+    await f.observation.record(f.claim, "thinking", "Waiting for the model decision");
+    expect((await f.store.agentOverview(f.claim.agentId))[0].game_attention_label).toBe("Game needs owner recovery");
+    await f.observation.record(f.claim, "ready", "Game blockers checked", { needsOwner: false });
+    expect((await f.store.agentOverview(f.claim.agentId))[0].game_attention_label).toBe(null);
+    expect((await f.store.agent(f.claim.agentId)).state).toBe("ready");
+  });
   it("captures ordered reads, model summaries and exact action outcomes without extra inference", async () => {
     const f = await setup();
     await f.store.consent(f.id, true);

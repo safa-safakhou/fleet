@@ -100,6 +100,13 @@ it("records sanitized invalid read arguments and field errors, permits correctio
   ]);
   await new Engine(f.store, model, async () => f.game, true).run(f.claim);
   const feedback = JSON.parse(model.inputs[1].messages[1].content).decisionFeedback[0];
+  expect(JSON.parse(model.inputs[0].messages[1].content).suppliedReadSchemas).toContainEqual({
+    name: "pact_world_read_v1",
+    inputSchema: (await f.game.tools()).find((t) => t.name === "pact_world_read_v1")?.inputSchema,
+  });
+  expect(feedback.inputSchema).toEqual(
+    (await f.game.tools()).find((t) => t.name === "pact_world_read_v1")?.inputSchema,
+  );
   expect(feedback.attemptedArgs).toEqual({ forecastMinutes: 99, token: "[redacted]" });
   expect(feedback.schemaDigest).toMatch(/^[a-f0-9]{64}$/);
   expect(feedback.errors[0].instancePath).toBe("/forecastMinutes");
@@ -110,6 +117,46 @@ it("records sanitized invalid read arguments and field errors, permits correctio
   expect(inspection.turns[0].events.some((e) => e.label === "Read arguments rejected before submission")).toBe(true);
   expect(inspection.turns[0].calls).toBe(3);
   expect(f.game.opened).toBe(0);
+});
+it("a busy current guide cannot starve requested feedback or a permitted response, without buying extra calls or modifying memory", async () => {
+  const f = await setup(),
+    original = f.game.read.bind(f.game);
+  const requestId = "00000000-0000-4000-8000-000000000001";
+  f.game.read = async (tool, args) =>
+    tool === "pact_agent_guide_v1"
+      ? {
+          contacts: [],
+          mandate: { allowedActions: ["contact.answer"] },
+          socialDelegation: { mode: "agent_decides" },
+          contactRequests: Array.from({ length: 80 }, (_, n) => ({
+            id: n === 0 ? requestId : `fixture-${n}`,
+            direction: "incoming",
+            note: '\\"界'.repeat(100),
+          })),
+        }
+      : original(tool, args);
+  const model = new FakeModel([
+    { kind: "read", tool: "pact_world_read_v1", args: {}, summary: "Fresh world" },
+    {
+      kind: "action",
+      action: { kind: "game.contact.answer", requestId, accept: true },
+      summary: "Respond to the observed request",
+    },
+    { kind: "wait", summary: "Wait" },
+  ]);
+  await new Engine(f.store, model, async () => f.game, true).run(f.claim);
+  expect(model.inputs).toHaveLength(3);
+  for (const input of model.inputs)
+    expect(
+      Buffer.byteLength(JSON.stringify(input.messages)) + Buffer.byteLength(JSON.stringify(input.schema)),
+    ).toBeLessThanOrEqual(24000);
+  expect(JSON.parse(model.inputs[1].messages[1].content).requestedRead.result.profile.kingdomId).toBe(
+    f.claim.agent.kingdom_id,
+  );
+  expect(JSON.parse(model.inputs[0].messages[1].content).environment.coverage.complete).toBe(false);
+  expect(f.game.submits).toHaveLength(1);
+  expect(f.game.submits[0].action).toEqual({ kind: "game.contact.answer", requestId, accept: true });
+  expect((await f.store.publicState()).turns[0].actions).toBe(1);
 });
 it("uses newly requested owned levels for the subsequent preflight without rebinding identity", async () => {
   const f = await setup();

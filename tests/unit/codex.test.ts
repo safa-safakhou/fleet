@@ -110,6 +110,11 @@ describe.skipIf(process.platform !== "linux")("subscription Codex process adapte
       if (!(error instanceof Error && "code" in error && error.code === "ENOENT")) throw error;
     }
   });
+  it("distinguishes the execution deadline from an operator cancellation and leaves cleanup complete", async () => {
+    const f = await setup("sleep");
+    await expect(f.model.decide({ ...input(), signal: AbortSignal.timeout(400) })).rejects.toThrow("CODEX_TIMEOUT");
+    await expect(access(join(f.home, "fleet-execution.lock"))).rejects.toThrow();
+  });
   it("serializes shared subscription login across adapter instances", async () => {
     const f = await setup("sleep"),
       controller = new AbortController();

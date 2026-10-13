@@ -201,7 +201,7 @@ it("real contact-answer handler respects manual delegation and allows the actual
   await expect(dispatch(recipient, action)).rejects.toMatchObject({ code: "FORBIDDEN" });
   expect((await dispatch(recipient, action, "human")).code).toBe("COMMITTED");
 });
-it.each(["mine", "market", "wall"])(
+it.each(["mine", "market", "wall", "farm"])(
   "real owned projection diagnoses Hall/ %s deadlock, rejects a new blocker and accepts exact owner cancellation",
   async (building) => {
     const o = await owner();
@@ -227,8 +227,34 @@ it.each(["mine", "market", "wall"])(
     await expect(dispatch(o, cancellation)).rejects.toMatchObject({ code: "FORBIDDEN" });
     expect((await dispatch(o, cancellation, "human")).code).toBe("COMMITTED");
     expect(constructionRecovery(await views.readSelf(o.accountId)).status).toBe("waiting_or_unknown");
+    const prerequisite = { kind: "game.building.queue", building: "barracks", targetLevel: 2, slot: 2 };
+    expect(pactAdapter.preflight?.(prerequisite, { world: await views.readSelf(o.accountId) })).toBeUndefined();
+    expect((await dispatch(o, prerequisite)).code).toBe("COMMITTED");
+    expect(constructionRecovery(await views.readSelf(o.accountId)).status).toBe("progress_possible");
     const outsider = await owner();
     expect(await views.read(outsider.accountId, o.kingdomId)).not.toHaveProperty("nextUpgradeChecks");
     expect(await views.read(outsider.accountId, o.kingdomId)).not.toHaveProperty("builders");
   },
 );
+it("recovers the distinct Farm III / Storehouse III deadlock without cancelling both jobs", async () => {
+  const o = await owner();
+  await pool.query("UPDATE kingdom_buildings SET level=2 WHERE kingdom_id=$1 AND kind='storehouse'", [o.kingdomId]);
+  const farm = await dispatch(o, { kind: "game.building.queue", building: "farm", targetLevel: 3, slot: 1 });
+  const store = await dispatch(o, { kind: "game.building.queue", building: "storehouse", targetLevel: 3, slot: 2 });
+  expect(farm.code).toBe("COMMITTED");
+  expect(store.code).toBe("COMMITTED");
+  const blocked = await views.readSelf(o.accountId);
+  expect(constructionRecovery(blocked).status).toBe("owner_required");
+  const cancellation = {
+    kind: "game.building.cancel",
+    instructionId: blocked.builders.find((b: Data) => b.kind === "storehouse").instructionId,
+  };
+  await expect(dispatch(o, cancellation)).rejects.toMatchObject({ code: "FORBIDDEN" });
+  expect((await dispatch(o, cancellation, "human")).code).toBe("COMMITTED");
+  const after = await views.readSelf(o.accountId);
+  expect(after.builders.find((b: Data) => b.kind === "farm").state).toBe("waiting");
+  expect(constructionRecovery(after).status).toBe("waiting_or_unknown");
+  const prerequisite = { kind: "game.building.queue", building: "barracks", targetLevel: 2, slot: 2 };
+  expect((await dispatch(o, prerequisite)).code).toBe("COMMITTED");
+  expect(constructionRecovery(await views.readSelf(o.accountId)).status).toBe("waiting_or_unknown");
+});

@@ -20,6 +20,7 @@ export type ObservedAgent = {
   latest_code?: string | null;
   current_stage?: string | null;
   current_label?: string | null;
+  game_attention_label?: string | null;
 };
 type CohortView = {
   id: string;
@@ -116,6 +117,8 @@ export function agentStatus(a: ObservedAgent, state: string) {
   if (!a.account_id) return "Not connected";
   if (state === "stopped" || state === "finished") return state === "stopped" ? "Stopped" : "Finished";
   if (a.state === "needs_owner" || a.credential_state !== "ready") return "Needs attention";
+  if (a.latest_state !== "running" && (a.latest_code === "CONTEXT_LIMIT" || a.game_attention_label))
+    return "Needs attention";
   if (a.state === "paused") return "Paused";
   if (state !== "running") return state === "draft" ? "Ready to start" : "Fleet paused";
   if (a.latest_state === "running")
@@ -262,7 +265,10 @@ export function Overview({
             <strong>{attention.length} agents need inspection</strong>
             {attention.slice(0, 3).map((a) => (
               <button type="button" key={a.id} onClick={() => inspect(a.id)}>
-                {a.name} · {readable(a.reason ?? "Check credentials")}
+                {a.name} ·{" "}
+                {a.game_attention_label
+                  ? "Construction needs owner recovery"
+                  : readable(a.reason ?? a.latest_code ?? "Check credentials")}
               </button>
             ))}
           </div>

@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Current reliability follow-up — 13 October 2026
+
+Founder assigned fixing the observed context/argument/recovery failures, clear observability and thorough validation of the same fifty agents. Codex owns implementation without delegation; record evidence in `docs/reliability-follow-up-20261013.md`. Preserve accounts, history, allowance, permissions, model and fifteen-minute anchor. Exact owner recovery is separate from granting agents cancellation authority. Agent 36 subsequently timed out at 06:02:57 UTC and paused admission; preserve its new unknown allocation pending a concrete founder review. Investigate Sign in with ChatGPT using official documentation; do not silently migrate the consumed cohort or reuse Codex OAuth credentials as another client.
+
 ## Current deployment and same-fleet resumption — 13 October 2026
 
 Founder explicitly authorized deploying P1, reviewing unknown usage and resuming the same fifty agents. Fleet `3407e5a` and PACT `fleet-p1-20261013-1` are deployed; the original Luna medium / 15-minute continuous cohort is running. Read `docs/p1-deployment-20261013.md`. The cancelled ninety-second execution was explicitly reviewed with its full 40,000 allocation and historical unknown marker retained; exact tokens were unavailable and no game action was replayed. Preserve all bindings, lifetime counters, schedule/anchor, existing permissions, the finished pilot and inactive draft. New uncertainty still requires its own review; do not silently clear unknown usage or expand owner exceptions. No delegation is requested.

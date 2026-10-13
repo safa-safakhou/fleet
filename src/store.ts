@@ -209,11 +209,13 @@ export class Store {
          coalesce(s.total_turns,0)::int total_turns,coalesce(s.committed_actions,0)::int committed_actions,
          t.id latest_turn_id,t.summary latest_summary,t.code latest_code,t.state latest_state,t.started_at latest_started_at,
          CASE WHEN t.state='running' THEN e.stage ELSE NULL END current_stage,
-         CASE WHEN t.state='running' THEN e.label ELSE NULL END current_label
+         CASE WHEN t.state='running' THEN e.label ELSE NULL END current_label,
+         CASE WHEN g.label='Game needs owner recovery' THEN g.label ELSE NULL END game_attention_label
          FROM agents a
          LEFT JOIN (SELECT agent_id,count(*) total_turns,sum(actions) committed_actions FROM turns GROUP BY agent_id) s ON s.agent_id=a.id
          LEFT JOIN LATERAL (SELECT id,state,summary,code,started_at FROM turns WHERE agent_id=a.id ORDER BY started_at DESC,id DESC LIMIT 1) t ON true
          LEFT JOIN LATERAL (SELECT stage,label FROM turn_events WHERE turn_id=t.id ORDER BY sequence DESC LIMIT 1) e ON true
+         LEFT JOIN LATERAL (SELECT label FROM turn_events WHERE agent_id=a.id AND label IN('Game needs owner recovery','Game blockers checked') ORDER BY sequence DESC LIMIT 1) g ON true
          WHERE ($1::uuid IS NULL OR a.id=$1) ORDER BY a.cohort_id,a.ordinal`,
         [id ?? null],
       )

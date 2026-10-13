@@ -23,6 +23,8 @@ export interface GameAdapter {
   preflight?(action: Data, facts: Data): Data | undefined;
   attention?(facts: Data): { label: string; detail: Data } | undefined;
   compactFacts(facts: Data): Data;
+  compactEnvironment?(environment: Data, limit: number): Data;
+  suppliedReadSchemas?(tools: Tool[]): Data[];
   mergeReads(reads: Data[]): Data[];
   boundedReads(reads: Data[], limit?: number): Data[];
   narrowRead?(read: Data, limit: number): Data;
