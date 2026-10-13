@@ -17,16 +17,30 @@ One separately recorded synthetic local compatibility call completed in **3.316 
 Private root: `/Users/safa.safakhou/Library/Application Support/Fleet/nemotron-local` (0700), with independent `fleet.env` and `database.env` (0600), vault key, state, logs, backups and versioned runtime releases. No server credentials or database rows are copied.
 
 - Database: local Docker container `fleet-mac-nemotron-db`, PostgreSQL 17.9, volume `fleet_mac_nemotron_database`, loopback `127.0.0.1:5439`, database/user `fleet_mac`; bounded to 512 MiB / 0.5 CPU, restart unless stopped.
-- Controller and console: native Node 24 on the Mac, intended per-user launch agents with a pinned private runtime release. Console binds only `127.0.0.1:8820`.
+- Controller and console: native Node 24 on the Mac, installed per-user launch agents with a pinned private runtime release. Console binds only `127.0.0.1:8820`.
 - Inference: this Mac's Ollama loopback endpoint. No public Ollama listener or reverse SSH connection is required.
 - Game: existing hosted PACT HTTPS API, authenticated independently for each new account. The game remains hosted; its Fleet scheduling and model execution are local.
 
-Launch acceptance, actual cohort/account identities and first completed turns are appended only after they occur.
+## Launch acceptance
+
+Launched **2026-10-13 12:07:02.661 Berlin / 10:07:02.661 UTC**. Local cohort **`bd1bf167-bce0-47a3-9167-b29e3391b2d8`**, **Mac Nemotron 5**, is running continuously, with five distinct fresh account IDs and five distinct kingdom IDs. All five were authenticated against PACT before launch. Protected `state/bindings.json` retains their exact bindings; `state/cohort.json` and the setup helper reuse the same cohort and persisted enrollment keys, never replace identities on retry. No server cohort was created.
+
+Saved model: Ollama `nemotron-3-nano:4b`, thinking false. Saved allowance: continuous with explicit consent, no lifetime call/token ceiling or deadline; 40,000 reserved tokens per call, maximum 2,000 output tokens, 24,000 input bytes, two calls/two actions per turn, concurrency one. Each account has a normal resource mandate and agent-decides social delegation. There is no synthetic-owner exception policy. Observation is enabled for this owned synthetic cohort.
+
+The original schedule anchor is persisted. First slots are 12:07, 12:10, 12:13, 12:16 and 12:19 Berlin, then each repeats every fifteen minutes. Enrollment, account checks and startup did not reset or import any earlier counters.
+
+At **12:07:29 Berlin**, the first automatic scheduled turn had finished with `WAIT`, one reported inference execution, **6,059 input / 60 output tokens**, zero committed actions and zero unknown calls. All five agents were ready, with the remaining four awaiting their first assigned slots. This is first-turn transport/context/accounting acceptance, not evidence that every agent has completed a round or that the model will communicate or progress reliably.
+
+Local console `/health` returned success with live execution enabled. Authenticated `/api/state` returned HTTP 200 with exactly this one cohort; individual `/api/agents/:id/inspection` returned HTTP 200. Logout succeeded. Local worker heartbeat was less than one second old. Native console and worker launch agents had live PIDs, zero last exit status and empty stderr logs. The independent PostgreSQL container was healthy; an encrypted-credential pre-launch database dump is protected under `backups/pre-launch-20261013.dump`. The dump needs this installation's separate vault key to recover encrypted credentials; preserve both protected env files with it.
+
+Installed services: **`com.safa.fleet.nemotron.console`** and **`com.safa.fleet.nemotron.worker`**, with 0600 plists in this user's `~/Library/LaunchAgents`. Both use Node 24.21.0 and the pinned private runtime release **`e7f530432f4fc55b00e4e82f4a9d3c6def1af108`**, independently installed production dependencies and protected logs. Existing **`com.ollama.ollama`** owns Ollama; it was not replaced. No SSH tunnel, model relay or remote Fleet worker was installed. No server deployment/push was performed.
+
+For operational checks, use `launchctl list com.safa.fleet.nemotron.console`, `launchctl list com.safa.fleet.nemotron.worker`, `docker inspect fleet-mac-nemotron-db` and local `/health`. Use Pause in the local dashboard before intentionally stopping services; killing an active worker can leave an uncertain execution requiring review. The terminal Stop action ends a cohort permanently. Launch agents restart crashed processes but cannot make a sleeping Mac run inference or start a stopped Docker daemon.
 
 ## Working with the local fleet
 
 Open **http://127.0.0.1:8820/** on this Mac. Its new operator password is the `FLEET_OPERATOR_SECRET` value in the protected local `fleet.env`; it differs from the server console password and must not be pasted into Git/logs. Overview, Agents, Fleet settings, Turn history and Society refer to this independent database. Pause/resume in this local console retains these five identities and counters.
 
-The cohort is intended to have one owner per existing strategy family, the installed Nemotron tag with thinking off, one concurrent turn, the original fifteen-minute stagger, two decisions/two actions per turn, a two-minute deadline and 90-second individual inference bound. Continuous mode has no lifetime ceiling/end date; all usage still accumulates. No synthetic-owner exception policy is selected. Normal PACT mandates, lease, stock, quotas, prerequisites and human-only boundaries remain authoritative.
+The cohort has one owner per existing strategy family, the installed Nemotron tag with thinking off, one concurrent turn, the original fifteen-minute stagger, two decisions/two actions per turn, a two-minute deadline and 90-second individual inference bound. Continuous mode has no lifetime ceiling/end date; all usage still accumulates. No synthetic-owner exception policy is selected. Normal PACT mandates, lease, stock, quotas, prerequisites and human-only boundaries remain authoritative.
 
 This fleet needs the Mac awake, the local Docker database running, Ollama running and internet access to PACT. Per-user launch agents operate in this user's logged-in session. Sleeping/shutting down pauses local execution; missed slots are skipped when the machine returns, rather than caught up in a burst. An interrupted/uncertain turn may require explicit recovery; uptime and endless useful gameplay are not guaranteed. Do not silently clear pending commands or unknown usage, or replace an account on restart. Neither the server's dashboard nor the server worker owns this local cohort.

@@ -4,6 +4,8 @@ An independent server controller and private console for scheduled game agents. 
 
 For day-to-day console use, read the [operator guide](docs/operator-guide.md): draft setup, model/allowance selection, accounts, monitoring, pause and recovery.
 
+The independent [five-account Mac Nemotron installation](docs/local-nemotron-20261013.md) runs its controller, database, dashboard and inference on this Mac, every fifteen minutes until stopped. It is separate from the server Luna cohort.
+
 The [13 October P1 controller report](docs/p1-controller-20261013.md) records verified fresh-read delivery, persisted memory, action-permission and construction-recovery fixes. The [subsequent deployment and recovery](docs/p1-deployment-20261013.md) deployed these changes and resumed the same fifty-owner Luna group, preserving its accounts, counters and fifteen-minute schedule. The reviewed cancelled execution's full allocation and historical unknown-usage marker remain visible.
 
 Latest: [the reliability follow-up](docs/reliability-follow-up-20261013.md) records the deployed context/read-correction changes, five exact owner queue recoveries, the second reviewed timeout, 168 tests and an observed fifty-agent round. Scheduler health and cleared deadlocks remain distinct from weak planning/communication. Sign in with ChatGPT is assessed as a future provider; the current cohort still uses Codex.
