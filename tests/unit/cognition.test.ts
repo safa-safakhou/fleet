@@ -1,9 +1,11 @@
+import { Ajv } from "ajv";
 import { describe, expect, it } from "vitest";
 import {
   CognitiveDecision,
   cognitionInstructions,
   cognitiveDecisionGuide,
   cognitiveDecisionSchema,
+  cognitiveSchemaForVersion,
   rankEpisodes,
   utf8Prefix,
 } from "../../src/cognition.js";
@@ -14,6 +16,18 @@ import { boundedReads, narrowRead } from "../../src/games/pact/context.js";
 import { compactEnvironment } from "../../src/games/pact/environment.js";
 
 describe("cognitive decision contracts", () => {
+  it("constrains only the protocol version to the delivered snapshot without mutating shared schemas or requiring an update", () => {
+    const before = structuredClone(cognitiveDecisionSchema);
+    const validator = new Ajv({ strict: false }).compile(cognitiveSchemaForVersion(3));
+    expect(validator({ kind: "wait", summary: "Wait" })).toBe(true);
+    expect(validator({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 3 } })).toBe(true);
+    expect(validator({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 4 } })).toBe(false);
+    const next = new Ajv({ strict: false }).compile(cognitiveSchemaForVersion(4));
+    expect(next({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 4 } })).toBe(true);
+    expect(validator({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 4 } })).toBe(false);
+    expect(cognitiveDecisionSchema).toEqual(before);
+    expect(() => cognitiveSchemaForVersion(undefined)).toThrow("COGNITION_VERSION_REQUIRED");
+  });
   it("bounds multibyte observations without cutting a Unicode character", () => {
     const prefix = utf8Prefix("🌱 باغ memories".repeat(1000), 1000);
     expect(Buffer.byteLength(prefix)).toBeLessThanOrEqual(1000);

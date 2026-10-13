@@ -47,6 +47,19 @@ export const CognitiveDecision = z.discriminatedUnion("kind", [
   Decision.options[2].extend({ cognition: CognitiveUpdate.optional() }),
 ]);
 export const cognitiveDecisionSchema = z.toJSONSchema(CognitiveDecision, { target: "draft-7", reused: "ref" });
+export function cognitiveSchemaForVersion(version: unknown): Data {
+  if (typeof version !== "number" || !Number.isSafeInteger(version) || version < 0)
+    throw new FleetError("COGNITION_VERSION_REQUIRED");
+  const schema = structuredClone(cognitiveDecisionSchema);
+  const constrain = (value: unknown) => {
+    if (!value || typeof value !== "object") return;
+    const properties = object(object(value).properties);
+    if (properties.expectedVersion) object(properties.expectedVersion).const = version;
+    for (const child of Object.values(value)) constrain(child);
+  };
+  constrain(schema);
+  return schema;
+}
 // The provider enforces the complete schema. Avoid duplicating its expanded
 // definitions in the user prompt, while spelling out every optional update field.
 export const cognitiveDecisionGuide = {

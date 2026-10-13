@@ -4,7 +4,7 @@ import {
   Cognition,
   cognitionInstructions,
   cognitiveDecisionGuide,
-  cognitiveDecisionSchema,
+  cognitiveSchemaForVersion,
   deliveredCognition,
 } from "./cognition.js";
 import { Communications } from "./communications.js";
@@ -65,7 +65,6 @@ export class Engine {
     const communications = new Communications(this.store, this.adapter.normalizeCommunications);
     const observation = new Observability(this.store);
     const cognition = m.cognition ? (this.cognitionSupport ?? new Cognition(this.store)) : undefined;
-    const outputSchema = cognition ? cognitiveDecisionSchema : decisionSchema;
     const { actionKinds, actionSchema, boundedReads, mergeReads } = this.adapter;
     const isRead = (tool: import("./domain.js").Tool) =>
       tool.annotations?.readOnlyHint === true && this.adapter.isRead(tool);
@@ -249,7 +248,7 @@ export class Engine {
           suppliedReadSchemas: this.adapter.suppliedReadSchemas?.(tools.filter(isRead)) ?? [],
           convenienceRead: { name: "fleet_action_schema", args: { kind: "one observed gameActionKinds value" } },
           readSchemaLookup: { name: "fleet_read_schema", args: { name: "one availableReads name" } },
-          decisionSchema: cognition ? cognitiveDecisionGuide : outputSchema,
+          decisionSchema: cognition ? cognitiveDecisionGuide : decisionSchema,
           ...(cognition
             ? {
                 memoryRead: {
@@ -265,6 +264,7 @@ export class Engine {
               }
             : {}),
         };
+        const outputSchema = cognition ? cognitiveSchemaForVersion(object(context.cognition).version) : decisionSchema;
         const messages = fitMessages(
           context,
           this.adapter.instructions + (cognition ? ` ${cognitionInstructions}` : ""),
