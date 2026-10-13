@@ -123,7 +123,25 @@ export const pactAdapter: GameAdapter = {
       principle: diplomacy.principle,
       contractRules: diplomacy.contractRules,
     };
-    if (tools.some((t) => t.name === "pact_play_view_v1" && isRead(t))) {
+    if (tools.some((t) => t.name === "pact_kingdom_discover_v2" && isRead(t))) {
+      // Server-authorized candidates cover the world, without restricting
+      // discovery to a cohort name or implying counterpart availability.
+      const rotation = context ? Math.max(0, (context.turn + context.ordinal) % 1000001) : 0;
+      const discovery = await game.read("pact_kingdom_discover_v2", { rotation, limit: 8 });
+      enriched.discovery = {
+        players: Array.isArray(discovery.kingdoms)
+          ? discovery.kingdoms
+              .map(object)
+              .filter((p) => p.kingdomId !== expectedEntityId)
+              .slice(0, 8)
+          : [],
+        selection: discovery.selection,
+        filters: discovery.query,
+        hasMore: discovery.hasMore,
+        coverage: discovery.coverage,
+        untrustedContent: true,
+      };
+    } else if (tools.some((t) => t.name === "pact_play_view_v1" && isRead(t))) {
       const page = context ? (context.ordinal + context.turn - 1) % Math.max(1, Math.ceil(context.count / 8)) : 0;
       const args = context ? { search: context.name, offset: page * 8 } : {};
       let publicView = await game.read("pact_play_view_v1", args);
@@ -210,7 +228,11 @@ export const pactAdapter: GameAdapter = {
   compactEnvironment,
   suppliedReadSchemas(tools) {
     return tools
-      .filter((t) => ["pact_world_read_v1", "pact_inbox_read_v1", "pact_conversation_read_v1"].includes(t.name))
+      .filter((t) =>
+        ["pact_world_read_v1", "pact_inbox_read_v1", "pact_conversation_read_v1", "pact_kingdom_discover_v2"].includes(
+          t.name,
+        ),
+      )
       .map((t) => ({ name: t.name, inputSchema: t.inputSchema }));
   },
   boundedReads,

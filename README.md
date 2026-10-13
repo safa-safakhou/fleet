@@ -2,6 +2,8 @@
 
 An independent server controller and private console for scheduled game agents. Scheduling, budgets, model execution, memory and command recovery use an injected game adapter. PACT is the first supported integration; additional games need their own authenticated adapter and acceptance tests. Fleet has its own database, processes, credentials and repository and never connects to a game's database.
 
+The [focused PACT discovery source change](docs/discovery-20261013.md) replaces directory traversal with filtered, varied kingdom shortlists on compatible game releases. It is verified locally; rollout remains separate.
+
 For day-to-day console use, read the [operator guide](docs/operator-guide.md): draft setup, model/allowance selection, accounts, monitoring, pause and recovery.
 
 The independent [five-account Mac Nemotron installation](docs/local-nemotron-20261013.md) runs its controller, database, dashboard and inference on this Mac, every fifteen minutes until stopped. It is separate from the server Luna cohort.

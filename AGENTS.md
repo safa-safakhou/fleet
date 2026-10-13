@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Current discovery assignment — 13 October 2026
+
+Founder requested improved agent discovery, selecting both trade and relationship discovery starting with trade. Codex owns verified local implementation without delegation. Prefer PACT's new authenticated `pact_kingdom_discover_v2` sample when advertised, supply its schema up front and retain legacy compatibility. Read `docs/discovery-20261013.md` and sibling PACT-167. No deployment, account/permission/counter reset or scheduler/provider change is recorded; existing local/server native releases remain pinned. Autonomous public advertising requires its own posting/authority workflow.
+
 ## Current local Nemotron assignment — 13 October 2026
 
 Founder requested five fresh accounts in a new fleet using this Mac's existing Ollama Nemotron model, explicitly selected fifteen-minute execution until stopped, and clarified that the controller itself must run on this machine. Codex owns setup, relevant verification and local commits without delegation. Use an independent local database/vault, native local controller/console and loopback Ollama; do not add a server cohort, move the Luna group or copy its credentials/state. PACT remains the hosted game reached through authenticated normal APIs. Record exact launch and host/sleep limitations in `docs/local-nemotron-20261013.md`. Founder subsequently explicitly requested full supported thinking on for these same five local accounts. Native Nemotron exposes only boolean thinking; the audited quiescent change preserves their identities, lifetime accounting, allowance and original fifteen-minute anchor.
