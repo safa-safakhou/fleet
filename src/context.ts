@@ -41,7 +41,10 @@ export function fitMessages(
     if (requested && narrowRead) for (const size of [4000, 2000, 1000]) feedback.push(narrowRead(requested, size));
     // Exhaust optional fresh-environment reductions before narrowing requested feedback.
     for (const requestedRead of feedback) {
-      for (const allowance of [12000, 10000, 8000, 6000, 4000, 2000]) {
+      // Dense authority/core state can require more than 4 KB while optional
+      // pages make 6 KB too large for the complete provider envelope. Search
+      // that interval as well; never infer that a failed coarse bucket cannot fit.
+      for (const allowance of Array.from({ length: 41 }, (_, index) => 12000 - index * 250)) {
         let environment: Data;
         try {
           environment = compactEnvironment(object(context.environment), allowance);
@@ -91,8 +94,41 @@ export function fitMessages(
       if (fits(smaller)) return smaller;
     }
   }
+  // In cognition mode, a saved plan and recalled evidence compete with optional
+  // prefetched action shapes. Page whole prefetched shapes before evicting memory.
+  // All action names/permissions remain visible and an exact shape can still be
+  // requested through the existing bounded fleet_action_schema read.
   const cognition = object(context.cognition);
-  if (context.cognition && !cognition.reduced) {
+  const prefetched = Array.isArray(context.suppliedActionSchemas) ? context.suppliedActionSchemas : [];
+  if (context.cognition && !object(context.actionSchemaCoverage).paged && prefetched.length) {
+    for (let kept = prefetched.length - 1; kept >= 0; kept--) {
+      try {
+        return fitMessages(
+          {
+            ...context,
+            suppliedActionSchemas: prefetched.slice(0, kept),
+            actionSchemaCoverage: {
+              paged: true,
+              retained: kept,
+              omitted: prefetched.length - kept,
+              notice:
+                "Only prefetched shapes omitted. Action names/permissions remain whole. Use fleet_action_schema for an omitted shape before proposing it; requested results and server validation remain unchanged.",
+            },
+          },
+          instructions,
+          schema,
+          limit,
+          compactReads,
+          narrowRead,
+          compactEnvironment,
+        );
+      } catch (error) {
+        if (error instanceof FleetError && error.code === "CONTEXT_LIMIT") continue;
+        throw error;
+      }
+    }
+  }
+  if (context.cognition && !cognition.reduced && !object(context.actionSchemaCoverage).paged) {
     return fitMessages(
       {
         ...context,

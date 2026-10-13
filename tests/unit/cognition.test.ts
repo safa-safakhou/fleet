@@ -10,6 +10,8 @@ import {
 import { fitMessages } from "../../src/context.js";
 import { ModelConfig, object } from "../../src/domain.js";
 import { cognitiveObservation } from "../../src/games/pact/cognition.js";
+import { boundedReads, narrowRead } from "../../src/games/pact/context.js";
+import { compactEnvironment } from "../../src/games/pact/environment.js";
 
 describe("cognitive decision contracts", () => {
   it("bounds multibyte observations without cutting a Unicode character", () => {
@@ -94,7 +96,15 @@ describe("cognitive decision contracts", () => {
       decisionSchema: cognitiveDecisionSchema,
     };
     const instructions = `Choose from current facts. ${cognitionInstructions}`;
-    expect(() => fitMessages(context, instructions, cognitiveDecisionSchema, 24000, () => [])).toThrow("CONTEXT_LIMIT");
+    expect(() =>
+      fitMessages(
+        { ...context, actionSchemaCoverage: { paged: true } },
+        instructions,
+        cognitiveDecisionSchema,
+        24000,
+        () => [],
+      ),
+    ).toThrow("CONTEXT_LIMIT");
     const messages = fitMessages(
       { ...context, decisionSchema: cognitiveDecisionGuide },
       instructions,
@@ -121,5 +131,99 @@ describe("cognitive decision contracts", () => {
     });
     expect(result.peers).toEqual(["partner", "discovered"]);
     expect(object(result.detail).coverage).toContain("unknown");
+  });
+  it("fits the whole authority core when only the narrow gap between coarse environment buckets is available", () => {
+    const environment = {
+      profile: { kingdomId: "owned", whole: "x".repeat(4500) },
+      mandate: { allowedActions: ["building.queue"], whole: "x".repeat(300) },
+      contacts: [{ kingdomId: "peer", whole: "x".repeat(500) }],
+      planningCautions: { whole: "x".repeat(450) },
+    };
+    const context = { environment, cognition: { version: 2, plan: null, evidence: [] } };
+    const minimum = compactEnvironment(environment, 5500);
+    const limit =
+      Buffer.byteLength(
+        JSON.stringify([
+          { role: "system", content: "Choose" },
+          {
+            role: "user",
+            content: JSON.stringify({
+              ...context,
+              environment: minimum,
+              availableReads: [],
+              readResults: [],
+              omissions: [
+                "Dated cache omitted; optional current observations are paged with explicit coverage. Core state, permissions, receipts and executable schemas remain whole. Missing records are unknown, not empty.",
+              ],
+            }),
+          },
+        ]),
+      ) +
+      Buffer.byteLength(JSON.stringify(cognitiveDecisionSchema)) +
+      20;
+    const fitted = fitMessages(
+      context,
+      "Choose",
+      cognitiveDecisionSchema,
+      limit,
+      boundedReads,
+      narrowRead,
+      compactEnvironment,
+    );
+    const delivered = JSON.parse(fitted[1].content);
+    expect(delivered.environment.profile).toEqual(environment.profile);
+    expect(delivered.environment.mandate).toEqual(environment.mandate);
+    expect(delivered.environment.coverage.complete).toBe(false);
+    expect(
+      Buffer.byteLength(JSON.stringify(fitted)) + Buffer.byteLength(JSON.stringify(cognitiveDecisionSchema)),
+    ).toBeLessThanOrEqual(limit);
+  });
+  it("pages optional prefetched action shapes while preserving plans, recalled evidence, permissions and requested feedback", () => {
+    const context = {
+      environment: { profile: { kingdomId: "owned", whole: "x".repeat(4500) } },
+      cognition: {
+        version: 4,
+        plan: { goal: "x".repeat(300), steps: ["Observe delivery"], status: "waiting" },
+        evidence: [
+          { id: "current", detail: "x".repeat(500) },
+          { id: "prior", detail: "y".repeat(500) },
+        ],
+        recall: { route: "laya-recall-v1" },
+      },
+      gameActionKinds: ["one", "two", "three"],
+      actionPermissions: { forbidden: ["human-only"] },
+      suppliedActionSchemas: [
+        { kind: "one", whole: "x".repeat(2000) },
+        { kind: "two", whole: "y".repeat(2000) },
+        { kind: "three", whole: "z".repeat(2000) },
+      ],
+      requestedRead: {
+        tool: "fleet_action_schema",
+        args: { kind: "three" },
+        result: { kind: "three", whole: "required" },
+      },
+      commandResults: [{ commandId: "original", receipt: { code: "COMMITTED" } }],
+    };
+    const fitted = fitMessages(
+      context,
+      "Choose",
+      cognitiveDecisionSchema,
+      14000,
+      boundedReads,
+      narrowRead,
+      compactEnvironment,
+    );
+    const delivered = JSON.parse(fitted[1].content);
+    expect(delivered.actionSchemaCoverage.paged).toBe(true);
+    expect(delivered.cognition).toEqual(context.cognition);
+    expect(delivered.gameActionKinds).toEqual(context.gameActionKinds);
+    expect(delivered.actionPermissions).toEqual(context.actionPermissions);
+    expect(delivered.requestedRead).toEqual(context.requestedRead);
+    expect(delivered.commandResults).toEqual(context.commandResults);
+    for (const shape of delivered.suppliedActionSchemas) expect(context.suppliedActionSchemas).toContainEqual(shape);
+    expect(context.suppliedActionSchemas).toHaveLength(3);
+    expect(
+      Buffer.byteLength(JSON.stringify(fitted)) + Buffer.byteLength(JSON.stringify(cognitiveDecisionSchema)),
+    ).toBeLessThanOrEqual(14000);
   });
 });

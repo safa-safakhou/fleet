@@ -34,7 +34,7 @@ export function compactEnvironment(environment: Data, limit: number): Data {
   const coverage: Data = { complete: false, omittedFields: [], pages: {} };
   output.coverage = coverage;
   output.observationNotice =
-    "Optional current observations are incomplete. Omitted records are unknown. Core identity, resource, construction and authority facts are whole. Use fleet_read_schema then the supported owned guide, contract, conversation or public read for missing evidence; never invent filters.";
+    "Optional records are unknown where omitted; core identity/resources/construction/authority are whole. Use fleet_read_schema and a supported read for missing facts; never invent filters.";
   const omitted = coverage.omittedFields as string[];
   const pageCoverage = object(coverage.pages);
   // Reserve metadata before filling pages so an omitted tail never looks empty.
