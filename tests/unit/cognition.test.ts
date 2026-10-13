@@ -1,5 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { CognitiveDecision, rankEpisodes, utf8Prefix } from "../../src/cognition.js";
+import {
+  CognitiveDecision,
+  cognitionInstructions,
+  cognitiveDecisionGuide,
+  cognitiveDecisionSchema,
+  rankEpisodes,
+  utf8Prefix,
+} from "../../src/cognition.js";
 import { fitMessages } from "../../src/context.js";
 import { ModelConfig, object } from "../../src/domain.js";
 import { cognitiveObservation } from "../../src/games/pact/cognition.js";
@@ -71,6 +78,40 @@ describe("cognitive decision contracts", () => {
     expect(delivered.cognition.evidence).toHaveLength(1);
     expect(delivered.environment).toEqual(context.environment);
     expect(context.cognition.evidence).toHaveLength(2);
+  });
+  it("fits cognition beside dense current facts and executable schemas without duplicating the expanded output definitions", () => {
+    const context = {
+      environment: { coreFacts: "x".repeat(6500) },
+      suppliedActionSchemas: [{ whole: "x".repeat(2200) }],
+      suppliedReadSchemas: [{ whole: "x".repeat(1300) }],
+      cognition: {
+        version: 3,
+        plan: { goal: "Keep supply reliable", status: "waiting" },
+        evidence: [{ id: "current", detail: { text: "x".repeat(1200) } }],
+      },
+      actionPermissions: { whole: "x".repeat(3000) },
+      otherCurrentGuidance: "x".repeat(1100),
+      decisionSchema: cognitiveDecisionSchema,
+    };
+    const instructions = `Choose from current facts. ${cognitionInstructions}`;
+    expect(() => fitMessages(context, instructions, cognitiveDecisionSchema, 24000, () => [])).toThrow("CONTEXT_LIMIT");
+    const messages = fitMessages(
+      { ...context, decisionSchema: cognitiveDecisionGuide },
+      instructions,
+      cognitiveDecisionSchema,
+      24000,
+      () => [],
+    );
+    const delivered = JSON.parse(messages[1].content);
+    expect(
+      Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(cognitiveDecisionSchema)),
+    ).toBeLessThanOrEqual(24000);
+    expect(delivered.environment).toEqual(context.environment);
+    expect(delivered.suppliedActionSchemas).toEqual(context.suppliedActionSchemas);
+    expect(delivered.suppliedReadSchemas).toEqual(context.suppliedReadSchemas);
+    expect(delivered.cognition).toEqual(context.cognition);
+    expect(delivered.decisionSchema.cognition).toHaveProperty("beliefs");
+    expect(delivered.decisionSchema.cognition).toHaveProperty("reflections");
   });
   it("derives peer identifiers from owned observations and public discoveries, excluding the owner", () => {
     const result = cognitiveObservation({

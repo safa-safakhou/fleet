@@ -1,6 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { statfs } from "node:fs/promises";
-import { Cognition, cognitionInstructions, cognitiveDecisionSchema, deliveredCognition } from "./cognition.js";
+import {
+  Cognition,
+  cognitionInstructions,
+  cognitiveDecisionGuide,
+  cognitiveDecisionSchema,
+  deliveredCognition,
+} from "./cognition.js";
 import { Communications } from "./communications.js";
 import { fitMessages } from "./context.js";
 import type { DecisionSupport } from "./decision.js";
@@ -243,7 +249,7 @@ export class Engine {
           suppliedReadSchemas: this.adapter.suppliedReadSchemas?.(tools.filter(isRead)) ?? [],
           convenienceRead: { name: "fleet_action_schema", args: { kind: "one observed gameActionKinds value" } },
           readSchemaLookup: { name: "fleet_read_schema", args: { name: "one availableReads name" } },
-          decisionSchema: outputSchema,
+          decisionSchema: cognition ? cognitiveDecisionGuide : outputSchema,
           ...(cognition
             ? {
                 memoryRead: {

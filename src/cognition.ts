@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { z } from "zod";
 import { transaction } from "./db.js";
-import { type Data, Decision, FleetError, object } from "./domain.js";
+import { type Data, Decision, decisionSchema, FleetError, object } from "./domain.js";
 import { Observability, scrub } from "./observability.js";
 import type { Claim, Store } from "./store.js";
 
@@ -47,6 +47,22 @@ export const CognitiveDecision = z.discriminatedUnion("kind", [
   Decision.options[2].extend({ cognition: CognitiveUpdate.optional() }),
 ]);
 export const cognitiveDecisionSchema = z.toJSONSchema(CognitiveDecision, { target: "draft-7", reused: "ref" });
+// The provider enforces the complete schema. Avoid duplicating its expanded
+// definitions in the user prompt, while spelling out every optional update field.
+export const cognitiveDecisionGuide = {
+  decision: decisionSchema,
+  optionalSibling: "cognition",
+  cognition: {
+    expectedVersion: "current cognition.version (nonnegative integer)",
+    plan: "optional null, or {goal, steps: 1-3 strings, status: active|waiting|complete|abandoned, reconsiderWhen, evidenceRefs}",
+    beliefs:
+      "optional 0-3 {peerId, hypothesis, alternative, confidence: low|medium|high, prediction, assessment: untested|supported|contradicted|unresolved, evidenceRefs}",
+    reflections: "optional 0-2 {expected, observed, revision, evidenceRefs}",
+    memories: "optional 0-2 {summary, importance: integer 1-5, evidenceRefs}",
+    constraints:
+      "Prose: 1-300 characters; steps: 1-100. evidenceRefs: 1-4 delivered UUIDs per item. Cite only delivered evidence; peerId must be observed. Omit unchanged fields. No extra keys. Full provider output schema remains enforced.",
+  },
+};
 export function deliveredCognition(context: Data): Data {
   const current = object(context.cognition),
     read = object(context.requestedRead);
