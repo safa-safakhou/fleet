@@ -164,7 +164,7 @@ describe("cognitive decision contracts", () => {
               availableReads: [],
               readResults: [],
               omissions: [
-                "Dated cache omitted; optional current observations are paged with explicit coverage. Core state, permissions, receipts and executable schemas remain whole. Missing records are unknown, not empty.",
+                "Cache omitted; optional current records paged. Core facts, permissions, receipts and supplied schemas retained. Missing records are unknown.",
               ],
             }),
           },
@@ -238,7 +238,13 @@ describe("cognitive decision contracts", () => {
     ).toBeLessThanOrEqual(14000);
   });
   it("keeps the ordered Laya pair when reducing other memories and fails closed if it cannot fit", () => {
-    const recall = { route: "laya-recall-v1", candidateIds: ["a", "b"], selectedId: "b" };
+    const recall = {
+      route: "laya-recall-v1",
+      candidateIds: ["a", "b"],
+      selectedId: "b",
+      certificate: "a".repeat(64),
+      probability: 0.8,
+    };
     const context = {
       environment: { required: true },
       cognition: {
@@ -257,6 +263,7 @@ describe("cognitive decision contracts", () => {
     expect(delivered.evidence.map((e: { id: string }) => e.id)).toEqual(["current", "b", "a"]);
     expect(delivered.recall.route).toBe("laya-recall-v1");
     expect(delivered.recall.budgetReduced).toBe(true);
+    expect(delivered.recall).not.toHaveProperty("certificate");
     expect(() => fitMessages(context, "Choose", {}, 700, () => [])).toThrow("CONTEXT_LIMIT");
   });
   it("retains the latest receipt alongside the current observation when optional memories are reduced", () => {
@@ -286,6 +293,15 @@ describe("cognitive decision contracts", () => {
         body: { metadata: "x".repeat(4000), body: "The shipment is delayed. 🌱".repeat(100) },
       },
     });
+    expect(Buffer.byteLength(JSON.stringify(message))).toBeLessThanOrEqual(600);
+    const escaped = compactEpisode({
+      id: "json",
+      at: "now",
+      kind: "observation",
+      detail: { excerpt: '\\"🌱'.repeat(1000) },
+    });
+    expect(Buffer.byteLength(JSON.stringify(escaped))).toBeLessThanOrEqual(600);
+    expect(escaped.excerpt).not.toContain("�");
     expect(message.peerId).toBe("known-peer");
     expect(message.excerpt).toMatch(/^The shipment is delayed/);
     expect(message.excerpt).not.toContain("�");
@@ -343,7 +359,16 @@ describe("cognitive decision contracts", () => {
       compactEnvironment,
     );
     const delivered = JSON.parse(messages[1].content);
-    expect(delivered.cognition).toEqual(cognition);
+    expect(delivered.cognition).toMatchObject({
+      plan: cognition.plan,
+      beliefs: cognition.beliefs,
+      reflections: cognition.reflections,
+      recall: cognition.recall,
+    });
+    expect(delivered.cognition.evidence.map((e: { id: string }) => e.id)).toEqual(cognition.evidence.map((e) => e.id));
+    expect(delivered.cognition.evidence.find((e: { id: string }) => e.id === "receipt").detail.receiptAt).toBe(
+      "commandResults",
+    );
     expect(delivered.suppliedReadSchemas).toEqual([]);
     expect(delivered.requestedRead).toEqual(context.requestedRead);
     expect(delivered.commandResults).toEqual(context.commandResults);
@@ -374,5 +399,44 @@ describe("cognitive decision contracts", () => {
       "latest",
     ]);
     expect(delivered.latestReceiptId).toBe("latest");
+  });
+  it("links only this decision's current observation/receipt to already delivered facts without rebinding historical requested evidence", () => {
+    const current = { id: "current", kind: "observation", at: "now", detail: { text: "x".repeat(2000) } };
+    const receipt = {
+      id: "receipt",
+      kind: "receipt",
+      at: "now",
+      detail: { commandId: "exact", intent: "Observed intent", receipt: { code: "COMMITTED", text: "y".repeat(2000) } },
+    };
+    const oldRead = {
+      tool: "fleet_memory_recall",
+      result: { evidence: [{ id: "old", at: "yesterday", kind: "observation", detail: { prior: "unchanged" } }] },
+    };
+    const context = {
+      environment: { actual: "fresh" },
+      commandResults: [{ commandId: "exact", receipt: { code: "COMMITTED", whole: "result" } }],
+      cognition: { version: 0, currentEvidenceId: "current", latestReceiptId: "receipt", evidence: [current, receipt] },
+      requestedRead: oldRead,
+      gameActionKinds: ["allowed"],
+      decisionFeedback: [{ code: "INVALID_GAME_ACTION", availableKinds: ["allowed"], inputSchema: { whole: "shape" } }],
+    };
+    const delivered = JSON.parse(fitMessages(context, "Choose", {}, 1300, () => [])[1].content);
+    expect(delivered.cognition.evidence[0]).toMatchObject({
+      id: "current",
+      at: "now",
+      detail: { factsAt: "environment" },
+    });
+    expect(delivered.cognition.evidence[1]).toMatchObject({
+      id: "receipt",
+      at: "now",
+      detail: { commandId: "exact", intent: "Observed intent", receiptAt: "commandResults" },
+    });
+    expect(delivered.requestedRead).toEqual(oldRead);
+    expect(delivered.commandResults).toEqual(context.commandResults);
+    expect(delivered.decisionFeedback[0]).toMatchObject({
+      availableKindsAt: "gameActionKinds",
+      inputSchema: { whole: "shape" },
+    });
+    expect(context.cognition.evidence[0]).toEqual(current);
   });
 });

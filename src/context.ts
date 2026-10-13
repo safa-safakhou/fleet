@@ -18,8 +18,8 @@ export function fitMessages(
   ];
   const fits = (m: ReturnType<typeof messages>) =>
     Buffer.byteLength(JSON.stringify(m)) + Buffer.byteLength(JSON.stringify(schema)) <= limit;
-  const cognition = object(context.cognition);
-  const evidence = Array.isArray(cognition.evidence) ? cognition.evidence.map(object) : [];
+  let cognition = object(context.cognition);
+  let evidence = Array.isArray(cognition.evidence) ? cognition.evidence.map(object) : [];
   const recall = object(cognition.recall);
   const pair = recall.route === "laya-recall-v1" && Array.isArray(recall.candidateIds) ? recall.candidateIds : [];
   if (recall.route === "laya-recall-v1" && (new Set(pair).size !== 2 || !pair.includes(recall.selectedId)))
@@ -39,7 +39,7 @@ export function fitMessages(
         availableReads: names,
         readResults: compactReads(reads, allowance),
         omissions: [
-          "Read descriptions and dated cache entries reduced to fit the full serialized input allowance. Current facts, command outcomes and supplied action schemas remain whole. Missing cached sections are unknown; request a narrower read when needed.",
+          "Read descriptions/dated cache reduced; core facts, receipts and supplied schemas retained. Missing history is unknown; request it if needed.",
         ],
       });
       if (fits(smaller)) return smaller;
@@ -68,7 +68,7 @@ export function fitMessages(
             readResults: [],
             requestedRead,
             omissions: [
-              "Dated cache omitted; optional current observations are paged with explicit coverage. Core state, permissions, receipts and executable schemas remain whole. Missing records are unknown, not empty.",
+              "Cache omitted; optional current records paged. Core facts, permissions, receipts and supplied schemas retained. Missing records are unknown.",
             ],
           };
           const wholeNotes = messages(reduced);
@@ -81,8 +81,7 @@ export function fitMessages(
             privateNotesCoverage: {
               omitted: true,
               originalBytes: Buffer.byteLength(JSON.stringify(context.privateNotes ?? null)),
-              notice:
-                "Stored private notes omitted from this input only. Fresh facts and requested feedback take priority; prior intent is not current state.",
+              notice: "Stored notes omitted from this input; fresh facts and requested feedback take priority.",
             },
           });
           if (fits(withoutNotes)) return withoutNotes;
@@ -109,6 +108,59 @@ export function fitMessages(
   if (fitted) return fitted;
   if (!context.cognition) throw new FleetError("CONTEXT_LIMIT");
 
+  // Reference current facts/outcomes already delivered elsewhere in this exact
+  // decision instead of serializing them twice. Historical requested recalls
+  // are not rebound to the new environment. Source IDs/dates remain intact.
+  const outcomes = Array.isArray(context.commandResults) ? context.commandResults.map(object) : [];
+  evidence = evidence.map((episode) => {
+    const detail = object(episode.detail);
+    if (
+      episode.id === cognition.currentEvidenceId &&
+      episode.kind === "observation" &&
+      context.environment &&
+      !pair.includes(episode.id)
+    )
+      return {
+        ...episode,
+        detail: {
+          factsAt: "environment",
+          coverage:
+            "This decision's current observation. Only delivered environment fields are evidence; paged fields are unknown.",
+        },
+      };
+    if (episode.kind === "receipt" && outcomes.some((outcome) => outcome.commandId === detail.commandId))
+      return {
+        ...episode,
+        detail: {
+          commandId: detail.commandId,
+          intent: detail.intent,
+          receiptAt: "commandResults",
+          coverage: "The matching command's whole receipt is delivered in commandResults.",
+        },
+      };
+    return episode;
+  });
+  const { certificate: _certificate, probability: _probability, ...recallPrompt } = recall;
+  // Acceptance metadata belongs in turn history; the model needs the ordered
+  // candidates and advisory role, not a certificate hash or uncalibrated score.
+  cognition = { ...cognition, evidence, recall: recallPrompt };
+  const feedback = Array.isArray(context.decisionFeedback) ? context.decisionFeedback.map(object) : [];
+  context = {
+    ...context,
+    cognition,
+    decisionFeedback: feedback.map((item) => {
+      if (
+        !Array.isArray(item.availableKinds) ||
+        JSON.stringify(item.availableKinds) !== JSON.stringify(context.gameActionKinds)
+      )
+        return item;
+      const { availableKinds: _duplicate, ...rest } = item;
+      return { ...rest, availableKindsAt: "gameActionKinds" };
+    }),
+  };
+  fitted = pack(context);
+  if (fitted) return fitted;
+
   // Protect continuity before optional prefetched tool schemas. Requested schema
   // results remain indispensable feedback, never part of these optional pages.
   let candidate = { ...context };
@@ -125,7 +177,7 @@ export function fitMessages(
           paged: true,
           retained: kept,
           omitted: shapes.length - kept,
-          notice: `Prefetched shapes paged. Names/permissions remain whole. Use ${lookup} for an omitted shape before proposing it.`,
+          notice: `Use ${lookup} for omitted prefetched shapes; names/permissions retained.`,
         },
       };
       fitted = pack(candidate);
@@ -149,11 +201,10 @@ export function fitMessages(
         ...cognition,
         reduced: true,
         evidence: retained,
-        recall: { ...recall, budgetReduced: true },
+        recall: { ...object(cognition.recall), budgetReduced: true },
         packingCoverage: {
           omittedEpisodes: evidence.length - retained.length,
-          notice:
-            "Optional history paged; cite delivered IDs only. Saved plan, peer IDs and accepted recall pair retained.",
+          notice: "Optional history paged; cite delivered IDs only.",
         },
       },
     };

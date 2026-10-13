@@ -222,7 +222,7 @@ export class Engine {
               receipt: r.receipt,
             })),
           readHistoryCoverage:
-            "Read entries can include observations from previous turns, dated by observedAt. Historical facts may be stale; they do not grant authority or prove current state. Current environment is freshly read. Obtain current facts before a dependent commitment.",
+            "Historical facts may be stale. The environment is fresh; re-read current facts before dependent commitments.",
           gameActionKinds: capability?.kinds ?? actionKinds,
           suppliedActionSchemas: capability?.schemas ?? [],
           humanOnlyActionKinds: capability?.humanOnly ?? [],
@@ -240,7 +240,7 @@ export class Engine {
               }
             : undefined,
           permissionCoverage:
-            "Action advertisement is conditional, not a grant. Authentication, command scope, live write lease, current mandate, social delegation, owner policy, exact permits, targets, quotas, stock and prerequisites are checked by the server on each submission.",
+            "Advertisement is conditional. Server checks identity, scope, live lease, mandate, delegation, owner policy, permits, targets, quotas, stock and prerequisites.",
           decisionFeedback,
           availableReads: tools
             .filter(isRead)
@@ -265,26 +265,48 @@ export class Engine {
             : {}),
         };
         const outputSchema = cognition ? cognitiveSchemaForVersion(object(context.cognition).version) : decisionSchema;
-        const messages = fitMessages(
-          context,
-          this.adapter.instructions + (cognition ? ` ${cognitionInstructions}` : ""),
-          outputSchema,
-          b.inputByteLimit,
-          boundedReads,
-          this.adapter.narrowRead,
-          this.adapter.compactEnvironment,
-        );
+        const instructions = this.adapter.instructions + (cognition ? ` ${cognitionInstructions}` : "");
+        let messages: ReturnType<typeof fitMessages>;
+        try {
+          messages = fitMessages(
+            context,
+            instructions,
+            outputSchema,
+            b.inputByteLimit,
+            boundedReads,
+            this.adapter.narrowRead,
+            this.adapter.compactEnvironment,
+          );
+        } catch (error) {
+          if (error instanceof FleetError && error.code === "CONTEXT_LIMIT")
+            await observation.record(claim, "result", "Context packing could not fit", {
+              inputByteLimit: b.inputByteLimit,
+              instructionsBytes: Buffer.byteLength(instructions),
+              schemaBytes: Buffer.byteLength(JSON.stringify(outputSchema)),
+              sectionBytes: Object.fromEntries(
+                Object.entries(context)
+                  .filter(([, value]) => value !== undefined)
+                  .map(([key, value]) => [key, Buffer.byteLength(JSON.stringify(value))]),
+              ),
+              meaning: "Size diagnostics only; no model call reserved or evidence discarded.",
+            });
+          throw error;
+        }
         const bytes = Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(outputSchema));
         if (bytes > b.inputByteLimit || bytes + b.maxOutputTokens + 1024 > b.perCallTokenLimit)
           throw new FleetError("CONTEXT_LIMIT");
         if (cognition) {
-          const delivered = object(JSON.parse(messages[1].content).cognition);
+          const fittedContext = object(JSON.parse(messages[1].content));
+          const delivered = object(fittedContext.cognition);
           await observation.record(claim, "ready", "LLM continuity delivered", {
             version: delivered.version,
             planStatus: object(delivered.plan).status ?? null,
             evidence: Array.isArray(delivered.evidence) ? delivered.evidence.length : 0,
             inputBytes: bytes,
             inputByteLimit: b.inputByteLimit,
+            sectionBytes: Object.fromEntries(
+              Object.entries(fittedContext).map(([key, value]) => [key, Buffer.byteLength(JSON.stringify(value))]),
+            ),
             beliefs: Array.isArray(delivered.beliefs) ? delivered.beliefs.length : 0,
             reflections: Array.isArray(delivered.reflections) ? delivered.reflections.length : 0,
             recallPairDelivered:
@@ -295,6 +317,7 @@ export class Engine {
               ),
             reduced: delivered.reduced === true,
             recall: delivered.recall,
+            recallAcceptance: object(context.cognition).recall,
             coverage: "This is memory and subjective intention, not new game authority or an executed plan.",
           });
         }

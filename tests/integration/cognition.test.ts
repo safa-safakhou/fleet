@@ -120,6 +120,35 @@ describe("LLM memory, plans and beliefs", () => {
   it("delivers Laya's ordered pair to the decision model in a dense turn and persists grounded beliefs/reflection without extra calls", async () => {
     const f = await setup(),
       game = new FakeGame(f.claim);
+    await f.support.apply(f.claim, 1, update(f), f.context);
+    await f.store.rememberDecisionFeedback(f.claim, {
+      code: "INVALID_GAME_ACTION",
+      actionKind: "game.building.queue",
+      schemaDigest: "a".repeat(64),
+      errors: [
+        {
+          instancePath: "",
+          keyword: "required",
+          params: { missingProperty: "slot" },
+          message: "must have required property slot",
+        },
+      ],
+      inputSchema: {
+        type: "object",
+        required: ["kind", "building", "targetLevel", "slot"],
+        properties: {
+          kind: { const: "game.building.queue" },
+          building: { type: "string" },
+          targetLevel: { type: "integer" },
+          slot: { type: "integer" },
+        },
+        additionalProperties: false,
+      },
+      availableKinds: pactAdapter.actionKinds,
+      guidance:
+        "No command was submitted. Correct the action fields against the exact schema within remaining decisions.",
+    });
+    f.claim.agent = await f.store.agent(f.claim.agentId);
     await f.pool.query('UPDATE cohorts SET model=model||\'{"recallAssist":"laya-recall-v1"}\'::jsonb WHERE id=$1', [
       f.id,
     ]);
@@ -157,6 +186,10 @@ describe("LLM memory, plans and beliefs", () => {
         expect(pairOrder[0]).toBe(selected);
         expect(cognition.knownPeerIds).toContain(f.peer);
         expect(context.actionPermissions).toBeDefined();
+        expect(context.decisionFeedback[0].inputSchema.required).toContain("slot");
+        expect(cognition.beliefs).toHaveLength(1);
+        expect(cognition.reflections).toHaveLength(1);
+        expect(cognition.plan.status).toBe("active");
         const decision = {
           kind: "wait",
           summary: "Check the peer claim before trusting another shipment",
@@ -212,10 +245,31 @@ describe("LLM memory, plans and beliefs", () => {
     expect(game.submits).toHaveLength(0);
     const restarted = await new Cognition(f.store).inspect(f.claim.agentId);
     expect(restarted.beliefs).toHaveLength(1);
-    expect(restarted.reflections).toHaveLength(1);
-    expect(restarted.version).toBe(1);
+    expect(restarted.reflections).toHaveLength(2);
+    expect(restarted.version).toBe(2);
     const events = (await new Observability(f.store).history(f.id)).turns[0].events;
     expect(events.find((event) => event.label === "LLM continuity delivered")?.detail?.recallPairDelivered).toBe(true);
+  });
+  it("reports size-only diagnostics and reserves no call when indispensable current facts cannot fit", async () => {
+    const f = await setup(),
+      game = new FakeGame(f.claim);
+    let calls = 0;
+    const model: ModelPort = {
+      decide: async () => {
+        calls++;
+        throw Error("Must fail before inference");
+      },
+    };
+    const adapter = { ...pactAdapter, compactFacts: () => ({ profile: { whole: "x".repeat(26000) } }) };
+    await new Engine(f.store, model, async () => game, true, adapter, undefined, undefined, f.support).run(f.claim);
+    expect(calls).toBe(0);
+    expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(0);
+    const event = (await new Observability(f.store).history(f.id)).turns[0].events.find(
+      (e) => e.label === "Context packing could not fit",
+    );
+    expect(event?.detail?.inputByteLimit).toBe(24000);
+    expect(object(event?.detail?.sectionBytes).environment).toBeGreaterThan(26000);
+    expect(event?.detail).not.toHaveProperty("environment");
   });
   it("retains old plan evidence when observation volume exceeds the bounded journal", async () => {
     const f = await setup();
