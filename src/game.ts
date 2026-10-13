@@ -5,6 +5,7 @@ import type { Data, GamePort, Tool } from "./domain.js";
 // accounting, identity checks, command recovery and fencing, never game rules.
 export interface GameAdapter {
   decisionObservation?(facts: Data): import("./decision.js").DecisionObservation;
+  cognitiveObservation?(facts: Data): { detail: Data; peers: string[] };
   readonly id: string;
   readonly label: string;
   readonly instructions: string;

@@ -1,0 +1,82 @@
+[
+  {
+    "query": "We need someone to sell us provisions.",
+    "relevant": "Maple has spare sacks of barley available to export.",
+    "distractor": "Oak offered cavalry to defend our fortress."
+  },
+  {
+    "query": "Our soldiers need weapons.",
+    "relevant": "Maple's smiths have finished forging swords and shields for sale.",
+    "distractor": "Oak has spare barley for sale."
+  },
+  {
+    "query": "Recall an opportunity to strengthen an alliance.",
+    "relevant": "Maple proposed renewing our mutual protection agreement.",
+    "distractor": "The new orchard produced ripe pears."
+  },
+  {
+    "query": "Understand a risk to the kingdom's food supply.",
+    "relevant": "The grain shipment was cancelled after floods destroyed the crop.",
+    "distractor": "The armory received new shields."
+  },
+  {
+    "query": "Review a partner's past reliability.",
+    "relevant": "The promised payment and all deliveries arrived exactly as agreed.",
+    "distractor": "The partner's buildings have attractive decorations."
+  },
+  {
+    "query": "We want to investigate an approaching threat.",
+    "relevant": "An enemy force was sighted moving toward our undefended town.",
+    "distractor": "Our accountant balanced yesterday's revenue."
+  },
+  {
+    "query": "Recall an offer we could negotiate.",
+    "relevant": "Maple asked for iron in return for regular deliveries of timber.",
+    "distractor": "Oak described the weather and sent best wishes."
+  },
+  {
+    "query": "Why did we stop trusting a supplier?",
+    "relevant": "The supplier repeatedly withheld the promised shipments without explanation.",
+    "distractor": "The supplier changed the color of its banner."
+  },
+  {
+    "query": "Find evidence useful for planning new construction.",
+    "relevant": "A merchant offered bricks and timber needed for the new storehouse.",
+    "distractor": "A guard reported that all enemy troops withdrew."
+  },
+  {
+    "query": "Consider improving our relationship with Oak.",
+    "relevant": "Oak invited us to settle our disagreement through a meeting.",
+    "distractor": "Our treasury contains more coins than last week."
+  },
+  {
+    "query": "Explain a reduction in money coming into the treasury.",
+    "relevant": "Several merchants left and the kingdom collects less tax.",
+    "distractor": "The border troops received heavier armor."
+  },
+  {
+    "query": "Identify a missed commitment worth discussing.",
+    "relevant": "Maple failed to send the aid it had promised for yesterday.",
+    "distractor": "Maple announced a new decorative statue."
+  },
+  {
+    "query": "Look for somebody who could assist our defense.",
+    "relevant": "Oak offered trained archers to protect our exposed settlement.",
+    "distractor": "Maple offered fresh vegetables for our residents."
+  },
+  {
+    "query": "Which earlier event matters when negotiating a payment?",
+    "relevant": "The counterparty rejected the initial price and proposed a different amount.",
+    "distractor": "A scout returned from the northern hills."
+  },
+  {
+    "query": "We need more room to keep goods.",
+    "relevant": "The warehouse is at capacity and new deliveries are waiting outside.",
+    "distractor": "The council welcomed an ambassador."
+  },
+  {
+    "query": "Recall a chance to coordinate with another kingdom.",
+    "relevant": "Oak suggested synchronizing patrols so both borders remain protected.",
+    "distractor": "The mine's output increased after repairs."
+  }
+]

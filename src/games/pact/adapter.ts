@@ -2,6 +2,7 @@ import { type Data, FleetError, object, safeCode } from "../../domain.js";
 import type { GameAdapter } from "../../game.js";
 import { RemoteRejection } from "../../http.js";
 import { capabilityMatrix } from "./capabilities.js";
+import { cognitiveObservation } from "./cognition.js";
 import { normalize } from "./communications.js";
 import { constructionRecovery } from "./construction.js";
 import { boundedReads, mergeReads, narrowRead } from "./context.js";
@@ -102,6 +103,7 @@ export function compactFacts(input: Data) {
 }
 
 export const pactAdapter: GameAdapter = {
+  cognitiveObservation,
   decisionObservation,
   id: "pact",
   label: "PACT",

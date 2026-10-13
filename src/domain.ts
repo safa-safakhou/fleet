@@ -30,9 +30,13 @@ export const ModelConfig = z
     reasoningEffort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional(),
     thinking: z.boolean().optional(),
     decisionPolicy: z.enum(["vw-focus-v1"]).optional(),
+    cognition: z.enum(["llm-centered-v1"]).optional(),
+    recallAssist: z.enum(["laya-recall-v1"]).optional(),
   })
   .strict()
-  .refine((m) => m.thinking === undefined || m.route === "ollama", "Thinking selection requires Ollama");
+  .refine((m) => m.thinking === undefined || m.route === "ollama", "Thinking selection requires Ollama")
+  .refine((m) => !m.cognition || !m.decisionPolicy, "LLM-centered cognition does not use VW")
+  .refine((m) => !m.recallAssist || m.cognition === "llm-centered-v1", "Recall assistance requires cognition");
 const executionLimits = {
   perCallTokenLimit: z.number().int().min(100).max(40000),
   maxOutputTokens: z.number().int().min(1).max(2000),

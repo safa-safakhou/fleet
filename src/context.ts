@@ -91,5 +91,28 @@ export function fitMessages(
       if (fits(smaller)) return smaller;
     }
   }
+  const cognition = object(context.cognition);
+  if (context.cognition && !cognition.reduced) {
+    return fitMessages(
+      {
+        ...context,
+        cognition: {
+          version: cognition.version,
+          plan: cognition.plan,
+          reduced: true,
+          evidence: Array.isArray(cognition.evidence) ? cognition.evidence.slice(0, 1) : [],
+          knownPeerIds: Array.isArray(cognition.knownPeerIds) ? cognition.knownPeerIds.slice(0, 5) : [],
+          coverage:
+            "Optional recalled episodes, beliefs and reflections omitted from this input to preserve current game facts, requested feedback and the persistent plan. Use fleet_memory_recall for specific history; cite only the delivered evidence IDs.",
+        },
+      },
+      instructions,
+      schema,
+      limit,
+      compactReads,
+      narrowRead,
+      compactEnvironment,
+    );
+  }
   throw new FleetError("CONTEXT_LIMIT");
 }

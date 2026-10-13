@@ -4,6 +4,8 @@ const core = [
   "engine",
   "context",
   "decision",
+  "cognition",
+  "laya",
   "game",
   "domain",
   "tools",

@@ -37,7 +37,9 @@ process.stdin.on('end', () => {
   const output = args[args.indexOf('--output-last-message')+1];
   fs.writeFileSync(output, mode === 'bad-output' ? '{' : JSON.stringify({decisionJson: JSON.stringify(mode === 'action'
     ? {kind:'action',action:{kind:'game.message.send',recipientKingdomId:'00000000-0000-4000-8000-000000000001',body:'Synthetic offer'},summary:'Offer'}
-    : {kind:'wait',summary:'Wait for observed changes'})}));
+    : mode === 'cognition'
+      ? {kind:'wait',summary:'Await evidence',cognition:{expectedVersion:JSON.parse(JSON.parse(input).messages[1].content).cognition.version,plan:{goal:'Maintain a reliable supply relationship',steps:['Review the next delivery'],status:'waiting',reconsiderWhen:'New receipt contradicts the prediction',evidenceRefs:[JSON.parse(JSON.parse(input).messages[1].content).cognition.evidence[0].id]}}}
+      : {kind:'wait',summary:'Wait for observed changes'})}));
   console.log(JSON.stringify({type:'thread.started',thread_id:'fixture-thread'}));
   if (mode === 'bad-events') { console.log('bad json'); return; }
   if (mode === 'turn-failed') { console.log(JSON.stringify({type:'turn.failed',error:{message:'PRIVATE_TEXT'}})); return; }

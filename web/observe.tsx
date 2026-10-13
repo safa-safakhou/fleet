@@ -28,7 +28,15 @@ type CohortView = {
   state: string;
   interval_minutes: number;
   observation_consent: boolean;
-  model: { model: string; route: string; reasoningEffort?: string; thinking?: boolean; decisionPolicy?: string } | null;
+  model: {
+    model: string;
+    route: string;
+    reasoningEffort?: string;
+    thinking?: boolean;
+    decisionPolicy?: string;
+    cognition?: string;
+    recallAssist?: string;
+  } | null;
 };
 export type RecordedTurn = {
   id: string;
@@ -74,6 +82,7 @@ type Usage = {
   unknown_calls: number;
 };
 type Inspection = Page & {
+  cognition?: Record<string, unknown>;
   recovery?: { resumable: boolean; status: string; steps: { kind: string; instruction: string; turnId?: string }[] };
   agent: ObservedAgent;
   cohort: { state: string; model: CohortView["model"]; observation: boolean };
@@ -209,7 +218,11 @@ export function Overview({
         <p className="muted">
           {cohort.model?.model ?? "Choose a model"} · Every {cohort.interval_minutes} minutes · Staggered turns
           {cohort.model?.thinking !== undefined ? ` · Thinking ${cohort.model.thinking ? "on" : "off"}` : ""}
-          {cohort.model?.decisionPolicy ? " · VW focus policy" : " · LLM only"}
+          {cohort.model?.cognition
+            ? " · Memory, reflection & plans"
+            : cohort.model?.decisionPolicy
+              ? " · Legacy VW unused"
+              : " · LLM only"}
         </p>
         <div className="operation-metrics">
           <div>
@@ -672,6 +685,16 @@ export function AgentInspector({
                 <span>{data.agent.strategy.horizon}</span>
               </div>
               <h4>Saved notes</h4>
+              {data.cognition?.enabled === true && (
+                <details>
+                  <summary>Memory, plan, reflections & social hypotheses</summary>
+                  <p className="muted">
+                    Observed evidence and subjective interpretations are labeled separately. These intentions never
+                    authorize or queue game commands.
+                  </p>
+                  <CognitiveInspector value={data.cognition} />
+                </details>
+              )}
               <p className="saved-notes">
                 {!data.cohort.observation
                   ? "Private observation is off."
@@ -831,5 +854,64 @@ export function TurnHistory({
       )}
       <p className="trace-coverage">{page?.coverage}</p>
     </section>
+  );
+}
+
+function CognitiveInspector({ value }: { value: Record<string, unknown> }) {
+  const obj = (v: unknown): Record<string, unknown> =>
+    v && typeof v === "object" && !Array.isArray(v) ? (v as Record<string, unknown>) : {};
+  const list = (v: unknown) => (Array.isArray(v) ? v.map(obj) : []);
+  if (value.withheld) return <p className="muted">Private observation is off.</p>;
+  const plan = obj(value.plan),
+    beliefs = list(value.beliefs),
+    reflections = list(value.reflections);
+  return (
+    <div>
+      <h4>Persistent plan</h4>
+      {plan.goal ? (
+        <>
+          <p>
+            {String(plan.goal)} <span className="badge">{String(plan.status)}</span>
+          </p>
+          <ol>{Array.isArray(plan.steps) && plan.steps.map((s) => <li key={String(s)}>{String(s)}</li>)}</ol>
+          <p className="muted">Reconsider when: {String(plan.reconsiderWhen)}</p>
+        </>
+      ) : (
+        <p className="muted">No plan saved yet. The LLM may choose one during its normal turn.</p>
+      )}
+      <h4>Beliefs about players</h4>
+      {beliefs.length ? (
+        beliefs.map((b) => (
+          <article key={String(b.peerId)}>
+            <p>
+              <strong>Player {String(b.peerId).slice(0, 8)}</strong> · {String(b.assessment)} · {String(b.confidence)}{" "}
+              subjective confidence
+            </p>
+            <p>{String(b.hypothesis)}</p>
+            <p className="muted">Alternative: {String(b.alternative)}</p>
+            <p>Prediction to review: {String(b.prediction)}</p>
+          </article>
+        ))
+      ) : (
+        <p className="muted">No social hypothesis saved yet.</p>
+      )}
+      <h4>Reflections</h4>
+      {reflections.length ? (
+        reflections.map((r) => (
+          <article key={JSON.stringify(r)}>
+            <p>Expected: {String(r.expected)}</p>
+            <p>Observed: {String(r.observed)}</p>
+            <p>Revision: {String(r.revision)}</p>
+          </article>
+        ))
+      ) : (
+        <p className="muted">No reflection saved yet.</p>
+      )}
+      <details>
+        <summary>Retained episodes and source references</summary>
+        <p className="muted">{String(value.coverage)}</p>
+        <pre className="cognitive-detail">{JSON.stringify(value, null, 2)}</pre>
+      </details>
+    </div>
   );
 }

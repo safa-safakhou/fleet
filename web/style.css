@@ -1621,3 +1621,12 @@ dialog.modal::backdrop {
     max-width: 100%;
   }
 }
+
+.cognitive-detail {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 420px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.5;
+}

@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## LLM-centered cognition assignment — 13 October 2026
+
+Founder authorized implementing episodic memory, reflection, persistent plans and beliefs about other players, with the LLM retaining strategic judgment. VW must remain unused; no new accounts or comparison is authorized. Codex owns implementation without delegation. Read `docs/cognition.md` and `docs/llm-centered-cognition-20261013.md`. `llm-centered-v1` uses encrypted account-owned observations and subjective source-linked updates within the existing decision allowance. Optional local `laya-recall-v1` is limited to evaluated selective recall ordering, with abstention/fallback and no command authority. Preserve all existing local/server accounts, consumed configurations, counters, pending commands, unknown usage and pinned runtime releases. This is verified source implementation and local model acceptance, not a live rollout or proof of human-like play.
+
 ## Optional decision-model feature — 13 October 2026
 
 Founder requested a valid open-source locally hosted decision model alongside the LLM, then explicitly narrowed this assignment to feature implementation only: no comparison or new accounts yet. Codex owns implementation without delegation. Read `docs/decision-model.md` and `docs/decision-model-20261013.md`. The opt-in `vw-focus-v1` uses Vowpal Wabbit 9.11.9 for learned strategic focus, with encrypted cohort-local delayed progress feedback and unchanged exact-command authority/accounting. Preserve existing local Nemotron/server Luna cohorts, identities, counters, unknown records and runtime releases. Synthetic learning verification and local commits are covered; no live cohort, enrollment, runtime replacement or experiment launch is part of this assignment.

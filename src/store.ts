@@ -110,6 +110,7 @@ export class Store {
     const v = object(input),
       model = ModelConfig.parse(v.model),
       budget = Budget.parse(v.budget);
+    if (model.decisionPolicy) throw new FleetError("VW_UNUSED");
     if (model.route === "codex-cli" && (!budget.executionAccountingAccepted || budget.concurrency !== 1))
       throw new FleetError("CODEX_EXECUTION_BUDGET_REQUIRED");
     if (model.decisionPolicy && budget.concurrency !== 1) throw new FleetError("DECISION_SERIAL_REQUIRED");

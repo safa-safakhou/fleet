@@ -1,5 +1,7 @@
 # Optional learned decision model
 
+Historical implementation: the founder subsequently selected [LLM-centered cognition](cognition.md). VW is unused, no longer offered in new configuration and not connected in the runtime. Existing journal/source and the original acceptance below are retained; no accounts or comparisons were started. The following setup is a historical record, not the current recommended mode.
+
 Fleet can combine an LLM, including local Nemotron, with a **Vowpal Wabbit contextual bandit**. Select **LLM + Vowpal Wabbit · experimental** in a fresh fleet's model configuration. The saved model field is `decisionPolicy: "vw-focus-v1"`; omitting it keeps LLM-only behavior. Saving a selection starts no accounts, schedules or inference. Consumed model configurations remain immutable. The policy requires cohort concurrency one.
 
 ## What it decides

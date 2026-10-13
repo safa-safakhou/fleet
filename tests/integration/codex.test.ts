@@ -31,6 +31,21 @@ async function setup(mode = "ok", continuous = false) {
   return { ...f, cli, id, claim, game, model, engine: new Engine(f.store, model, async () => game, true) };
 }
 describe("Codex scheduling and accounting", () => {
+  it("preserves an LLM-authored plan through the subprocess envelope with known usage", async () => {
+    const f = await setup("cognition");
+    await f.pool.query('UPDATE cohorts SET model=model||\'{"cognition":"llm-centered-v1"}\'::jsonb WHERE id=$1', [
+      f.id,
+    ]);
+    f.claim.cohort = await f.store.cohort(f.id);
+    await f.engine.run(f.claim);
+    const state = (await f.pool.query("SELECT version FROM cognitive_states WHERE agent_id=$1", [f.claim.agentId]))
+      .rows[0];
+    expect(state.version).toBe(1);
+    const result = await f.store.publicState();
+    expect(result.turns[0].code).toBe("WAIT");
+    expect(result.usage[0].unknown_calls).toBe(0);
+    expect(f.game.submits).toHaveLength(0);
+  });
   it("continuous mode still pauses uncertain usage without changing account identity or resetting usage", async () => {
     const f = await setup("unknown", true);
     await f.engine.run(f.claim);

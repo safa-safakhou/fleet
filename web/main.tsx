@@ -33,7 +33,15 @@ type Cohort = {
   count: number;
   state: string;
   interval_minutes: number;
-  model: { route: string; model: string; reasoningEffort?: string; thinking?: boolean; decisionPolicy?: string } | null;
+  model: {
+    route: string;
+    model: string;
+    reasoningEffort?: string;
+    thinking?: boolean;
+    decisionPolicy?: string;
+    cognition?: string;
+    recallAssist?: string;
+  } | null;
   budget: Obj | null;
   observation_consent: boolean;
   synthetic_owner_policy: Obj | null;
@@ -733,7 +741,13 @@ function App() {
                 </div>
                 <div>
                   <dt>Decision mode</dt>
-                  <dd>{cohort.model?.decisionPolicy ? "LLM + Vowpal Wabbit focus policy" : "LLM only"}</dd>
+                  <dd>
+                    {cohort.model?.cognition
+                      ? "LLM with memory, reflection and plans"
+                      : cohort.model?.decisionPolicy
+                        ? "Legacy VW selection · unused"
+                        : "LLM only"}
+                  </dd>
                 </div>
                 {cohort.model?.reasoningEffort && (
                   <div>
@@ -854,9 +868,9 @@ function App() {
                 reset at UTC midnight only when explicitly configured.
               </p>
               <p className="muted">
-                {cohort.model?.decisionPolicy
-                  ? "Vowpal Wabbit learns a strategic focus from later observed progress. Inspect turn steps for choices, probabilities and feedback. It starts untrained; stronger play is not established."
-                  : "The exact decision calculator is available through PACT. Enable the optional learned focus policy when configuring a fresh fleet."}
+                {cohort.model?.cognition
+                  ? "The LLM retains observed experiences, intentions and revisable hypotheses about players. Inspect the agent's cognitive state and turn evidence. Plans do not automatically execute commands."
+                  : "Choose the optional LLM-centered mode on a fresh fleet to retain episodic memory, reflection, plans and social beliefs. VW is unused."}
               </p>
             </article>
           </section>
@@ -1068,7 +1082,8 @@ function Create({ busy, save }: { busy: boolean; save: (data: unknown) => void }
 function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => void }) {
   const [route, setRoute] = useState("openai-compatible"),
     [thinking, setThinking] = useState(false),
-    [decisionPolicy, setDecisionPolicy] = useState(false),
+    [cognition, setCognition] = useState(false),
+    [recallAssist, setRecallAssist] = useState(false),
     [reasoningEffort, setReasoningEffort] = useState("medium"),
     [model, setModel] = useState(""),
     [mode, setMode] = useState("finite"),
@@ -1086,7 +1101,9 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
             model,
             ...(route === "codex-cli" ? { reasoningEffort } : {}),
             ...(route === "ollama" ? { thinking } : {}),
-            ...(decisionPolicy ? { decisionPolicy: "vw-focus-v1" } : {}),
+            ...(cognition
+              ? { cognition: "llm-centered-v1", ...(recallAssist ? { recallAssist: "laya-recall-v1" } : {}) }
+              : {}),
           },
           budget: {
             mode,
@@ -1142,20 +1159,23 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
       )}
       <label>
         Decision mode
-        <select
-          value={decisionPolicy ? "hybrid" : "llm"}
-          onChange={(e) => setDecisionPolicy(e.target.value === "hybrid")}
-        >
+        <select value={cognition ? "cognition" : "llm"} onChange={(e) => setCognition(e.target.value === "cognition")}>
           <option value="llm">LLM only</option>
-          <option value="hybrid">LLM + Vowpal Wabbit · experimental</option>
+          <option value="cognition">LLM with memory, reflection, plans and beliefs</option>
         </select>
       </label>
-      {decisionPolicy && (
+      {cognition && (
         <p className="muted">
-          Learns which strategic focus to consider from later observed development, contacts and active contracts.
-          Starts untrained. The LLM still chooses exact commands and may wait. Requires the local decision service; no
-          extra LLM calls. Apply to a fresh fleet before its first execution.
+          Keeps account-owned observations and the LLM's interpretations across turns. The LLM revises its own plan and
+          beliefs within the existing decision allowance. Saving does not start accounts or inference. Apply to a fresh
+          fleet before its first execution.
         </p>
+      )}
+      {cognition && (
+        <label className="execution-consent">
+          <input type="checkbox" checked={recallAssist} onChange={(e) => setRecallAssist(e.target.checked)} />
+          <span>Use local Laya for evaluated memory ordering · optional, with visible deterministic fallback</span>
+        </label>
       )}
       <label>
         Budget period

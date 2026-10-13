@@ -1,0 +1,62 @@
+[
+  {
+    "query": "Keep our kitchens supplied.",
+    "relevant": "Birch can ship wheat every week and has surplus grain.",
+    "distractor": "Cedar has opened a school for mounted warriors."
+  },
+  {
+    "query": "Find material for our next construction project.",
+    "relevant": "Birch has spare planks and quarried rock ready to export.",
+    "distractor": "Cedar offers grain for the coming winter."
+  },
+  {
+    "query": "Review who followed through on a promise.",
+    "relevant": "Birch's shipment arrived at the agreed time and quantity.",
+    "distractor": "Cedar described a possible agreement, but no deliveries were observed."
+  },
+  {
+    "query": "Look for evidence of a military danger.",
+    "relevant": "Cedar's army marched toward our border and launched an attack.",
+    "distractor": "Birch harvested apples in its southern fields."
+  },
+  {
+    "query": "Improve diplomatic ties with our neighbor.",
+    "relevant": "Birch invited us to discuss a lasting alliance.",
+    "distractor": "Our granary capacity rose after an upgrade."
+  },
+  {
+    "query": "Understand why our income has fallen.",
+    "relevant": "The market closed and daily tax receipts declined.",
+    "distractor": "A neighboring army returned to its own barracks."
+  },
+  {
+    "query": "Prepare for colder months without hunger.",
+    "relevant": "Our fields yielded little grain, and the pantry is nearly empty.",
+    "distractor": "Stone stock increased after workers reopened the quarry."
+  },
+  {
+    "query": "Identify a counterparty for a reciprocal exchange.",
+    "relevant": "Birch offered surplus lumber in return for some of our wheat.",
+    "distractor": "Cedar sent a friendly greeting without any proposed terms."
+  },
+  {
+    "query": "Recall what caused our earlier agreement to fail.",
+    "relevant": "The supplier missed three shipments and we ended the deal.",
+    "distractor": "Our builders finished a warehouse on schedule."
+  },
+  {
+    "query": "Consider whether cooperation could reduce a shared danger.",
+    "relevant": "Birch proposed combining patrols because raiders threaten both borders.",
+    "distractor": "Cedar celebrated its latest mine expansion."
+  },
+  {
+    "query": "Plan how to house more supplies.",
+    "relevant": "Our storage building is full and incoming shipments cannot be accommodated.",
+    "distractor": "The diplomatic council scheduled an election."
+  },
+  {
+    "query": "Review a meaningful change in another player's position.",
+    "relevant": "Birch withdrew its earlier hostile demand and offered a compromise.",
+    "distractor": "The same construction queue was reported unchanged."
+  }
+]

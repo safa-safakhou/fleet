@@ -185,9 +185,15 @@ export class CodexModel implements ModelPort {
       const envelope = object(JSON.parse(await readFile(result, "utf8")));
       if (typeof envelope.decisionJson !== "string" || Object.keys(envelope).length !== 1)
         throw new FleetError("CODEX_INVALID_DECISION");
-      const parsed = Decision.safeParse(JSON.parse(envelope.decisionJson));
+      const raw = object(JSON.parse(envelope.decisionJson));
+      const { cognition, ...base } = raw;
+      const parsed = Decision.safeParse(input.model.cognition ? base : raw);
       if (!parsed.success) throw new FleetError("CODEX_INVALID_DECISION");
-      return { decision: parsed.data, inputTokens, outputTokens };
+      return {
+        decision: input.model.cognition && cognition !== undefined ? { ...parsed.data, cognition } : parsed.data,
+        inputTokens,
+        outputTokens,
+      };
     } catch (error) {
       if (error instanceof FleetError) throw error;
       throw new FleetError("CODEX_PROCESS_FAILED");

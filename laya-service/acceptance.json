@@ -1,0 +1,287 @@
+{
+  "task": "laya-recall-v1",
+  "runtime": "0.4.6",
+  "revision": "e929ae5cf69bc34259cd2f95c9e91145b818b1f0",
+  "casesSha256": "26361b7d353dbcf81e71c620091cb29b3c719c87486e463d00c90d7bcaa8940d",
+  "developmentSha256": "ff7fa55fdd24445e4bae83e00823afd33957d7ac6973e5c054103ae041c78e7b",
+  "cases": 16,
+  "predictions": 32,
+  "accepted": 18,
+  "correct": 18,
+  "rawCorrect": 28,
+  "lexicalCorrectOnAccepted": 8,
+  "developmentAcceptedErrors": 0,
+  "abstainThreshold": 0.65,
+  "passed": true,
+  "instruction": "Which remembered event is most relevant to the current question? Select the event that directly helps answer it.",
+  "files": {
+    ".gitattributes": "11ad7efa24975ee4b0c3c3a38ed18737f0658a5f75a0a96787b576a78a023361",
+    "README.md": "83e67a995a70a9a9ef6cc1f8c68da654f11eee081c9bb14de07c37b08fcc3113",
+    "config.json": "7add7c041b53f7091e65908553af79ab3f077946e5f2312d510ae13b17c7c134",
+    "encoder/config.json": "5268d24ad3b77c8151de5dcb0762ba4391619aad9ab0bda33e36fb083cfeae6d",
+    "model.safetensors": "4fa56de72383a9d3efa9cfa78955733c81b9fc8067a587ca4beb82c78107a24e",
+    "rl_agent_config.json": "ebf0cd524d92342a6be5e48e9fca3d7c2babfb5a56ccd79d2171ef5d8c7f7be8",
+    "tokenizer/tokenizer.json": "6c8aaa9a542084f2457eab775d4eeb51f92a70c0fd9de28d5edb0ddec3c08d30",
+    "tokenizer/tokenizer_config.json": "08d4cf3ac4dca381759441b85b91a6d40e688471dcd33d15d6649eb0a9a854d1"
+  },
+  "elapsedMs": 4981,
+  "results": [
+    {
+      "case": 0,
+      "reverse": false,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.6862
+    },
+    {
+      "case": 0,
+      "reverse": true,
+      "accepted": false,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.548
+    },
+    {
+      "case": 1,
+      "reverse": false,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.6552
+    },
+    {
+      "case": 1,
+      "reverse": true,
+      "accepted": false,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.6215
+    },
+    {
+      "case": 2,
+      "reverse": false,
+      "accepted": false,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.6351
+    },
+    {
+      "case": 2,
+      "reverse": true,
+      "accepted": false,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.5728
+    },
+    {
+      "case": 3,
+      "reverse": false,
+      "accepted": false,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.6074
+    },
+    {
+      "case": 3,
+      "reverse": true,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.654
+    },
+    {
+      "case": 4,
+      "reverse": false,
+      "accepted": false,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.6481
+    },
+    {
+      "case": 4,
+      "reverse": true,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.6702
+    },
+    {
+      "case": 5,
+      "reverse": false,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.9023
+    },
+    {
+      "case": 5,
+      "reverse": true,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.8287
+    },
+    {
+      "case": 6,
+      "reverse": false,
+      "accepted": false,
+      "correct": false,
+      "lexicalCorrect": true,
+      "probability": 0.546
+    },
+    {
+      "case": 6,
+      "reverse": true,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.8317
+    },
+    {
+      "case": 7,
+      "reverse": false,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.6658
+    },
+    {
+      "case": 7,
+      "reverse": true,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.7368
+    },
+    {
+      "case": 8,
+      "reverse": false,
+      "accepted": false,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.5352
+    },
+    {
+      "case": 8,
+      "reverse": true,
+      "accepted": false,
+      "correct": false,
+      "lexicalCorrect": true,
+      "probability": 0.5061
+    },
+    {
+      "case": 9,
+      "reverse": false,
+      "accepted": false,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.5029
+    },
+    {
+      "case": 9,
+      "reverse": true,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.6782
+    },
+    {
+      "case": 10,
+      "reverse": false,
+      "accepted": false,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.6132
+    },
+    {
+      "case": 10,
+      "reverse": true,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.6836
+    },
+    {
+      "case": 11,
+      "reverse": false,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.7456
+    },
+    {
+      "case": 11,
+      "reverse": true,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.766
+    },
+    {
+      "case": 12,
+      "reverse": false,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.7008
+    },
+    {
+      "case": 12,
+      "reverse": true,
+      "accepted": false,
+      "correct": false,
+      "lexicalCorrect": false,
+      "probability": 0.5042
+    },
+    {
+      "case": 13,
+      "reverse": false,
+      "accepted": false,
+      "correct": false,
+      "lexicalCorrect": true,
+      "probability": 0.525
+    },
+    {
+      "case": 13,
+      "reverse": true,
+      "accepted": false,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.5553
+    },
+    {
+      "case": 14,
+      "reverse": false,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.7847
+    },
+    {
+      "case": 14,
+      "reverse": true,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.7489
+    },
+    {
+      "case": 15,
+      "reverse": false,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": true,
+      "probability": 0.6594
+    },
+    {
+      "case": 15,
+      "reverse": true,
+      "accepted": true,
+      "correct": true,
+      "lexicalCorrect": false,
+      "probability": 0.6878
+    }
+  ],
+  "scope": "Selective two-candidate memory ordering on frozen held-out synthetic cases in both option orders. All memories remain available. No strategy, game outcomes or calibrated-confidence claim."
+}

@@ -31,6 +31,7 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
     },
     apiKey: env.MODEL_API_KEY,
     decisionEndpoint: env.FLEET_DECISION_URL ? decisionEndpoint(env.FLEET_DECISION_URL) : undefined,
+    layaEndpoint: env.FLEET_LAYA_URL ? decisionEndpoint(env.FLEET_LAYA_URL) : undefined,
     codex: { executable: env.FLEET_CODEX_EXECUTABLE, home: env.FLEET_CODEX_HOME },
     maxConcurrency: z.coerce
       .number()

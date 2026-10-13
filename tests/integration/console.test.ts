@@ -36,7 +36,7 @@ async function login(app: ReturnType<typeof buildServer>) {
   return { cookie: String(r.headers["set-cookie"]).split(";")[0], origin, "x-csrf-token": r.json().csrf };
 }
 describe("private operator console", () => {
-  it("saves a fresh optional decision policy and exposes authenticated learning status without enrollment", async () => {
+  it("saves LLM-centered configuration without enrollment and refuses new VW selections", async () => {
     const f = await setup(),
       headers = await login(f.app);
     const { id } = await f.store.create({
@@ -47,16 +47,22 @@ describe("private operator console", () => {
       strategies: ["guardian"],
     });
     const selection = {
-      model: { route: "ollama", model: "synthetic-nemotron", thinking: true, decisionPolicy: "vw-focus-v1" },
+      model: {
+        route: "ollama",
+        model: "synthetic-nemotron",
+        thinking: true,
+        cognition: "llm-centered-v1",
+        recallAssist: "laya-recall-v1",
+      },
       budget: continuousBudget,
     };
     const rejected = await f.app.inject({
       method: "POST",
       url: `/api/cohorts/${id}/configure`,
       headers,
-      payload: { ...selection, budget: { ...continuousBudget, concurrency: 2 } },
+      payload: { ...selection, model: { route: "ollama", model: "synthetic", decisionPolicy: "vw-focus-v1" } },
     });
-    expect(rejected.json().error.code).toBe("DECISION_SERIAL_REQUIRED");
+    expect(rejected.json().error.code).toBe("VW_UNUSED");
     const saved = await f.app.inject({
       method: "POST",
       url: `/api/cohorts/${id}/configure`,
@@ -69,7 +75,7 @@ describe("private operator console", () => {
     expect(state.agents.every((a: { account_id: string | null }) => a.account_id === null)).toBe(true);
     expect(state.turns).toHaveLength(0);
     const summary = await f.app.inject({ url: `/api/cohorts/${id}/decision-policy`, headers });
-    expect(summary.json().policy).toBe("vw-focus-v1");
+    expect(summary.json().policy).toBeNull();
     expect(summary.json().counts).toEqual({});
   });
   it("saves and exposes continuous selection without enrolling or starting any agent", async () => {

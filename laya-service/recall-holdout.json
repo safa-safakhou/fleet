@@ -1,0 +1,82 @@
+[
+  {
+    "query": "Find a source of meals for our residents.",
+    "relevant": "Elm offered a weekly delivery of edible crops.",
+    "distractor": "Ash offered soldiers to garrison a border fortress."
+  },
+  {
+    "query": "Obtain inputs for putting up new buildings.",
+    "relevant": "Elm can supply timber beams and masonry blocks.",
+    "distractor": "Ash can supply fruit for household consumption."
+  },
+  {
+    "query": "Which old experience matters for choosing a dependable partner?",
+    "relevant": "Elm fulfilled every scheduled delivery in our last agreement.",
+    "distractor": "Ash praised our kingdom in a public greeting."
+  },
+  {
+    "query": "Which event helps us decide how to defend ourselves?",
+    "relevant": "A neighboring force assaulted our outer walls yesterday.",
+    "distractor": "A foreign merchant opened a shop in the capital."
+  },
+  {
+    "query": "We need partners willing to discuss cooperation.",
+    "relevant": "Elm proposed a meeting about a mutually beneficial alliance.",
+    "distractor": "Ash increased its warehouse capacity."
+  },
+  {
+    "query": "Our treasury is shrinking. Recall an explanation.",
+    "relevant": "The trade route closed and customs revenue stopped.",
+    "distractor": "The new forest road made travel faster."
+  },
+  {
+    "query": "People might run out of things to eat soon.",
+    "relevant": "The harvest failed and our grain reserve is exhausted.",
+    "distractor": "The iron smelter has excess production."
+  },
+  {
+    "query": "Look for an actual proposal to swap resources.",
+    "relevant": "Elm offered ten carts of wood in exchange for two carts of grain.",
+    "distractor": "Ash wished us well and invited friendly conversation."
+  },
+  {
+    "query": "Review evidence explaining a broken commercial relationship.",
+    "relevant": "Elm never sent the agreed shipments and the agreement ended.",
+    "distractor": "The city built a fountain during the same period."
+  },
+  {
+    "query": "Consider mutual protection against a common enemy.",
+    "relevant": "Elm asked us to coordinate guards because bandits are attacking both kingdoms.",
+    "distractor": "Ash announced abundant fruit production."
+  },
+  {
+    "query": "Remember a reason to expand storage capacity.",
+    "relevant": "Our storehouse rejected deliveries because all shelves were full.",
+    "distractor": "Our leader held a banquet for visiting diplomats."
+  },
+  {
+    "query": "Has a neighbor become more willing to compromise?",
+    "relevant": "Elm softened its previous demand and accepted a smaller payment.",
+    "distractor": "The neighboring farm produced exactly the same amount as before."
+  },
+  {
+    "query": "Who could help us feed the population?",
+    "relevant": "Willow has plenty of rice available for sale.",
+    "distractor": "Pine has surplus weapons and shields."
+  },
+  {
+    "query": "Which memory matters for planning troop equipment?",
+    "relevant": "Willow can provide forged blades and protective armor.",
+    "distractor": "Pine invited us to a poetry reading."
+  },
+  {
+    "query": "Which event informs our decision about keeping an ally?",
+    "relevant": "Willow honored its promise to help protect our village during the raid.",
+    "distractor": "A newly discovered quarry contains granite."
+  },
+  {
+    "query": "We want to understand a failed attempt to bargain.",
+    "relevant": "The seller rejected our price and refused our revised terms.",
+    "distractor": "The harvest exceeded the previous year's yield."
+  }
+]

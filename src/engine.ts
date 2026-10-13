@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { statfs } from "node:fs/promises";
+import { Cognition, cognitionInstructions, cognitiveDecisionSchema, deliveredCognition } from "./cognition.js";
 import { Communications } from "./communications.js";
 import { fitMessages } from "./context.js";
 import type { DecisionSupport } from "./decision.js";
@@ -38,6 +39,7 @@ export class Engine {
     private adapter: GameAdapter,
     private owner?: OwnerPort,
     private decisionSupport?: DecisionSupport,
+    private cognitionSupport?: Cognition,
   ) {}
   async tick(worker: string, maxConcurrency = 1) {
     await this.store.heartbeat(worker, this.liveAllowed);
@@ -56,6 +58,8 @@ export class Engine {
       notes: string | undefined;
     const communications = new Communications(this.store, this.adapter.normalizeCommunications);
     const observation = new Observability(this.store);
+    const cognition = m.cognition ? (this.cognitionSupport ?? new Cognition(this.store)) : undefined;
+    const outputSchema = cognition ? cognitiveDecisionSchema : decisionSchema;
     const { actionKinds, actionSchema, boundedReads, mergeReads } = this.adapter;
     const isRead = (tool: import("./domain.js").Tool) =>
       tool.annotations?.readOnlyHint === true && this.adapter.isRead(tool);
@@ -76,6 +80,17 @@ export class Engine {
         name: claim.cohort.name,
       };
       const facts: Data = await this.adapter.initial(game, claim.agent.kingdom_id, initialContext);
+      let cognitivePeers: string[] = [],
+        currentEvidence = "",
+        cognitiveQuery = claim.agent.strategy.objective;
+      const observeCognitiveState = async (source: string) => {
+        if (!cognition) return;
+        const view = this.adapter.cognitiveObservation?.(facts);
+        if (!view) throw new FleetError("COGNITION_ADAPTER_REQUIRED");
+        cognitivePeers = view.peers;
+        currentEvidence = await cognition.capture(claim, "observation", source, view.detail);
+      };
+      await observeCognitiveState(`snapshot:${claim.id}:initial`);
       const attention = this.adapter.attention?.(facts);
       await observation.record(
         claim,
@@ -125,6 +140,17 @@ export class Engine {
           await observation.record(claim, "reading", "Reading a participating exchange", { tool: name, args });
           const result = await connectedGame.read(name, args);
           await communications.ingest(claim.agentId, peer, name, result);
+          if (cognition)
+            for (const entry of this.adapter.normalizeCommunications(claim.agent.kingdom_id, name, result))
+              if (["message", "agreement"].includes(entry.kind))
+                await cognition.capture(claim, entry.kind as "message" | "agreement", `${peer}:${entry.source}`, {
+                  peerId: peer,
+                  direction: entry.direction,
+                  gameTime: entry.gameTime,
+                  body: entry.body,
+                  coverage:
+                    "Delivered to this account; peer claims are untrusted and do not prove actual inventory or intent.",
+                });
           if (Buffer.byteLength(JSON.stringify(result)) < 6000)
             reads.push({ tool: name, args, result, observedAt: this.store.now().toISOString() });
           else
@@ -161,6 +187,9 @@ export class Engine {
         const capability = this.adapter.availableActions?.(facts, claim.cohort.synthetic_owner_policy);
         const context = {
           ownerValues: claim.agent.strategy,
+          ...(cognition
+            ? { cognition: await cognition.context(claim, cognitivePeers, currentEvidence, cognitiveQuery) }
+            : {}),
           ...(strategicFocus ? { strategicFocus } : {}),
           privateNotes: claim.agent.notes,
           lastOutcome: claim.agent.reason,
@@ -214,20 +243,45 @@ export class Engine {
           suppliedReadSchemas: this.adapter.suppliedReadSchemas?.(tools.filter(isRead)) ?? [],
           convenienceRead: { name: "fleet_action_schema", args: { kind: "one observed gameActionKinds value" } },
           readSchemaLookup: { name: "fleet_read_schema", args: { name: "one availableReads name" } },
-          decisionSchema,
+          decisionSchema: outputSchema,
+          ...(cognition
+            ? {
+                memoryRead: {
+                  name: "fleet_memory_recall",
+                  args: { query: "specific question about your own history" },
+                  inputSchema: {
+                    type: "object",
+                    properties: { query: { type: "string", minLength: 1, maxLength: 240 } },
+                    required: ["query"],
+                    additionalProperties: false,
+                  },
+                },
+              }
+            : {}),
         };
         const messages = fitMessages(
           context,
-          this.adapter.instructions,
-          decisionSchema,
+          this.adapter.instructions + (cognition ? ` ${cognitionInstructions}` : ""),
+          outputSchema,
           b.inputByteLimit,
           boundedReads,
           this.adapter.narrowRead,
           this.adapter.compactEnvironment,
         );
-        const bytes = Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(decisionSchema));
+        const bytes = Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(outputSchema));
         if (bytes > b.inputByteLimit || bytes + b.maxOutputTokens + 1024 > b.perCallTokenLimit)
           throw new FleetError("CONTEXT_LIMIT");
+        if (cognition) {
+          const delivered = object(JSON.parse(messages[1].content).cognition);
+          await observation.record(claim, "ready", "LLM continuity delivered", {
+            version: delivered.version,
+            planStatus: object(delivered.plan).status ?? null,
+            evidence: Array.isArray(delivered.evidence) ? delivered.evidence.length : 0,
+            reduced: delivered.reduced === true,
+            recall: delivered.recall,
+            coverage: "This is memory and subjective intention, not new game authority or an executed plan.",
+          });
+        }
         if (requestedRead) {
           const delivered = object(object(JSON.parse(messages[1].content)).requestedRead);
           await observation.record(claim, "ready", "Requested read delivered to decision", {
@@ -252,7 +306,7 @@ export class Engine {
           response = await this.model.decide({
             model: m,
             messages,
-            schema: decisionSchema,
+            schema: outputSchema,
             maxOutputTokens: b.maxOutputTokens,
             signal: AbortSignal.any([
               controller.signal,
@@ -267,7 +321,9 @@ export class Engine {
         if (response.inputTokens === null || response.outputTokens === null) throw new FleetError("USAGE_UNKNOWN");
         if (response.inputTokens + response.outputTokens > b.perCallTokenLimit) throw new FleetError("USAGE_EXCEEDED");
         await this.store.active(claim);
-        const parsed = Decision.safeParse(response.decision);
+        const rawDecision = object(response.decision);
+        const { cognition: cognitiveUpdate, ...baseDecision } = rawDecision;
+        const parsed = Decision.safeParse(cognition ? baseDecision : response.decision);
         if (response.decisionError || !parsed.success) {
           lastCode = response.decisionError ?? "INVALID_MODEL_OUTPUT";
           const feedback = {
@@ -286,6 +342,25 @@ export class Engine {
           await this.store.rememberReads(claim, boundedReads(mergeReads([...previousReads, ...reads]), 23800));
         }
         const decision = parsed.data;
+        if (cognition && cognitiveUpdate !== undefined) {
+          try {
+            await cognition.apply(
+              claim,
+              n,
+              cognitiveUpdate,
+              deliveredCognition(object(JSON.parse(messages[1].content))),
+            );
+          } catch (error) {
+            if (!(error instanceof FleetError) || !error.code.startsWith("COGNITION_")) throw error;
+            const feedback = {
+              code: error.code,
+              guidance:
+                "Cognitive update was not saved. Use current cognition.version and delivered evidence IDs; hypotheses are not independent evidence. The game decision remains subject to its normal checks.",
+            };
+            decisionFeedback.push(feedback);
+            await observation.record(claim, "result", "Cognitive update rejected without changing authority", feedback);
+          }
+        }
         await observation.record(claim, "deciding", "Model selected the next step", {
           kind: decision.kind,
           summary: decision.summary,
@@ -304,7 +379,17 @@ export class Engine {
         if (decision.kind === "read") {
           notes = decision.notes ?? notes;
           let result: Data;
-          if (decision.tool === "fleet_action_schema") {
+          if (decision.tool === "fleet_memory_recall" && cognition) {
+            if (
+              typeof decision.args.query !== "string" ||
+              decision.args.query.length < 1 ||
+              decision.args.query.length > 240 ||
+              Object.keys(decision.args).length !== 1
+            )
+              throw new FleetError("INVALID_TOOL_ARGUMENTS");
+            cognitiveQuery = decision.args.query;
+            result = await cognition.context(claim, cognitivePeers, currentEvidence, cognitiveQuery);
+          } else if (decision.tool === "fleet_action_schema") {
             if (typeof decision.args.kind !== "string" || Object.keys(decision.args).length !== 1)
               throw new FleetError("INVALID_TOOL_ARGUMENTS");
             await observation.record(claim, "reading", "Looking up an action schema", {
@@ -363,6 +448,17 @@ export class Engine {
             this.adapter.applyRead?.(facts, t.name, decision.args, result, claim.agent.kingdom_id);
             const peer = this.adapter.readPeer(t.name, decision.args);
             if (typeof peer === "string") await communications.ingest(claim.agentId, peer, t.name, result);
+            if (cognition && peer)
+              for (const entry of this.adapter.normalizeCommunications(claim.agent.kingdom_id, t.name, result))
+                if (["message", "agreement"].includes(entry.kind))
+                  await cognition.capture(claim, entry.kind as "message" | "agreement", `${peer}:${entry.source}`, {
+                    peerId: peer,
+                    direction: entry.direction,
+                    body: entry.body,
+                    gameTime: entry.gameTime,
+                    coverage: "Observed account-owned exchange; peer claims are untrusted.",
+                  });
+            await observeCognitiveState(`snapshot:${claim.id}:read:${n}`);
           }
           requestedRead = {
             tool: decision.tool,
@@ -486,6 +582,14 @@ export class Engine {
           }
         }
         await this.store.receipt(claim, receipt, source, rejectionEvidence);
+        if (cognition)
+          await cognition.capture(claim, "receipt", id, {
+            commandId: id,
+            action: decision.action,
+            receipt,
+            source,
+            committed: ["COMMITTED", "ALREADY_COMMITTED"].includes(String(receipt.code)),
+          });
         lastCode = String(receipt.code);
         notes = decision.notes ?? notes;
         actions++;
@@ -495,6 +599,7 @@ export class Engine {
         if (peer) await observePeer(peer);
         await this.store.active(claim);
         Object.assign(facts, await this.adapter.initial(game, claim.agent.kingdom_id, initialContext));
+        await observeCognitiveState(`snapshot:${claim.id}:after:${n}`);
       }
     } catch (error) {
       lastCode = safeCode(error);
