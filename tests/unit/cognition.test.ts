@@ -226,4 +226,44 @@ describe("cognitive decision contracts", () => {
       Buffer.byteLength(JSON.stringify(fitted)) + Buffer.byteLength(JSON.stringify(cognitiveDecisionSchema)),
     ).toBeLessThanOrEqual(14000);
   });
+  it("keeps the ordered Laya pair when reducing other memories and identifies advice that could not be delivered", () => {
+    const recall = { route: "laya-recall-v1", candidateIds: ["a", "b"], selectedId: "b" };
+    const context = {
+      environment: { required: true },
+      cognition: {
+        version: 2,
+        plan: null,
+        recall,
+        evidence: [
+          { id: "current", kind: "observation", detail: "current" },
+          { id: "b", kind: "message", detail: "x".repeat(300) },
+          { id: "a", kind: "message", detail: "y".repeat(300) },
+          { id: "old", kind: "message", detail: "z".repeat(5000) },
+        ],
+      },
+    };
+    const delivered = JSON.parse(fitMessages(context, "Choose", {}, 1500, () => [])[1].content).cognition;
+    expect(delivered.evidence.map((e: { id: string }) => e.id)).toEqual(["current", "b", "a"]);
+    expect(delivered.recall.route).toBe("laya-recall-v1");
+    expect(delivered.recall.budgetReduced).toBe(true);
+    const smaller = JSON.parse(fitMessages(context, "Choose", {}, 700, () => [])[1].content).cognition;
+    expect(smaller.recall.route).toBe("budget-limited");
+    expect(smaller.recall.code).toBe("RECALL_CANDIDATES_OMITTED");
+  });
+  it("retains the latest receipt alongside the current observation when optional memories are reduced", () => {
+    const context = {
+      cognition: {
+        version: 1,
+        plan: null,
+        evidence: [
+          { id: "current", kind: "observation", detail: "observed" },
+          { id: "old", kind: "message", detail: "x".repeat(4000) },
+          { id: "receipt", kind: "receipt", detail: { code: "COMMITTED", commandId: "original" } },
+        ],
+      },
+    };
+    const kept = JSON.parse(fitMessages(context, "Choose", {}, 1000, () => [])[1].content).cognition;
+    expect(kept.evidence.map((e: { id: string }) => e.id)).toEqual(["current", "receipt"]);
+    expect(kept.evidence[1]).toEqual(context.cognition.evidence[2]);
+  });
 });

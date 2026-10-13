@@ -296,6 +296,8 @@ export class Cognition {
           route: "laya-recall-v1",
           certificate: selected.certificate,
           probability: selected.probability,
+          candidateIds: candidates.map((candidate) => candidate.id),
+          selectedId: selected.id,
           role: "Advisory ordering of two recall candidates; no memory excluded, no strategy or command selected.",
         };
       } catch (error) {

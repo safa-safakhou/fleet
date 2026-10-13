@@ -129,26 +129,48 @@ export function fitMessages(
     }
   }
   if (context.cognition && !cognition.reduced && !object(context.actionSchemaCoverage).paged) {
-    return fitMessages(
-      {
-        ...context,
-        cognition: {
-          version: cognition.version,
-          plan: cognition.plan,
-          reduced: true,
-          evidence: Array.isArray(cognition.evidence) ? cognition.evidence.slice(0, 1) : [],
-          knownPeerIds: Array.isArray(cognition.knownPeerIds) ? cognition.knownPeerIds.slice(0, 5) : [],
-          coverage:
-            "Optional recalled episodes, beliefs and reflections omitted from this input to preserve current game facts, requested feedback and the persistent plan. Use fleet_memory_recall for specific history; cite only the delivered evidence IDs.",
-        },
-      },
-      instructions,
-      schema,
-      limit,
-      compactReads,
-      narrowRead,
-      compactEnvironment,
-    );
+    const original = Array.isArray(cognition.evidence) ? cognition.evidence.map(object) : [];
+    const receipt = original.find((episode, index) => index > 0 && episode.kind === "receipt");
+    const evidence = receipt
+      ? [original[0], receipt, ...original.slice(1).filter((episode) => episode.id !== receipt.id)]
+      : original;
+    const minimum = receipt ? 2 : 1;
+    for (let count = Math.min(4, evidence.length); count >= Math.min(minimum, evidence.length); count--) {
+      const retained = evidence.slice(0, count);
+      const recall = object(cognition.recall);
+      const candidates = Array.isArray(recall.candidateIds) ? recall.candidateIds : [];
+      const orderedPairRetained =
+        candidates.length === 2 && candidates.every((id) => retained.some((episode) => episode.id === id));
+      try {
+        return fitMessages(
+          {
+            ...context,
+            cognition: {
+              version: cognition.version,
+              plan: cognition.plan,
+              reduced: true,
+              evidence: retained,
+              recall:
+                recall.route === "laya-recall-v1" && !orderedPairRetained
+                  ? { route: "budget-limited", attemptedRoute: recall.route, code: "RECALL_CANDIDATES_OMITTED" }
+                  : { ...recall, budgetReduced: true },
+              knownPeerIds: Array.isArray(cognition.knownPeerIds) ? cognition.knownPeerIds.slice(0, 5) : [],
+              coverage:
+                "Optional recalled episodes, beliefs and reflections omitted from this input to preserve current game facts, requested feedback and the persistent plan. Use fleet_memory_recall for specific history; cite only the delivered evidence IDs.",
+            },
+          },
+          instructions,
+          schema,
+          limit,
+          compactReads,
+          narrowRead,
+          compactEnvironment,
+        );
+      } catch (error) {
+        if (error instanceof FleetError && error.code === "CONTEXT_LIMIT") continue;
+        throw error;
+      }
+    }
   }
   throw new FleetError("CONTEXT_LIMIT");
 }
