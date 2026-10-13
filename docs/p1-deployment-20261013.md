@@ -2,6 +2,8 @@
 
 Status: deployed and resumed under the founder's explicit request. This supersedes the earlier P1 launch-pending boundary for this deployment/review only. No new cohort, account, mandate, owner exception, model or allowance was created.
 
+Follow-up: [the first 51-minute observation](post-p1-observation-20261013.md) records actual progress, concentrated communication, five remaining owner construction recoveries and Agent 50's reproducible context limit. Initial resumption acceptance does not mean all agents are progressing.
+
 ## Releases and backups
 
 - PACT: `fleet-p1-20261013-1`, built from `b40ee5dd91febe4bea1f979bfa436824091dd4bd`. Runtime and gateway are on that release. Source archive SHA-256: `958cf29b427e101be523cd7a5ad656775f9fc26f7176ee4443661a5351d915a2`.
