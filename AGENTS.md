@@ -2,7 +2,7 @@
 
 ## Current local Nemotron assignment — 13 October 2026
 
-Founder requested five fresh accounts in a new fleet using this Mac's existing Ollama Nemotron model, explicitly selected fifteen-minute execution until stopped, and clarified that the controller itself must run on this machine. Codex owns setup, relevant verification and local commits without delegation. Use an independent local database/vault, native local controller/console and loopback Ollama; do not add a server cohort, move the Luna group or copy its credentials/state. PACT remains the hosted game reached through authenticated normal APIs. Record exact launch and host/sleep limitations in `docs/local-nemotron-20261013.md`.
+Founder requested five fresh accounts in a new fleet using this Mac's existing Ollama Nemotron model, explicitly selected fifteen-minute execution until stopped, and clarified that the controller itself must run on this machine. Codex owns setup, relevant verification and local commits without delegation. Use an independent local database/vault, native local controller/console and loopback Ollama; do not add a server cohort, move the Luna group or copy its credentials/state. PACT remains the hosted game reached through authenticated normal APIs. Record exact launch and host/sleep limitations in `docs/local-nemotron-20261013.md`. Founder subsequently explicitly requested full supported thinking on for these same five local accounts. Native Nemotron exposes only boolean thinking; the audited quiescent change preserves their identities, lifetime accounting, allowance and original fifteen-minute anchor.
 
 ## Current reliability follow-up — 13 October 2026
 
