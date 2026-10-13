@@ -1,0 +1,26 @@
+# Recall packing and evidence review — 14 October 2026
+
+The founder requested fixing context limits so Laya recall reaches Nemotron and investigating missing beliefs/reflections, preserving the same five accounts and budgets with no comparison. Implementation and local activation are covered by this assignment and the preceding explicit deployment authorization. This report distinguishes source acceptance from local runtime acceptance.
+
+## Investigation
+
+At 00:14 Berlin, saved updates mostly contained empty belief/reflection arrays; the two earlier cognitive errors were version mismatches already corrected by 674533c, rather than belief/evidence storage rejections. Prompt reduction omitted all beliefs/reflections, truncated peer IDs, and could drop one accepted Laya candidate. Large episodes became JSON prefixes, obscuring message prose or receipt outcomes. A selected receipt also preceded Laya's preferred candidate, so explicit preference did not always match evidence order. Optional updates provided little visibility into a decision to abstain, and empty updates misleadingly advanced state versions.
+
+A later read at 00:28 Berlin found Agent 01 had formed its first belief and reflection at 00:22 under the old runtime. Agents 01/02 then reported CONTEXT_LIMIT after retaining cognitive state. Thus storage works and spontaneous updates occur, but growing state exposes inadequate packing. Agent 01 had four incoming/one outgoing messages; Agent 04 had one incoming/four outgoing. Agents 02/03/05 had no recorded peer messages, limiting social evidence. These observations do not establish the model's hidden reasoning or prove the quality of its first hypothesis.
+
+## Changes
+
+- Protect the current source, newest receipt, whole saved plan and accepted Laya pair. Preserve actual candidate order; reserve continuity before optional prefetched action/read shapes. Keep tool names/permissions and exact schema lookup. Explicitly page only unprotected history and additional subjective state; never omit all present beliefs/reflections. Fail before inference if indispensable content cannot fit. Retain the existing 24,000-byte serialized allowance and provider token/output limits.
+- Preserve player/source identity and message prose or confirmed outcome when compacting large episodes. New factual PACT summaries and receipt intentions support comparing intention with outcome. Missing data stays unknown; historical episodes are unchanged.
+- Require one concise evidence review in the existing decision response. The LLM chooses whether to propose a belief with alternatives/prediction, an expected/observed/revision reflection, or an honest unchanged/insufficient-evidence explanation. No extra inference, forced social action, synthetic learning event or weight training. Empty reviews retain an encrypted idempotent journal record without advancing cognitive state. Consent-gated inspection shows the latest review.
+- Record actual input bytes, delivered belief/reflection counts and accepted-pair delivery. Existing owned-evidence, stale version, fencing, unknown-usage and exact-command authority checks remain enforced. VW remains unused.
+
+## Source verification
+
+Linux Node 24.21 with PostgreSQL 17.9: 89 unit and 137 integration tests passed (226 total), including the dense controller delivery/persistence test, newest-receipt protection, empty-review idempotency, source ownership/expiry, unknown usage, fencing and command authority. Type/lint checks passed with the existing 17 warnings/one info; game-boundary check and production build passed; production dependency audit reported zero vulnerabilities. No dependencies or migrations changed. `git diff --check` passed. Synthetic providers/kingdoms are confined to a separate fleet_test database; no live account or inference is created for tests. The actual loopback Laya helper passed the unchanged frozen HTTP set: 18 accepted/18 correct and 14 abstentions, with zero game/LLM calls. This verifies its limited selective recall protocol, not general intelligence or improved play.
+
+Read-only native preflight reconstructed current contexts for all five accounts, including Agent 01's saved belief/reflection and existing plans. All fitted within 24,000 bytes while retaining a supplied ordered pair (23,525–23,951 bytes in this replay). This is a packing replay using actual owned history, not evidence that the helper selected that pair or that a scheduled Nemotron call received it. Scheduled runtime delivery is checked separately.
+
+## Local activation
+
+Pending deployment and normal scheduled-turn acceptance. Protected operation artifacts live under the existing local installation's state/cognition-recall-review-20261014 directory, outside Git. No global model, game server, account, budget or original schedule anchor changes are required.

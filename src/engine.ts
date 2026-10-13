@@ -283,6 +283,16 @@ export class Engine {
             version: delivered.version,
             planStatus: object(delivered.plan).status ?? null,
             evidence: Array.isArray(delivered.evidence) ? delivered.evidence.length : 0,
+            inputBytes: bytes,
+            inputByteLimit: b.inputByteLimit,
+            beliefs: Array.isArray(delivered.beliefs) ? delivered.beliefs.length : 0,
+            reflections: Array.isArray(delivered.reflections) ? delivered.reflections.length : 0,
+            recallPairDelivered:
+              object(delivered.recall).route === "laya-recall-v1" &&
+              Array.isArray(object(delivered.recall).candidateIds) &&
+              (object(delivered.recall).candidateIds as unknown[]).every((id) =>
+                (Array.isArray(delivered.evidence) ? delivered.evidence : []).some((e) => object(e).id === id),
+              ),
             reduced: delivered.reduced === true,
             recall: delivered.recall,
             coverage: "This is memory and subjective intention, not new game authority or an executed plan.",
@@ -591,6 +601,7 @@ export class Engine {
         if (cognition)
           await cognition.capture(claim, "receipt", id, {
             commandId: id,
+            intent: decision.summary,
             action: decision.action,
             receipt,
             source,

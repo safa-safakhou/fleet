@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { Ajv } from "ajv";
 import { afterEach, describe, expect, it } from "vitest";
 import { Cognition, cognitiveDecisionGuide, cognitiveSchemaForVersion } from "../../src/cognition.js";
 import { type Data, type ModelPort, object } from "../../src/domain.js";
@@ -88,6 +89,133 @@ describe("LLM memory, plans and beliefs", () => {
     const fallback = await abstaining.context(f.claim, [f.peer], f.evidence, "food");
     expect(object(fallback.recall).assist).toBe("abstained");
     expect((await f.pool.query("SELECT * FROM cognitive_states")).rowCount).toBe(0);
+  });
+  it("journals an evidence review without pretending an empty update changed state", async () => {
+    const f = await setup();
+    const review = {
+      beliefs: "insufficient_evidence",
+      reflection: "insufficient_evidence",
+      reason: "A peer claim alone cannot establish delivery; no prior expectation was recorded",
+    };
+    await f.support.apply(
+      f.claim,
+      0,
+      { expectedVersion: 0, review, plan: null, beliefs: [], reflections: [] },
+      f.context,
+    );
+    await f.support.apply(
+      f.claim,
+      0,
+      { expectedVersion: 0, review, plan: null, beliefs: [], reflections: [] },
+      f.context,
+    );
+    expect((await f.pool.query("SELECT * FROM cognitive_states")).rowCount).toBe(0);
+    expect((await f.pool.query("SELECT * FROM cognitive_updates")).rowCount).toBe(1);
+    const inspected = await f.support.inspect(f.claim.agentId);
+    expect(inspected.version).toBe(0);
+    expect(inspected.latestReview).toEqual(review);
+    const events = (await new Observability(f.store).history(f.id)).turns[0].events;
+    expect(events.some((event) => event.label === "LLM reviewed continuity without a revision")).toBe(true);
+  });
+  it("delivers Laya's ordered pair to the decision model in a dense turn and persists grounded beliefs/reflection without extra calls", async () => {
+    const f = await setup(),
+      game = new FakeGame(f.claim);
+    await f.pool.query('UPDATE cohorts SET model=model||\'{"recallAssist":"laya-recall-v1"}\'::jsonb WHERE id=$1', [
+      f.id,
+    ]);
+    f.claim.cohort = await f.store.cohort(f.id);
+    const receipt = await f.support.capture(f.claim, "receipt", "confirmed", {
+      commandId: randomUUID(),
+      intent: "Start a farm upgrade",
+      action: { kind: "game.building.queue" },
+      receipt: { code: "COMMITTED" },
+      committed: true,
+    });
+    let selected = "",
+      candidates: string[] = [],
+      calls = 0;
+    const support = new Cognition(f.store, {
+      choose: async (_query, pair) => {
+        candidates = pair.map((candidate) => candidate.id);
+        selected = pair[1].id;
+        return { id: selected, probability: 0.9, certificate: "a".repeat(64) };
+      },
+    });
+    const model: ModelPort = {
+      decide: async (input) => {
+        calls++;
+        const context = JSON.parse(input.messages[1].content),
+          cognition = context.cognition;
+        expect(
+          Buffer.byteLength(JSON.stringify(input.messages)) + Buffer.byteLength(JSON.stringify(input.schema)),
+        ).toBeLessThanOrEqual(24000);
+        expect(cognition.recall.route).toBe("laya-recall-v1");
+        expect(candidates.every((id) => cognition.evidence.some((episode: Data) => episode.id === id))).toBe(true);
+        const pairOrder = cognition.evidence
+          .filter((episode: Data) => candidates.includes(String(episode.id)))
+          .map((episode: Data) => episode.id);
+        expect(pairOrder[0]).toBe(selected);
+        expect(cognition.knownPeerIds).toContain(f.peer);
+        expect(context.actionPermissions).toBeDefined();
+        const decision = {
+          kind: "wait",
+          summary: "Check the peer claim before trusting another shipment",
+          cognition: {
+            expectedVersion: cognition.version,
+            review: {
+              beliefs: "updated",
+              reflection: "updated",
+              reason: "The claim permits a cautious hypothesis; the receipt confirms the recorded upgrade intention",
+            },
+            beliefs: [
+              {
+                peerId: f.peer,
+                hypothesis: "May value dependable supply",
+                alternative: "The claim may be inaccurate",
+                confidence: "low",
+                prediction: "A future verified receipt will match the promise",
+                assessment: "untested",
+                evidenceRefs: [f.evidence],
+              },
+            ],
+            reflections: [
+              {
+                expected: "Start a farm upgrade",
+                observed: "The command receipt reports COMMITTED",
+                revision: "Check completion in fresh state before another upgrade",
+                evidenceRefs: [receipt],
+              },
+            ],
+          },
+        };
+        expect(new Ajv({ strict: false }).compile(input.schema)(decision)).toBe(true);
+        return { decision, inputTokens: 500, outputTokens: 200 };
+      },
+    };
+    const adapter = {
+      ...pactAdapter,
+      compactFacts: (facts: Data) => ({
+        ...pactAdapter.compactFacts(facts),
+        profile: { kingdomId: f.claim.agent.kingdom_id, whole: "x".repeat(6000) },
+        contacts: [{ kingdomId: f.peer, whole: "x".repeat(9000) }],
+      }),
+      availableActions: (facts: Data, owner: Data | null | undefined) => {
+        const result = pactAdapter.availableActions?.(facts, owner ?? null);
+        if (!result) throw Error("Missing action advertisement");
+        return { ...result, schemas: result.schemas.map((shape) => ({ ...shape, whole: "x".repeat(3000) })) };
+      },
+      suppliedReadSchemas: () => [{ name: "optional", whole: "x".repeat(6000) }],
+    };
+    await new Engine(f.store, model, async () => game, true, adapter, undefined, undefined, support).run(f.claim);
+    expect(calls).toBe(1);
+    expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(1);
+    expect(game.submits).toHaveLength(0);
+    const restarted = await new Cognition(f.store).inspect(f.claim.agentId);
+    expect(restarted.beliefs).toHaveLength(1);
+    expect(restarted.reflections).toHaveLength(1);
+    expect(restarted.version).toBe(1);
+    const events = (await new Observability(f.store).history(f.id)).turns[0].events;
+    expect(events.find((event) => event.label === "LLM continuity delivered")?.detail?.recallPairDelivered).toBe(true);
   });
   it("retains old plan evidence when observation volume exceeds the bounded journal", async () => {
     const f = await setup();

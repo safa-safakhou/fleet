@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Recall packing and review repair — 14 October 2026
+
+Founder authorized fixing context limits and investigating missing beliefs/reflections for the same five local Nemotron agents, preserving accounts/history/budgets and starting no comparison. Read `docs/cognition-recall-review-20261014.md`. Codex owns implementation without delegation. Protect accepted Laya candidates and growing cognitive state within existing allowances; add concise evidence reviews to normal decisions, allowing honest abstention. Deployment/resumption of the same cohort is covered by the preceding local assignment. New uncertainty still requires its own exact review; never reset budgets or silently replay commands.
+
 ## Local cognition rollout — 13 October 2026
 
 Founder explicitly authorized deploying cognition and Laya recall locally for the same five Nemotron agents, preserving accounts/history/budgets and starting no accounts/comparison. Read `docs/cognition-local-deployment-20261013.md`. Native console/worker pin 674533c; the certified helper remains on byte-identical e893a03 source; the same original fifteen-minute anchor, thinking true and allowances remain. Founder separately approved the three exact newly uncertain calls recorded in that report; all six historical unknown entries/full allocations remain intact. Existing credential reconnections preserve enrollment keys, clients, identities and mandates. All five completed scheduled cognition turns; 11 calls reported, five actions committed, memory persisted across restart and live Laya abstentions fell back. Dense-context/invalid-proposal limits and absence of live plans/beliefs are recorded candidly. Pre/post backups restored with matching tables. No server rollout occurred. New uncertainty still needs its own review.

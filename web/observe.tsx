@@ -864,9 +864,20 @@ function CognitiveInspector({ value }: { value: Record<string, unknown> }) {
   if (value.withheld) return <p className="muted">Private observation is off.</p>;
   const plan = obj(value.plan),
     beliefs = list(value.beliefs),
-    reflections = list(value.reflections);
+    reflections = list(value.reflections),
+    review = obj(value.latestReview);
   return (
     <div>
+      {review.reason ? (
+        <>
+          <h4>Latest evidence review</h4>
+          <p>
+            Beliefs: {String(review.beliefs).replaceAll("_", " ")} · Reflection:{" "}
+            {String(review.reflection).replaceAll("_", " ")}
+          </p>
+          <p>{String(review.reason)}</p>
+        </>
+      ) : null}
       <h4>Persistent plan</h4>
       {plan.goal ? (
         <>

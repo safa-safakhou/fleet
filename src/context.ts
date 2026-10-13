@@ -18,159 +18,169 @@ export function fitMessages(
   ];
   const fits = (m: ReturnType<typeof messages>) =>
     Buffer.byteLength(JSON.stringify(m)) + Buffer.byteLength(JSON.stringify(schema)) <= limit;
-  const full = messages(context);
-  if (fits(full)) return full;
-  const reads = Array.isArray(context.readResults) ? context.readResults.map(object) : [];
-  const names = Array.isArray(context.availableReads)
-    ? context.availableReads.map((r) => ({ name: object(r).name }))
-    : [];
-  for (const allowance of [8000, 6000, 4000, 2000, 0]) {
-    const smaller = messages({
-      ...context,
-      availableReads: names,
-      readResults: compactReads(reads, allowance),
-      omissions: [
-        "Read descriptions and dated cache entries reduced to fit the full serialized input allowance. Current facts, command outcomes and supplied action schemas remain whole. Missing cached sections are unknown; request a narrower read when needed.",
-      ],
-    });
-    if (fits(smaller)) return smaller;
-  }
-  if (compactEnvironment) {
-    const requested = context.requestedRead ? object(context.requestedRead) : undefined;
-    const feedback = [requested];
-    if (requested && narrowRead) for (const size of [4000, 2000, 1000]) feedback.push(narrowRead(requested, size));
-    // Exhaust optional fresh-environment reductions before narrowing requested feedback.
-    for (const requestedRead of feedback) {
-      // Dense authority/core state can require more than 4 KB while optional
-      // pages make 6 KB too large for the complete provider envelope. Search
-      // that interval as well; never infer that a failed coarse bucket cannot fit.
-      for (const allowance of Array.from({ length: 41 }, (_, index) => 12000 - index * 250)) {
-        let environment: Data;
-        try {
-          environment = compactEnvironment(object(context.environment), allowance);
-        } catch (error) {
-          if (error instanceof FleetError && error.code === "CONTEXT_LIMIT") continue;
-          throw error;
-        }
-        const reduced = {
-          ...context,
-          environment,
-          availableReads: names,
-          readResults: [],
-          requestedRead,
-          omissions: [
-            "Dated cache omitted; optional current observations are paged with explicit coverage. Core state, permissions, receipts and executable schemas remain whole. Missing records are unknown, not empty.",
-          ],
-        };
-        const wholeNotes = messages(reduced);
-        if (fits(wholeNotes)) return wholeNotes;
-        // Never destroy persisted notes. Oversized optional continuation prose can
-        // be omitted from this one input, with an explicit notice instead of truncation.
-        const withoutNotes = messages({
-          ...reduced,
-          privateNotes: undefined,
-          privateNotesCoverage: {
-            omitted: true,
-            originalBytes: Buffer.byteLength(JSON.stringify(context.privateNotes ?? null)),
-            notice:
-              "Stored private notes omitted from this input only. Fresh facts and requested feedback take priority; prior intent is not current state.",
-          },
-        });
-        if (fits(withoutNotes)) return withoutNotes;
-      }
-    }
-  }
-  // A requested result is indispensable feedback, separate from optional history.
-  // Only narrow it after evicting all optional reads, and never silently drop it.
-  if (context.requestedRead && narrowRead) {
-    for (const allowance of [6000, 4000, 2000, 1000]) {
+  const cognition = object(context.cognition);
+  const evidence = Array.isArray(cognition.evidence) ? cognition.evidence.map(object) : [];
+  const recall = object(cognition.recall);
+  const pair = recall.route === "laya-recall-v1" && Array.isArray(recall.candidateIds) ? recall.candidateIds : [];
+  if (recall.route === "laya-recall-v1" && (new Set(pair).size !== 2 || !pair.includes(recall.selectedId)))
+    throw new FleetError("COGNITION_RECALL_EVIDENCE_MISSING");
+  if (pair.some((id) => !evidence.some((episode) => episode.id === id)))
+    throw new FleetError("COGNITION_RECALL_EVIDENCE_MISSING");
+  const pack = (context: Data): ReturnType<typeof messages> | undefined => {
+    const full = messages(context);
+    if (fits(full)) return full;
+    const reads = Array.isArray(context.readResults) ? context.readResults.map(object) : [];
+    const names = Array.isArray(context.availableReads)
+      ? context.availableReads.map((r) => ({ name: object(r).name }))
+      : [];
+    for (const allowance of [8000, 6000, 4000, 2000, 0]) {
       const smaller = messages({
         ...context,
         availableReads: names,
-        readResults: [],
-        requestedRead: narrowRead(object(context.requestedRead), allowance),
-        omissions: ["Dated cache omitted. The requested read is explicitly incomplete; use its narrowing guidance."],
+        readResults: compactReads(reads, allowance),
+        omissions: [
+          "Read descriptions and dated cache entries reduced to fit the full serialized input allowance. Current facts, command outcomes and supplied action schemas remain whole. Missing cached sections are unknown; request a narrower read when needed.",
+        ],
       });
       if (fits(smaller)) return smaller;
     }
-  }
-  // In cognition mode, a saved plan and recalled evidence compete with optional
-  // prefetched action shapes. Page whole prefetched shapes before evicting memory.
-  // All action names/permissions remain visible and an exact shape can still be
-  // requested through the existing bounded fleet_action_schema read.
-  const cognition = object(context.cognition);
-  const prefetched = Array.isArray(context.suppliedActionSchemas) ? context.suppliedActionSchemas : [];
-  if (context.cognition && !object(context.actionSchemaCoverage).paged && prefetched.length) {
-    for (let kept = prefetched.length - 1; kept >= 0; kept--) {
-      try {
-        return fitMessages(
-          {
+    if (compactEnvironment) {
+      const requested = context.requestedRead ? object(context.requestedRead) : undefined;
+      const feedback = [requested];
+      if (requested && narrowRead) for (const size of [4000, 2000, 1000]) feedback.push(narrowRead(requested, size));
+      // Exhaust optional fresh-environment reductions before narrowing requested feedback.
+      for (const requestedRead of feedback) {
+        // Dense authority/core state can require more than 4 KB while optional
+        // pages make 6 KB too large for the complete provider envelope. Search
+        // that interval as well; never infer that a failed coarse bucket cannot fit.
+        for (const allowance of Array.from({ length: 41 }, (_, index) => 12000 - index * 250)) {
+          let environment: Data;
+          try {
+            environment = compactEnvironment(object(context.environment), allowance);
+          } catch (error) {
+            if (error instanceof FleetError && error.code === "CONTEXT_LIMIT") continue;
+            throw error;
+          }
+          const reduced = {
             ...context,
-            suppliedActionSchemas: prefetched.slice(0, kept),
-            actionSchemaCoverage: {
-              paged: true,
-              retained: kept,
-              omitted: prefetched.length - kept,
+            environment,
+            availableReads: names,
+            readResults: [],
+            requestedRead,
+            omissions: [
+              "Dated cache omitted; optional current observations are paged with explicit coverage. Core state, permissions, receipts and executable schemas remain whole. Missing records are unknown, not empty.",
+            ],
+          };
+          const wholeNotes = messages(reduced);
+          if (fits(wholeNotes)) return wholeNotes;
+          // Never destroy persisted notes. Oversized optional continuation prose can
+          // be omitted from this one input, with an explicit notice instead of truncation.
+          const withoutNotes = messages({
+            ...reduced,
+            privateNotes: undefined,
+            privateNotesCoverage: {
+              omitted: true,
+              originalBytes: Buffer.byteLength(JSON.stringify(context.privateNotes ?? null)),
               notice:
-                "Only prefetched shapes omitted. Action names/permissions remain whole. Use fleet_action_schema for an omitted shape before proposing it; requested results and server validation remain unchanged.",
+                "Stored private notes omitted from this input only. Fresh facts and requested feedback take priority; prior intent is not current state.",
             },
-          },
-          instructions,
-          schema,
-          limit,
-          compactReads,
-          narrowRead,
-          compactEnvironment,
-        );
-      } catch (error) {
-        if (error instanceof FleetError && error.code === "CONTEXT_LIMIT") continue;
-        throw error;
+          });
+          if (fits(withoutNotes)) return withoutNotes;
+        }
       }
     }
-  }
-  if (context.cognition && !cognition.reduced && !object(context.actionSchemaCoverage).paged) {
-    const original = Array.isArray(cognition.evidence) ? cognition.evidence.map(object) : [];
-    const receipt = original.find((episode, index) => index > 0 && episode.kind === "receipt");
-    const evidence = receipt
-      ? [original[0], receipt, ...original.slice(1).filter((episode) => episode.id !== receipt.id)]
-      : original;
-    const minimum = receipt ? 2 : 1;
-    for (let count = Math.min(4, evidence.length); count >= Math.min(minimum, evidence.length); count--) {
-      const retained = evidence.slice(0, count);
-      const recall = object(cognition.recall);
-      const candidates = Array.isArray(recall.candidateIds) ? recall.candidateIds : [];
-      const orderedPairRetained =
-        candidates.length === 2 && candidates.every((id) => retained.some((episode) => episode.id === id));
-      try {
-        return fitMessages(
-          {
-            ...context,
-            cognition: {
-              version: cognition.version,
-              plan: cognition.plan,
-              reduced: true,
-              evidence: retained,
-              recall:
-                recall.route === "laya-recall-v1" && !orderedPairRetained
-                  ? { route: "budget-limited", attemptedRoute: recall.route, code: "RECALL_CANDIDATES_OMITTED" }
-                  : { ...recall, budgetReduced: true },
-              knownPeerIds: Array.isArray(cognition.knownPeerIds) ? cognition.knownPeerIds.slice(0, 5) : [],
-              coverage:
-                "Optional recalled episodes, beliefs and reflections omitted from this input to preserve current game facts, requested feedback and the persistent plan. Use fleet_memory_recall for specific history; cite only the delivered evidence IDs.",
-            },
-          },
-          instructions,
-          schema,
-          limit,
-          compactReads,
-          narrowRead,
-          compactEnvironment,
-        );
-      } catch (error) {
-        if (error instanceof FleetError && error.code === "CONTEXT_LIMIT") continue;
-        throw error;
+    // A requested result is indispensable feedback, separate from optional history.
+    // Only narrow it after evicting all optional reads, and never silently drop it.
+    if (context.requestedRead && narrowRead) {
+      for (const allowance of [6000, 4000, 2000, 1000]) {
+        const smaller = messages({
+          ...context,
+          availableReads: names,
+          readResults: [],
+          requestedRead: narrowRead(object(context.requestedRead), allowance),
+          omissions: ["Dated cache omitted. The requested read is explicitly incomplete; use its narrowing guidance."],
+        });
+        if (fits(smaller)) return smaller;
       }
     }
+    return undefined;
+  };
+  let fitted = pack(context);
+  if (fitted) return fitted;
+  if (!context.cognition) throw new FleetError("CONTEXT_LIMIT");
+
+  // Protect continuity before optional prefetched tool schemas. Requested schema
+  // results remain indispensable feedback, never part of these optional pages.
+  let candidate = { ...context };
+  for (const [key, coverageKey, lookup] of [
+    ["suppliedActionSchemas", "actionSchemaCoverage", "fleet_action_schema"],
+    ["suppliedReadSchemas", "readSchemaCoverage", "fleet_read_schema"],
+  ]) {
+    const shapes = Array.isArray(candidate[key]) ? (candidate[key] as unknown[]) : [];
+    for (let kept = shapes.length - 1; kept >= 0; kept--) {
+      candidate = {
+        ...candidate,
+        [key]: shapes.slice(0, kept),
+        [coverageKey]: {
+          paged: true,
+          retained: kept,
+          omitted: shapes.length - kept,
+          notice: `Prefetched shapes paged. Names/permissions remain whole. Use ${lookup} for an omitted shape before proposing it.`,
+        },
+      };
+      fitted = pack(candidate);
+      if (fitted) return fitted;
+    }
   }
+
+  const receipt =
+    evidence.find((episode) => episode.id === cognition.latestReceiptId) ??
+    evidence.find((episode) => episode.kind === "receipt");
+  const protectedIds = new Set([cognition.currentEvidenceId ?? evidence[0]?.id, receipt?.id, ...pair]);
+  let retained = [...evidence];
+  // Remove only unprotected history; keep the accepted candidate order, current
+  // observation and latest receipt together. Never relabel dropped Laya advice.
+  for (let index = retained.length - 1; index >= 0; index--) {
+    if (protectedIds.has(retained[index].id)) continue;
+    retained = retained.filter((_, i) => i !== index);
+    candidate = {
+      ...candidate,
+      cognition: {
+        ...cognition,
+        reduced: true,
+        evidence: retained,
+        recall: { ...recall, budgetReduced: true },
+        packingCoverage: {
+          omittedEpisodes: evidence.length - retained.length,
+          notice:
+            "Optional history paged; cite delivered IDs only. Saved plan, peer IDs and accepted recall pair retained.",
+        },
+      },
+    };
+    fitted = pack(candidate);
+    if (fitted) return fitted;
+  }
+  const beliefs = Array.isArray(cognition.beliefs) ? cognition.beliefs : [];
+  const reflections = Array.isArray(cognition.reflections) ? cognition.reflections : [];
+  if (beliefs.length > 1 || reflections.length > 1) {
+    candidate = {
+      ...candidate,
+      cognition: {
+        ...object(candidate.cognition),
+        reduced: true,
+        beliefs: beliefs.slice(0, 1),
+        reflections: reflections.slice(-1),
+        stateCoverage: {
+          omittedBeliefs: Math.max(0, beliefs.length - 1),
+          omittedReflections: Math.max(0, reflections.length - 1),
+          notice: "Additional subjective history paged; use fleet_memory_recall for a specific question.",
+        },
+      },
+    };
+    fitted = pack(candidate);
+    if (fitted) return fitted;
+  }
+  // Fail before reserving inference if indispensable facts and continuity cannot
+  // fit. Raising budgets or silently discarding the accepted pair is not a fix.
   throw new FleetError("CONTEXT_LIMIT");
 }

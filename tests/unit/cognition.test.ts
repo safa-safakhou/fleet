@@ -6,6 +6,7 @@ import {
   cognitiveDecisionGuide,
   cognitiveDecisionSchema,
   cognitiveSchemaForVersion,
+  compactEpisode,
   rankEpisodes,
   utf8Prefix,
 } from "../../src/cognition.js";
@@ -16,15 +17,20 @@ import { boundedReads, narrowRead } from "../../src/games/pact/context.js";
 import { compactEnvironment } from "../../src/games/pact/environment.js";
 
 describe("cognitive decision contracts", () => {
-  it("constrains only the protocol version to the delivered snapshot without mutating shared schemas or requiring an update", () => {
+  it("requires a concise evidence review and pins the delivered version without mutating shared schemas", () => {
     const before = structuredClone(cognitiveDecisionSchema);
     const validator = new Ajv({ strict: false }).compile(cognitiveSchemaForVersion(3));
-    expect(validator({ kind: "wait", summary: "Wait" })).toBe(true);
-    expect(validator({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 3 } })).toBe(true);
-    expect(validator({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 4 } })).toBe(false);
+    expect(validator({ kind: "wait", summary: "Wait" })).toBe(false);
+    const review = {
+      beliefs: "insufficient_evidence",
+      reflection: "unchanged",
+      reason: "No new peer statement or tested expectation",
+    };
+    expect(validator({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 3, review } })).toBe(true);
+    expect(validator({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 4, review } })).toBe(false);
     const next = new Ajv({ strict: false }).compile(cognitiveSchemaForVersion(4));
-    expect(next({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 4 } })).toBe(true);
-    expect(validator({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 4 } })).toBe(false);
+    expect(next({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 4, review } })).toBe(true);
+    expect(validator({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 4, review } })).toBe(false);
     expect(cognitiveDecisionSchema).toEqual(before);
     expect(() => cognitiveSchemaForVersion(undefined)).toThrow("COGNITION_VERSION_REQUIRED");
   });
@@ -110,15 +116,6 @@ describe("cognitive decision contracts", () => {
       decisionSchema: cognitiveDecisionSchema,
     };
     const instructions = `Choose from current facts. ${cognitionInstructions}`;
-    expect(() =>
-      fitMessages(
-        { ...context, actionSchemaCoverage: { paged: true } },
-        instructions,
-        cognitiveDecisionSchema,
-        24000,
-        () => [],
-      ),
-    ).toThrow("CONTEXT_LIMIT");
     const messages = fitMessages(
       { ...context, decisionSchema: cognitiveDecisionGuide },
       instructions,
@@ -202,7 +199,7 @@ describe("cognitive decision contracts", () => {
           { id: "current", detail: "x".repeat(500) },
           { id: "prior", detail: "y".repeat(500) },
         ],
-        recall: { route: "laya-recall-v1" },
+        recall: { route: "relevance-recency-importance" },
       },
       gameActionKinds: ["one", "two", "three"],
       actionPermissions: { forbidden: ["human-only"] },
@@ -240,7 +237,7 @@ describe("cognitive decision contracts", () => {
       Buffer.byteLength(JSON.stringify(fitted)) + Buffer.byteLength(JSON.stringify(cognitiveDecisionSchema)),
     ).toBeLessThanOrEqual(14000);
   });
-  it("keeps the ordered Laya pair when reducing other memories and identifies advice that could not be delivered", () => {
+  it("keeps the ordered Laya pair when reducing other memories and fails closed if it cannot fit", () => {
     const recall = { route: "laya-recall-v1", candidateIds: ["a", "b"], selectedId: "b" };
     const context = {
       environment: { required: true },
@@ -260,9 +257,7 @@ describe("cognitive decision contracts", () => {
     expect(delivered.evidence.map((e: { id: string }) => e.id)).toEqual(["current", "b", "a"]);
     expect(delivered.recall.route).toBe("laya-recall-v1");
     expect(delivered.recall.budgetReduced).toBe(true);
-    const smaller = JSON.parse(fitMessages(context, "Choose", {}, 700, () => [])[1].content).cognition;
-    expect(smaller.recall.route).toBe("budget-limited");
-    expect(smaller.recall.code).toBe("RECALL_CANDIDATES_OMITTED");
+    expect(() => fitMessages(context, "Choose", {}, 700, () => [])).toThrow("CONTEXT_LIMIT");
   });
   it("retains the latest receipt alongside the current observation when optional memories are reduced", () => {
     const context = {
@@ -279,5 +274,105 @@ describe("cognitive decision contracts", () => {
     const kept = JSON.parse(fitMessages(context, "Choose", {}, 1000, () => [])[1].content).cognition;
     expect(kept.evidence.map((e: { id: string }) => e.id)).toEqual(["current", "receipt"]);
     expect(kept.evidence[1]).toEqual(context.cognition.evidence[2]);
+  });
+  it("puts a long peer statement before metadata and preserves typed identity, UTF-8 and outcome cues", () => {
+    const message = compactEpisode({
+      id: "message",
+      at: "now",
+      kind: "message",
+      detail: {
+        peerId: "known-peer",
+        direction: "incoming",
+        body: { metadata: "x".repeat(4000), body: "The shipment is delayed. 🌱".repeat(100) },
+      },
+    });
+    expect(message.peerId).toBe("known-peer");
+    expect(message.excerpt).toMatch(/^The shipment is delayed/);
+    expect(message.excerpt).not.toContain("�");
+    const receipt = compactEpisode({
+      id: "receipt",
+      at: "now",
+      kind: "receipt",
+      detail: {
+        commandId: "original",
+        intent: "Upgrade the farm",
+        action: { kind: "building.queue" },
+        receipt: { code: "COMMITTED", metadata: "x".repeat(3000) },
+        committed: true,
+      },
+    });
+    expect(receipt).toMatchObject({
+      commandId: "original",
+      intent: "Upgrade the farm",
+      actionKind: "building.queue",
+      code: "COMMITTED",
+      committed: true,
+    });
+  });
+  it("reserves the ordered pair, latest receipt, plan, belief and reflection before optional read and action shapes", () => {
+    const cognition = {
+      version: 2,
+      plan: { goal: "Resolve the promised delivery", status: "waiting" },
+      beliefs: [{ peerId: "peer", hypothesis: "May prioritize another buyer", evidenceRefs: ["b"] }],
+      reflections: [{ expected: "Delivery", observed: "Delay", revision: "Check terms", evidenceRefs: ["b"] }],
+      knownPeerIds: ["peer"],
+      recall: { route: "laya-recall-v1", candidateIds: ["a", "b"], selectedId: "b" },
+      evidence: [
+        { id: "current", kind: "observation", detail: { actual: "current" } },
+        { id: "b", kind: "message", detail: { peerId: "peer", body: "Delivery delayed" } },
+        { id: "a", kind: "message", detail: { peerId: "peer", body: "Promised delivery" } },
+        { id: "receipt", kind: "receipt", detail: { code: "COMMITTED", commandId: "original" } },
+      ],
+    };
+    const context = {
+      environment: { profile: { whole: "x".repeat(6000) } },
+      cognition,
+      actionPermissions: { forbidden: ["human-only"] },
+      suppliedActionSchemas: [{ kind: "optional", whole: "x".repeat(5000) }],
+      suppliedReadSchemas: [{ name: "optional", whole: "x".repeat(5000) }],
+      requestedRead: { tool: "fleet_action_schema", result: { exact: "required" } },
+      commandResults: [{ commandId: "original", receipt: { code: "COMMITTED" } }],
+    };
+    const messages = fitMessages(
+      context,
+      "Choose",
+      cognitiveSchemaForVersion(2),
+      12500,
+      boundedReads,
+      narrowRead,
+      compactEnvironment,
+    );
+    const delivered = JSON.parse(messages[1].content);
+    expect(delivered.cognition).toEqual(cognition);
+    expect(delivered.suppliedReadSchemas).toEqual([]);
+    expect(delivered.requestedRead).toEqual(context.requestedRead);
+    expect(delivered.commandResults).toEqual(context.commandResults);
+    expect(delivered.actionPermissions).toEqual(context.actionPermissions);
+    expect(
+      Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(cognitiveSchemaForVersion(2))),
+    ).toBeLessThanOrEqual(12500);
+  });
+  it("protects the newest receipt even when Laya's preferred pair contains an older receipt", () => {
+    const cognition = {
+      version: 1,
+      currentEvidenceId: "current",
+      latestReceiptId: "latest",
+      recall: { route: "laya-recall-v1", candidateIds: ["older", "message"], selectedId: "message" },
+      evidence: [
+        { id: "current", kind: "observation", detail: "observed" },
+        { id: "message", kind: "message", detail: "peer said" },
+        { id: "older", kind: "receipt", detail: "prior commit" },
+        { id: "latest", kind: "receipt", detail: "latest actual commit" },
+        { id: "optional", kind: "observation", detail: "x".repeat(5000) },
+      ],
+    };
+    const delivered = JSON.parse(fitMessages({ cognition }, "Choose", {}, 1300, () => [])[1].content).cognition;
+    expect(delivered.evidence.map((episode: { id: string }) => episode.id)).toEqual([
+      "current",
+      "message",
+      "older",
+      "latest",
+    ]);
+    expect(delivered.latestReceiptId).toBe("latest");
   });
 });
