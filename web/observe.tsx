@@ -117,7 +117,11 @@ export function agentStatus(a: ObservedAgent, state: string) {
   if (!a.account_id) return "Not connected";
   if (state === "stopped" || state === "finished") return state === "stopped" ? "Stopped" : "Finished";
   if (a.state === "needs_owner" || a.credential_state !== "ready") return "Needs attention";
-  if (a.latest_state !== "running" && (a.latest_code === "CONTEXT_LIMIT" || a.game_attention_label))
+  if (
+    a.latest_state !== "running" &&
+    (["CONTEXT_LIMIT", "READ_TOOL_FORBIDDEN", "INVALID_TOOL_ARGUMENTS"].includes(a.latest_code ?? "") ||
+      a.game_attention_label)
+  )
     return "Needs attention";
   if (a.state === "paused") return "Paused";
   if (state !== "running") return state === "draft" ? "Ready to start" : "Fleet paused";

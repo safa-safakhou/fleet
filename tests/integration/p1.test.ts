@@ -254,3 +254,23 @@ it.each(["game.building.cancel", "game.training.cancel", "game.troop.disband", "
     expect((await f.store.publicState()).turns[0].pending_command).toBeNull();
   },
 );
+
+it("refuses invented and write-tool reads but returns exact admitted names for correction within the original budget", async () => {
+  const f = await setup();
+  if (!f.claim.cohort.budget) throw Error("Budget required");
+  f.claim.cohort.budget.maxCallsPerTurn = 2;
+  const model = new FakeModel([
+    { kind: "read", tool: "pact_conversation_read_v2", args: {}, summary: "Guessed version" },
+    { kind: "read", tool: "pact_world_read_v1", args: {}, summary: "Correct admitted read" },
+  ]);
+  await new Engine(f.store, model, async () => f.game, true).run(f.claim);
+  expect(model.inputs).toHaveLength(2);
+  const feedback = JSON.parse(model.inputs[1].messages[1].content).decisionFeedback[0];
+  expect(feedback.code).toBe("READ_TOOL_FORBIDDEN");
+  expect(feedback.availableReads).toContain("pact_world_read_v1");
+  expect(feedback.availableReads).not.toContain("pact_game_action_v2");
+  expect(f.game.reads.some((r) => r.tool === "pact_conversation_read_v2")).toBe(false);
+  expect(f.game.opened).toBe(0);
+  expect((await f.store.publicState()).turns[0].calls).toBe(2);
+  expect((await f.store.publicState()).turns[0].code).toBe("READ");
+});

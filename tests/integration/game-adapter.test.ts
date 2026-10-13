@@ -91,6 +91,9 @@ it("adapter selection cannot turn a write tool into an authorized read", async (
   const f = await setup(),
     model = new FakeModel([{ kind: "read", tool: "board_admin", args: {}, summary: "Invalid read" }]);
   await new Engine(f.store, model, async () => f.game, true, { ...adapter, isRead: () => true }).run(f.claim);
-  expect((await f.store.publicState()).turns[0].code).toBe("READ_TOOL_FORBIDDEN");
+  const refusal = JSON.parse(model.inputs[1].messages[1].content).decisionFeedback[0];
+  expect(refusal.code).toBe("READ_TOOL_FORBIDDEN");
+  expect(refusal.availableReads).not.toContain("board_admin");
+  expect((await f.store.publicState()).turns[0].code).toBe("WAIT");
   expect(f.readNames).not.toContain("board_admin");
 });

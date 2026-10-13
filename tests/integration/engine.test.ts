@@ -433,7 +433,11 @@ describe("observe decide commit", () => {
       model = new FakeModel([{ kind: "read", tool: "shell", args: { command: "anything" }, summary: "injected" }]);
     await new Engine(f.store, model, async () => f.game, true).run(f.claim);
     expect(f.game.submits).toHaveLength(0);
-    expect((await f.store.publicState()).turns[0].code).toBe("READ_TOOL_FORBIDDEN");
+    expect(f.game.reads.some((r) => r.tool === "shell")).toBe(false);
+    const refusal = JSON.parse(model.inputs[1].messages[1].content).decisionFeedback[0];
+    expect(refusal.code).toBe("READ_TOOL_FORBIDDEN");
+    expect(refusal.availableReads).not.toContain("shell");
+    expect((await f.store.publicState()).turns[0].code).toBe("WAIT");
   });
   it("disabled live execution never calls the provider or game adapter", async () => {
     const f = await fixture();

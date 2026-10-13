@@ -295,7 +295,19 @@ export class Engine {
             result = { inputSchema: tool.inputSchema, description: tool.description };
           } else {
             const t = tools.find((t) => t.name === decision.tool && isRead(t));
-            if (!t) throw new FleetError("READ_TOOL_FORBIDDEN");
+            if (!t) {
+              const feedback = {
+                code: "READ_TOOL_FORBIDDEN",
+                tool: decision.tool,
+                availableReads: tools.filter(isRead).map((tool) => tool.name),
+                guidance:
+                  "This read name is not admitted. No read or command was submitted. Choose an exact availableReads name and inspect its input with fleet_read_schema; do not guess tool versions. Correction uses only remaining decisions in this turn.",
+              };
+              decisionFeedback.push(feedback);
+              await observation.record(claim, "result", "Read tool rejected before submission", feedback);
+              lastCode = feedback.code;
+              continue;
+            }
             const attemptedArgs = object(scrub(structuredClone(decision.args)));
             try {
               validateTool(t, decision.args);

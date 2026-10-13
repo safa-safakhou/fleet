@@ -2,7 +2,7 @@
 
 ## Current reliability follow-up — 13 October 2026
 
-Founder assigned fixing the observed context/argument/recovery failures, clear observability and thorough validation of the same fifty agents. Codex owns implementation without delegation; record evidence in `docs/reliability-follow-up-20261013.md`. Preserve accounts, history, allowance, permissions, model and fifteen-minute anchor. Exact owner recovery is separate from granting agents cancellation authority. Agent 36 subsequently timed out at 06:02:57 UTC and paused admission; preserve its new unknown allocation pending a concrete founder review. Investigate Sign in with ChatGPT using official documentation; do not silently migrate the consumed cohort or reuse Codex OAuth credentials as another client.
+Founder assigned fixing the observed context/argument/recovery failures, clear observability and thorough validation of the same fifty agents. Codex owns implementation without delegation; record evidence in `docs/reliability-follow-up-20261013.md`. Preserve accounts, history, allowance, permissions, model and fifteen-minute anchor. Founder explicitly approved the five exact waiting-job cancellations and Agent 36's 06:02:57 UTC timeout review with its full unknown allocation retained; both historical unknown records remain. Exact owner recovery grants no autonomous cancellation authority. The same cohort resumed. New uncertainty still requires its own review. Investigate Sign in with ChatGPT using official documentation; do not silently migrate the consumed cohort or reuse Codex OAuth credentials as another client.
 
 ## Current deployment and same-fleet resumption — 13 October 2026
 
