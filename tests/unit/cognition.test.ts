@@ -34,6 +34,57 @@ describe("cognitive decision contracts", () => {
     expect(cognitiveDecisionSchema).toEqual(before);
     expect(() => cognitiveSchemaForVersion(undefined)).toThrow("COGNITION_VERSION_REQUIRED");
   });
+  it("constrains citation/player identities to delivered facts without authoring a hypothesis or disabling an honest review", () => {
+    const id = "11111111-1111-4111-8111-111111111111",
+      invented = "22222222-2222-4222-8222-222222222222";
+    const review = { beliefs: "insufficient_evidence", reflection: "unchanged", reason: "No tested expectation" };
+    const schema = cognitiveSchemaForVersion(3, {
+      evidence: [
+        { id, kind: "observation" },
+        { id: invented, kind: "interpretation" },
+      ],
+      knownPeerIds: ["observed-peer"],
+    });
+    const validate = new Ajv({ strict: false }).compile(schema);
+    const decision = {
+      kind: "wait",
+      summary: "Wait",
+      cognition: {
+        expectedVersion: 3,
+        review,
+        memories: [{ summary: "Recorded observation", importance: 2, evidenceRefs: [id] }],
+      },
+    };
+    expect(validate(decision)).toBe(true);
+    expect(
+      validate({
+        ...decision,
+        cognition: {
+          ...decision.cognition,
+          memories: [{ ...decision.cognition.memories[0], evidenceRefs: [invented] }],
+        },
+      }),
+    ).toBe(false);
+    const belief = {
+      peerId: "observed-peer",
+      hypothesis: "May be interested",
+      alternative: "Could be busy",
+      confidence: "low",
+      prediction: "May reply",
+      assessment: "untested",
+      evidenceRefs: [id],
+    };
+    expect(validate({ ...decision, cognition: { expectedVersion: 3, review, beliefs: [belief] } })).toBe(true);
+    expect(
+      validate({
+        ...decision,
+        cognition: { expectedVersion: 3, review, beliefs: [{ ...belief, peerId: "foreign-peer" }] },
+      }),
+    ).toBe(false);
+    const none = new Ajv({ strict: false }).compile(cognitiveSchemaForVersion(3, { evidence: [], knownPeerIds: [] }));
+    expect(none({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 3, review } })).toBe(true);
+    expect(none(decision)).toBe(false);
+  });
   it("bounds multibyte observations without cutting a Unicode character", () => {
     const prefix = utf8Prefix("🌱 باغ memories".repeat(1000), 1000);
     expect(Buffer.byteLength(prefix)).toBeLessThanOrEqual(1000);

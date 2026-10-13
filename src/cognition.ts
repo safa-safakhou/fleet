@@ -55,10 +55,28 @@ export const CognitiveDecision = z.discriminatedUnion("kind", [
   Decision.options[2].extend({ cognition: CognitiveUpdate.optional() }),
 ]);
 export const cognitiveDecisionSchema = z.toJSONSchema(CognitiveDecision, { target: "draft-7", reused: "ref" });
-export function cognitiveSchemaForVersion(version: unknown): Data {
+export function cognitiveSchemaForVersion(version: unknown, delivered?: Data): Data {
   if (typeof version !== "number" || !Number.isSafeInteger(version) || version < 0)
     throw new FleetError("COGNITION_VERSION_REQUIRED");
   const schema = structuredClone(cognitiveDecisionSchema);
+  const evidenceIds = delivered
+    ? [
+        ...new Set(
+          (Array.isArray(delivered.evidence) ? delivered.evidence.map(object) : [])
+            .filter((episode) => episode.kind !== "interpretation" && z.uuid().safeParse(episode.id).success)
+            .map((episode) => String(episode.id)),
+        ),
+      ]
+    : [];
+  const peerIds = delivered
+    ? [
+        ...new Set(
+          (Array.isArray(delivered.knownPeerIds) ? delivered.knownPeerIds : []).filter(
+            (id): id is string => typeof id === "string" && id.length > 0 && id.length <= 100,
+          ),
+        ),
+      ]
+    : [];
   const constrain = (value: unknown) => {
     if (!value || typeof value !== "object") return;
     const properties = object(object(value).properties);
@@ -68,6 +86,19 @@ export function cognitiveSchemaForVersion(version: unknown): Data {
     }
     if (properties.cognition)
       object(value).required = [...new Set([...((object(value).required as string[]) ?? []), "cognition"])];
+    if (delivered) {
+      if (object(value).format === "uuid" && evidenceIds.length) {
+        object(value).enum = evidenceIds;
+        delete object(value).pattern;
+      }
+      if (properties.peerId && peerIds.length) object(properties.peerId).enum = peerIds;
+      if (object(properties.beliefs).type === "array" && (!peerIds.length || !evidenceIds.length))
+        object(properties.beliefs).maxItems = 0;
+      if (properties.expectedVersion && !evidenceIds.length) {
+        properties.plan = { type: "null" };
+        for (const key of ["beliefs", "reflections", "memories"]) object(properties[key]).maxItems = 0;
+      }
+    }
     for (const child of Object.values(value)) constrain(child);
   };
   constrain(schema);

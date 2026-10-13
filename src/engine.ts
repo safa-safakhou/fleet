@@ -264,19 +264,36 @@ export class Engine {
               }
             : {}),
         };
-        const outputSchema = cognition ? cognitiveSchemaForVersion(object(context.cognition).version) : decisionSchema;
+        let outputSchema = cognition ? cognitiveSchemaForVersion(object(context.cognition).version) : decisionSchema;
         const instructions = this.adapter.instructions + (cognition ? ` ${cognitionInstructions}` : "");
         let messages: ReturnType<typeof fitMessages>;
         try {
-          messages = fitMessages(
-            context,
-            instructions,
-            outputSchema,
-            b.inputByteLimit,
-            boundedReads,
-            this.adapter.narrowRead,
-            this.adapter.compactEnvironment,
-          );
+          let fittingContext: Data = context;
+          for (let pass = 0; ; pass++) {
+            if (pass >= 16) throw new FleetError("CONTEXT_LIMIT");
+            messages = fitMessages(
+              fittingContext,
+              instructions,
+              outputSchema,
+              b.inputByteLimit,
+              boundedReads,
+              this.adapter.narrowRead,
+              this.adapter.compactEnvironment,
+            );
+            if (!cognition) break;
+            fittingContext = object(JSON.parse(messages[1].content));
+            outputSchema = cognitiveSchemaForVersion(
+              object(context.cognition).version,
+              deliveredCognition(fittingContext),
+            );
+            if (
+              Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(outputSchema)) <=
+              b.inputByteLimit
+            )
+              break;
+            // Refit only the already delivered subset, then constrain IDs again.
+            // No evicted source can become an admissible citation through padding.
+          }
         } catch (error) {
           if (error instanceof FleetError && error.code === "CONTEXT_LIMIT")
             await observation.record(claim, "result", "Context packing could not fit", {

@@ -1,7 +1,12 @@
 import { randomUUID } from "node:crypto";
 import { Ajv } from "ajv";
 import { afterEach, describe, expect, it } from "vitest";
-import { Cognition, cognitiveDecisionGuide, cognitiveSchemaForVersion } from "../../src/cognition.js";
+import {
+  Cognition,
+  cognitiveDecisionGuide,
+  cognitiveSchemaForVersion,
+  deliveredCognition,
+} from "../../src/cognition.js";
 import { type Data, type ModelPort, object } from "../../src/domain.js";
 import { Engine } from "../../src/engine.js";
 import { pactAdapter } from "../../src/games/pact/adapter.js";
@@ -476,8 +481,12 @@ describe("LLM memory, plans and beliefs", () => {
     f.advance(15 * 60000);
     await engine.tick("test");
     expect(inputs).toHaveLength(2);
-    expect(inputs[0].schema).toEqual(cognitiveSchemaForVersion(0));
-    expect(inputs[1].schema).toEqual(cognitiveSchemaForVersion(1));
+    expect(inputs[0].schema).toEqual(
+      cognitiveSchemaForVersion(0, deliveredCognition(JSON.parse(inputs[0].messages[1].content))),
+    );
+    expect(inputs[1].schema).toEqual(
+      cognitiveSchemaForVersion(1, deliveredCognition(JSON.parse(inputs[1].messages[1].content))),
+    );
     expect(JSON.parse(inputs[0].messages[1].content).decisionSchema).toEqual(cognitiveDecisionGuide);
     expect(object(JSON.parse(inputs[1].messages[1].content).cognition.plan).status).toBe("waiting");
     expect(game.submits).toHaveLength(0);
