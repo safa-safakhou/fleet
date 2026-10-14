@@ -19,14 +19,7 @@ const core = [
   "communicationCapacity",
 ];
 const pages = ["openSupplyOffers", "contactRequests", "contacts", "contracts"];
-const rules = [
-  "resourceRules",
-  "developmentRules",
-  "diplomacyRules",
-  "constructionStockChecks",
-  "planningCautions",
-  "publicDiscovery",
-];
+const rules = ["resourceRules", "developmentRules", "diplomacyRules", "constructionStockChecks", "planningCautions"];
 
 export function compactEnvironment(environment: Data, limit: number): Data {
   if (bytes(environment) <= limit) return environment;
@@ -46,9 +39,48 @@ export function compactEnvironment(environment: Data, limit: number): Data {
     } else if (values !== undefined) output[key] = values;
   }
   for (const key of Object.keys(environment)) if (!core.includes(key) && !pages.includes(key)) omitted.push(key);
+  const discovery = object(environment.publicDiscovery);
+  const discovered = Array.isArray(discovery.players)
+    ? discovery.players.map((raw) => {
+        const peer = object(raw),
+          communication = object(peer.communication);
+        return {
+          kingdomId: peer.kingdomId,
+          handle: peer.handle,
+          displayName: peer.displayName ?? peer.name,
+          hallLevel: peer.hallLevel,
+          relationship: peer.relationship,
+          communication: Object.keys(communication).length
+            ? { route: communication.route, agentActivity: communication.agentActivity }
+            : undefined,
+          agentActivity: peer.agentActivity,
+          publicDetailsOmitted: true,
+        };
+      })
+    : [];
+  const pageKinds = [...pages];
+  if (environment.publicDiscovery !== undefined) {
+    output.publicDiscovery = {
+      players: [],
+      selection: discovery.selection,
+      page: discovery.page,
+      hasMore: discovery.hasMore,
+      coverage:
+        "Bounded public sample; notice/Court details omitted. Activity is an observation, not a reply promise. Use scoped discovery for further facts.",
+    };
+    pageCoverage.publicDiscovery = { observed: discovered.length, retained: 0, omitted: discovered.length };
+    pageKinds.push("publicDiscovery");
+    const index = omitted.indexOf("publicDiscovery");
+    if (index >= 0) omitted.splice(index, 1);
+  }
   if (bytes(output) > limit) throw new FleetError("CONTEXT_LIMIT");
-  const candidates = pages.map((key) => {
-    const values = Array.isArray(environment[key]) ? [...(environment[key] as unknown[])] : [];
+  const candidates = pageKinds.map((key) => {
+    const values =
+      key === "publicDiscovery"
+        ? discovered
+        : Array.isArray(environment[key])
+          ? [...(environment[key] as unknown[])]
+          : [];
     // Rotate whole records across scheduled turns instead of permanently hiding
     // later records behind the same unanswered request.
     const turn = Number(environment.observationTurn ?? 0);
@@ -59,7 +91,8 @@ export function compactEnvironment(environment: Data, limit: number): Data {
   for (let n = 0; n < Math.max(0, ...candidates.map((c) => c.values.length)); n++) {
     for (const { key, values } of candidates) {
       if (n >= values.length) continue;
-      const kept = output[key] as unknown[];
+      const kept =
+        key === "publicDiscovery" ? (object(output.publicDiscovery).players as unknown[]) : (output[key] as unknown[]);
       kept.push(values[n]);
       const prior = pageCoverage[key];
       pageCoverage[key] = { observed: values.length, retained: kept.length, omitted: values.length - kept.length };

@@ -134,3 +134,41 @@ it("shows game and input failures as attention even when scheduler rows are read
   expect(agentStatus({ ...a, game_attention_label: "Game needs owner recovery" }, "paused")).toBe("Needs attention");
   expect(agentStatus({ ...a, latest_code: "WAIT" }, "running")).toBe("Scheduled");
 });
+
+it("delivers real global identities and truthful readiness beside a busy inbox without truncating public prose into claims", () => {
+  const peers = Array.from({ length: 8 }, (_, n) => ({
+    kingdomId: `outside-fleet-${n}`,
+    handle: `global-${n}`,
+    displayName: `Global ${n}`,
+    relationship: { contact: false, incomingIntroduction: false, outgoingIntroduction: false },
+    communication: {
+      route: "introduction_required",
+      agentActivity: {
+        signal: "older_observation",
+        lastObservedAt: "2026-10-10T00:00:00Z",
+        boundedRunObservedActive: false,
+      },
+    },
+    publicNotice: { commentary: "untrusted player claim ".repeat(1000) },
+  }));
+  const source = { ...environment, publicDiscovery: { players: peers, selection: "varied_worldwide" } };
+  const original = structuredClone(source);
+  const packed = compactEnvironment(source, 4000);
+  const delivered = (packed.publicDiscovery as { players: typeof peers }).players;
+  expect(delivered.length).toBeGreaterThan(0);
+  expect((packed.contactRequests as unknown[]).length).toBeGreaterThan(0);
+  for (const peer of delivered) {
+    const actual = peers.find((p) => p.kingdomId === peer.kingdomId)!;
+    expect(peer.communication).toEqual(actual.communication);
+    expect(peer.relationship).toEqual(actual.relationship);
+    expect(peer.publicNotice).toBeUndefined();
+  }
+  expect(packed.profile).toEqual(environment.profile);
+  expect(packed.mandate).toEqual(environment.mandate);
+  expect(packed.nextUpgradeChecks).toEqual(environment.nextUpgradeChecks);
+  expect(
+    (packed.coverage as { pages: { publicDiscovery: { observed: number; retained: number } } }).pages.publicDiscovery,
+  ).toMatchObject({ observed: 8, retained: delivered.length });
+  expect(Buffer.byteLength(JSON.stringify(packed))).toBeLessThanOrEqual(4000);
+  expect(source).toEqual(original);
+});
