@@ -1,6 +1,9 @@
 import { randomUUID } from "node:crypto";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
+import { Cognition } from "../../src/cognition.js";
 import { Comparisons } from "../../src/comparisons.js";
+import { Engine as CoreEngine } from "../../src/engine.js";
+import { pactAdapter } from "../../src/games/pact/adapter.js";
 import { budget, FakeGame, FakeModel, fixture, ready } from "../helpers.js";
 import { Engine } from "../pact-engine.js";
 
@@ -41,8 +44,7 @@ it("applies neutral account guidance while preserving consumed identities, setti
   const original = game.read.bind(game);
   game.read = async (tool, args) => {
     const result = await original(tool, args);
-    if (tool === "pact_world_read_v1")
-      result.profile = { ...(result.profile as object), ambition: "Owner's independent objective" };
+    if (tool === "pact_world_read_v1") result.ambition = "Owner's independent objective";
     return result;
   };
   await new Engine(f.store, model, async () => game, true).run(next);
@@ -80,4 +82,35 @@ it("reports changed guidance alongside the original comparison template", async 
   expect(report.matchesTemplate).toBe(false);
   expect(report.arms[0].ownerGuidance).toBe("account_autonomy");
   expect(report.template.strategies).toEqual(["guardian"]);
+});
+
+it.each([false, true])("updates current account intent across actual turns with cognition=%s", async (cognitive) => {
+  const f = await fixture();
+  cleanup = () => f.pool.end();
+  const id = await ready(f.store, 1);
+  await f.pool.query("UPDATE cohorts SET owner_guidance='account_autonomy',observation_consent=true WHERE id=$1", [id]);
+  if (cognitive)
+    await f.pool.query('UPDATE cohorts SET model=model||\'{"cognition":"llm-centered-v1"}\'::jsonb WHERE id=$1', [id]);
+  const model = new FakeModel(),
+    support = new Cognition(f.store),
+    query = vi.spyOn(support, "context");
+  let objective = "First owner priority";
+  for (let n = 0; n < 2; n++) {
+    const claim = await f.store.claim("intent");
+    if (!claim) throw Error("missing claim");
+    const game = new FakeGame(claim),
+      original = game.read.bind(game);
+    game.read = async (tool, args) => {
+      const result = await original(tool, args);
+      if (tool === "pact_world_read_v1") result.ambition = objective;
+      return result;
+    };
+    await new CoreEngine(f.store, model, async () => game, true, pactAdapter, undefined, undefined, support).run(claim);
+    const context = JSON.parse(model.inputs.at(-1)!.messages[1].content);
+    expect(context.ownerValues.accountObjective).toBe(objective);
+    expect(context.environment.ambition).toBe(objective);
+    if (cognitive) expect(query.mock.calls.at(-1)?.[3]).toBe(objective);
+    objective = "Changed owner priority";
+    f.advance(900000);
+  }
 });

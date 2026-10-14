@@ -46,6 +46,8 @@ export function compactFacts(input: Data) {
     profile = object(world.profile);
   return {
     profile,
+    ambition: typeof world.ambition === "string" ? world.ambition : null,
+    ownerIntentStatus: typeof world.ambition === "string" && world.ambition.trim() ? "provided" : "absent",
     observationTurn: input.observationTurn,
     asOfGameTimeMs: world.asOfGameTimeMs,
     balances: Object.fromEntries(
@@ -192,7 +194,7 @@ export const pactAdapter: GameAdapter = {
     return facts.discoveryCursor ? object(facts.discoveryCursor) : undefined;
   },
   accountObjective(facts) {
-    const ambition = object(object(facts.world).profile).ambition;
+    const ambition = object(facts.world).ambition;
     return typeof ambition === "string" && ambition.trim() ? ambition : undefined;
   },
   availableActions(facts, ownerPolicy) {

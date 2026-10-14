@@ -5,6 +5,8 @@ const bytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value));
 // construction checks. Packing must fail closed rather than weaken this evidence.
 const core = [
   "profile",
+  "ambition",
+  "ownerIntentStatus",
   "asOfGameTimeMs",
   "balances",
   "buildings",

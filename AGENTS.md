@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Agent reliability source assignment — 15 October 2026
+
+Founder authorizes the consolidated dependency-ordered source/offline implementation and verified local commits only. Read `docs/agent-reliability-plan-20261015.md` and `docs/agent-reliability-status-20261015.json`; original AR-F IDs retain cross-repository traceability. AR-F01 and PACT AR-P01 are source-verified. Continue authorized dependency-ready source work without delegation. No deployment/push, real model experiments, live fleet/account/mandate/configuration/model/budget/schedule changes, reconnects, cancellation/replay or unknown-usage reviews. Runtime releases and history remain unchanged; the running Windows release is outside these source checkouts. Linear requires reauthentication; local claims/evidence are recorded without invented remote issues or changes to another assignee.
+
 ## Verified failure-cause investigation — 14 October 2026
 
 Read `docs/fleet-failure-investigation-20261014.md` for the founder-requested research: open output-schema commands, repeated packet pressure, invalid outgoing/nonexistent contact answers, and real owner-objective/legacy recall-query wiring defects. All seventeen sampled waiting jobs had normal stock/prerequisite blockers; two active jobs completed. The synthetic closed-schema probe passes, but no repair or generation experiment was deployed in this follow-up. The twenty-account runtime remains `406d64b` with original histories/settings/five-minute timing. PACT-170 acceptance is reopened for the real owner-objective/retrieval gap; world discovery delivery remains verified.

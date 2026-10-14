@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 
 const core = [
   "engine",
+  "owner-guidance",
   "context",
   "decision",
   "cognition",

@@ -4,6 +4,10 @@ Planning date: **15 October 2026, Europe/Berlin**. Status: **proposed and unstar
 
 The [PACT counterpart](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md) owns the shared programme order/boundaries and authoritative game tasks AR-P01–AR-P11. This document owns Fleet task scopes AR-F01–AR-F11. They are local plan IDs, not invented Linear issues, execution claims or a started queue. Each task has one owning document; follow links for counterpart acceptance.
 
+## Source implementation assignment 15 October
+
+The founder subsequently authorized source implementation and necessary synthetic/offline verification in dependency order, with a verified local commit per completed batch. The original planning text below remains the saved proposal; its planning-only restriction is superseded for source/offline work. Deployment, running-fleet changes and new real model experiments remain prohibited. Current claims, actual results and remaining gates are recorded in [the implementation register](agent-reliability-status-20261015.json). PACT-171–181 map to AR-P01–11 locally; no remote Linear IDs/status changes are claimed. Existing PACT-170 ownership and prior evidence remain untouched.
+
 ## Evidence and scope
 
 The [20-account failure investigation](fleet-failure-investigation-20261014.md) concerns local Fleet **406d64b**, Nemotron 4B, ten LLM-only and ten cognition/Laya accounts on their common five-minute anchor. It establishes the real root-ambition/legacy retrieval wiring defects, open executable generation schema, repeated 24,000-byte packet pressure, invalid outgoing/nonexistent contact targets and legitimate stock/prerequisite waiting. All seventeen sampled waiting orders had concrete gates; two sampled active orders completed. Outside identities were delivered, while notice/contact evidence and follow-up remain weak.

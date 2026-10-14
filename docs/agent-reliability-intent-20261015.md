@@ -1,0 +1,7 @@
+# Current owner guidance source acceptance
+
+AR-F01 and PACT AR-P01 / PACT-171 are source-verified on 15 October 2026. Current root `world.ambition` reaches account-autonomy input, protected compact facts and automatic cognition query; absent intent stays absent. The old wrong-profile fixture is corrected and tested as a negative control. Historical strategies/notes/plans, explicit strategy mode and consumed settings remain preserved.
+
+Fleet `npm run check`, 111 unit tests, 166 isolated integration tests, full build, generic game-boundary check and production dependency audit pass (zero vulnerabilities). Existing lint warnings remain. Both memory modes have actual fake-provider turn coverage and a changed-owner-intent/recall-query check. PACT's scoped/versioned contract acceptance and shared verification are recorded in [the counterpart report](../../pact/docs/implementation/reports/agent-reliability-intent-20261015.md). [Owner guidance](owner-guidance.md) documents source behavior.
+
+Only disposable `fleet_test` on 5437 and `pact_test` on 55437 are used; no live provider or running fleet database is tested/migrated. The local running release resolves outside this checkout. Nothing is deployed, pushed, reconnected or reset. Current local register owns AR-F01 status; Linear requires reauthentication and no remote completion is invented. Next source batch: AR-P02/AR-F02 catalog and closed executable generation.

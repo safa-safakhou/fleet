@@ -66,7 +66,7 @@ it("pages the whole world without a cohort search when the server lacks the new 
 it("retains a global page cursor across turns and wraps at the actual directory end", async () => {
   const fake = game(["pact_play_view_v1"], {});
   fake.read = vi.fn(async (tool, args) => {
-    if (tool === "pact_world_read_v1") return { profile: { kingdomId: "self", ambition: "Owner chosen objective" } };
+    if (tool === "pact_world_read_v1") return { ambition: "Owner chosen objective", profile: { kingdomId: "self" } };
     if (tool === "pact_play_view_v1")
       return {
         players: {

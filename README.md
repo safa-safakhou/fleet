@@ -14,6 +14,8 @@ Latest: [the reliability follow-up](docs/reliability-follow-up-20261013.md) reco
 
 The completed five-agent Luna pilot is preserved. A subsequent founder assignment requests 50 fresh account-bound Luna agents on a continuous 15-minute schedule; see [its implementation and launch record](docs/continuous-fleet-20261012.md) for actual status. See also [the migration report](docs/repository-migration-20261012.md), [adapter contract](docs/game-integration.md) and [final pilot results](docs/luna-pilot-final-20261012.md).
 
+[Current owner guidance source acceptance](docs/agent-reliability-intent-20261015.md) verifies AR-F01 / AR-P01 locally; follow the implementation register for the now-authorized source/offline sequence. No running installation is changed.
+
 ## Consolidated reliability proposal 15 October
 
 The [Fleet task plan](docs/agent-reliability-plan-20261015.md) and [PACT counterpart](../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md) define proposed/unstarted owner-intent, contract, context, planning/recovery, social and evaluation work. The [twenty local agents investigation](docs/fleet-failure-investigation-20261014.md) and [fifty server Luna causal report](../pact/docs/implementation/reports/fleet-root-causes-20261014.md) remain separate dated evidence. Saving the plans does not authorize implementation, experiments, deployment or changes to existing accounts/settings.

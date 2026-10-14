@@ -1,0 +1,184 @@
+{
+  "schema_version": 1,
+  "authorization": "founder_20261015_source_offline_only",
+  "remote_tracking": "Linear read UNAUTHORIZED: connector requires reauthentication; no remote issue/status/assignee invented",
+  "tasks": [
+    {
+      "id": "AR-F01",
+      "title": "Faithful owner guidance",
+      "depends_on": [],
+      "status": "done",
+      "assignee": "codex-agent-reliability-20261015",
+      "plan": "docs/agent-reliability-plan-20261015.md",
+      "acceptance": [
+        "Changing the real-layout owner-guidance fixture changes every relevant downstream instruction, compact fact and cognition query. The wrong `world.profile.ambition` fixture fails the intended contract test.",
+        "Empty/absent guidance is explicit and cannot silently become an invented/generated objective. History remains available without masquerading as current intent.",
+        "Both cognition-enabled and LLM-only modes pass; no account objective, profile, mandate or existing runtime setting is changed by acceptance fixtures."
+      ],
+      "evidence": ["docs/agent-reliability-intent-20261015.md"],
+      "gated_acceptance": []
+    },
+    {
+      "id": "AR-F02",
+      "title": "Closed executable decisions",
+      "depends_on": ["AR-F01", "AR-P02"],
+      "status": "todo",
+      "assignee": null,
+      "plan": "docs/agent-reliability-plan-20261015.md",
+      "acceptance": [
+        "All four archived synthetic bad calls fail the generation/local contract and the legitimate building command passes. Include invented conversation names, extra action summary and absent message body.",
+        "Bounded precise errors identify schema/field/version; remaining decisions can correct known noncommits, while exhausted turns hand off through AR-F05. No extra inference or retry allowance is implied.",
+        "Compatible catalog versions, unsupported changes and schema caching/refresh are tested. Server ownership/state/authority checks remain final; a valid generation schema never grants permission.",
+        "Fake second-game ports pass without PACT domain imports. Closed-schema success is not claimed as real-provider generation qualification."
+      ],
+      "evidence": [],
+      "gated_acceptance": []
+    },
+    {
+      "id": "AR-F03",
+      "title": "Grounded typed references",
+      "depends_on": ["AR-F02", "AR-P03"],
+      "status": "todo",
+      "assignee": null,
+      "plan": "docs/agent-reliability-plan-20261015.md",
+      "acceptance": [
+        "Outgoing/nonexistent/expired/wrong-type/stale-version request controls fail with precise noncommit feedback; valid incoming requests and revoked delegation controls are included.",
+        "Home Guard, unavailable troops and stale unit facts cannot certify scout eligibility merely because the action family is advertised. Valid ordinary Spearmen remain usable.",
+        "Nil/placeholder receipt IDs cannot create fictitious uncertainty or activate original-pending-command reconciliation.",
+        "Public/private role controls preserve privacy. Local checks are advisory and PACT atomically rechecks; no client permission system or gameplay arithmetic is introduced."
+      ],
+      "evidence": [],
+      "gated_acceptance": []
+    },
+    {
+      "id": "AR-F04",
+      "title": "Measured observation and memory envelope",
+      "depends_on": ["AR-F03", "AR-P04"],
+      "status": "todo",
+      "assignee": null,
+      "plan": "docs/agent-reliability-plan-20261015.md",
+      "acceptance": [
+        "Agent 08's usable requested forecast reaches the next decision within the existing 24,000-byte full-envelope cap; a marker or omission notice alone is insufficient.",
+        "The local cognition Agent 09 minimum-packet reconstruction at 24,238 bytes receives a deliverable projection at 24,000 or less. At least six deterministic growing-memory rounds cover fitting, explicit deferral and restart, measuring final serialization.",
+        "Choose deliverable recall evidence before accepting/pinning it. Accepted provenance pairs keep IDs, speaker/direction, source and order; no silent drop/relabel. Honest abstention/defer remains available.",
+        "Distinguish packet bytes from the 32,768-token model window, output headroom and RAM. Identical unfit packets cannot retry indefinitely; increasing context or implicit LLM summarization is not an assumed solution.",
+        "Mandatory-schema/state/source pressure is tested with the actual compatible contracts from AR-P02\u201304, not only isolated section helpers."
+      ],
+      "evidence": [],
+      "gated_acceptance": []
+    },
+    {
+      "id": "AR-F05",
+      "title": "Durable decision state and outcomes",
+      "depends_on": ["AR-F04", "AR-P05"],
+      "status": "todo",
+      "assignee": null,
+      "plan": "docs/agent-reliability-plan-20261015.md",
+      "acceptance": [
+        "Agent 50's completed Farm invalidates its stale build wait; legitimate resource, prerequisite or active-job waits remain valid.",
+        "A second-decision failure survives into the next scheduled turn with its exact reference, error details and noncommit/uncertainty classification. Correction stays within remaining allowance or uses a durable handoff.",
+        "Agent 42's discretionary nil-receipt not-found cannot become a generic interrupted-commit reconciliation loop. Only an actual original pending command uses that recovery path.",
+        "WAIT does not erase failure evidence or falsely count as progress. Restart/expiry/history migration preserves prior notes/plans as history and does not queue commands or invent model reasoning."
+      ],
+      "evidence": [],
+      "gated_acceptance": []
+    },
+    {
+      "id": "AR-F06",
+      "title": "Consume authoritative admission quotes",
+      "depends_on": ["AR-F05", "AR-P06"],
+      "status": "todo",
+      "assignee": null,
+      "plan": "docs/agent-reliability-plan-20261015.md",
+      "acceptance": [
+        "All 106 Luna quota cases and seventeen local legitimate waiting orders are correctly classified through the shared fixtures. Zero reserve floors are not blamed; overlapping stock/prerequisite blockers remain visible.",
+        "Waiting reserves authority rather than stock; concurrent spending and paused game-clock release are represented. Completed Mine/Wall and within-limit quotes are positive controls.",
+        "Stale/racing quotes safely hand off the server refusal without duplicate commands, guessed targets or automatic cancellation/authority relaxation.",
+        "An offered action family is never equated with enough stock, ordinary troops or remaining permission. Existing budgets, original pending IDs and human-only routes remain intact."
+      ],
+      "evidence": [],
+      "gated_acceptance": []
+    },
+    {
+      "id": "AR-F07",
+      "title": "Precise command and credential recovery",
+      "depends_on": ["AR-F05", "AR-P07"],
+      "status": "todo",
+      "assignee": null,
+      "plan": "docs/agent-reliability-plan-20261015.md",
+      "acceptance": [
+        "Nil discretionary receipt, local invalid action and explicit denial replan or hand off as known noncommits. Lost acknowledgment retains the original command and exact reconciliation path; no blind replay.",
+        "Connection refused, ambiguous 502, lost refresh acknowledgment, concurrent refresh, revocation and stale fences preserve identities/grants/scopes and reject unsafe retry.",
+        "Agent 17's 14 October gateway/unused-token evidence remains history. Any future actual reconnect/review requires its own covering authorization; tests use fake credentials/providers.",
+        "Unknown usage remains unknown with its allocation; no refund/reset/fabricated usage. Every genuinely blocked state exposes a concrete next step without silently migrating provider or account."
+      ],
+      "evidence": [],
+      "gated_acceptance": []
+    },
+    {
+      "id": "AR-F08",
+      "title": "Neutral actionable social attention",
+      "depends_on": ["AR-F06", "AR-F07", "AR-P08"],
+      "status": "todo",
+      "assignee": null,
+      "plan": "docs/agent-reliability-plan-20261015.md",
+      "acceptance": [
+        "Preserve parties, direction, complete terms, version, expiry and signature status in delivered compact evidence. A short oversized-peer notice is not counted as actionable offer delivery.",
+        "Durable discover/contact/propose/respond/sign/activate/fulfill/end states survive two-decision and next-turn handoffs within the cohort's unchanged schedule. GAME-time TTL/paused-clock and multi-peer urgency are covered.",
+        "Isolated beneficial/bad trades reach authoritative delivery/benefit outcomes; valid decline and solo play pass. Fake IDs and privacy attacks fail.",
+        "No outreach quota, forced partner class, autoaccept, advertising or persona is introduced. The original gift's four turns do not prove full historical terms reached the model; Agent 03's six-hour/zero-notice values are permitted and its precise invalid fields remain unknown."
+      ],
+      "evidence": [],
+      "gated_acceptance": []
+    },
+    {
+      "id": "AR-F09",
+      "title": "Feasible owner goals",
+      "depends_on": ["AR-F08", "AR-P09"],
+      "status": "todo",
+      "assignee": null,
+      "plan": "docs/agent-reliability-plan-20261015.md",
+      "acceptance": [
+        "Hall III 540 Iron versus available headroom is distinct from Hall IV 1,260, V 2,700 and VI 4,500 exceeding the full original 1,000 ceiling. Waiting for quota release cannot solve the latter.",
+        "Unsupported territory-map and autonomous Court-lifecycle goals are explicit, without punishing prohibited objectives or substituting an invented owner goal.",
+        "Declared goals are feasible under actual authority or have a specific unresolved owner decision. No automatic permission expansion, unlimited ceiling, model/budget/schedule change or political rule change occurs.",
+        "Risk preferences and historical notes remain distinguishable from authoritative facts and current intent; communication and promotion are not imposed objectives."
+      ],
+      "evidence": [],
+      "gated_acceptance": []
+    },
+    {
+      "id": "AR-F10",
+      "title": "Controlled provider and behavior evaluation",
+      "depends_on": ["AR-F09", "AR-P10"],
+      "status": "todo",
+      "assignee": null,
+      "plan": "docs/agent-reliability-plan-20261015.md",
+      "acceptance": [
+        "Separate synthetic correctness, provider generation accuracy and game behavior. Keep twenty local Nemotron/Laya and fifty server Luna baselines/settings/accounting distinct.",
+        "One-factor comparisons cover schema, delivery, decision state, owner intent, attention, protocol/sampling/model, decision budget/cadence and economics, followed by specified interactions. Fixed independent world replicas/held-out seeds come from AR-P10.",
+        "Measure legal goal completion, fulfilled obligations/material benefit versus solo, justified waits, latency, stage-specific failure denominators and tokens/calls per useful outcome. No chat target or intrinsic model-failure claim from observational data.",
+        "Privacy-safe future instrumentation records schema IDs/field paths/delivery coverage with minimal retention, not raw prompts/secrets. Exact invalid offer arguments and historical full-term exposure stay unresolved until captured through authorized evidence.",
+        "Optional provider qualification branch AR-F10-P may proceed after AR-F02/03/04/05/07 and their contract gates, without waiting for economic redesign or AR-P10 world variants. It still requires a concrete inference authorization; every task remains unstarted."
+      ],
+      "evidence": [],
+      "gated_acceptance": []
+    },
+    {
+      "id": "AR-F11",
+      "title": "Reviewed controller rollout",
+      "depends_on": ["AR-F10", "AR-P11"],
+      "status": "todo",
+      "assignee": null,
+      "plan": "docs/agent-reliability-plan-20261015.md",
+      "acceptance": [
+        "Rehearsed source/data compatibility and rollback preserve all fifty Luna/twenty local bindings, history, original anchors/schedules/models/permissions/budgets, exact pending receipt IDs and unknown allocations. No terminal population restarts or new identity substitution.",
+        "Multiple rounds with growing memory and authoritative kingdom/obligation readback establish acceptance; first-round packet delivery alone is insufficient.",
+        "Late/stale workers cannot commit or overwrite rotated grants. Rollback cannot replace newer game state with an old backup or fabricate usage.",
+        "Source implementation, experiments, actual reconnects/reviews, deployment and push each require explicit covering assignments. Saving this plan starts none of them."
+      ],
+      "evidence": [],
+      "gated_acceptance": []
+    }
+  ]
+}
