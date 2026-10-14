@@ -177,6 +177,17 @@ export const pactAdapter: GameAdapter = {
     }
     return enriched;
   },
+  deliveredContextSummary(context) {
+    const discovery = object(object(context.environment).publicDiscovery);
+    const players = Array.isArray(discovery.players) ? discovery.players.map(object) : [];
+    return {
+      discoveryCandidateIds: players.map((p) => p.kingdomId).filter((id) => typeof id === "string"),
+      discoverySelection: discovery.selection ?? null,
+      readinessDelivered: players.filter((p) => Object.keys(object(p.communication)).length > 0).length,
+      meaning:
+        "Public candidates actually present in the fitted model input; not a complete directory, chosen partner or promised reply.",
+    };
+  },
   nextDiscoveryCursor(facts) {
     return facts.discoveryCursor ? object(facts.discoveryCursor) : undefined;
   },

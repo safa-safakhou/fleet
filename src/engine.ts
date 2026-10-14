@@ -370,6 +370,13 @@ export class Engine {
             coverage: delivered.coverage,
           });
         }
+        if (this.adapter.deliveredContextSummary)
+          await observation.record(claim, "ready", "Decision context delivered", {
+            ...this.adapter.deliveredContextSummary(object(JSON.parse(messages[1].content))),
+            ownerGuidance: claim.cohort.owner_guidance,
+            inputBytes: bytes,
+            inputByteLimit: b.inputByteLimit,
+          });
         const reservation = await this.store.reserveCall(claim);
         await observation.record(claim, "thinking", "Waiting for the model decision", { execution: n + 1 });
         if (this.stopping) throw new FleetError("CLAIM_FENCED");

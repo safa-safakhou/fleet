@@ -19,6 +19,7 @@ export interface GameAdapter {
   ): Promise<Data>;
   nextDiscoveryCursor?(facts: Data): Data | undefined;
   accountObjective?(facts: Data): string | undefined;
+  deliveredContextSummary?(context: Data): Data;
   availableActions?(
     facts: Data,
     ownerPolicy: Data | null,
