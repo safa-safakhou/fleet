@@ -1630,3 +1630,29 @@ dialog.modal::backdrop {
   font-size: 12px;
   line-height: 1.5;
 }
+
+.comparison-workspace {
+  display: grid;
+  gap: 24px;
+}
+.comparison-scroll {
+  overflow-x: auto;
+}
+.comparison-scroll table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.comparison-scroll th,
+.comparison-scroll td {
+  text-align: left;
+  padding: 12px;
+  border-bottom: 1px solid #303949;
+  overflow-wrap: anywhere;
+}
+.comparison-workspace pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.comparison-workspace textarea {
+  width: 100%;
+}

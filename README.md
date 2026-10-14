@@ -16,6 +16,7 @@ The completed five-agent Luna pilot is preserved. A subsequent founder assignmen
 
 ## Features
 
+- Reusable [LLM versus cognition/Laya comparisons](docs/comparisons.md): matched five-plus-five draft setup, portable templates and evidence-based side-by-side observation. Saving never enrolls accounts or starts inference; this addition is verified source, not a launched comparison.
 - Draft 1–1,000 agents with stable identities and balanced guardian, expansionist, merchant, diplomat and opportunist values. Values influence preferences; they do not prescribe messages or guarantee behavior.
 - Persist staggered 10/15/30/60 minute schedules. Workers claim due agents atomically, skip missed slots, share concurrency limits and retain lifetime usage and exact pending commands across restarts.
 - Observe, request additional reads, decide and commit in bounded turns. The normal PACT rules and authenticated account authority apply. Optional explicit synthetic-owner command policies support reviewed exceptions without exposing owner credentials to models.

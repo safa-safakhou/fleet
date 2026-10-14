@@ -76,3 +76,5 @@ With the temporary helper running, `npx tsx scripts/verify-recall.ts` verifies a
 When a successful command grows the next input, the prompt can project the exact recorded receipt code with explicit omitted-detail coverage; the complete receipt/action remains encrypted in normal recovery/history. Resolved input-shape/version feedback is removed only after the same action kind commits, with its original rejection history retained.
 
 Fresh peer forecasts require evidence captured after that peer's last anchored review; older messages/contact snapshots remain history and cannot rotate to restart a forecast. Reassessing the same saved prediction on a later reply remains supported. Native review horizons are common game-minute values (15/30/60/120/360/1440), avoiding accidental epoch-number deadlines.
+
+The [comparison feature](comparisons.md) prepares paired LLM-only and cognition groups, with optional Laya recall. Templates travel without account data. It separates accepted analysis, Laya selection and actual delivery from claims of quality; drafting never starts accounts or inference.

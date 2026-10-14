@@ -1,6 +1,7 @@
 import { StrictMode, useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
+import { ComparisonWorkspace } from "./comparisons.js";
 import {
   AgentInspector,
   agentStatus,
@@ -289,6 +290,7 @@ function App() {
             ["society", "◎", "Society"],
             ["agents", "◈", "Agents"],
             ["activity", "↗", "Turn history"],
+            ["comparisons", "⇄", "Comparisons"],
             ["settings", "⚙", "Fleet settings"],
           ].map(([key, icon, label]) => (
             <button type="button" key={key} className={tab === key ? "nav active" : "nav"} onClick={() => setTab(key)}>
@@ -325,15 +327,17 @@ function App() {
           <div>
             <p className="eyebrow">YOUR PERSISTENT WORLD</p>
             <h1>
-              {tab === "overview"
-                ? "Fleet overview"
-                : tab === "society"
-                  ? "The society"
-                  : tab === "agents"
-                    ? "Your agents"
-                    : tab === "activity"
-                      ? "Turn history"
-                      : "Fleet settings"}
+              {tab === "comparisons"
+                ? "Comparisons"
+                : tab === "overview"
+                  ? "Fleet overview"
+                  : tab === "society"
+                    ? "The society"
+                    : tab === "agents"
+                      ? "Your agents"
+                      : tab === "activity"
+                        ? "Turn history"
+                        : "Fleet settings"}
             </h1>
           </div>
           <div className="header-actions">
@@ -378,31 +382,33 @@ function App() {
             </button>
           </div>
         )}
-        <section className="stats" aria-label="Fleet summary">
-          <div>
-            <span>AGENTS</span>
-            <strong>{agents.length}</strong>
-            <small>{agents.filter((a) => a.account_id).length} accounts connected</small>
-          </div>
-          <div>
-            <span>CONVERSATIONS</span>
-            <strong>{pairs.length}</strong>
-            <small>Observed participating exchanges</small>
-          </div>
-          <div>
-            <span>COMMITTED ACTIONS</span>
-            <strong>{fmt(cohortStats?.actions ?? 0)}</strong>
-            <small>Across {fmt(cohortStats?.turns ?? 0)} lifetime turns</small>
-          </div>
-          <div>
-            <span>{cohort?.model?.route === "codex-cli" ? "CODEX EXECUTIONS" : "MODEL CALLS"}</span>
-            <strong>{fmt(usage?.calls ?? 0)}</strong>
-            <small>
-              {fmt(usage?.reserved_calls ?? 0)} in flight · {fmt(usage?.unknown_calls ?? 0)} unknown
-            </small>
-          </div>
-        </section>
-        {!cohort ? (
+        {tab !== "comparisons" && (
+          <section className="stats" aria-label="Fleet summary">
+            <div>
+              <span>AGENTS</span>
+              <strong>{agents.length}</strong>
+              <small>{agents.filter((a) => a.account_id).length} accounts connected</small>
+            </div>
+            <div>
+              <span>CONVERSATIONS</span>
+              <strong>{pairs.length}</strong>
+              <small>Observed participating exchanges</small>
+            </div>
+            <div>
+              <span>COMMITTED ACTIONS</span>
+              <strong>{fmt(cohortStats?.actions ?? 0)}</strong>
+              <small>Across {fmt(cohortStats?.turns ?? 0)} lifetime turns</small>
+            </div>
+            <div>
+              <span>{cohort?.model?.route === "codex-cli" ? "CODEX EXECUTIONS" : "MODEL CALLS"}</span>
+              <strong>{fmt(usage?.calls ?? 0)}</strong>
+              <small>
+                {fmt(usage?.reserved_calls ?? 0)} in flight · {fmt(usage?.unknown_calls ?? 0)} unknown
+              </small>
+            </div>
+          </section>
+        )}
+        {tab === "comparisons" ? null : !cohort ? (
           <div className="empty">
             <span>◈</span>
             <h2>Your first society starts here.</h2>
@@ -875,6 +881,19 @@ function App() {
             </article>
           </section>
         )}
+        {tab === "comparisons" && (
+          <ComparisonWorkspace
+            api={api}
+            openFleet={(id) => {
+              setCohortId(id);
+              setTab("agents");
+              void refresh();
+            }}
+            renderConfigure={(save, working) => (
+              <Configure comparison busy={working} save={(data) => save(data as Obj)} />
+            )}
+          />
+        )}
         <footer>
           Independent fleet state · Last refreshed {date(state?.asOf ?? null)} Berlin · Game rules enforced by PACT
         </footer>
@@ -1079,7 +1098,15 @@ function Create({ busy, save }: { busy: boolean; save: (data: unknown) => void }
     </form>
   );
 }
-function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => void }) {
+function Configure({
+  busy,
+  save,
+  comparison = false,
+}: {
+  busy: boolean;
+  save: (data: unknown) => void;
+  comparison?: boolean;
+}) {
   const [route, setRoute] = useState("openai-compatible"),
     [thinking, setThinking] = useState(false),
     [cognition, setCognition] = useState(false),
@@ -1090,11 +1117,18 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
     [calls, setCalls] = useState(240),
     [tokens, setTokens] = useState(3000000),
     [deadline, setDeadline] = useState(""),
-    [executionAccountingAccepted, setExecutionAccountingAccepted] = useState(false);
+    [executionAccountingAccepted, setExecutionAccountingAccepted] = useState(false),
+    [validationError, setValidationError] = useState("");
   return (
     <form
       onSubmit={(e) => {
         e.preventDefault();
+        const chosenDeadline = mode === "continuous" ? null : new Date(deadline);
+        if (chosenDeadline && !Number.isFinite(chosenDeadline.getTime())) {
+          setValidationError("Choose a valid deadline before previewing or saving.");
+          return;
+        }
+        setValidationError("");
         save({
           model: {
             route,
@@ -1109,7 +1143,7 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
             mode,
             callLimit: mode === "continuous" ? null : calls,
             tokenLimit: mode === "continuous" ? null : tokens,
-            deadlineAt: mode === "continuous" ? null : new Date(deadline).toISOString(),
+            deadlineAt: chosenDeadline?.toISOString() ?? null,
             ...(mode === "continuous" ? { continuousExecutionAccepted: true } : {}),
             perCallTokenLimit: 40000,
             maxOutputTokens: 2000,
@@ -1123,7 +1157,12 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
       }}
     >
       <p className="eyebrow">OPERATOR CONSENT</p>
-      <h2>Model & compute allowance</h2>
+      <h2>{comparison ? "Shared LLM & allowance per group" : "Model & compute allowance"}</h2>
+      {validationError && (
+        <p role="alert" className="error">
+          {validationError}
+        </p>
+      )}
       <p className="muted">
         The endpoint and credentials come from private server configuration. Saving does not start the fleet.
       </p>
@@ -1157,13 +1196,18 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
           <span>Enable model thinking · selected model must support this option</span>
         </label>
       )}
-      <label>
-        Decision mode
-        <select value={cognition ? "cognition" : "llm"} onChange={(e) => setCognition(e.target.value === "cognition")}>
-          <option value="llm">LLM only</option>
-          <option value="cognition">LLM with memory, reflection, plans and beliefs</option>
-        </select>
-      </label>
+      {!comparison && (
+        <label>
+          Decision mode
+          <select
+            value={cognition ? "cognition" : "llm"}
+            onChange={(e) => setCognition(e.target.value === "cognition")}
+          >
+            <option value="llm">LLM only</option>
+            <option value="cognition">LLM with memory, reflection, plans and beliefs</option>
+          </select>
+        </label>
+      )}
       {cognition && (
         <p className="muted">
           Keeps account-owned observations and the LLM's interpretations across turns. The LLM revises its own plan and
@@ -1235,7 +1279,7 @@ function Configure({ busy, save }: { busy: boolean; save: (data: unknown) => voi
         separately from reserved allowance.
       </p>
       <button type="submit" className="primary" disabled={busy}>
-        Save selection
+        {comparison ? "Preview comparison" : "Save selection"}
       </button>
     </form>
   );

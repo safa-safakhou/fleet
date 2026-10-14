@@ -38,6 +38,7 @@ The observability update adds **Overview** as the default entry: a live status m
 | **Agents** | Check each agent's strategy, connected account, next turn and last result. Connect an existing account, create a fresh synthetic account, or pause an individual connected agent. |
 | **Fleet settings** | Inspect group state, model, schedule, worker heartbeat and usage. Select model/allowance, configure synthetic-owner exceptions, and start, pause or permanently stop the group. |
 | **Turn history** | Inspect actual turns, outcomes, committed-action counts and errors. Check an uncertain command's receipt, or mark a corrected non-command failure reviewed. |
+| **Comparisons** | Prepare matched LLM-only versus cognition/Laya drafts, export/import portable configuration and inspect actual outcomes side by side. Available after installing the [comparison feature](comparisons.md); no automatic enrollment or start. |
 | **Society** | With separately chosen private observation consent, inspect actual participating conversations and agreement evidence. An agent's plan alone is not a conversation or contract. |
 
 The **Select fleet** menu chooses which group's agents, history and settings you are inspecting. The historical pilot's counters do not belong to the new draft.

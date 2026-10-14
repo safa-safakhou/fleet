@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 import Fastify from "fastify";
 import { z } from "zod";
+import { Comparisons, comparisonPreview } from "./comparisons.js";
 import { transaction } from "./db.js";
 import { DecisionSupport, VwDecision } from "./decision.js";
 import { FleetError, object, profiles, safeCode } from "./domain.js";
@@ -110,6 +111,12 @@ export function buildServer(options: {
     gameKinds: actionKinds,
   }));
   app.post("/api/cohorts", async (r) => store.create(r.body));
+  app.post("/api/comparisons/preview", async (r) => comparisonPreview(r.body));
+  app.post("/api/comparisons", async (r) => new Comparisons(store).create(r.body));
+  app.get("/api/comparisons", async () => ({ comparisons: await new Comparisons(store).list() }));
+  app.get<{ Params: { id: string } }>("/api/comparisons/:id", async (r) =>
+    new Comparisons(store).inspect(z.uuid().parse(r.params.id)),
+  );
   app.post<{ Params: { id: string } }>("/api/cohorts/:id/configure", async (r) => {
     await store.configure(z.uuid().parse(r.params.id), r.body);
     return { ok: true };
