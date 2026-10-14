@@ -2,7 +2,7 @@
 
 ## Windows paired-fleet launch assignment — 14 October 2026
 
-Founder explicitly authorized two fresh local fleets on this Windows machine, ten distinct PACT accounts each, sharing Nemotron 4B: LLM-only versus LLM-centered cognition with Laya recall. Both must start together. Follow-up selects every five minutes until stopped. Codex owns setup, verification and local commits without delegation. Read `docs/paired-launch-20261014.md` and the actual local launch report when available. This covers only the new twenty-account local installation; preserve server/Mac cohorts, historical terminal populations, credentials, allocations and schedules. Laya remains selective recall assistance with honest abstention; the LLM decides. New uncertainty needs its own exact review.
+Founder explicitly authorized two fresh local fleets on this Windows machine, ten distinct PACT accounts each, sharing Nemotron 4B: LLM-only versus LLM-centered cognition with Laya recall. Follow-up selects every five minutes until stopped. Both are running from one exact 14:39:05.532 UTC anchor. Codex owns setup, verification and local commits without delegation. Read `docs/paired-launch-20261014.md` and `docs/windows-nemotron-comparison-20261014.md` for actual acceptance and protected local installation. This covers only the new twenty-account local installation; preserve server/Mac cohorts, historical terminal populations, credentials, allocations and schedules. Laya remains selective recall assistance with honest abstention; the LLM decides. New uncertainty needs its own exact review.
 
 ## Reusable comparison capability — 14 October 2026
 
