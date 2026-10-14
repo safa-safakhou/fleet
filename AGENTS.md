@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Verified failure-cause investigation — 14 October 2026
+
+Read `docs/fleet-failure-investigation-20261014.md` for the founder-requested research: open output-schema commands, repeated packet pressure, invalid outgoing/nonexistent contact answers, and real owner-objective/legacy recall-query wiring defects. All seventeen sampled waiting jobs had normal stock/prerequisite blockers; two active jobs completed. The synthetic closed-schema probe passes, but no repair or generation experiment was deployed in this follow-up. The twenty-account runtime remains `406d64b` with original histories/settings/five-minute timing. PACT-170 acceptance is reopened for the real owner-objective/retrieval gap; world discovery delivery remains verified.
+
 ## Worldwide discovery and neutral account guidance — 14 October 2026
 
 Founder authorized fixing discovery for both existing Windows fleets and neutral account-agent decisions. Fleet `406d64b` is installed; PACT `worldwide-discovery-20261014-1` is deployed. Preserve the same twenty accounts, original histories, Nemotron/Laya configurations, allowances and common five-minute anchor. Read `docs/worldwide-discovery-20261014.md` for actual scope and live acceptance. Controller-generated strategies remain historical data; the selected `account_autonomy` guidance follows authenticated account objectives and owner authority. No forced communication, public advertising, human-only exception, server/Mac migration or additional population is authorized.
