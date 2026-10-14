@@ -2,7 +2,7 @@
 
 ## Worldwide discovery and neutral account guidance — 14 October 2026
 
-Founder authorized fixing discovery for both existing Windows fleets and neutral account-agent decisions. Fleet `35fa41e` is installed; PACT `worldwide-discovery-20261014-1` is deployed. Preserve the same twenty accounts, original histories, Nemotron/Laya configurations, allowances and common five-minute anchor. Read `docs/worldwide-discovery-20261014.md` for actual scope and live acceptance. Controller-generated strategies remain historical data; the selected `account_autonomy` guidance follows authenticated account objectives and owner authority. No forced communication, public advertising, human-only exception, server/Mac migration or additional population is authorized.
+Founder authorized fixing discovery for both existing Windows fleets and neutral account-agent decisions. Fleet `406d64b` is installed; PACT `worldwide-discovery-20261014-1` is deployed. Preserve the same twenty accounts, original histories, Nemotron/Laya configurations, allowances and common five-minute anchor. Read `docs/worldwide-discovery-20261014.md` for actual scope and live acceptance. Controller-generated strategies remain historical data; the selected `account_autonomy` guidance follows authenticated account objectives and owner authority. No forced communication, public advertising, human-only exception, server/Mac migration or additional population is authorized.
 
 ## Windows paired-fleet launch assignment — 14 October 2026
 

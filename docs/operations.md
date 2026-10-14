@@ -1,4 +1,4 @@
-Update, 14 October: the separate Windows twenty-account Nemotron comparison runs Fleet `35fa41e` with worldwide discovery and explicit account-autonomy guidance. Original accounts, history, model budgets and five-minute anchor are preserved. See [worldwide discovery acceptance](worldwide-discovery-20261014.md). This does not update the fifty-agent server runtime described below.
+Update, 14 October: the separate Windows twenty-account Nemotron comparison runs Fleet `406d64b` with worldwide discovery and explicit account-autonomy guidance. Original accounts, history, model budgets and five-minute anchor are preserved. See [worldwide discovery acceptance](worldwide-discovery-20261014.md). This does not update the fifty-agent server runtime described below.
 
 # Current Fleet deployment — 12 October 2026
 
