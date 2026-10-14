@@ -220,7 +220,7 @@ describe("LLM memory, plans and beliefs", () => {
         { expectedVersion: 0, reflections: [{ ...reflection, outcomeRef: f.evidence, evidenceRefs: [f.evidence] }] },
         f.context,
       ),
-    ).rejects.toThrow("COGNITION_RECORDED_OUTCOME_REQUIRED");
+    ).rejects.toThrow("COGNITION_RECORDED_EXPECTATION_REQUIRED");
     await f.support.apply(f.claim, 0, { expectedVersion: 0, reflections: [reflection] }, f.context);
     const saved = (await f.support.inspect(f.claim.agentId)).reflections as Data[];
     expect(saved[0]).toMatchObject({
@@ -228,6 +228,56 @@ describe("LLM memory, plans and beliefs", () => {
       observed: "game.message.send: COMMITTED; command committed; later completion unknown.",
       grounding: "recorded_outcome",
     });
+  });
+  it("reflects on a later peer reply against a previously saved prediction without treating its claims as delivered goods", async () => {
+    const f = await setup();
+    await f.support.apply(f.claim, 0, { expectedVersion: 0, beliefs: update(f).beliefs }, f.context);
+    f.advance(1000);
+    const id = await f.support.capture(f.claim, "message", "peer-reply", {
+      peerId: f.peer,
+      direction: "incoming",
+      gameTime: String(f.now().getTime()),
+      body: "I can discuss a small grain trial",
+    });
+    const context = await f.support.context(f.claim, [f.peer], id, "review reply");
+    const reflection = {
+      outcomeRef: id,
+      evidenceRefs: [id],
+      revision: "Ask for exact terms before considering the shipment agreed",
+    };
+    const decision = {
+      kind: "wait",
+      summary: "Review the reply",
+      cognition: {
+        expectedVersion: 1,
+        review: { beliefs: "unchanged", reflection: "updated", reason: "The peer replied inside the recorded window" },
+        reflections: [reflection],
+      },
+    };
+    expect(new Ajv({ strict: false }).compile(cognitiveSchemaForVersion(1, context))(decision)).toBe(true);
+    await f.support.apply(f.claim, 1, decision.cognition, context);
+    const saved = (await f.support.inspect(f.claim.agentId)).reflections as Data[];
+    expect(saved[0].expected).toBe(update(f).beliefs[0].prediction);
+    expect(saved[0].observed).toContain("I can discuss a small grain trial");
+    expect(saved[0].observed).toContain("agreement/delivery unverified");
+    await f.support.apply(f.claim, 2, { expectedVersion: 2, reflections: [reflection] }, { ...context, version: 2 });
+    expect((await f.support.inspect(f.claim.agentId)).reflections).toHaveLength(1);
+  });
+  it("refuses retrospective social reflections when no prior prediction existed or the reply predates it", async () => {
+    const f = await setup();
+    const r = {
+      outcomeRef: f.evidence,
+      evidenceRefs: [f.evidence],
+      revision: "Ask for exact terms before considering the shipment agreed",
+    };
+    await expect(f.support.apply(f.claim, 0, { expectedVersion: 0, reflections: [r] }, f.context)).rejects.toThrow(
+      "COGNITION_RECORDED_EXPECTATION_REQUIRED",
+    );
+    await f.support.apply(f.claim, 0, { expectedVersion: 0, beliefs: update(f).beliefs }, f.context);
+    const context = await f.support.context(f.claim, [f.peer], f.evidence, "review old statement");
+    await expect(f.support.apply(f.claim, 1, { expectedVersion: 1, reflections: [r] }, context)).rejects.toThrow(
+      "COGNITION_RECORDED_EXPECTATION_REQUIRED",
+    );
   });
   it("does not append paraphrases of the same outcome, including after visible reflection eviction", async () => {
     const f = await setup();
@@ -269,6 +319,7 @@ describe("LLM memory, plans and beliefs", () => {
     expect((await f.pool.query("SELECT * FROM cognitive_reflection_keys")).rowCount).toBe(9);
     const events = (await new Observability(f.store).history(f.id)).turns[0].events;
     expect(events.some((e) => e.detail?.duplicateReflectionsSkipped === 1)).toBe(true);
+    expect(object((await f.support.inspect(f.claim.agentId)).latestReviewResult).reflectionsAdded).toBe(0);
   });
   it("quarantines old unverified prose from prompts without rewriting history or inspection", async () => {
     const f = await setup();
@@ -402,6 +453,11 @@ describe("LLM memory, plans and beliefs", () => {
     const inspected = await f.support.inspect(f.claim.agentId);
     expect(inspected.version).toBe(0);
     expect(inspected.latestReview).toEqual(review);
+    expect(inspected.latestReviewResult).toEqual({
+      beliefsRevised: 0,
+      reflectionsAdded: 0,
+      duplicateReflectionsSkipped: 0,
+    });
     const events = (await new Observability(f.store).history(f.id)).turns[0].events;
     expect(events.some((event) => event.label === "LLM reviewed continuity without a revision")).toBe(true);
   });

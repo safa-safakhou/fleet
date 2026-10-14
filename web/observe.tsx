@@ -865,7 +865,8 @@ function CognitiveInspector({ value }: { value: Record<string, unknown> }) {
   const plan = obj(value.plan),
     beliefs = list(value.beliefs),
     reflections = list(value.reflections),
-    review = obj(value.latestReview);
+    review = obj(value.latestReview),
+    reviewResult = obj(value.latestReviewResult);
   return (
     <div>
       {review.reason ? (
@@ -876,6 +877,12 @@ function CognitiveInspector({ value }: { value: Record<string, unknown> }) {
             {String(review.reflection).replaceAll("_", " ")}
           </p>
           <p>{String(review.reason)}</p>
+          {value.latestReviewResult ? (
+            <p className="muted">
+              Saved changes: {String(reviewResult.beliefsRevised)} beliefs, {String(reviewResult.reflectionsAdded)}{" "}
+              reflections; {String(reviewResult.duplicateReflectionsSkipped)} repeated reflections skipped.
+            </p>
+          ) : null}
         </>
       ) : null}
       <h4>Persistent plan</h4>
