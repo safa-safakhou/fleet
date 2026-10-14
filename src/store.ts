@@ -38,6 +38,7 @@ export interface AgentRow {
   read_memory_updated_at: Date | null;
   decision_feedback_cipher: string | null;
   decision_feedback_at: Date | null;
+  discovery_cursor: Data | null;
 }
 export interface CohortRow {
   id: string;
@@ -53,6 +54,7 @@ export interface CohortRow {
   created_at: Date;
   observation_consent: boolean;
   synthetic_owner_policy: Data | null;
+  owner_guidance: "strategy" | "account_autonomy";
 }
 export interface Claim {
   id: string;
@@ -134,6 +136,31 @@ export class Store {
         await c.query("UPDATE turn_events SET detail_cipher=NULL WHERE cohort_id=$1", [id]);
       }
       await this.audit(c, id, "observation.consent", { enabled });
+    });
+  }
+  async guidance(id: string, mode: "strategy" | "account_autonomy", note: string) {
+    if (!["strategy", "account_autonomy"].includes(mode) || note.trim().length < 20 || note.length > 1000)
+      throw new FleetError("INVALID_GUIDANCE");
+    await transaction(this.pool, async (c) => {
+      const cohort = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];
+      if (!cohort) throw new FleetError("NOT_FOUND");
+      if (!["draft", "paused"].includes(cohort.state)) throw new FleetError("COHORT_NOT_EDITABLE");
+      if ((await c.query("SELECT 1 FROM turns WHERE cohort_id=$1 AND state='running' LIMIT 1", [id])).rowCount)
+        throw new FleetError("QUIESCENT_BOUNDARY_REQUIRED");
+      await c.query("UPDATE cohorts SET owner_guidance=$2,generation=generation+1 WHERE id=$1", [id, mode]);
+      await this.audit(c, id, "owner.guidance.changed", {
+        previous: cohort.owner_guidance,
+        mode,
+        note,
+        historicalStrategiesRetained: true,
+      });
+    });
+  }
+  async discoveryCursor(claim: Claim, cursor: Data) {
+    if (Buffer.byteLength(JSON.stringify(cursor)) > 1024) throw new FleetError("DISCOVERY_CURSOR_LIMIT");
+    await transaction(this.pool, async (c) => {
+      await this.check(c, claim);
+      await c.query("UPDATE agents SET discovery_cursor=$2 WHERE id=$1", [claim.agentId, cursor]);
     });
   }
   async setState(id: string, state: "running" | "paused" | "stopped", liveAllowed: boolean) {

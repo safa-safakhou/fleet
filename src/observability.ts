@@ -178,6 +178,7 @@ export class Observability {
         name: cohort.name,
         state: cohort.state,
         model: cohort.model,
+        ownerGuidance: cohort.owner_guidance,
         observation: cohort.observation_consent,
       },
       recovery: recoveryPlan(cohort.state, a.credential_state, a.state, blockers),

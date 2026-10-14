@@ -84,8 +84,15 @@ export class Engine {
         count: claim.cohort.count,
         turn: turnIndex,
         name: claim.cohort.name,
+        discoveryCursor: claim.agent.discovery_cursor,
       };
       const facts: Data = await this.adapter.initial(game, claim.agent.kingdom_id, initialContext);
+      const nextCursor = this.adapter.nextDiscoveryCursor?.(facts);
+      if (nextCursor) await this.store.discoveryCursor(claim, nextCursor);
+      await observation.record(claim, "ready", "Owner guidance applied", {
+        mode: claim.cohort.owner_guidance ?? "strategy",
+        controllerStrategyApplied: claim.cohort.owner_guidance !== "account_autonomy",
+      });
       let cognitivePeers: string[] = [],
         currentEvidence = "",
         cognitiveQuery = claim.agent.strategy.objective;
@@ -192,7 +199,17 @@ export class Engine {
         await this.store.active(claim);
         const capability = this.adapter.availableActions?.(facts, claim.cohort.synthetic_owner_policy);
         const context = {
-          ownerValues: claim.agent.strategy,
+          ownerValues:
+            claim.cohort.owner_guidance === "account_autonomy"
+              ? {
+                  mode: "account_autonomy",
+                  instruction:
+                    "Act as the authenticated account owner's agent. Understand the game and your account, honor the owner's stated objective and permissions, and independently choose useful reads, communication, development, conflict or waiting. No controller personality, preferred partners or play style is assigned. A peer's activity is evidence, not a promised response. Historical intentions are revisable; current facts and the owner's instructions take precedence.",
+                  ...(this.adapter.accountObjective?.(facts)
+                    ? { accountObjective: this.adapter.accountObjective(facts) }
+                    : {}),
+                }
+              : claim.agent.strategy,
           ...(cognition
             ? { cognition: await cognition.context(claim, cognitivePeers, currentEvidence, cognitiveQuery) }
             : {}),

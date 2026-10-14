@@ -55,11 +55,50 @@ it("keeps a genuine empty shortlist empty without falling back to an unrestricte
   expect(object((await pactAdapter.initial(fake, "self")).discovery).players).toEqual([]);
   expect(fake.read.mock.calls.some(([tool]) => tool === "pact_play_view_v1")).toBe(false);
 });
-it("retains existing paginated discovery only when the server does not advertise the new read", async () => {
+it("pages the whole world without a cohort search when the server lacks the new read", async () => {
   const fake = game(["pact_play_view_v1"], {});
   const facts = await pactAdapter.initial(fake, "self", { ordinal: 1, turn: 2, count: 50, name: "old cohort" });
-  expect(fake.read).toHaveBeenCalledWith("pact_play_view_v1", { search: "old cohort", offset: 16 });
-  expect(object(facts.discovery).players).toEqual([{ kingdomId: "legacy", handle: "old" }]);
+  expect(fake.read).toHaveBeenCalledWith("pact_play_view_v1", { offset: 8 });
+  expect(fake.read.mock.calls.some(([, args]) => "search" in args)).toBe(false);
+  expect(object(facts.discovery).players).toEqual([{ kingdomId: "legacy", handle: "old", agentActivity: undefined }]);
+  expect(pactAdapter.nextDiscoveryCursor?.(facts)).toEqual({ offset: 0 });
+});
+it("retains a global page cursor across turns and wraps at the actual directory end", async () => {
+  const fake = game(["pact_play_view_v1"], {});
+  fake.read = vi.fn(async (tool, args) => {
+    if (tool === "pact_world_read_v1") return { profile: { kingdomId: "self", ambition: "Owner chosen objective" } };
+    if (tool === "pact_play_view_v1")
+      return {
+        players: {
+          players: [{ kingdomId: "outside", displayName: "Different kingdom" }],
+          offset: args.offset,
+          hasMore: args.offset === 80,
+        },
+        parties: { outside: { agent: { lastObservedAt: null, runActive: false } } },
+      };
+    return {};
+  });
+  const first = await pactAdapter.initial(fake, "self", {
+    ordinal: 1,
+    turn: 12,
+    count: 10,
+    name: "group",
+    discoveryCursor: { offset: 80 },
+  });
+  expect(pactAdapter.nextDiscoveryCursor?.(first)).toEqual({ offset: 88 });
+  const last = await pactAdapter.initial(fake, "self", {
+    ordinal: 1,
+    turn: 13,
+    count: 10,
+    name: "group",
+    discoveryCursor: { offset: 88 },
+  });
+  expect(pactAdapter.nextDiscoveryCursor?.(last)).toEqual({ offset: 0 });
+  expect(pactAdapter.accountObjective?.(last)).toBe("Owner chosen objective");
+  expect(object((object(first.discovery).players as Data[])[0]).agentActivity).toEqual({
+    lastObservedAt: null,
+    runActive: false,
+  });
 });
 it("does not bypass an advertised shortlist failure or accept a mismatched own identity", async () => {
   const fake = game(["pact_kingdom_discover_v2", "pact_play_view_v1"], {}),

@@ -148,6 +148,7 @@ export class Comparisons {
             )
           ).rows;
         const matchesTemplate =
+          cohort.owner_guidance === "strategy" &&
           canonical(cohort.model) === canonical(preview.arms[index].model) &&
           canonical(cohort.budget) === canonical(preview.template.budget) &&
           cohort.interval_minutes === preview.template.intervalMinutes &&
@@ -229,6 +230,7 @@ export class Comparisons {
           name: cohort.name,
           state: cohort.state,
           model: cohort.model,
+          ownerGuidance: cohort.owner_guidance,
           anchorAt: cohort.anchor_at,
           observationConsent: cohort.observation_consent,
           matchesTemplate,

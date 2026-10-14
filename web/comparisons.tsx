@@ -328,7 +328,7 @@ export function ComparisonWorkspace({
             <p>
               {report.matchesTemplate
                 ? "Model, allowance, interval and strategy pairs match the saved template."
-                : "Configuration changed; groups no longer match the saved template. Review before interpreting results."}
+                : "Configuration or active owner guidance changed; the original template and history are retained. Review the change before interpreting results."}
             </p>
             <div className="comparison-scroll">
               <table>

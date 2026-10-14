@@ -29,6 +29,7 @@ type Agent = {
   strategy: { profile: string; objective: string; riskTolerance: number; patience: number; horizon: string };
 } & ObservedAgent;
 type Cohort = {
+  owner_guidance?: "strategy" | "account_autonomy";
   id: string;
   name: string;
   count: number;
@@ -641,7 +642,9 @@ function App() {
                     <Status agent={a} state={cohort.state} />
                   </div>
                   <h3>{a.name}</h3>
-                  <p className="profile">{a.strategy.profile}</p>
+                  <p className="profile">
+                    {cohort.owner_guidance === "account_autonomy" ? "Account agent" : a.strategy.profile}
+                  </p>
                   <p className="objective">{a.strategy.objective}</p>
                   <dl>
                     <div>
@@ -740,6 +743,14 @@ function App() {
                 <div>
                   <dt>Schedule</dt>
                   <dd>Every {cohort.interval_minutes} minutes, staggered</dd>
+                </div>
+                <div>
+                  <dt>Owner guidance</dt>
+                  <dd>
+                    {cohort.owner_guidance === "account_autonomy"
+                      ? "Account autonomy · no controller strategy assigned"
+                      : "Configured strategy preferences"}
+                  </dd>
                 </div>
                 <div>
                   <dt>Model</dt>

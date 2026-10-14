@@ -15,8 +15,10 @@ export interface GameAdapter {
   initial(
     game: GamePort,
     expectedEntityId: string | null,
-    context?: { ordinal: number; count: number; turn: number; name: string },
+    context?: { ordinal: number; count: number; turn: number; name: string; discoveryCursor?: Data | null },
   ): Promise<Data>;
+  nextDiscoveryCursor?(facts: Data): Data | undefined;
+  accountObjective?(facts: Data): string | undefined;
   availableActions?(
     facts: Data,
     ownerPolicy: Data | null,

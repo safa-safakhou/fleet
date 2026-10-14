@@ -23,6 +23,8 @@ export type ObservedAgent = {
   game_attention_label?: string | null;
 };
 type CohortView = {
+  owner_guidance?: "strategy" | "account_autonomy";
+  ownerGuidance?: "strategy" | "account_autonomy";
   id: string;
   name: string;
   state: string;
@@ -85,7 +87,12 @@ type Inspection = Page & {
   cognition?: Record<string, unknown>;
   recovery?: { resumable: boolean; status: string; steps: { kind: string; instruction: string; turnId?: string }[] };
   agent: ObservedAgent;
-  cohort: { state: string; model: CohortView["model"]; observation: boolean };
+  cohort: {
+    state: string;
+    model: CohortView["model"];
+    observation: boolean;
+    ownerGuidance?: "strategy" | "account_autonomy";
+  };
   usage: Usage;
   notes: string | null;
   memory: {
@@ -621,7 +628,9 @@ export function AgentInspector({
         <div className="inspector-content">
           <div className="inspector-identity">
             <Status agent={data.agent} state={data.cohort.state} />
-            <span className="profile">{data.agent.strategy.profile}</span>
+            <span className="profile">
+              {data.cohort.ownerGuidance === "account_autonomy" ? "Account agent" : data.agent.strategy.profile}
+            </span>
             <span>{data.cohort.model?.model ?? "No model selected"}</span>
             <button
               type="button"
@@ -678,6 +687,12 @@ export function AgentInspector({
             )}
             <section className="inspector-panel">
               <h3>Strategy & continuity</h3>
+              {data.cohort.ownerGuidance === "account_autonomy" && (
+                <p>
+                  Active guidance follows this account's owner and current game facts. The historical controller
+                  preferences below are retained for audit and are not supplied as active strategy.
+                </p>
+              )}
               <p>{data.agent.strategy.objective}</p>
               <div className="strategy-values">
                 <span>Risk {Math.round(data.agent.strategy.riskTolerance * 100)}%</span>

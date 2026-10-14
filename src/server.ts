@@ -124,6 +124,14 @@ export function buildServer(options: {
     await store.configure(z.uuid().parse(r.params.id), r.body);
     return { ok: true };
   });
+  app.post<{ Params: { id: string } }>("/api/cohorts/:id/guidance", async (r) => {
+    const body = z
+      .object({ mode: z.enum(["strategy", "account_autonomy"]), note: z.string().min(20).max(1000) })
+      .strict()
+      .parse(r.body);
+    await store.guidance(z.uuid().parse(r.params.id), body.mode, body.note);
+    return { ok: true };
+  });
   app.post<{ Params: { id: string } }>("/api/cohorts/:id/state", async (r) => {
     const b = z
       .object({ state: z.enum(["running", "paused", "stopped"]) })
