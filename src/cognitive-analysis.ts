@@ -6,6 +6,7 @@ import {
   type Episode,
   gameTime,
   groundReflection,
+  isNewPeerEvidence,
   isWorldResult,
   testedReply,
   type Update,
@@ -36,14 +37,21 @@ export function analysisOpportunities(delivered: Data): Opportunity[] {
   };
   const result: Opportunity[] = [];
   const incoming = evidence.find(
-    (e) => e.kind === "message" && object(e.detail).direction === "incoming" && peers.has(object(e.detail).peerId),
+    (e) =>
+      e.kind === "message" &&
+      object(e.detail).direction === "incoming" &&
+      peers.has(object(e.detail).peerId) &&
+      isNewPeerEvidence(e, state.beliefs, String(object(e.detail).peerId)),
   );
   const observation = evidence.find(
     (e) =>
       e.kind === "observation" &&
       Array.isArray(object(e.detail).peerFacts) &&
       (object(e.detail).peerFacts as unknown[]).some(
-        (f) => peers.has(object(f).peerId) && ["contact", "agreement"].includes(String(object(f).kind)),
+        (f) =>
+          peers.has(object(f).peerId) &&
+          ["contact", "agreement"].includes(String(object(f).kind)) &&
+          isNewPeerEvidence(e, state.beliefs, String(object(f).peerId)),
       ),
   );
   const basis = incoming ?? observation;
@@ -59,7 +67,12 @@ export function analysisOpportunities(delivered: Data): Opportunity[] {
       ? object(incoming.detail)
       : (object(observation?.detail).peerFacts as unknown[])
           .map(object)
-          .find((f) => peers.has(f.peerId) && ["contact", "agreement"].includes(String(f.kind)));
+          .find(
+            (f) =>
+              peers.has(f.peerId) &&
+              ["contact", "agreement"].includes(String(f.kind)) &&
+              isNewPeerEvidence(basis, state.beliefs, String(f.peerId)),
+          );
     if (!fact) throw new FleetError("COGNITION_ANALYSIS_NOT_OFFERED");
     result.push({
       key: "peer_evidence",
@@ -125,7 +138,14 @@ const Belief = z
     expectedPeerResponse: z.string().trim().min(15).max(120),
     confidence: z.enum(["low", "medium"]),
     predictedEvent: z.enum(["reply", "agreement"]),
-    reviewAfterMinutes: z.number().int().min(15).max(1440),
+    reviewAfterMinutes: z.union([
+      z.literal(15),
+      z.literal(30),
+      z.literal(60),
+      z.literal(120),
+      z.literal(360),
+      z.literal(1440),
+    ]),
   })
   .strict();
 const Reflection = z
@@ -157,7 +177,7 @@ export const analysisDecisionGuide = {
   decision:
     "Return {cognition,decision} in that order. decision is one wait/read/action with summary; action arguments directly in decision.action.",
   cognition:
-    "expectedVersion=cognition.version; analysis required. Use one offered key: belief {type,opportunity,evidenceQuote,inferredMotive,alternativeMotive,expectedPeerResponse,confidence:low|medium,predictedEvent:reply|agreement,reviewAfterMinutes:15..1440}; reflection {type,opportunity,observedFact,difference,lesson,nextStep}; reassessment {type,opportunity,evidenceQuote,inferredMotive,alternativeMotive,confidence:low|medium,assessment:supported|unresolved}; or none {type,reason}. Fleet supplies IDs/time/verified result. Optional plan {goal,steps,status,reconsiderWhen,evidenceRefs}, memories [{summary,importance,evidenceRefs}]; omit unchanged fields.",
+    "expectedVersion=cognition.version; analysis required. Use one offered key: belief {type,opportunity,evidenceQuote,inferredMotive,alternativeMotive,expectedPeerResponse,confidence:low|medium,predictedEvent:reply|agreement,reviewAfterMinutes:15|30|60|120|360|1440}; reflection {type,opportunity,observedFact,difference,lesson,nextStep}; reassessment {type,opportunity,evidenceQuote,inferredMotive,alternativeMotive,confidence:low|medium,assessment:supported|unresolved}; or none {type,reason}. Fleet supplies IDs/time/verified result. Optional plan {goal,steps,status,reconsiderWhen,evidenceRefs}, memories [{summary,importance,evidenceRefs}]; omit unchanged fields.",
 };
 export const analysisInstructions =
   "Return cognition before decision: inspect prior evidence before selecting a new move. Reflection observedFact must copy the offered observed result exactly. Use offered analysisOpportunities only. Peer: copy exact evidenceQuote from statement. Give a cautious motive hypothesis and competing explanation. inferredMotive and alternativeMotive describe this peer's possible aims, not benefits to your builders. expectedPeerResponse predicts what they will say/agree, not your upgrade or confidence. A greeting does not establish an ally or building commitment. Result: difference compares recorded intention and observed result; not submitted means no action occurred, a commit does not prove later completion; lesson explains its consequence; nextStep follows. Example: 'already linked' confirms a link, not cooperation; another request won't test interest; read the exchange and ask a concrete question. Explain this result, not an unrelated recalled action. Prior hypotheses may be wrong. For tested_prediction, a reply tests responsiveness, not reliability. Choose none when no new insight: repeating an intention is not reflection. Keep useful plans. No hidden reasoning.";

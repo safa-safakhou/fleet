@@ -249,6 +249,11 @@ export function isWorldResult(episode: Episode) {
     (episode.kind === "receipt" && ["receipt", "explicit_rejection"].includes(String(episode.detail.source)))
   );
 }
+export function isNewPeerEvidence(source: Episode, beliefs: CognitiveState["beliefs"], peerId: string) {
+  const prior = beliefs.find((b) => b.peerId === peerId && b.evidenceQuote);
+  if (!prior) return true;
+  return source.kind === "message" && Date.parse(source.at) > Date.parse(prior.updatedAt);
+}
 // Put the actual statement/outcome before incidental serialized metadata. Keep
 // source identity and uncertainty when a large historical record is excerpted.
 export function compactEpisode(episode: Episode, limit = 600): Data {
@@ -409,6 +414,13 @@ function validateBeliefs(
     const prior = state.beliefs.find((b) => b.peerId === belief.peerId && b.basis && b.test);
     const sameTest =
       prior && prior.prediction === belief.prediction && JSON.stringify(prior.test) === JSON.stringify(test);
+    if (
+      !sameTest &&
+      prior?.evidenceQuote &&
+      belief.evidenceQuote &&
+      !isNewPeerEvidence(source, state.beliefs, belief.peerId)
+    )
+      throw new FleetError("COGNITION_PEER_EVIDENCE_ALREADY_REVIEWED");
     if (!sameTest && currentTime !== undefined && test.afterGameTimeMs < currentTime)
       throw new FleetError("COGNITION_RETROACTIVE_PREDICTION");
     if (["supported", "contradicted"].includes(belief.assessment)) {
@@ -532,6 +544,7 @@ export function selectCognitiveEvidence(
       (e) =>
         e.kind === "message" &&
         e.detail.direction === "incoming" &&
+        isNewPeerEvidence(e, state.beliefs, String(e.detail.peerId)) &&
         !state.beliefs.some((b) => b.basis?.sourceId === e.id && b.evidenceQuote),
     ) ?? ranked.find((e) => e.kind === "message" && e.detail.direction === "incoming");
   const recentReceipt = episodes.find((e) => {

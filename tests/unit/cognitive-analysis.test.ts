@@ -223,6 +223,32 @@ describe("native analysis grounded in final delivery", () => {
     const saved = object(normalizeAnalysis(belief, context)).beliefs;
     expect(analysisOpportunities({ ...context, beliefs: saved }).some((o) => o.type === "belief")).toBe(false);
   });
+  it("does not rotate through older messages or repeated contact snapshots to refresh a peer forecast", () => {
+    const saved = (object(normalizeAnalysis(belief, context)).beliefs as object[]).map((b) => ({
+      ...b,
+      updatedAt: "2026-10-14T00:01:00Z",
+    }));
+    const old = { ...incoming, id: randomUUID() };
+    const contacts = {
+      ...current,
+      id: randomUUID(),
+      detail: { ...current.detail, peerFacts: [{ peerId: "peer", kind: "contact" }] },
+    };
+    expect(
+      analysisOpportunities({ ...context, beliefs: saved, evidence: [current, old, contacts] }).some(
+        (o) => o.type === "belief",
+      ),
+    ).toBe(false);
+    const fresh = { ...old, at: "2026-10-14T00:02:00Z" };
+    expect(
+      analysisOpportunities({ ...context, beliefs: saved, evidence: [current, fresh] }).some(
+        (o) => o.type === "belief",
+      ),
+    ).toBe(true);
+    expect(() =>
+      normalizeAnalysis({ ...belief, analysis: { ...belief.analysis, reviewAfterMinutes: 179 } }, context),
+    ).toThrow("COGNITION_INVALID_ANALYSIS");
+  });
   it("reassesses a saved prediction only after a later incoming reply within its original window", () => {
     const saved = (object(normalizeAnalysis(belief, context)).beliefs as object[]).map((b) => ({
       ...b,

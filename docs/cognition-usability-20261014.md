@@ -57,6 +57,12 @@ The final schema supplies the exact visible cue as a literal, as it already does
 
 Final verification: **100 unit + 152 integration = 252 passing Linux tests**; checks/build/boundaries pass and production audit reports zero vulnerabilities. Final reconstructed inputs fit within the existing allowance with accepted-pair preservation. No intelligence guarantee, model/temperature change, extra inference, new account or comparison is claimed.
 
+## Evidence novelty correction
+
+The final cue/motive pass completed all five normal accounts with no context or cognition error; some game action-shape failures remained. It also exposed forecasts being refreshed through different older messages for the same peer, despite no newly observed peer evidence. Fresh forecasts now require evidence captured after the last anchored peer review. Continued contact presence is history, not a fresh cue; reassessment of an existing test against a later reply remains available. Native horizons use 15/30/60/120/360/1440 game minutes, preventing an epoch prefix such as 179 from becoming an accidental review deadline.
+
+Focused regressions cover two older messages/contact snapshots and commit-time refusal of a fresh window based on an already reviewed peer source. Final verified source: **101 unit + 153 integration = 254 passing Linux tests**, with checks/build/boundaries and zero production-audit vulnerabilities. No new experiment or account is started.
+
 ## Deployment status
 
-Final cue-binding correction pending source verification and same-cohort native acceptance. The cohort is quiescently paused; no call or pending game command was cancelled. Protected evidence is stored outside Git in this installation's `state/cognition-usability-20261014` directory.
+Final novelty correction pending source verification and same-cohort native acceptance. The cohort is quiescently paused; no call or pending game command was cancelled. Protected evidence is stored outside Git in this installation's `state/cognition-usability-20261014` directory.

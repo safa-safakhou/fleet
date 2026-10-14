@@ -84,6 +84,39 @@ function update(f: Awaited<ReturnType<typeof setup>>) {
   };
 }
 describe("LLM memory, plans and beliefs", () => {
+  it("refuses a fresh test window based on another old statement that predates the peer review", async () => {
+    const f = await setup();
+    const old = await f.support.capture(f.claim, "message", "another-old-statement", {
+      peerId: f.peer,
+      direction: "incoming",
+      gameTime: String(f.now().getTime()),
+      body: "I would discuss a trial delivery",
+    });
+    const context = await f.support.context(f.claim, [f.peer], old, "trade");
+    await f.support.apply(f.claim, 0, update(f), context);
+    f.advance(1000);
+    const next = await f.support.context(f.claim, [f.peer], old, "trade");
+    await expect(
+      f.support.apply(
+        f.claim,
+        1,
+        {
+          expectedVersion: 1,
+          beliefs: [
+            {
+              ...update(f).beliefs[0],
+              evidenceQuote: "discuss a trial delivery",
+              basis: { sourceId: old, kind: "statement" },
+              evidenceRefs: [old],
+              test: { kind: "reply", afterGameTimeMs: f.now().getTime(), byGameTimeMs: f.now().getTime() + 3600000 },
+            },
+          ],
+        },
+        next,
+      ),
+    ).rejects.toThrow("COGNITION_PEER_EVIDENCE_ALREADY_REVIEWED");
+    expect((await f.pool.query("SELECT version FROM cognitive_states")).rows[0].version).toBe(1);
+  });
   it("does not count an old agreement observed again as fulfilment of a new agreement prediction", async () => {
     const f = await setup(),
       belief = {
