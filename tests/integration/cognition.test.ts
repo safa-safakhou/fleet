@@ -2,7 +2,12 @@ import { randomUUID } from "node:crypto";
 import { Ajv } from "ajv";
 import { afterEach, describe, expect, it } from "vitest";
 import { Cognition, cognitiveSchemaForVersion, deliveredCognition } from "../../src/cognition.js";
-import { analysisDecisionGuide, analysisSchemaForVersion, normalizeAnalysis } from "../../src/cognitive-analysis.js";
+import {
+  analysisDecisionGuide,
+  analysisOpportunities,
+  analysisSchemaForVersion,
+  normalizeAnalysis,
+} from "../../src/cognitive-analysis.js";
 import { fitMessages } from "../../src/context.js";
 import { type Data, type ModelPort, object } from "../../src/domain.js";
 import { Engine } from "../../src/engine.js";
@@ -77,6 +82,25 @@ function update(f: Awaited<ReturnType<typeof setup>>) {
   };
 }
 describe("LLM memory, plans and beliefs", () => {
+  it("rejects ambiguous mixed envelopes with known usage and without saving cognition or submitting a command", async () => {
+    const f = await setup(),
+      game = new FakeGame(f.claim);
+    const model = new FakeModel([
+      {
+        cognition: { expectedVersion: 0, analysis: { type: "none", reason: "No new fact changes the plan" } },
+        decision: { kind: "wait", summary: "Wait" },
+        kind: "action",
+      },
+    ]);
+    await new Engine(f.store, model, async () => game, true, pactAdapter, undefined, undefined, f.support).run(f.claim);
+    expect((await f.pool.query("SELECT * FROM cognitive_updates")).rowCount).toBe(0);
+    expect(game.submits).toHaveLength(0);
+    expect((await f.pool.query("SELECT status FROM compute_ledger")).rows.every((r) => r.status === "reported")).toBe(
+      true,
+    );
+    const events = (await new Observability(f.store).history(f.id)).turns[0].events;
+    expect(events.some((e) => e.label === "Model output rejected; usage recorded")).toBe(true);
+  });
   it("rescues old incoming evidence from repetitive observations and persists a native hypothesis/reflection with exact owned grounding", async () => {
     const f = await setup();
     let current = "";
@@ -133,6 +157,7 @@ describe("LLM memory, plans and beliefs", () => {
         {
           expectedVersion: 1,
           analysis: {
+            observedFact: analysisOpportunities(next).find((o) => o.type === "reflection")?.observed,
             type: "reflection",
             opportunity: "recorded_result",
             difference: "Sending the invitation confirms only our request, not their agreement",
@@ -164,6 +189,7 @@ describe("LLM memory, plans and beliefs", () => {
           analysis: {
             type: "reflection",
             opportunity: "recorded_result",
+            observedFact: "game.message.send: COMMITTED; command committed; later completion unknown.",
             difference: "The same invitation is recorded, with no new response observed",
             lesson: "Repeat the same lesson with another phrasing",
             nextStep: "Wait for their reply once more",
@@ -629,11 +655,11 @@ describe("LLM memory, plans and beliefs", () => {
         expect(cognition.reflections).toHaveLength(1);
         expect(cognition.plan.status).toBe("active");
         const decision = {
-          kind: "wait",
-          summary: "Check the peer claim before trusting another shipment",
+          decision: { kind: "wait", summary: "Check the peer claim before trusting another shipment" },
           cognition: {
             expectedVersion: cognition.version,
             analysis: {
+              observedFact: cognition.analysisOpportunities.find((o: Data) => o.type === "reflection").observed,
               type: "reflection",
               opportunity: "recorded_result",
               difference: "A committed queue command does not prove the upgrade finished",

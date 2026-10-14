@@ -237,6 +237,12 @@ export function beliefCue(episode: Episode, kind: string) {
   const prefix = `Incoming peer statement; peer ${String(d.peerId ?? "unknown")}: `;
   return value.startsWith(prefix) ? value.slice(prefix.length) : value;
 }
+export function isWorldResult(episode: Episode) {
+  return (
+    episode.kind === "message" ||
+    (episode.kind === "receipt" && ["receipt", "explicit_rejection"].includes(String(episode.detail.source)))
+  );
+}
 // Put the actual statement/outcome before incidental serialized metadata. Keep
 // source identity and uncertainty when a large historical record is excerpted.
 export function compactEpisode(episode: Episode, limit = 600): Data {
@@ -519,7 +525,7 @@ export function selectCognitiveEvidence(
         !state.beliefs.some((b) => b.basis?.sourceId === e.id && b.evidenceQuote),
     ) ?? ranked.find((e) => e.kind === "message" && e.detail.direction === "incoming");
   const recentReceipt = episodes.find((e) => {
-    if (reflected.has(e.id)) return false;
+    if (reflected.has(e.id) || !isWorldResult(e)) return false;
     try {
       groundReflection({ outcomeRef: e.id, revision: "Eligible recorded outcome", evidenceRefs: [e.id] }, [e], state, {
         evidence: [e],
@@ -721,7 +727,9 @@ export class Cognition {
     );
     const evidence = selected.map((e) => ({ ...e, detail: compactEpisode(e) }));
     const groundedBeliefs = state.beliefs.filter((b) => b.basis && b.test);
-    const groundedReflections = state.reflections.filter((r) => r.outcomeRef);
+    const groundedReflections = state.reflections.filter(
+      (r) => r.outcomeRef && episodes.some((e) => e.id === r.outcomeRef && isWorldResult(e)),
+    );
     const beliefs = [...groundedBeliefs]
       .sort(
         (a, b) =>
@@ -761,7 +769,8 @@ export class Cognition {
         deliveredEpisodes: evidence.length,
         omittedBeliefs: groundedBeliefs.length - beliefs.length,
         legacyUnverifiedBeliefs: state.beliefs.length - groundedBeliefs.length,
-        legacyUnverifiedReflections: state.reflections.length - groundedReflections.length,
+        legacyUnverifiedReflections: state.reflections.filter((r) => !r.outcomeRef).length,
+        omittedProtocolReflections: state.reflections.filter((r) => r.outcomeRef).length - groundedReflections.length,
         interpretation:
           "Hypotheses remain subjective. Assessment tests only the typed reply/agreement event, not motives or reliability. Cite delivered sources; current facts prevail.",
       },

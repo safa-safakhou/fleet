@@ -24,9 +24,10 @@ const outcome = {
   detail: {
     intent: "Try to queue a farm",
     actionKind: "game.building.queue",
-    code: "INVALID_GAME_ACTION",
-    source: "controller_rejection",
-    submitted: false,
+    commandId: randomUUID(),
+    code: "REJECTED",
+    source: "explicit_rejection",
+    submitted: true,
     committed: false,
   },
 };
@@ -101,9 +102,9 @@ describe("native analysis grounded in final delivery", () => {
   it("offers useful evidence, accepts concise judgments and supplies exact bookkeeping without authoring the judgment", () => {
     const offered = analysisOpportunities(context);
     expect(offered.map((o) => o.type)).toEqual(["belief", "reflection"]);
-    expect(offered[1].observed).toContain("not submitted");
+    expect(offered[1].observed).toContain("not committed");
     const validate = new Ajv({ strict: false }).compile(analysisSchemaForVersion(2, context));
-    expect(validate({ kind: "wait", summary: "Consider a small trial", cognition: belief })).toBe(true);
+    expect(validate({ cognition: belief, decision: { kind: "wait", summary: "Consider a small trial" } })).toBe(true);
     const update = object(normalizeAnalysis(belief, context));
     const saved = object((update.beliefs as unknown[])[0]);
     expect(saved.hypothesis).toBe(belief.analysis.hypothesis);
@@ -112,11 +113,31 @@ describe("native analysis grounded in final delivery", () => {
     expect(saved.assessment).toBe("untested");
     expect(
       validate({
-        kind: "wait",
-        summary: "Wait",
+        decision: { kind: "wait", summary: "Wait" },
         cognition: { expectedVersion: 2, analysis: { type: "none", reason: "No useful change to the current plan" } },
       }),
     ).toBe(true);
+  });
+  it("places cognition before the new decision and requires the exact past result before a reflection", () => {
+    const schema = analysisSchemaForVersion(2, context);
+    expect(Object.keys(object(schema.properties))).toEqual(["cognition", "decision"]);
+    const observedFact = analysisOpportunities(context).find((o) => o.type === "reflection")?.observed;
+    const raw = {
+      expectedVersion: 2,
+      analysis: {
+        type: "reflection",
+        opportunity: "recorded_result",
+        observedFact,
+        difference: "The queue attempt was rejected without committing resources",
+        lesson: "Do not treat the failed attempt as progress toward a farm",
+        nextStep: "Check the exact permitted queue shape before retrying",
+      },
+    };
+    const validate = new Ajv({ strict: false }).compile(schema);
+    expect(validate({ cognition: raw, decision: { kind: "wait", summary: "Check before retrying" } })).toBe(true);
+    const forged = { ...raw, analysis: { ...raw.analysis, observedFact: "The farm completed" } };
+    expect(validate({ cognition: forged, decision: { kind: "wait", summary: "Wait" } })).toBe(false);
+    expect(() => normalizeAnalysis(forged, context)).toThrow("COGNITION_OUTCOME_MISMATCH");
   });
   it("cannot turn outgoing speech, missing game time, evicted facts or foreign aliases into a belief", () => {
     for (const delivered of [
@@ -145,6 +166,7 @@ describe("native analysis grounded in final delivery", () => {
       { ...outcome.detail, source: "unknown" },
       { ...outcome.detail, intent: "" },
       { ...outcome.detail, committed: true },
+      { ...outcome.detail, source: "controller_rejection", submitted: false },
     ])
       expect(
         analysisOpportunities({ ...context, evidence: [current, { ...outcome, detail }] }).some(
@@ -193,9 +215,8 @@ describe("native analysis grounded in final delivery", () => {
     expect(revised.basis).toEqual({ sourceId: reply.id, kind: "reply" });
     expect(
       new Ajv({ strict: false }).compile(analysisSchemaForVersion(2, delivered))({
-        kind: "wait",
-        summary: "Keep the trial small",
         cognition: raw,
+        decision: { kind: "wait", summary: "Keep the trial small" },
       }),
     ).toBe(true);
     expect(() =>

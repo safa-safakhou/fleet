@@ -1,4 +1,4 @@
-import { beliefCue, deliveredCognition, type Episode } from "./cognition.js";
+import { beliefCue, deliveredCognition, type Episode, utf8Prefix } from "./cognition.js";
 import { analysisOpportunities } from "./cognitive-analysis.js";
 import { type Data, FleetError, object } from "./domain.js";
 
@@ -21,7 +21,7 @@ export function fitMessages(
       content: JSON.stringify(
         object(c.cognition).nativeAnalysis === true
           ? {
-              ...c,
+              ...Object.fromEntries(Object.entries(c).filter(([key]) => key !== "cognition")),
               cognition: {
                 ...object(c.cognition),
                 analysisOpportunities: analysisOpportunities(deliveredCognition(c)),
@@ -183,6 +183,22 @@ export function fitMessages(
       memoryRead: context.memoryRead
         ? { name: object(context.memoryRead).name, args: object(context.memoryRead).args }
         : undefined,
+      decisionFeedback: (Array.isArray(context.decisionFeedback) ? context.decisionFeedback.map(object) : []).map(
+        (item) => {
+          const { schemaDigest: _digest, ...fields } = item;
+          return {
+            ...fields,
+            guidance:
+              typeof item.guidance === "string" ? `${utf8Prefix(item.guidance, 160)} (guidance excerpt)` : undefined,
+            errors: Array.isArray(item.errors)
+              ? item.errors.map((issue) => {
+                  const { message: _message, ...exact } = object(issue);
+                  return exact;
+                })
+              : item.errors,
+          };
+        },
+      ),
     };
     fitted = pack(context);
     if (fitted) return fitted;

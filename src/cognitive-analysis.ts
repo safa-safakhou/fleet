@@ -6,6 +6,7 @@ import {
   type Episode,
   gameTime,
   groundReflection,
+  isWorldResult,
   testedReply,
   type Update,
 } from "./cognition.js";
@@ -88,7 +89,7 @@ export function analysisOpportunities(delivered: Data): Opportunity[] {
       });
   }
   for (const source of evidence) {
-    if (reflected.has(source.id)) continue;
+    if (reflected.has(source.id) || !isWorldResult(source)) continue;
     try {
       const grounded = groundReflection(
         { outcomeRef: source.id, revision: "Eligible recorded outcome", evidenceRefs: [source.id] },
@@ -129,6 +130,7 @@ const Reflection = z
   .object({
     type: z.literal("reflection"),
     opportunity: z.literal("recorded_result"),
+    observedFact: z.string().min(1).max(300),
     difference: z.string().trim().min(20).max(100),
     lesson: z.string().trim().min(20).max(100),
     nextStep: z.string().trim().min(15).max(75),
@@ -149,23 +151,25 @@ const NativeUpdate = CognitiveUpdate.omit({ review: true, beliefs: true, reflect
   .strict();
 
 export const analysisDecisionGuide = {
-  decision: "One wait/read/action with summary and cognition. Action arguments directly in action.",
+  decision:
+    "Return {cognition,decision} in that order. decision is one wait/read/action with summary; action arguments directly in decision.action.",
   cognition:
-    "expectedVersion=cognition.version; analysis required. Use one offered key: belief {type,opportunity,evidenceQuote,hypothesis,alternative,expectedInteraction,confidence:low|medium,predictedEvent:reply|agreement,reviewAfterMinutes:15..1440}; reflection {type,opportunity,difference,lesson,nextStep}; reassessment {type,opportunity,hypothesis,alternative,confidence:low|medium,assessment:supported|unresolved}; or none {type,reason}. Fleet supplies IDs/time/verified result. Optional plan {goal,steps,status,reconsiderWhen,evidenceRefs}, memories [{summary,importance,evidenceRefs}]; omit unchanged fields.",
+    "expectedVersion=cognition.version; analysis required. Use one offered key: belief {type,opportunity,evidenceQuote,hypothesis,alternative,expectedInteraction,confidence:low|medium,predictedEvent:reply|agreement,reviewAfterMinutes:15..1440}; reflection {type,opportunity,observedFact,difference,lesson,nextStep}; reassessment {type,opportunity,hypothesis,alternative,confidence:low|medium,assessment:supported|unresolved}; or none {type,reason}. Fleet supplies IDs/time/verified result. Optional plan {goal,steps,status,reconsiderWhen,evidenceRefs}, memories [{summary,importance,evidenceRefs}]; omit unchanged fields.",
 };
 export const analysisInstructions =
-  "Use offered analysisOpportunities only. Peer: copy exact evidenceQuote from statement. Give a cautious motive hypothesis and competing explanation. expectedInteraction is specific future reply/agreement content, not confidence metadata or your upgrade. A greeting does not establish an ally or building commitment. Result: difference compares recorded intention and observed result; lesson explains its consequence; nextStep follows. Example: 'already linked' confirms a link, not cooperation; another request won't test interest; read the exchange and ask a concrete question. Explain this result, not an unrelated recalled action. Prior hypotheses may be wrong. For tested_prediction, a reply tests responsiveness, not reliability. Choose none when no new insight: repeating an intention is not reflection. Keep useful plans. No hidden reasoning.";
+  "Return cognition before decision: inspect prior evidence before selecting a new move. Reflection observedFact must copy the offered observed result exactly. Use offered analysisOpportunities only. Peer: copy exact evidenceQuote from statement. Give a cautious motive hypothesis and competing explanation. expectedInteraction is specific future reply/agreement content, not confidence metadata or your upgrade. A greeting does not establish an ally or building commitment. Result: difference compares recorded intention and observed result; not submitted means no action occurred, a commit does not prove later completion; lesson explains its consequence; nextStep follows. Example: 'already linked' confirms a link, not cooperation; another request won't test interest; read the exchange and ask a concrete question. Explain this result, not an unrelated recalled action. Prior hypotheses may be wrong. For tested_prediction, a reply tests responsiveness, not reliability. Choose none when no new insight: repeating an intention is not reflection. Keep useful plans. No hidden reasoning.";
 
 export function analysisSchemaForVersion(version: unknown, delivered: Data): Data {
   if (typeof version !== "number" || !Number.isSafeInteger(version) || version < 0)
     throw new FleetError("COGNITION_VERSION_REQUIRED");
   const opportunities = analysisOpportunities(delivered);
-  const choices: [typeof None, ...(typeof Belief | typeof Reflection | typeof Reassessment)[]] = [None];
+  const choices: [z.ZodType, ...z.ZodType[]] = [None];
   if (opportunities.some((o) => o.type === "belief")) choices.push(Belief);
-  if (opportunities.some((o) => o.type === "reflection")) choices.push(Reflection);
+  const result = opportunities.find((o) => o.type === "reflection");
+  if (result) choices.push(Reflection.extend({ observedFact: z.literal(result.observed) }));
   if (opportunities.some((o) => o.type === "reassessment")) choices.push(Reassessment);
   const update = NativeUpdate.extend({ expectedVersion: z.literal(version), analysis: z.union(choices) });
-  const schema = z.toJSONSchema(z.union(Decision.options.map((d) => d.extend({ cognition: update }))), {
+  const schema = z.toJSONSchema(z.object({ cognition: update, decision: Decision }).strict(), {
     target: "draft-7",
     reused: "ref",
   });
@@ -176,6 +180,7 @@ export function analysisSchemaForVersion(version: unknown, delivered: Data): Dat
     if (!v || typeof v !== "object") return;
     if (object(v).format === "uuid") {
       object(v).enum = ids;
+      delete object(v).format;
       delete object(v).pattern;
     }
     if (!ids.length && object(object(v).properties).expectedVersion) {
@@ -211,6 +216,7 @@ export function normalizeAnalysis(raw: unknown, delivered: Data): unknown {
   );
   if (!opportunity) throw new FleetError("COGNITION_ANALYSIS_NOT_OFFERED");
   if (analysis.type === "reflection") {
+    if (analysis.observedFact !== opportunity.observed) throw new FleetError("COGNITION_OUTCOME_MISMATCH");
     update.reflections = [
       {
         outcomeRef: opportunity.sourceId,

@@ -382,7 +382,13 @@ export class Engine {
         if (response.inputTokens + response.outputTokens > b.perCallTokenLimit) throw new FleetError("USAGE_EXCEEDED");
         await this.store.active(claim);
         const rawDecision = object(response.decision);
-        const { cognition: cognitiveUpdate, ...baseDecision } = rawDecision;
+        const { cognition: cognitiveUpdate, decision: wrappedDecision, ...flatDecision } = rawDecision;
+        const baseDecision =
+          wrappedDecision === undefined
+            ? flatDecision
+            : Object.keys(flatDecision).length
+              ? { invalidEnvelope: true }
+              : wrappedDecision;
         const parsed = Decision.safeParse(cognition ? baseDecision : response.decision);
         if (response.decisionError || !parsed.success) {
           lastCode = response.decisionError ?? "INVALID_MODEL_OUTPUT";
@@ -425,6 +431,8 @@ export class Engine {
         }
         await observation.record(claim, "deciding", "Model selected the next step", {
           kind: decision.kind,
+          outputFieldOrder: Object.keys(rawDecision),
+          cognitionFirst: Object.keys(rawDecision)[0] === "cognition",
           summary: decision.summary,
           ...(decision.kind === "read" ? { tool: decision.tool } : {}),
           ...(decision.kind === "action" ? { actionKind: String(decision.action.kind ?? "action") } : {}),
