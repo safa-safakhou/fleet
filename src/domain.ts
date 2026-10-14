@@ -18,7 +18,7 @@ export const Draft = z
   .object({
     name: z.string().trim().min(2).max(80),
     count: z.number().int().min(1).max(1000),
-    intervalMinutes: z.union([z.literal(10), z.literal(15), z.literal(30), z.literal(60)]),
+    intervalMinutes: z.union([z.literal(5), z.literal(10), z.literal(15), z.literal(30), z.literal(60)]),
     seed: z.string().min(1).max(80),
     strategies: z.array(z.enum(profileNames)).min(1).max(20),
   })

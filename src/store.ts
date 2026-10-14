@@ -137,55 +137,61 @@ export class Store {
     });
   }
   async setState(id: string, state: "running" | "paused" | "stopped", liveAllowed: boolean) {
+    return this.setStates([id], state, liveAllowed);
+  }
+  async setStates(ids: string[], state: "running" | "paused" | "stopped", liveAllowed: boolean, initialOnly = false) {
     const now = this.now();
     await transaction(this.pool, async (c) => {
-      const row = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];
-      if (!row) throw new FleetError("NOT_FOUND");
-      if (["stopped", "finished"].includes(row.state)) throw new FleetError("TERMINAL_COHORT");
-      if (state === "running" && !liveAllowed) throw new FleetError("LIVE_EXECUTION_DISABLED");
-      if (row.state === state) return;
-      if (state === "running") {
-        if (!liveAllowed) throw new FleetError("LIVE_EXECUTION_DISABLED");
-        if (!row.model || !row.budget) throw new FleetError("MODEL_AND_BUDGET_REQUIRED");
-        if (row.budget.deadlineAt && new Date(row.budget.deadlineAt) <= now) throw new FleetError("DEADLINE_PASSED");
-        const ready = (
+      for (const id of [...new Set(ids)].sort()) {
+        const row = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];
+        if (!row) throw new FleetError("NOT_FOUND");
+        if (initialOnly && row.anchor_at !== null) throw new FleetError("COMPARISON_ALREADY_STARTED");
+        if (["stopped", "finished"].includes(row.state)) throw new FleetError("TERMINAL_COHORT");
+        if (state === "running" && !liveAllowed) throw new FleetError("LIVE_EXECUTION_DISABLED");
+        if (row.state === state) continue;
+        if (state === "running") {
+          if (!liveAllowed) throw new FleetError("LIVE_EXECUTION_DISABLED");
+          if (!row.model || !row.budget) throw new FleetError("MODEL_AND_BUDGET_REQUIRED");
+          if (row.budget.deadlineAt && new Date(row.budget.deadlineAt) <= now) throw new FleetError("DEADLINE_PASSED");
+          const ready = (
+            await c.query(
+              "SELECT count(*)::int n FROM agents WHERE cohort_id=$1 AND account_id IS NOT NULL AND credential_state='ready'",
+              [id],
+            )
+          ).rows[0].n;
+          if (ready !== row.count) throw new FleetError("ACCOUNTS_INCOMPLETE");
+          const secrets = (
+            await c.query("SELECT id,secret_cipher FROM agents WHERE cohort_id=$1 AND secret_cipher IS NOT NULL", [id])
+          ).rows;
+          if (secrets.some((a) => this.vault.decrypt<Data>(a.secret_cipher, `agent:${a.id}`).socialPending))
+            throw new FleetError("SOCIAL_DECISION_PENDING");
+        }
+        const anchor = row.anchor_at ?? now;
+        await c.query("UPDATE cohorts SET state=$2,generation=generation+1,anchor_at=$3 WHERE id=$1", [
+          id,
+          state,
+          anchor,
+        ]);
+        const agents = (await c.query<AgentRow>("SELECT * FROM agents WHERE cohort_id=$1 FOR UPDATE", [id])).rows;
+        for (const a of agents) {
+          const due =
+            a.next_due_at && a.next_due_at > now
+              ? a.next_due_at
+              : new Date(
+                  nextSlot(
+                    anchor.getTime(),
+                    row.interval_minutes * 60000,
+                    Math.floor((a.ordinal * row.interval_minutes * 60000) / row.count),
+                    now.getTime() - 1,
+                  ),
+                );
           await c.query(
-            "SELECT count(*)::int n FROM agents WHERE cohort_id=$1 AND account_id IS NOT NULL AND credential_state='ready'",
-            [id],
-          )
-        ).rows[0].n;
-        if (ready !== row.count) throw new FleetError("ACCOUNTS_INCOMPLETE");
-        const secrets = (
-          await c.query("SELECT id,secret_cipher FROM agents WHERE cohort_id=$1 AND secret_cipher IS NOT NULL", [id])
-        ).rows;
-        if (secrets.some((a) => this.vault.decrypt<Data>(a.secret_cipher, `agent:${a.id}`).socialPending))
-          throw new FleetError("SOCIAL_DECISION_PENDING");
+            "UPDATE agents SET state=CASE WHEN $2='stopped' THEN 'stopped' ELSE state END,next_due_at=$3,fence=fence+1 WHERE id=$1",
+            [a.id, state, due],
+          );
+        }
+        await this.audit(c, id, `cohort.${state}`, {});
       }
-      const anchor = row.anchor_at ?? now;
-      await c.query("UPDATE cohorts SET state=$2,generation=generation+1,anchor_at=$3 WHERE id=$1", [
-        id,
-        state,
-        anchor,
-      ]);
-      const agents = (await c.query<AgentRow>("SELECT * FROM agents WHERE cohort_id=$1 FOR UPDATE", [id])).rows;
-      for (const a of agents) {
-        const due =
-          a.next_due_at && a.next_due_at > now
-            ? a.next_due_at
-            : new Date(
-                nextSlot(
-                  anchor.getTime(),
-                  row.interval_minutes * 60000,
-                  Math.floor((a.ordinal * row.interval_minutes * 60000) / row.count),
-                  now.getTime() - 1,
-                ),
-              );
-        await c.query(
-          "UPDATE agents SET state=CASE WHEN $2='stopped' THEN 'stopped' ELSE state END,next_due_at=$3,fence=fence+1 WHERE id=$1",
-          [a.id, state, due],
-        );
-      }
-      await this.audit(c, id, `cohort.${state}`, {});
     });
   }
   async agentState(id: string, state: "ready" | "paused", liveAllowed: boolean) {

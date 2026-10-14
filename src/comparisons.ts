@@ -122,6 +122,16 @@ export class Comparisons {
       )
     ).rows;
   }
+  async start(id: string, liveAllowed: boolean) {
+    const row = (
+      await this.store.pool.query("SELECT llm_cohort_id,cognition_cohort_id FROM comparisons WHERE id=$1", [id])
+    ).rows[0];
+    if (!row) throw new FleetError("NOT_FOUND");
+    const ids = [row.llm_cohort_id, row.cognition_cohort_id];
+    // Initial paired launch only: resumption must retain each group's original anchor.
+    await this.store.setStates(ids, "running", liveAllowed, true);
+    return { started: true };
+  }
   async inspect(id: string) {
     return transaction(this.store.pool, async (c) => {
       await c.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ READ ONLY");

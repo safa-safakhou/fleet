@@ -142,7 +142,7 @@ export function ComparisonWorkspace({
               <label>
                 Turn interval
                 <select value={intervalMinutes} onChange={(e) => setIntervalMinutes(Number(e.target.value))}>
-                  {[10, 15, 30, 60].map((n) => (
+                  {[5, 10, 15, 30, 60].map((n) => (
                     <option key={n} value={n}>
                       {n} minutes
                     </option>
@@ -311,6 +311,20 @@ export function ComparisonWorkspace({
         {items.length === 0 && <p className="muted">No comparison drafts saved.</p>}
         {report && (
           <>
+            {report.arms.every((a) => a.anchorAt === null) && (
+              <button
+                type="button"
+                disabled={busy || report.arms.some((a) => a.ready !== Number(report.template.countPerArm))}
+                onClick={() =>
+                  void work(async () => {
+                    await api(`/comparisons/${report.id}/start`, {});
+                    setReport(await api<Report>(`/comparisons/${report.id}`));
+                  })
+                }
+              >
+                Start both fleets together
+              </button>
+            )}
             <p>
               {report.matchesTemplate
                 ? "Model, allowance, interval and strategy pairs match the saved template."

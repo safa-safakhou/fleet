@@ -1080,7 +1080,7 @@ function Create({ busy, save }: { busy: boolean; save: (data: unknown) => void }
         <label>
           Turn interval
           <select value={interval} onChange={(e) => setInterval(Number(e.target.value))}>
-            {[10, 15, 30, 60].map((n) => (
+            {[5, 10, 15, 30, 60].map((n) => (
               <option key={n} value={n}>
                 {n} minutes
               </option>

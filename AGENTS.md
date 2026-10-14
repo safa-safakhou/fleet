@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Windows paired-fleet launch assignment — 14 October 2026
+
+Founder explicitly authorized two fresh local fleets on this Windows machine, ten distinct PACT accounts each, sharing Nemotron 4B: LLM-only versus LLM-centered cognition with Laya recall. Both must start together. Follow-up selects every five minutes until stopped. Codex owns setup, verification and local commits without delegation. Read `docs/paired-launch-20261014.md` and the actual local launch report when available. This covers only the new twenty-account local installation; preserve server/Mac cohorts, historical terminal populations, credentials, allocations and schedules. Laya remains selective recall assistance with honest abstention; the LLM decides. New uncertainty needs its own exact review.
+
 ## Reusable comparison capability — 14 October 2026
 
 Founder requested inspecting Agent 01's latest cognition and reusable five-LLM-only versus five-cognition/Laya comparison features, explicitly without launching them. Read `docs/comparisons.md` and `docs/comparisons-20261014.md`. Codex owns implementation without delegation. Source adds portable configuration, matched inactive drafts, retry-safe atomic creation and actual side-by-side accounting/consented analysis/recall telemetry; the LLM decides, VW remains unused. 265 Linux tests and isolated browser workflow pass. No real draft/account/model call, migration, controller replacement or comparison was started. Existing Mac runtime remains 6595751, same five accounts/budgets/history/anchor, with six unknown allocations intact. Agent 01's latest source-linked reflection reaches its next decision, but low-risk/motive analysis remains shallow and Laya abstained; memory delivery is not proof of intelligence or causal improvement. Deployment/enrollment/start remain separate assignments.

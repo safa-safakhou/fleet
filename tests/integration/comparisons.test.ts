@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { Comparisons } from "../../src/comparisons.js";
+import { migrate } from "../../src/db.js";
 import { CredentialBroker } from "../../src/games/pact/credentials.js";
 import { Observability } from "../../src/observability.js";
 import { buildServer } from "../../src/server.js";
@@ -29,6 +30,69 @@ async function setup() {
   return { ...f, comparisons: new Comparisons(f.store) };
 }
 describe("comparison drafts and evidence", () => {
+  it("expands the old interval constraint without modifying existing schedules or identities", async () => {
+    const f = await setup(),
+      id = await ready(f.store, 2),
+      before = await f.store.cohort(id),
+      agents = (await f.pool.query("SELECT * FROM agents WHERE cohort_id=$1 ORDER BY ordinal", [id])).rows;
+    await f.pool.query("ALTER TABLE cohorts DROP CONSTRAINT cohorts_interval_minutes_check");
+    await f.pool.query(
+      "ALTER TABLE cohorts ADD CONSTRAINT cohorts_interval_minutes_check CHECK(interval_minutes IN(10,15,30,60))",
+    );
+    await migrate(f.pool);
+    await migrate(f.pool);
+    expect(await f.store.cohort(id)).toEqual(before);
+    expect((await f.pool.query("SELECT * FROM agents WHERE cohort_id=$1 ORDER BY ordinal", [id])).rows).toEqual(agents);
+    const saved = await f.comparisons.create({
+      requestId: randomUUID(),
+      template: { ...template, intervalMinutes: 5 },
+    });
+    expect((await f.store.cohort(saved.cohortIds[0])).interval_minutes).toBe(5);
+  });
+  it("starts ten-plus-ten five-minute groups with one anchor and rolls back an incomplete pair", async () => {
+    const f = await setup(),
+      saved = await f.comparisons.create({
+        requestId: randomUUID(),
+        template: { ...template, countPerArm: 10, intervalMinutes: 5 },
+      });
+    const agents = (await f.pool.query("SELECT id FROM agents ORDER BY cohort_id,ordinal")).rows;
+    for (const a of agents.slice(0, 19))
+      await f.pool.query(
+        "UPDATE agents SET account_id=$2,kingdom_id=$3,state='ready',credential_state='ready' WHERE id=$1",
+        [a.id, randomUUID(), randomUUID()],
+      );
+    await expect(f.comparisons.start(saved.id, false)).rejects.toThrow("LIVE_EXECUTION_DISABLED");
+    await expect(f.comparisons.start(saved.id, true)).rejects.toThrow("ACCOUNTS_INCOMPLETE");
+    for (const id of saved.cohortIds) {
+      expect((await f.store.cohort(id)).state).toBe("draft");
+      expect((await f.store.cohort(id)).anchor_at).toBeNull();
+    }
+    await f.pool.query(
+      "UPDATE agents SET account_id=$2,kingdom_id=$3,state='ready',credential_state='ready' WHERE id=$1",
+      [agents[19].id, randomUUID(), randomUUID()],
+    );
+    const starts = await Promise.allSettled([f.comparisons.start(saved.id, true), f.comparisons.start(saved.id, true)]);
+    expect(starts.filter((result) => result.status === "fulfilled")).toHaveLength(1);
+    expect(starts.filter((result) => result.status === "rejected")).toHaveLength(1);
+    for (const id of saved.cohortIds) {
+      const c = await f.store.cohort(id);
+      expect(c.state).toBe("running");
+      expect(c.anchor_at).toEqual(f.now());
+      const due = (await f.pool.query("SELECT next_due_at FROM agents WHERE cohort_id=$1 ORDER BY ordinal", [id])).rows;
+      expect(due.map((a) => a.next_due_at.getTime() - f.now().getTime())).toEqual(
+        Array.from({ length: 10 }, (_, i) => i * 30000),
+      );
+    }
+    const first = await f.store.claim("paired-fixture");
+    if (!first) throw Error("missing initial five-minute turn");
+    await f.store.finish(first, "WAIT");
+    expect((await f.store.agent(first.agentId)).next_due_at?.getTime()).toBe(f.now().getTime() + 300000);
+    await expect(f.comparisons.start(saved.id, true)).rejects.toThrow("COMPARISON_ALREADY_STARTED");
+    await f.store.setStates(saved.cohortIds, "paused", true);
+    f.advance(600000);
+    await f.store.setStates(saved.cohortIds, "running", true);
+    expect((await f.store.cohort(saved.cohortIds[0])).anchor_at).toEqual(new Date(f.now().getTime() - 600000));
+  });
   it("creates matched independent drafts without changing existing accounts, history, budgets or execution", async () => {
     const f = await setup(),
       existing = await ready(f.store, 1);
@@ -222,6 +286,21 @@ describe("comparison drafts and evidence", () => {
       payload: { requestId: randomUUID(), template },
     });
     expect(saved.statusCode).toBe(200);
+    expect(
+      (
+        await app.inject({
+          method: "POST",
+          url: `/api/comparisons/${saved.json().id}/start`,
+          headers: { origin, cookie: headers.cookie },
+          payload: {},
+        })
+      ).statusCode,
+    ).toBe(403);
+    expect(
+      (
+        await app.inject({ method: "POST", url: `/api/comparisons/${saved.json().id}/start`, headers, payload: {} })
+      ).json().error.code,
+    ).toBe("LIVE_EXECUTION_DISABLED");
     const report = await app.inject({ url: `/api/comparisons/${saved.json().id}`, headers });
     expect(report.statusCode).toBe(200);
     expect(report.headers["cache-control"]).toBe("no-store");

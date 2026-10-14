@@ -114,6 +114,9 @@ export function buildServer(options: {
   app.post("/api/comparisons/preview", async (r) => comparisonPreview(r.body));
   app.post("/api/comparisons", async (r) => new Comparisons(store).create(r.body));
   app.get("/api/comparisons", async () => ({ comparisons: await new Comparisons(store).list() }));
+  app.post<{ Params: { id: string } }>("/api/comparisons/:id/start", async (r) =>
+    new Comparisons(store).start(z.uuid().parse(r.params.id), options.liveAllowed),
+  );
   app.get<{ Params: { id: string } }>("/api/comparisons/:id", async (r) =>
     new Comparisons(store).inspect(z.uuid().parse(r.params.id)),
   );
