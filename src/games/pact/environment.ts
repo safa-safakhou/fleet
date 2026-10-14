@@ -102,6 +102,11 @@ export function compactEnvironment(environment: Data, limit: number): Data {
       }
     }
   }
+  // An observed public identity is part of the account's current surroundings,
+  // not a prescribed social action. Do not let optional memory make a populated
+  // world look empty; let the shared fitter reduce continuation context instead.
+  if (discovered.length && !(object(output.publicDiscovery).players as unknown[]).length)
+    throw new FleetError("CONTEXT_LIMIT");
   for (const key of rules) {
     if (environment[key] === undefined) continue;
     output[key] = environment[key];

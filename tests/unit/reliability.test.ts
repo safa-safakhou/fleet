@@ -172,3 +172,13 @@ it("delivers real global identities and truthful readiness beside a busy inbox w
   expect(Buffer.byteLength(JSON.stringify(packed))).toBeLessThanOrEqual(4000);
   expect(source).toEqual(original);
 });
+
+it("refuses to silently fit a populated world as an empty shortlist", () => {
+  const source = {
+    ...environment,
+    contacts: [],
+    contactRequests: [],
+    publicDiscovery: { players: [{ kingdomId: "observed-global", handle: "global", displayName: "界".repeat(4000) }] },
+  };
+  expect(() => compactEnvironment(source, 2000)).toThrow("CONTEXT_LIMIT");
+});
