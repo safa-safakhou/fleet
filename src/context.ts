@@ -169,10 +169,6 @@ export function fitMessages(
     context = {
       ...context,
       cognition,
-      decisionSchema: {
-        decision:
-          "Match the exact provider JSON schema. cognition.expectedVersion copies version; analysis uses an offered opportunity or none. Optional plan/memories follow the schema.",
-      },
       humanOnlyActionKinds: (Array.isArray(context.humanOnlyActionKinds) ? context.humanOnlyActionKinds : []).filter(
         (kind) => allowedKinds.includes(kind),
       ),

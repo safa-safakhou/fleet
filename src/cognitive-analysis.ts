@@ -204,7 +204,8 @@ export function analysisSchemaForVersion(version: unknown, delivered: Data): Dat
   const constrain = (v: unknown) => {
     if (!v || typeof v !== "object") return;
     if (object(v).format === "uuid") {
-      object(v).enum = ids;
+      if (ids.length) object(v).enum = ids;
+      else object(v).not = {}; // No evidence means citations are impossible, not an invalid empty enum.
       delete object(v).format;
       delete object(v).pattern;
     }

@@ -44,6 +44,10 @@ describe("bounded model adapters", () => {
       signal: AbortSignal.timeout(1000),
     });
     expect(String(fetcher.mock.calls[0]?.[1]?.body)).not.toContain("synthetic_key");
+    expect(JSON.parse(String(fetcher.mock.calls[0]?.[1]?.body)).response_format).toMatchObject({
+      type: "json_schema",
+      json_schema: { name: "fleet_decision", schema: {} },
+    });
     expect(r.inputTokens).toBe(111);
   });
   it("malformed JSON preserves completed usage without masquerading as a game action", async () => {
@@ -190,4 +194,36 @@ it("sends an explicit Ollama thinking choice without changing defaults or allowi
   expect(bodies[2].think).toBe(true);
   expect(ModelConfig.safeParse({ route: "codex-cli", model: "fixture", thinking: false }).success).toBe(false);
   expect(ModelConfig.safeParse({ route: "ollama", model: "fixture", thinking: false }).success).toBe(true);
+});
+
+it("retains bounded safe argument paths across the HTTP error boundary without copying private values", async () => {
+  vi.stubGlobal(
+    "fetch",
+    vi.fn(async () =>
+      Response.json(
+        {
+          error: {
+            code: "INVALID_REQUEST",
+            detail: {
+              schemaId: "pact_game_action_v2",
+              errors: [{ path: ["action", "body"], code: "invalid_type", input: "private text" }],
+              token: "private credential",
+              complete: true,
+            },
+          },
+        },
+        { status: 400 },
+      ),
+    ),
+  );
+  try {
+    await jsonRequest("https://fixture.example");
+    throw Error("not rejected");
+  } catch (error) {
+    expect(error).toMatchObject({
+      code: "INVALID_REQUEST",
+      detail: { schemaId: "pact_game_action_v2", errors: [{ path: ["action", "body"], code: "invalid_type" }] },
+    });
+    expect(JSON.stringify(error)).not.toContain("private");
+  }
 });

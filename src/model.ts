@@ -26,7 +26,10 @@ export class HttpModel implements ModelPort {
           messages: input.messages,
           stream: false,
           max_completion_tokens: input.maxOutputTokens,
-          response_format: { type: "json_object" },
+          response_format: {
+            type: "json_schema",
+            json_schema: { name: "fleet_decision", strict: false, schema: input.schema },
+          },
         };
     const { data } = await jsonRequest(
       `${base}${ollama ? "/api/chat" : "/chat/completions"}`,

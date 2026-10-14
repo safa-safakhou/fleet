@@ -22,8 +22,8 @@
       "id": "AR-F02",
       "title": "Closed executable decisions",
       "depends_on": ["AR-F01", "AR-P02"],
-      "status": "todo",
-      "assignee": null,
+      "status": "done",
+      "assignee": "codex-agent-reliability-20261015",
       "plan": "docs/agent-reliability-plan-20261015.md",
       "acceptance": [
         "All four archived synthetic bad calls fail the generation/local contract and the legitimate building command passes. Include invented conversation names, extra action summary and absent message body.",
@@ -31,8 +31,9 @@
         "Compatible catalog versions, unsupported changes and schema caching/refresh are tested. Server ownership/state/authority checks remain final; a valid generation schema never grants permission.",
         "Fake second-game ports pass without PACT domain imports. Closed-schema success is not claimed as real-provider generation qualification."
       ],
-      "evidence": [],
-      "gated_acceptance": []
+      "evidence": ["docs/agent-reliability-contracts-20261015.md"],
+      "gated_acceptance": [],
+      "dependency_gate": "Joint source/offline catalog and engine acceptance verified; actual provider qualification remains AR-F10"
     },
     {
       "id": "AR-F03",

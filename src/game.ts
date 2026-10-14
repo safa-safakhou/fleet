@@ -10,6 +10,7 @@ export interface GameAdapter {
   readonly label: string;
   readonly instructions: string;
   readonly actionKinds: string[];
+  validateCatalog?(tools: Tool[]): void;
   actionSchema(kind: string): Data;
   isRead(tool: Tool): boolean;
   initial(

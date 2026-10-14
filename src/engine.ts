@@ -11,17 +11,9 @@ import {
 import { Communications } from "./communications.js";
 import { fitMessages } from "./context.js";
 import type { DecisionSupport } from "./decision.js";
-import {
-  type Data,
-  Decision,
-  decisionSchema,
-  FleetError,
-  type GamePort,
-  type ModelPort,
-  object,
-  safeCode,
-} from "./domain.js";
+import { type Data, Decision, FleetError, type GamePort, type ModelPort, object, safeCode } from "./domain.js";
 import type { GameAdapter } from "./game.js";
+import { bindGenerationSchema, closedDecisionSchema, executableActionSchema } from "./generation.js";
 import { RemoteRejection } from "./http.js";
 import { Observability, scrub } from "./observability.js";
 import { ownerRecallQuery, ownerValues } from "./owner-guidance.js";
@@ -77,6 +69,7 @@ export class Engine {
       const profile = await game.profile();
       if (profile.accountId !== claim.agent.account_id) throw new FleetError("IDENTITY_MISMATCH");
       const tools = await game.tools();
+      this.adapter.validateCatalog?.(tools);
       const turnIndex = (
         await this.store.pool.query("SELECT count(*)::int n FROM turns WHERE agent_id=$1", [claim.agentId])
       ).rows[0].n;
@@ -249,7 +242,8 @@ export class Engine {
           readHistoryCoverage:
             "Historical facts may be stale. The environment is fresh; re-read current facts before dependent commitments.",
           gameActionKinds: capability?.kinds ?? actionKinds,
-          suppliedActionSchemas: capability?.schemas ?? [],
+          schemaCoverage:
+            "Executable shapes are supplied once in the output schema. For another advertised name/kind, inspect fleet_read_schema/fleet_action_schema first; never invent argument fields.",
           humanOnlyActionKinds: capability?.humanOnly ?? [],
           actionPermissions: capability?.matrix
             ? {
@@ -270,10 +264,10 @@ export class Engine {
           availableReads: tools
             .filter(isRead)
             .map((t) => ({ name: t.name, description: t.description?.slice(0, 180) })),
-          suppliedReadSchemas: this.adapter.suppliedReadSchemas?.(tools.filter(isRead)) ?? [],
+
           convenienceRead: { name: "fleet_action_schema", args: { kind: "one observed gameActionKinds value" } },
           readSchemaLookup: { name: "fleet_read_schema", args: { name: "one availableReads name" } },
-          decisionSchema: cognition ? analysisDecisionGuide : decisionSchema,
+          ...(cognition ? { analysisGuide: analysisDecisionGuide } : {}),
           ...(cognition
             ? {
                 memoryRead: {
@@ -289,9 +283,44 @@ export class Engine {
               }
             : {}),
         };
+        const lookups = [...previousReads, ...reads]
+          .filter((r) => ["fleet_read_schema", "fleet_action_schema"].includes(String(r.tool)))
+          .slice(-4);
+        const selectedReads = new Set(
+          (this.adapter.suppliedReadSchemas?.(tools.filter(isRead)) ?? []).map((r) => String(r.name)),
+        );
+        if (!selectedReads.size) for (const tool of tools.filter(isRead).slice(0, 3)) selectedReads.add(tool.name);
+        for (const entry of lookups)
+          if (entry.tool === "fleet_read_schema") selectedReads.add(String(object(entry.args).name));
+        const initialShapes = capability?.schemas ? [...capability.schemas] : actionKinds.map(actionSchema);
+        const correctionKind = object(decisionFeedback.at(-1)).actionKind;
+        const correctionShapes = initialShapes.filter(
+          (s) => object(object(s.properties).kind).const === correctionKind,
+        );
+        // A recorded actionable correction gets its exact shape; every other
+        // admitted kind remains accessible through the closed schema lookup.
+        const actionShapes = correctionShapes.length ? correctionShapes : initialShapes;
+        for (const entry of lookups)
+          if (
+            entry.tool === "fleet_action_schema" &&
+            (capability?.kinds ?? actionKinds).includes(String(object(entry.args).kind))
+          ) {
+            const shape = actionSchema(String(object(entry.args).kind));
+            if (!actionShapes.some((s) => JSON.stringify(s) === JSON.stringify(shape))) actionShapes.push(shape);
+          }
+        const generation = closedDecisionSchema({
+          actionKinds: capability?.kinds ?? actionKinds,
+          actionSchemas: actionShapes,
+          reads: tools.filter(isRead),
+          selectedReadNames: [...selectedReads],
+          memory: !!cognition,
+        });
         let outputSchema = cognition
-          ? analysisSchemaForVersion(object(context.cognition).version, deliveredCognition(context))
-          : decisionSchema;
+          ? bindGenerationSchema(
+              analysisSchemaForVersion(object(context.cognition).version, deliveredCognition(context)),
+              generation,
+            )
+          : generation;
         const instructions = this.adapter.instructions + (cognition ? ` ${analysisInstructions}` : "");
         let messages: ReturnType<typeof fitMessages>;
         try {
@@ -309,9 +338,9 @@ export class Engine {
             );
             if (!cognition) break;
             fittingContext = object(JSON.parse(messages[1].content));
-            outputSchema = analysisSchemaForVersion(
-              object(context.cognition).version,
-              deliveredCognition(fittingContext),
+            outputSchema = bindGenerationSchema(
+              analysisSchemaForVersion(object(context.cognition).version, deliveredCognition(fittingContext)),
+              generation,
             );
             if (
               Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(outputSchema)) <=
@@ -627,7 +656,7 @@ export class Engine {
         }
         let attemptedSchema: Data | undefined;
         try {
-          attemptedSchema = actionSchema(String(decision.action.kind));
+          attemptedSchema = executableActionSchema(actionSchema(String(decision.action.kind)));
           validateTool({ name: "game-action", inputSchema: attemptedSchema }, decision.action);
         } catch (error) {
           if (!(error instanceof FleetError)) throw error;
@@ -648,7 +677,9 @@ export class Engine {
           await observation.record(claim, "result", "Action shape rejected before submission", feedback);
           continue;
         }
-        if (schemaChanged(tools, await game.tools())) throw new FleetError("SCHEMA_CHANGED");
+        const freshCatalog = await game.tools();
+        this.adapter.validateCatalog?.(freshCatalog);
+        if (schemaChanged(tools, freshCatalog)) throw new FleetError("SCHEMA_CHANGED");
         await this.store.rememberDecisionFeedback(claim, null);
         await game.open();
         await this.store.active(claim);

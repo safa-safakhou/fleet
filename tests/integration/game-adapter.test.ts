@@ -15,7 +15,12 @@ const adapter: GameAdapter = {
   label: "Board fixture",
   instructions: "Play the authenticated board position.",
   actionKinds: ["board.move"],
-  actionSchema: () => ({ type: "object", properties: { kind: { const: "board.move" } } }),
+  actionSchema: () => ({
+    type: "object",
+    properties: { kind: { const: "board.move" }, to: { type: "string" } },
+    required: ["kind", "to"],
+    additionalProperties: false,
+  }),
   isRead: (tool) => tool.name.startsWith("board_") && tool.annotations?.readOnlyHint === true,
   async initial(game, expected) {
     const board = await game.read("board_position", {});

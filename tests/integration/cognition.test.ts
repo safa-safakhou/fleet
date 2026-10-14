@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Ajv } from "ajv";
 import { afterEach, describe, expect, it } from "vitest";
-import { Cognition, cognitiveSchemaForVersion, deliveredCognition } from "../../src/cognition.js";
+import { Cognition, cognitiveSchemaForVersion } from "../../src/cognition.js";
 import {
   analysisDecisionGuide,
   analysisOpportunities,
@@ -757,6 +757,7 @@ describe("LLM memory, plans and beliefs", () => {
       committed: true,
       source: "receipt",
     });
+    const originalEpisodes = (await f.support.inspect(f.claim.agentId)).episodes as Data[];
     let selected = "",
       candidates: string[] = [],
       calls = 0;
@@ -781,12 +782,31 @@ describe("LLM memory, plans and beliefs", () => {
           .filter((episode: Data) => candidates.includes(String(episode.id)))
           .map((episode: Data) => episode.id);
         expect(pairOrder[0]).toBe(selected);
+        for (const id of candidates) {
+          const original = originalEpisodes.find((episode) => episode.id === id);
+          const delivered = cognition.evidence.find((episode: Data) => episode.id === id);
+          expect(original).toBeDefined();
+          expect(delivered.kind).toBe(original?.kind);
+          expect(delivered.at).toBe(original?.at);
+          for (const field of ["peerId", "direction", "gameTime", "source", "commandId", "committed"]) {
+            const value = object(original?.detail)[field];
+            if (value !== undefined) expect(delivered.detail[field]).toEqual(value);
+          }
+        }
+        expect(context).not.toHaveProperty("decisionSchema");
         expect(cognition.knownPeerIds).toContain(f.peer);
         expect(context.actionPermissions).toBeDefined();
         expect(context.decisionFeedback[0].inputSchema.required).toContain("slot");
-        expect(cognition.beliefs).toHaveLength(1);
-        expect(cognition.reflections).toHaveLength(1);
-        expect(cognition.plan.status).toBe("active");
+        // Optional subjective records may be paged when a larger mandatory
+        // executable schema needs space. Every omission must be explicit;
+        // stored history and the accepted, ordered recall pair stay intact.
+        const coverage = object(cognition.subjectiveStateCoverage);
+        expect(cognition.beliefs.length + Number(coverage.omittedBeliefs ?? 0)).toBe(1);
+        expect(cognition.reflections.length + Number(coverage.omittedReflections ?? 0)).toBe(1);
+        if (coverage.planOmitted) {
+          expect(cognition.plan).toBeUndefined();
+          expect(coverage.notice).toContain("not cleared or completed");
+        } else expect(cognition.plan.status).toBe("active");
         const decision = {
           decision: { kind: "wait", summary: "Check the peer claim before trusting another shipment" },
           cognition: {
@@ -819,16 +839,96 @@ describe("LLM memory, plans and beliefs", () => {
       },
       suppliedReadSchemas: () => [{ name: "optional", whole: "x".repeat(6000) }],
     };
+    let modelError: unknown;
+    const decide = model.decide.bind(model);
+    model.decide = async (input) => {
+      try {
+        return await decide(input);
+      } catch (error) {
+        modelError = error;
+        throw error;
+      }
+    };
     await new Engine(f.store, model, async () => game, true, adapter, undefined, undefined, support).run(f.claim);
-    expect(calls).toBe(1);
+    expect(modelError).toBeUndefined();
+    expect(
+      calls,
+      JSON.stringify((await f.pool.query("SELECT code,summary FROM turns WHERE id=$1", [f.claim.id])).rows),
+    ).toBe(1);
     expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(1);
     expect(game.submits).toHaveLength(0);
     const restarted = await new Cognition(f.store).inspect(f.claim.agentId);
     expect(restarted.beliefs).toHaveLength(1);
     expect(restarted.reflections).toHaveLength(2);
+    expect(object(restarted.plan).status).toBe("active");
+    expect(object(restarted.plan).goal).toBe(update(f).plan.goal);
+    expect(object((restarted.beliefs as Data[])[0]).hypothesis).toBe(update(f).beliefs[0].hypothesis);
+    expect((restarted.reflections as Data[]).some((r) => r.outcomeRef === f.outcome)).toBe(true);
     expect(restarted.version).toBe(2);
     const events = (await new Observability(f.store).history(f.id)).turns[0].events;
     expect(events.find((event) => event.label === "LLM continuity delivered")?.detail?.recallPairDelivered).toBe(true);
+  });
+  it("refuses updates needing a paged belief or source and leaves stored history intact", async () => {
+    const f = await setup();
+    await f.support.apply(f.claim, 0, update(f), f.context);
+    f.advance(1000);
+    const reply = await f.support.capture(f.claim, "message", "new-reply", {
+      peerId: f.peer,
+      direction: "incoming",
+      gameTime: String(f.now().getTime()),
+      body: "I can discuss a cautious grain trial",
+    });
+    const full = await f.support.context(f.claim, [f.peer], reply, "Review the saved prediction"),
+      paged = { ...full, beliefs: [], subjectiveStateCoverage: { omittedBeliefs: 1 } };
+    const native = {
+      expectedVersion: 1,
+      analysis: {
+        type: "reassessment",
+        opportunity: "tested_prediction",
+        evidenceQuote: "I can discuss a cautious grain trial",
+        inferredMotive: "They may be willing to discuss limited terms",
+        alternativeMotive: "They may want to keep options open without a commitment",
+        confidence: "low",
+        assessment: "supported",
+      },
+    };
+    expect(analysisOpportunities(full).some((o) => o.type === "reassessment")).toBe(true);
+    expect(
+      new Ajv({ strict: false }).compile(analysisSchemaForVersion(1, paged))({
+        cognition: native,
+        decision: { kind: "wait", summary: "Review only delivered evidence" },
+      }),
+    ).toBe(false);
+    expect(() => normalizeAnalysis(native, paged)).toThrow("COGNITION_ANALYSIS_NOT_OFFERED");
+    await expect(
+      f.support.apply(
+        f.claim,
+        1,
+        {
+          expectedVersion: 1,
+          reflections: [{ outcomeRef: reply, revision: "The reply tests responsiveness only", evidenceRefs: [reply] }],
+        },
+        paged,
+      ),
+    ).rejects.toThrow("COGNITION_RECORDED_EXPECTATION_REQUIRED");
+    const withoutSource = { ...full, evidence: (full.evidence as Data[]).filter((e) => e.id !== f.evidence) };
+    await expect(
+      f.support.apply(
+        f.claim,
+        1,
+        {
+          expectedVersion: 1,
+          memories: [{ summary: "Cannot cite a paged source", importance: 2, evidenceRefs: [f.evidence] }],
+        },
+        withoutSource,
+      ),
+    ).rejects.toThrow("COGNITION_EVIDENCE_NOT_DELIVERED");
+    const stored = await new Cognition(f.store).inspect(f.claim.agentId);
+    expect(stored.version).toBe(1);
+    expect(stored.beliefs).toHaveLength(1);
+    expect(stored.reflections).toHaveLength(1);
+    expect(object(stored.plan).status).toBe("active");
+    expect((await f.pool.query("SELECT * FROM cognitive_updates")).rowCount).toBe(1);
   });
   it("reports size-only diagnostics and reserves no call when indispensable current facts cannot fit", async () => {
     const f = await setup(),
@@ -1055,13 +1155,17 @@ describe("LLM memory, plans and beliefs", () => {
     f.advance(15 * 60000);
     await engine.tick("test");
     expect(inputs).toHaveLength(2);
-    expect(inputs[0].schema).toEqual(
-      analysisSchemaForVersion(0, deliveredCognition(JSON.parse(inputs[0].messages[1].content))),
-    );
-    expect(inputs[1].schema).toEqual(
-      analysisSchemaForVersion(1, deliveredCognition(JSON.parse(inputs[1].messages[1].content))),
-    );
-    expect(JSON.parse(inputs[0].messages[1].content).decisionSchema).toEqual(analysisDecisionGuide);
+    for (const [index, input] of inputs.entries()) {
+      const check = new Ajv({ strict: false, validateFormats: false }).compile(input.schema);
+      const valid = {
+        cognition: { expectedVersion: index, analysis: { type: "none", reason: "No new evidence" } },
+        decision: { kind: "wait", summary: "Waiting" },
+      };
+      expect(check(valid)).toBe(true);
+      expect(check({ ...valid, cognition: { ...valid.cognition, expectedVersion: index + 1 } })).toBe(false);
+    }
+    expect(JSON.parse(inputs[0].messages[1].content).decisionSchema).toBeUndefined();
+    expect(JSON.parse(inputs[0].messages[1].content).analysisGuide).toEqual(analysisDecisionGuide);
     expect(object(JSON.parse(inputs[1].messages[1].content).cognition.plan).status).toBe("waiting");
     expect(game.submits).toHaveLength(0);
     expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(2);

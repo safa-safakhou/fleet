@@ -1,0 +1,9 @@
+# Closed decision source acceptance
+
+AR-F02 and AR-P02 / PACT-172 are source-verified on 15 October 2026. [Executable decisions](executable-decisions.md) describes exact action/read binding, selected schema lookup, single schema transport, local validation and catalog version handling. [Counterpart acceptance](../../pact/docs/implementation/reports/agent-reliability-contracts-20261015.md) records the joint controls and PACT dispatch semantics.
+
+Fleet check/build/boundaries, 116 unit and 169 integration tests pass. The four archived malformed-call shapes are negative controls; legitimate building, offer and generic second-game actions pass. The dense cognition fixture measures the actual 24 KB serialized envelope, retains accepted evidence order, explicitly reports paged optional subjective state and persists the new grounded reflection; eight UUID-order variations pass. PACT has 369 unit and 62 relevant integration passes, build/typecheck/lint and unchanged 26/26 v1 freeze.
+
+All tests use disposable isolated databases and fake providers. Real endpoint/schema qualification is gated under AR-F10; API-compatible transport does not claim the provider's strict-subset guarantee for this full schema. No deployments, running fleet changes or real model experiments occurred. AR-P03 / AR-F03 typed references are next.
+
+Additional delivery controls verify the accepted recall pair reaches the model in selected order with original source identity/time/kind and direction/peer or command/outcome linkage. Optional plan, belief and reflection omissions are explicit and those records remain stored. A fake-provider native reassessment requiring an omitted belief fails the delivered generation schema and normalization; canonical reflection with a missing prior expectation and memory citing an omitted source are refused without state/version mutation. The fixed serialized 24,000-byte cap is unchanged.

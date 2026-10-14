@@ -197,6 +197,18 @@ export const pactAdapter: GameAdapter = {
     const ambition = object(facts.world).ambition;
     return typeof ambition === "string" && ambition.trim() ? ambition : undefined;
   },
+  validateCatalog(tools) {
+    for (const tool of tools) {
+      const contract = object(object(tool._meta)["pact/operation"]);
+      if (
+        Object.keys(contract).length &&
+        (contract.catalogVersion !== "pact.operation-catalog.v1" ||
+          contract.name !== tool.name ||
+          contract.argumentContract !== tool.name)
+      )
+        throw new FleetError("SCHEMA_CHANGED");
+    }
+  },
   availableActions(facts, ownerPolicy) {
     const matrix = capabilityMatrix(facts, ownerPolicy);
     const excluded = matrix.filter((c) => c.blocked === "HUMAN_DECISION_REQUIRED").map((c) => c.kind);

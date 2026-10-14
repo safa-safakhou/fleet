@@ -3,9 +3,25 @@ export class RemoteRejection extends FleetError {
   constructor(
     code: string,
     readonly status: number,
+    readonly detail?: Data,
   ) {
     super(code);
   }
+}
+export function remoteValidationDetail(value: unknown): Data | undefined {
+  const detail = object(value);
+  if (typeof detail.schemaId !== "string" || !/^[A-Za-z][A-Za-z0-9_.:-]{0,99}$/.test(detail.schemaId)) return;
+  return {
+    schemaId: detail.schemaId,
+    errors: (Array.isArray(detail.errors) ? detail.errors : []).slice(0, 8).map((raw) => {
+      const e = object(raw);
+      return {
+        path: (Array.isArray(e.path) ? e.path : []).slice(0, 8).map((p) => String(p).slice(0, 80)),
+        code: typeof e.code === "string" && /^[A-Za-z_][A-Za-z0-9_]{0,79}$/.test(e.code) ? e.code : "validation_error",
+      };
+    }),
+    complete: detail.complete === true,
+  };
 }
 export function endpoint(value: string, allowHttp = false) {
   const u = new URL(value);
@@ -60,6 +76,7 @@ export async function jsonRequest(
               ? "REMOTE_REJECTED"
               : "TRANSPORT_UNCERTAIN",
       r.status,
+      remoteValidationDetail(object(data.error).detail),
     );
   }
   return { data, headers: r.headers };

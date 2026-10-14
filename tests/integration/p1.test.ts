@@ -1,3 +1,4 @@
+import { Ajv } from "ajv";
 import { afterEach, expect, it } from "vitest";
 import { type Data, object } from "../../src/domain.js";
 import { Observability } from "../../src/observability.js";
@@ -100,10 +101,14 @@ it("records sanitized invalid read arguments and field errors, permits correctio
   ]);
   await new Engine(f.store, model, async () => f.game, true).run(f.claim);
   const feedback = JSON.parse(model.inputs[1].messages[1].content).decisionFeedback[0];
-  expect(JSON.parse(model.inputs[0].messages[1].content).suppliedReadSchemas).toContainEqual({
-    name: "pact_world_read_v1",
-    inputSchema: (await f.game.tools()).find((t) => t.name === "pact_world_read_v1")?.inputSchema,
-  });
+  const generated = new Ajv({ strict: false, validateFormats: false }).compile(model.inputs[0].schema);
+  expect(generated({ kind: "read", tool: "pact_world_read_v1", args: { forecastMinutes: 15 }, summary: "Read" })).toBe(
+    true,
+  );
+  expect(generated({ kind: "read", tool: "pact_world_read_v1", args: { forecastMinutes: 99 }, summary: "Read" })).toBe(
+    false,
+  );
+  expect(JSON.parse(model.inputs[0].messages[1].content).suppliedReadSchemas).toBeUndefined();
   expect(feedback.inputSchema).toEqual(
     (await f.game.tools()).find((t) => t.name === "pact_world_read_v1")?.inputSchema,
   );

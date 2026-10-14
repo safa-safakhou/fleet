@@ -136,6 +136,7 @@ export interface Tool {
   description?: string;
   inputSchema: Data;
   annotations?: { readOnlyHint?: boolean };
+  _meta?: Data;
 }
 export interface GamePort {
   profile(): Promise<{ accountId: string; entityId?: string }>;
