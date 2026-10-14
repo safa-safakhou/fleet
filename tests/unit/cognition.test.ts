@@ -511,3 +511,54 @@ describe("cognitive decision contracts", () => {
     expect(context.cognition.evidence[0]).toEqual(current);
   });
 });
+
+it("omits oversized subjective continuation only from the input while retaining world identities, authority and the accepted Laya evidence pair", () => {
+  const context = {
+    environment: {
+      profile: { kingdomId: "owned" },
+      mandate: { allowedActions: [] },
+      publicDiscovery: {
+        players: [
+          {
+            kingdomId: "global",
+            handle: "peer",
+            communication: { route: "introduction_required", agentActivity: { signal: "unknown" } },
+          },
+        ],
+      },
+    },
+    cognition: {
+      version: 7,
+      currentEvidenceId: "current",
+      plan: { goal: "historical intention ".repeat(4000), status: "active" },
+      beliefs: [],
+      reflections: [],
+      evidence: [
+        { id: "current", kind: "observation", detail: { peerFacts: [], asOfGameTimeMs: 1 } },
+        {
+          id: "a",
+          kind: "message",
+          detail: { peerId: "peer", direction: "incoming", excerpt: "Observed statement A" },
+        },
+        {
+          id: "b",
+          kind: "message",
+          detail: { peerId: "peer", direction: "incoming", excerpt: "Observed statement B" },
+        },
+      ],
+      recall: { route: "laya-recall-v1", candidateIds: ["a", "b"], selectedId: "b" },
+    },
+  };
+  const original = structuredClone(context);
+  const messages = fitMessages(context, "Choose freely", {}, 4000, boundedReads, narrowRead, compactEnvironment);
+  const delivered = JSON.parse(messages[1].content);
+  expect(delivered.cognition.subjectiveStateCoverage.planOmitted).toBe(true);
+  expect(delivered.cognition.plan).toBeUndefined();
+  expect(delivered.cognition.version).toBe(7);
+  expect(delivered.cognition.evidence.map((e: { id: string }) => e.id)).toEqual(["current", "a", "b"]);
+  expect(delivered.cognition.recall.candidateIds).toEqual(["a", "b"]);
+  expect(delivered.environment.publicDiscovery.players[0].kingdomId).toBe("global");
+  expect(delivered.environment.mandate).toEqual(context.environment.mandate);
+  expect(Buffer.byteLength(JSON.stringify(messages))).toBeLessThanOrEqual(4000);
+  expect(context).toEqual(original);
+});

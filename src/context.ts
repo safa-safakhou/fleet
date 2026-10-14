@@ -357,6 +357,30 @@ export function fitMessages(
     fitted = pack(candidate);
     if (fitted) return fitted;
   }
+  // Persisted subjective intentions are not current authority. As a final
+  // packing fallback, omit their whole optional records from this input only;
+  // never erase history or remove protected evidence/the accepted recall pair.
+  const continuation = object(candidate.cognition);
+  candidate = {
+    ...candidate,
+    cognition: {
+      ...continuation,
+      reduced: true,
+      plan: undefined,
+      beliefs: [],
+      reflections: [],
+      subjectiveStateCoverage: {
+        planOmitted: continuation.plan !== undefined && continuation.plan !== null,
+        omittedBeliefs: Array.isArray(continuation.beliefs) ? continuation.beliefs.length : 0,
+        omittedReflections: Array.isArray(continuation.reflections) ? continuation.reflections.length : 0,
+        notice:
+          "Stored subjective state omitted from this input only, not cleared or completed. Current facts and protected evidence remain; missing intentions are unknown.",
+      },
+    },
+  };
+  fitted = pack(candidate);
+  if (fitted) return fitted;
+
   // Fail before reserving inference if indispensable facts and continuity cannot
   // fit. Raising budgets or silently discarding the accepted pair is not a fix.
   throw new FleetError("CONTEXT_LIMIT");
