@@ -59,3 +59,30 @@ Fixed cutoff **14:45:35 UTC /16:45:35 Berlin**: every one of the **twenty origin
 No communication was observed in this window. Normal shape/permission refusals remain recorded and the agents continue under the same authority; no owner exception was granted to conceal them. Cognition continuity reached all ten agents and was delivered fifteen times. One source-grounded reflection was accepted, zero peer-belief revisions, one real Laya abstention and zero accepted/delivered Laya orderings. The helper remained healthy with zero unavailable telemetry. These are transport/accounting/continuity results and mixed early game decisions, not evidence of a winner, superior intelligence or Laya benefit.
 
 Both console/helper health endpoints passed, all three source-pinned services have active PIDs (console 52045, worker 55523, helper 54060), and the Windows keepalive task is Running. Protected `state/first-round.json` retains this exact cutoff and `backups/first-round.dump` retains appended history. The earlier restore proof remains pre-launch evidence; no live database was restored or runtime restarted after launch. User can open the local console and pause either group individually; permanent Stop is terminal. Completed source and launch documentation are committed locally before handoff.
+
+## Founder-requested progress review — 17:20 Berlin
+
+Founder requested checking communication, progress and whether cognition/Laya makes better decisions. Inspection at **2026-10-14T15:20:25.210Z /17:20:25 Berlin**, approximately 41 minutes after launch, found both groups running, all twenty account/credential bindings ready and configuration still matching the original template. Both had **82 finished turns**; one additional LLM-only turn/call was in flight. There were zero unknown-usage ledger rows and zero pending commands. This review injected no model call/game commitment and changed no model, schedule, permission, account or cohort state.
+
+| Recorded measure | LLM only | Cognition/Laya |
+| --- | --- | --- |
+| Committed game actions | 35 | 20 |
+| Building queue commitments | 19 | 14 |
+| Completed building level increments in fresh owned views | 10 | 11 |
+| Kingdoms with at least one completed increment | 6 | 7 |
+| Message sends with committed receipts | 8 | 1 |
+| Agents seen participating in message exchanges | 5 | 2 |
+| Contact-answer commitments | 4 | 1 |
+| Currently waiting construction instructions | 6 | 2 |
+| Rejected action shapes before submission | 32 | 41 |
+| Current contracts | 0 | 0 |
+
+All twenty normal authenticated world/guide reads succeeded between 15:20:25 and 15:20:27 UTC and returned an active world. Completed increments are summed from the newly founded kingdoms' starting level-one buildings; queue admission is kept separate from completion. One of LLM-only's six waiting instructions has ready building prerequisites, so six must not be presented as six missing-prerequisite cases. Five LLM-only and two cognition instructions wait on Hall prerequisites requiring Barracks level 2. Active construction slots were three versus one at this snapshot. No inference that idle agents are strategically wrong is made from slot occupancy alone.
+
+The eight LLM-only messages are eight distinct sources, represented by eight outgoing/eight incoming observations across five participating agents, with four distinct senders. Cognition has one distinct message source, one outgoing/one incoming observation across two agents. Incoming/outgoing observation copies are not counted as sixteen/two separate sends. Normal read coverage and thirty-day retention apply; no binding supply agreement exists in any current owned world view. Communication is occurring, but this does not yet establish successful trading or coordination quality.
+
+Cognition continuity was delivered **124 times**. **18 accepted Laya orderings were actually delivered**, **88 assists abstained** and **one assist was unavailable with fallback**; remaining decisions need not have an eligible two-candidate pair. The model saved **24 reflections and three peer-belief revisions**; current state has two retained belief entries and eight non-null plan entries, including a plan whose goal is simply None. These field counts are not an intelligence score. Laya selects between existing recall candidates; it does not directly select gameplay actions.
+
+Decision quality remains mixed. Cognition proposals still include nonexistent/misspelled command names, missing target identifiers, extra fields and forbidden messages/scouting. A concrete saved reflection correctly records a message as FORBIDDEN/not committed, but its next step is still to wait for a peer response. Another plan waits on Hall completion while its current owned view shows the missing Barracks prerequisite. Basic-controller proposals also fail shapes and get stuck on construction. These are evidence of shallow or inconsistent reasoning despite persisted analysis, not merely absent memory. No private message text is included in this report.
+
+The measured outcome supports **similar early construction progress, stronger LLM-only communication/activity, and no demonstrated overall cognition/Laya decision advantage yet**. It does not prove Laya harms play: the added arm combines cognition and recall, shared-world interactions and different initial timings can confound comparisons, action counts do not measure utility, and this is only one short ten-plus-ten observation. Protected exact evidence: `state/inspection-20261014-private.json` and `state/current-worlds-private.json` in the installation root. Neither raw correspondence nor these private artifacts is committed. One initial inspection query used wrong communication column names and was corrected; an initial PowerShell decoder rejected case-distinct decision labels and was replaced with case-preserving decoding. Neither diagnostic error changed runtime/game state.
