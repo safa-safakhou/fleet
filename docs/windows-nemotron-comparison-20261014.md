@@ -96,3 +96,27 @@ The checked controller pages contained only own-fleet identities. An ordinary di
 Agents receive public identities through their normal decision context, can infer matching name prefixes, then independently request contact and send game messages. Account-bound notes/cognitive memory are separate; no shared private memory, pre-created relationship, forced social action or cross-account credential access is provided. Other kingdoms are accessible through ordinary broader reads, but the default legacy context preferentially supplies own-fleet peers. The newly implemented worldwide discovery branch cannot help until the game exposes its supported tool.
 
 Earlier communication counts consequently describe a comparison with this **shared cohort-biased discovery condition**, not evidence of autonomous exploration across the whole world. The appropriate correction is a verified worldwide rotating legacy shortlist or deployment/readback of the already implemented scoped discovery interface, applied equally while retaining both fleets' exact accounts, budgets, counters and original five-minute anchor. This diagnostic turn changed no runtime release, gameplay, permission, account or schedule. Protected evidence: installation `state/discovery-diagnosis.json`; no correspondence is included in this source report.
+
+
+## Founder-requested outcome check — 19:09 Berlin, 14 October
+
+Repeatable-read Fleet snapshot: **2026-10-14T17:09:30.065Z**. All twenty fresh authenticated world/guide reads succeeded at **2026-10-14T17:09:31.764Z**, with every kingdom's world active. Both cohorts remain running, all ten agents each are ready, original five-minute anchors/guidance/model settings remain, and the observed run has no unknown allocation or pending command. This observation submitted no game command, inference, restart, review/reset or schedule change.
+
+**Neither fleet has established communication outside its own cohort.** The complete command archive contains zero committed outside contact requests or message sends; retained conversations, current accepted contacts and pending introductions also map to own-fleet kingdoms. No cross-local-fleet dialogue is confirmed either. Worldwide access and input delivery are working: each of all twenty agents has received outside identities, and every fitted input in the final-runtime window contains candidates. The discovery release supplies possibilities; it has not caused the models to form new external relationships. Earlier acceptance should not be read as behavioral certification.
+
+The matched observation window below starts at the final runtime's 16:32:03.500 UTC resumption and ends at the Fleet snapshot. Counting queue admission separately from completion:
+
+| Recent observation | LLM only | Cognition + Laya |
+| --- | ---: | ---: |
+| Finished turns | 75 | 75 |
+| Model decisions | 104 | 101 |
+| Committed new construction orders | 5 | 2 |
+| New message sends | 0 | 0 |
+| Rejected action shapes before submission | 9 | 44 |
+| Turns ending at the input limit | 0 | 8 |
+
+Against the fresh 16:11 UTC discovery-verification world baseline, completed building level increments increased by **2 versus 1**, affecting two versus one kingdoms. All twenty Halls remain level 1 and there are zero current contracts. The latest world snapshot shows **13 versus 5 waiting construction instructions** (plus one active LLM-only instruction). Some waiting orders list missing building prerequisites; others report ready prerequisites, so waiting cannot all be explained as missing prerequisites without deeper settlement diagnosis. More queue commitments are not equivalent to completed progression.
+
+There is **no demonstrated Laya decision advantage**. In the matched window, 18 accepted Laya recall pairs reached the model, 78 assists abstained and 5 were unavailable; deterministic fallback retained decisions. Laya only orders evidence recall and the same Nemotron model still selects game actions. The cognition arm has more format failures and recurring context-fit failures, while the LLM-only arm currently progresses somewhat further. This is an observational comparison of cognition plus Laya, not an isolated causal test of Laya. Existing plans/reflections alone do not establish useful planning or successful bargaining.
+
+Concrete follow-up needs: growing cognition input pressure under the unchanged cap, shared exact-command adherence, construction waiting/settlement diagnosis, and assessing whether owner-driven reasoning uses discovered opportunities. Do not solve missing external dialogue by forcing a partner class or message quota. Private proofs: `review-window-rows-private.json`, `review-window-metrics.json`, `review-worlds-private.json`, `review-progression-metrics.json` and `review-fleets-private.json`. No correspondence or private runtime material is committed.
