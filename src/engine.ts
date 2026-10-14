@@ -682,6 +682,24 @@ export class Engine {
         actions++;
         reads.push({ commandId: id, action: decision.action, receipt, source });
         if (!["COMMITTED", "ALREADY_COMMITTED"].includes(lastCode)) break;
+        const resolved = decisionFeedback.filter(
+          (feedback) =>
+            feedback.actionKind === decision.action.kind &&
+            ["INVALID_GAME_ACTION", "OBSERVED_MANDATE_VERSION_MISMATCH"].includes(String(feedback.code)),
+        );
+        if (resolved.length) {
+          decisionFeedback.splice(
+            0,
+            decisionFeedback.length,
+            ...decisionFeedback.filter((feedback) => !resolved.includes(feedback)),
+          );
+          await this.store.rememberDecisionFeedback(claim, decisionFeedback.at(-1) ?? null);
+          await observation.record(claim, "ready", "Prior input rejection resolved by a committed action", {
+            actionKind: decision.action.kind,
+            resolvedCodes: resolved.map((feedback) => feedback.code),
+            meaning: "Old rejection history retained; resolved input feedback omitted from subsequent decisions.",
+          });
+        }
         const peer = this.adapter.actionPeer(action);
         if (peer) await observePeer(peer);
         await this.store.active(claim);

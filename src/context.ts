@@ -183,6 +183,20 @@ export function fitMessages(
       memoryRead: context.memoryRead
         ? { name: object(context.memoryRead).name, args: object(context.memoryRead).args }
         : undefined,
+      commandResults: (Array.isArray(context.commandResults) ? context.commandResults.map(object) : []).map(
+        (result) => {
+          const receipt = object(result.receipt);
+          if (typeof receipt.code !== "string") return result;
+          return {
+            commandId: result.commandId,
+            actionKind: result.actionKind,
+            outcomeSource: result.outcomeSource,
+            receipt: { code: receipt.code },
+            receiptCoverage:
+              "Exact recorded code; other receipt details omitted, not unchanged. Initial environment may predate this command; re-read current state before dependent moves.",
+          };
+        },
+      ),
       decisionFeedback: (Array.isArray(context.decisionFeedback) ? context.decisionFeedback.map(object) : []).map(
         (item) => {
           const { schemaDigest: _digest, ...fields } = item;

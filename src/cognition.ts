@@ -210,7 +210,11 @@ type Dated<T> = T & { updatedAt: string };
 export type CognitiveState = {
   plan: Dated<z.infer<typeof Plan>> | null;
   beliefs: (Dated<z.infer<typeof Belief>> & { predictionRecordedAt?: string })[];
-  reflections: (Dated<z.infer<typeof Reflection>> & { expected: string; observed: string })[];
+  reflections: (Dated<z.infer<typeof Reflection>> & {
+    expected: string;
+    observed: string;
+    reviewProtocol?: "observed-first";
+  })[];
 };
 export type Episode = { id: string; at: string; kind: string; detail: Data };
 export function episodeText(episode: Episode) {
@@ -238,6 +242,8 @@ export function beliefCue(episode: Episode, kind: string) {
   return value.startsWith(prefix) ? value.slice(prefix.length) : value;
 }
 export function isWorldResult(episode: Episode) {
+  const code = String(object(episode.detail.receipt).code ?? episode.detail.code);
+  if (["INVALID_COMMAND", "INVALID_GAME_ACTION", "OBSERVED_MANDATE_VERSION_MISMATCH"].includes(code)) return false;
   return (
     episode.kind === "message" ||
     (episode.kind === "receipt" && ["receipt", "explicit_rejection"].includes(String(episode.detail.source)))
@@ -726,9 +732,12 @@ export class Cognition {
       recallStatus.route === "laya-recall-v1",
     );
     const evidence = selected.map((e) => ({ ...e, detail: compactEpisode(e) }));
-    const groundedBeliefs = state.beliefs.filter((b) => b.basis && b.test);
+    const groundedBeliefs = state.beliefs.filter((b) => b.basis && b.test && b.evidenceQuote);
     const groundedReflections = state.reflections.filter(
-      (r) => r.outcomeRef && episodes.some((e) => e.id === r.outcomeRef && isWorldResult(e)),
+      (r) =>
+        r.outcomeRef &&
+        r.reviewProtocol === "observed-first" &&
+        episodes.some((e) => e.id === r.outcomeRef && isWorldResult(e)),
     );
     const beliefs = [...groundedBeliefs]
       .sort(
@@ -893,7 +902,9 @@ export class Cognition {
         );
         if (!inserted.rowCount) continue;
         reflectionsAdded++;
-        state.reflections.push({ ...r, updatedAt });
+        const echoed =
+          update.reflections?.find((proposal) => proposal.outcomeRef === r.outcomeRef)?.observed !== undefined;
+        state.reflections.push({ ...r, updatedAt, ...(echoed ? { reviewProtocol: "observed-first" as const } : {}) });
       }
       state.reflections = state.reflections.slice(-8);
       const changed = JSON.stringify(state) !== beforeState || !!update.memories?.length;
@@ -998,11 +1009,11 @@ export class Cognition {
       ...state,
       beliefs: state.beliefs.map((b) => ({
         ...b,
-        grounding: b.basis && b.test ? "source_checked_subjective" : "legacy_unverified",
+        grounding: b.basis && b.test && b.evidenceQuote ? "source_checked_subjective" : "legacy_unverified",
       })),
       reflections: state.reflections.map((r) => ({
         ...r,
-        grounding: r.outcomeRef ? "recorded_outcome" : "legacy_unverified",
+        grounding: r.outcomeRef && r.reviewProtocol === "observed-first" ? "recorded_outcome" : "legacy_unverified",
       })),
       latestReview,
       latestReviewResult: actual

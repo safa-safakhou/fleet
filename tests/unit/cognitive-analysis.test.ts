@@ -54,6 +54,47 @@ const belief = {
 };
 
 describe("native analysis grounded in final delivery", () => {
+  it("fits a successful command's large receipt beside growing continuity without claiming omitted effects", () => {
+    const receipt = {
+      ...outcome,
+      detail: { ...outcome.detail, code: "COMMITTED", source: "receipt", committed: true },
+    };
+    const cognition = {
+      ...context,
+      nativeAnalysis: true,
+      evidence: [current, incoming, receipt],
+      latestReceiptId: receipt.id,
+      analysisEvidenceIds: [incoming.id, receipt.id],
+      plan: {
+        goal: "Retain a cautious trade plan".repeat(8),
+        steps: ["Read the next reply"],
+        status: "waiting",
+        reconsiderWhen: "When new evidence changes supply".repeat(8),
+        evidenceRefs: [incoming.id],
+      },
+    };
+    const wholeReceipt = { code: "COMMITTED", result: { opaqueDetails: "x".repeat(14000) } };
+    const prompt = {
+      environment: { core: "x".repeat(2000) },
+      cognition,
+      commandResults: [
+        {
+          commandId: receipt.detail.commandId,
+          actionKind: receipt.detail.actionKind,
+          outcomeSource: "receipt",
+          receipt: wholeReceipt,
+        },
+      ],
+    };
+    const messages = fitMessages(prompt, "Use observed facts", analysisSchemaForVersion(2, cognition), 11000, () => []);
+    const fitted = JSON.parse(messages[1].content);
+    expect(fitted.commandResults[0].receipt).toEqual({ code: "COMMITTED" });
+    expect(fitted.commandResults[0].receiptCoverage).toContain("omitted, not unchanged");
+    expect(fitted.cognition.plan).toEqual(cognition.plan);
+    expect(fitted.cognition.evidence.some((e: typeof receipt) => e.id === receipt.id)).toBe(true);
+    expect(prompt.commandResults[0].receipt).toEqual(wholeReceipt);
+    expect(Object.keys(fitted).at(-1)).toBe("cognition");
+  });
   it("keeps the peer basis and recorded result usable when duplicated details are linked out to fit", () => {
     const observation = {
       ...current,
@@ -167,6 +208,7 @@ describe("native analysis grounded in final delivery", () => {
       { ...outcome.detail, intent: "" },
       { ...outcome.detail, committed: true },
       { ...outcome.detail, source: "controller_rejection", submitted: false },
+      { ...outcome.detail, code: "INVALID_COMMAND" },
     ])
       expect(
         analysisOpportunities({ ...context, evidence: [current, { ...outcome, detail }] }).some(
@@ -203,6 +245,7 @@ describe("native analysis grounded in final delivery", () => {
       analysis: {
         type: "reassessment",
         opportunity: "tested_prediction",
+        evidenceQuote: "cannot guarantee delivery",
         hypothesis: "They respond to offers but supply remains unverified",
         alternative: "They may be keeping negotiations open without stock",
         confidence: "low",

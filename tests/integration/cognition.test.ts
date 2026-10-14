@@ -65,6 +65,7 @@ function update(f: Awaited<ReturnType<typeof setup>>) {
         alternative: "One timely shipment could be luck",
         confidence: "low",
         prediction: "They will reply to discuss a small grain trial",
+        evidenceQuote: "promised grain arrived",
         basis: { sourceId: f.evidence, kind: "statement" },
         test: { kind: "reply", afterGameTimeMs: f.now().getTime(), byGameTimeMs: f.now().getTime() + 3600000 },
         assessment: "untested",
@@ -74,6 +75,7 @@ function update(f: Awaited<ReturnType<typeof setup>>) {
     reflections: [
       {
         outcomeRef: f.outcome,
+        observed: "game.message.send: COMMITTED; command committed; later completion unknown.",
         revision: "Consider a small trial, while retaining uncertainty",
         evidenceRefs: [f.outcome],
       },
@@ -82,6 +84,59 @@ function update(f: Awaited<ReturnType<typeof setup>>) {
   };
 }
 describe("LLM memory, plans and beliefs", () => {
+  it("stops carrying a resolved input rejection after the same action kind commits, retaining its history", async () => {
+    const f = await setup(),
+      game = new FakeGame(f.claim);
+    await f.store.rememberDecisionFeedback(f.claim, {
+      code: "INVALID_GAME_ACTION",
+      actionKind: "game.building.queue",
+      guidance: "Earlier queue shape rejected",
+    });
+    f.claim.agent = await f.store.agent(f.claim.agentId);
+    const inputs: Data[] = [];
+    const model: ModelPort = {
+      decide: async (input) => {
+        inputs.push(JSON.parse(input.messages[1].content));
+        return {
+          decision:
+            inputs.length === 1
+              ? {
+                  kind: "action",
+                  summary: "Queue the farm with its exact slot",
+                  action: { kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 1 },
+                }
+              : { kind: "wait", summary: "Observe its actual completion later" },
+          inputTokens: 500,
+          outputTokens: 100,
+        };
+      },
+    };
+    await new Engine(f.store, model, async () => game, true, pactAdapter, undefined, undefined, f.support).run(f.claim);
+    expect(inputs).toHaveLength(2);
+    expect(inputs[0].decisionFeedback).toHaveLength(1);
+    expect(inputs[1].decisionFeedback).toEqual([]);
+    expect(game.submits).toHaveLength(1);
+    expect(
+      (await new Observability(f.store).history(f.id)).turns[0].events.some(
+        (e) => e.label === "Prior input rejection resolved by a committed action",
+      ),
+    ).toBe(true);
+  });
+  it("retains older unanchored judgments in inspection/history while withholding them from native continuity", async () => {
+    const f = await setup(),
+      old = update(f);
+    delete (old.beliefs[0] as Data).evidenceQuote;
+    delete (old.reflections[0] as Data).observed;
+    await f.support.apply(f.claim, 0, old, f.context);
+    const view = await f.support.context(f.claim, [f.peer], f.evidence, "trade");
+    expect(view.beliefs).toEqual([]);
+    expect(view.reflections).toEqual([]);
+    const inspected = await f.support.inspect(f.claim.agentId);
+    expect(inspected.beliefs).toHaveLength(1);
+    expect(inspected.reflections).toHaveLength(1);
+    expect((inspected.beliefs as Data[])[0].grounding).toBe("legacy_unverified");
+    expect((await f.pool.query("SELECT * FROM cognitive_updates")).rowCount).toBe(1);
+  });
   it("rejects ambiguous mixed envelopes with known usage and without saving cognition or submitting a command", async () => {
     const f = await setup(),
       game = new FakeGame(f.claim);
@@ -292,6 +347,7 @@ describe("LLM memory, plans and beliefs", () => {
     const supported = {
       ...belief,
       assessment: "supported",
+      evidenceQuote: "discuss the small trial",
       basis: { kind: "reply", sourceId: reply },
       evidenceRefs: [reply],
     };
@@ -340,7 +396,17 @@ describe("LLM memory, plans and beliefs", () => {
         f.context,
       ),
     ).rejects.toThrow("COGNITION_RECORDED_EXPECTATION_REQUIRED");
-    await f.support.apply(f.claim, 0, { expectedVersion: 0, reflections: [reflection] }, f.context);
+    await f.support.apply(
+      f.claim,
+      0,
+      {
+        expectedVersion: 0,
+        reflections: [
+          { ...reflection, observed: "game.message.send: COMMITTED; command committed; later completion unknown." },
+        ],
+      },
+      f.context,
+    );
     const saved = (await f.support.inspect(f.claim.agentId)).reflections as Data[];
     expect(saved[0]).toMatchObject({
       expected: "Ask for a small grain trial",
@@ -806,6 +872,7 @@ describe("LLM memory, plans and beliefs", () => {
             confidence: "low",
             assessment: "unresolved",
             hypothesis: "The peer now expresses uncertainty about supply",
+            evidenceQuote: "cannot promise reliable supply",
             basis: { sourceId: newer, kind: "statement" },
             evidenceRefs: [newer],
           },

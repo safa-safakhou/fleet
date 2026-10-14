@@ -41,6 +41,14 @@ The actual pinned 4B Q4_K_M model uses `RENDERER nemotron-3-nano`/`PARSER nemotr
 
 Final source verification is **99 unit + 149 integration = 248 passing Linux tests**, including exact result-literal and mixed-envelope regressions; checks/build/boundaries pass and production audit reports zero vulnerabilities. Reconstructed inputs fit within the original 24,000-byte allowance, with peer cues for Agents 01/04. Live intelligence remains subject to the actual final native judgments below.
 
+## Native post-commit growth correction
+
+On `9b85867`, actual output telemetry confirmed `cognition` before `decision`. Agent 04 committed one action but its next input hit `CONTEXT_LIMIT` as the plan/receipt grew; no second call was reserved and no command remained pending. Agent 01 also saved an exact-cue, source-linked alliance-interest hypothesis, a probing-interest alternative and a sixty-game-minute reply prediction. This is a concrete untested interpretation; subjective risk/confidence and response forecasts are not verified relationships.
+
+The final correction preserves complete encrypted receipts/history while permitting an explicitly incomplete **model-input** projection of the exact recorded receipt code. It withholds older unquoted beliefs and non-echoed reviews from native continuity, with legacy labels in inspection; historical rows are not rewritten. New reflections echo the offered observed result into the canonical checked update and retain an observed-first review marker. Schema/version input feedback is cleared only after a confirmed commit of that same action kind; original rejection events remain. Wire-format errors, even returned by a game endpoint, are execution feedback rather than world-learning opportunities. Reassessment requires a quote from the new reply, not reuse of an earlier quote.
+
+Regression coverage includes a large successful receipt beside a growing full plan, old judgments retained in inspection but withheld from the model, resolved-input feedback and quote changes on later evidence. Final verification: **100 unit + 151 integration = 251 Linux tests passed**, checks/build/boundaries pass, production audit zero vulnerabilities. Reconstructed inputs, including Agent 04's successful receipt and enlarged plan, fit the original 24,000-byte allowance.
+
 ## Deployment status
 
-Final cognition-first correction pending source verification and same-cohort native acceptance. The cohort is quiescently paused; no call or pending game command was cancelled. Protected evidence is stored outside Git in this installation's `state/cognition-usability-20261014` directory.
+Final growth correction pending source verification and same-cohort native acceptance. The cohort is quiescently paused; no call or pending game command was cancelled. Protected evidence is stored outside Git in this installation's `state/cognition-usability-20261014` directory.

@@ -83,6 +83,7 @@ export function analysisOpportunities(delivered: Data): Opportunity[] {
         sourceId: reply.id,
         peerId: prior.peerId,
         basisKind: "reply",
+        statement: beliefCue(reply, "reply").slice(0, 180),
         expected: prior.prediction,
         observed:
           "Incoming statement within the saved reply window; content is peer claim, not verified delivery/agreement.",
@@ -140,6 +141,7 @@ const Reassessment = z
   .object({
     type: z.literal("reassessment"),
     opportunity: z.literal("tested_prediction"),
+    evidenceQuote: z.string().trim().min(8).max(120),
     hypothesis: prose,
     alternative: prose,
     confidence: z.enum(["low", "medium"]),
@@ -154,7 +156,7 @@ export const analysisDecisionGuide = {
   decision:
     "Return {cognition,decision} in that order. decision is one wait/read/action with summary; action arguments directly in decision.action.",
   cognition:
-    "expectedVersion=cognition.version; analysis required. Use one offered key: belief {type,opportunity,evidenceQuote,hypothesis,alternative,expectedInteraction,confidence:low|medium,predictedEvent:reply|agreement,reviewAfterMinutes:15..1440}; reflection {type,opportunity,observedFact,difference,lesson,nextStep}; reassessment {type,opportunity,hypothesis,alternative,confidence:low|medium,assessment:supported|unresolved}; or none {type,reason}. Fleet supplies IDs/time/verified result. Optional plan {goal,steps,status,reconsiderWhen,evidenceRefs}, memories [{summary,importance,evidenceRefs}]; omit unchanged fields.",
+    "expectedVersion=cognition.version; analysis required. Use one offered key: belief {type,opportunity,evidenceQuote,hypothesis,alternative,expectedInteraction,confidence:low|medium,predictedEvent:reply|agreement,reviewAfterMinutes:15..1440}; reflection {type,opportunity,observedFact,difference,lesson,nextStep}; reassessment {type,opportunity,evidenceQuote,hypothesis,alternative,confidence:low|medium,assessment:supported|unresolved}; or none {type,reason}. Fleet supplies IDs/time/verified result. Optional plan {goal,steps,status,reconsiderWhen,evidenceRefs}, memories [{summary,importance,evidenceRefs}]; omit unchanged fields.",
 };
 export const analysisInstructions =
   "Return cognition before decision: inspect prior evidence before selecting a new move. Reflection observedFact must copy the offered observed result exactly. Use offered analysisOpportunities only. Peer: copy exact evidenceQuote from statement. Give a cautious motive hypothesis and competing explanation. expectedInteraction is specific future reply/agreement content, not confidence metadata or your upgrade. A greeting does not establish an ally or building commitment. Result: difference compares recorded intention and observed result; not submitted means no action occurred, a commit does not prove later completion; lesson explains its consequence; nextStep follows. Example: 'already linked' confirms a link, not cooperation; another request won't test interest; read the exchange and ask a concrete question. Explain this result, not an unrelated recalled action. Prior hypotheses may be wrong. For tested_prediction, a reply tests responsiveness, not reliability. Choose none when no new insight: repeating an intention is not reflection. Keep useful plans. No hidden reasoning.";
@@ -220,6 +222,7 @@ export function normalizeAnalysis(raw: unknown, delivered: Data): unknown {
     update.reflections = [
       {
         outcomeRef: opportunity.sourceId,
+        observed: analysis.observedFact,
         revision: `${analysis.difference} So: ${analysis.lesson} Next: ${analysis.nextStep}`,
         evidenceRefs: [opportunity.sourceId],
       },
@@ -233,6 +236,7 @@ export function normalizeAnalysis(raw: unknown, delivered: Data): unknown {
     update.beliefs = [
       {
         ...belief,
+        evidenceQuote: analysis.evidenceQuote,
         hypothesis: analysis.hypothesis,
         alternative: analysis.alternative,
         confidence: analysis.confidence,
