@@ -5,6 +5,7 @@ const core = [
   "context",
   "decision",
   "cognition",
+  "cognitive-analysis",
   "laya",
   "game",
   "domain",

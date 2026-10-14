@@ -198,13 +198,17 @@ export function deliveredCognition(context: Data): Data {
       ...(Array.isArray(current.knownPeerIds) ? current.knownPeerIds : []),
       ...(Array.isArray(recalled.knownPeerIds) ? recalled.knownPeerIds : []),
     ],
+    reflectedOutcomeIds: [
+      ...(Array.isArray(current.reflectedOutcomeIds) ? current.reflectedOutcomeIds : []),
+      ...(Array.isArray(recalled.reflectedOutcomeIds) ? recalled.reflectedOutcomeIds : []),
+    ],
   };
 }
 export type Update = z.infer<typeof CognitiveUpdate>;
 type Dated<T> = T & { updatedAt: string };
 export type CognitiveState = {
   plan: Dated<z.infer<typeof Plan>> | null;
-  beliefs: Dated<z.infer<typeof Belief>>[];
+  beliefs: (Dated<z.infer<typeof Belief>> & { predictionRecordedAt?: string })[];
   reflections: (Dated<z.infer<typeof Reflection>> & { expected: string; observed: string })[];
 };
 export type Episode = { id: string; at: string; kind: string; detail: Data };
@@ -325,14 +329,17 @@ export function rankEpisodes(episodes: Episode[], query: string, peerIds: string
 function sameDeclaration(a: unknown, b: unknown) {
   const declaration = (v: unknown) => {
     if (!v) return v;
-    const { updatedAt: _date, ...fields } = object(v);
+    const { updatedAt: _date, predictionRecordedAt: _predictionDate, ...fields } = object(v);
     if (Array.isArray(fields.evidenceRefs)) fields.evidenceRefs = [...new Set(fields.evidenceRefs)].sort();
     return fields;
   };
   return JSON.stringify(declaration(a)) === JSON.stringify(declaration(b));
 }
-function gameTime(episode: Episode) {
-  const value = Number(episode.detail.gameTime ?? episode.detail.asOfGameTimeMs);
+export function gameTime(episode: Episode) {
+  const raw = episode.detail.gameTime ?? episode.detail.asOfGameTimeMs;
+  if ((typeof raw !== "number" && typeof raw !== "string") || (typeof raw === "string" && !raw.trim()))
+    return undefined;
+  const value = Number(raw);
   return Number.isSafeInteger(value) && value >= 0 ? value : undefined;
 }
 function peerFact(episode: Episode, peerId: string, kind: string) {
@@ -383,6 +390,8 @@ function validateBeliefs(
       if (
         belief.assessment === "contradicted" ||
         !sameTest ||
+        !prior ||
+        Date.parse(source.at) <= Date.parse(prior.predictionRecordedAt ?? prior.updatedAt) ||
         basis.kind !== test.kind ||
         at === undefined ||
         at <= test.afterGameTimeMs ||
@@ -392,7 +401,7 @@ function validateBeliefs(
     }
   }
 }
-function testedReply(source: Episode, beliefs: CognitiveState["beliefs"]) {
+export function testedReply(source: Episode, beliefs: CognitiveState["beliefs"]) {
   const at = gameTime(source);
   if (source.kind !== "message" || source.detail.direction !== "incoming" || at === undefined) return undefined;
   return beliefs.find(
@@ -400,11 +409,12 @@ function testedReply(source: Episode, beliefs: CognitiveState["beliefs"]) {
       belief.basis &&
       belief.peerId === source.detail.peerId &&
       belief.test?.kind === "reply" &&
+      Date.parse(source.at) > Date.parse(belief.predictionRecordedAt ?? belief.updatedAt) &&
       at > belief.test.afterGameTimeMs &&
       at <= belief.test.byGameTimeMs,
   );
 }
-function groundReflection(
+export function groundReflection(
   reflection: NonNullable<Update["reflections"]>[number],
   sources: Episode[],
   state: CognitiveState,
@@ -476,6 +486,45 @@ function groundedRevision(
     revision: reflection.revision,
     evidenceRefs: [...new Set(reflection.evidenceRefs)],
   };
+}
+export function selectCognitiveEvidence(
+  episodes: Episode[],
+  currentRef: string,
+  ranked: Episode[],
+  reflected: Set<string>,
+  state: CognitiveState,
+  acceptedPair = false,
+) {
+  const incoming =
+    ranked.find(
+      (e) =>
+        e.kind === "message" &&
+        e.detail.direction === "incoming" &&
+        !state.beliefs.some((b) => b.basis?.sourceId === e.id),
+    ) ?? ranked.find((e) => e.kind === "message" && e.detail.direction === "incoming");
+  const recentReceipt = episodes.find((e) => {
+    if (reflected.has(e.id)) return false;
+    try {
+      groundReflection({ outcomeRef: e.id, revision: "Eligible recorded outcome", evidenceRefs: [e.id] }, [e], state, {
+        evidence: [e],
+        beliefs: state.beliefs,
+      });
+      return true;
+    } catch {
+      return false;
+    }
+  });
+  const selected = [
+    episodes.find((e) => e.id === currentRef),
+    ...(acceptedPair ? ranked.slice(0, 2) : []),
+    incoming,
+    recentReceipt,
+    ...ranked,
+  ]
+    .filter((e): e is Episode => !!e)
+    .filter((e, i, list) => list.findIndex((item) => item.id === e.id) === i)
+    .slice(0, 5);
+  return { selected, incoming, recentReceipt };
 }
 export class Cognition {
   constructor(
@@ -639,11 +688,21 @@ export class Cognition {
         };
       }
     }
-    const recentReceipt = episodes.find((e) => e.kind === "receipt" && e.id !== currentRef);
-    const selected = [episodes.find((e) => e.id === currentRef), ...ranked.slice(0, 2), recentReceipt, ...ranked]
-      .filter((e): e is Episode => !!e)
-      .filter((e, index, list) => list.findIndex((item) => item.id === e.id) === index)
-      .slice(0, 5);
+    const reflected = new Set(
+      (
+        await this.store.pool.query("SELECT outcome_id FROM cognitive_reflection_keys WHERE agent_id=$1", [
+          claim.agentId,
+        ])
+      ).rows.map((r) => r.outcome_id),
+    );
+    const { selected, incoming, recentReceipt } = selectCognitiveEvidence(
+      episodes,
+      currentRef,
+      ranked,
+      reflected,
+      state,
+      recallStatus.route === "laya-recall-v1",
+    );
     const evidence = selected.map((e) => ({ ...e, detail: compactEpisode(e) }));
     const groundedBeliefs = state.beliefs.filter((b) => b.basis && b.test);
     const groundedReflections = state.reflections.filter((r) => r.outcomeRef);
@@ -656,8 +715,11 @@ export class Cognition {
     const allIds = new Set(episodes.map((e) => e.id));
     return {
       version,
+      nativeAnalysis: true,
       currentEvidenceId: currentRef,
       latestReceiptId: recentReceipt?.id,
+      analysisEvidenceIds: [incoming?.id, recentReceipt?.id].filter(Boolean),
+      reflectedOutcomeIds: selected.filter((e) => reflected.has(e.id)).map((e) => e.id),
       plan: state.plan,
       beliefs,
       reflections: groundedReflections.slice(-2),
@@ -674,8 +736,8 @@ export class Cognition {
       recall: recallStatus,
       knownPeerIds: [
         ...new Set([
-          ...peers,
           ...selected.map((e) => e.detail.peerId).filter((p): p is string => typeof p === "string"),
+          ...peers,
         ]),
       ].slice(0, 40),
       coverage: {
@@ -737,6 +799,7 @@ export class Cognition {
           [
             ...new Set([
               ...cited,
+              ...evidence.filter((e) => e.kind !== "interpretation").map((e) => String(e.id)),
               ...(typeof delivered.currentEvidenceId === "string" && allowed.has(delivered.currentEvidenceId)
                 ? [delivered.currentEvidenceId]
                 : []),
@@ -763,9 +826,10 @@ export class Cognition {
         update.beliefs ?? [],
         state,
         sourceEpisodes,
-        gameTime(
-          sourceEpisodes.find((e) => e.id === delivered.currentEvidenceId) ?? { id: "", at: "", kind: "", detail: {} },
-        ),
+        sourceEpisodes.reduce<number | undefined>((latest, e) => {
+          const at = gameTime(e);
+          return at === undefined ? latest : Math.max(latest ?? 0, at);
+        }, undefined),
         evidence,
       );
       const groundedReflections = (update.reflections ?? []).map((r) =>
@@ -787,8 +851,14 @@ export class Cognition {
         )
           continue;
         beliefsRevised++;
+        const prior = state.beliefs.find((old) => old.peerId === b.peerId);
+        const samePrediction =
+          prior?.prediction === b.prediction && JSON.stringify(prior?.test) === JSON.stringify(b.test);
+        const predictionRecordedAt = samePrediction
+          ? (prior?.predictionRecordedAt ?? prior?.updatedAt ?? updatedAt)
+          : updatedAt;
         state.beliefs = state.beliefs.filter((old) => old.peerId !== b.peerId);
-        state.beliefs.push({ ...b, updatedAt });
+        state.beliefs.push({ ...b, updatedAt, predictionRecordedAt });
       }
       state.beliefs = state.beliefs.slice(-12);
       for (const r of groundedReflections) {

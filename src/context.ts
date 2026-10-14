@@ -1,3 +1,5 @@
+import { deliveredCognition } from "./cognition.js";
+import { analysisOpportunities } from "./cognitive-analysis.js";
 import { type Data, FleetError, object } from "./domain.js";
 
 // Count the serialized transport envelope plus the separately supplied output schema.
@@ -14,7 +16,20 @@ export function fitMessages(
 ) {
   const messages = (c: Data) => [
     { role: "system", content: instructions },
-    { role: "user", content: JSON.stringify(c) },
+    {
+      role: "user",
+      content: JSON.stringify(
+        object(c.cognition).nativeAnalysis === true
+          ? {
+              ...c,
+              cognition: {
+                ...object(c.cognition),
+                analysisOpportunities: analysisOpportunities(deliveredCognition(c)),
+              },
+            }
+          : c,
+      ),
+    },
   ];
   const fits = (m: ReturnType<typeof messages>) =>
     Buffer.byteLength(JSON.stringify(m)) + Buffer.byteLength(JSON.stringify(schema)) <= limit;
@@ -124,8 +139,10 @@ export function fitMessages(
         ...episode,
         detail: {
           factsAt: "environment",
+          asOfGameTimeMs: detail.asOfGameTimeMs,
+          peerFacts: detail.peerFacts,
           coverage:
-            "This decision's current observation. Only delivered environment fields are evidence; paged fields are unknown.",
+            "This observation's peerFacts/game time are retained; other current facts are in environment. Paged facts are unknown.",
         },
       };
     if (
@@ -138,6 +155,11 @@ export function fitMessages(
         detail: {
           commandId: detail.commandId,
           intent: detail.intent,
+          code: object(detail.receipt).code ?? detail.code,
+          actionKind: object(detail.action).kind ?? detail.actionKind,
+          source: detail.source,
+          committed: detail.committed,
+          submitted: detail.submitted,
           receiptAt: "commandResults",
           coverage: "The matching command's whole receipt is delivered in commandResults.",
         },
@@ -192,7 +214,12 @@ export function fitMessages(
   const receipt =
     evidence.find((episode) => episode.id === cognition.latestReceiptId) ??
     evidence.find((episode) => episode.kind === "receipt");
-  const protectedIds = new Set([cognition.currentEvidenceId ?? evidence[0]?.id, receipt?.id, ...pair]);
+  const protectedIds = new Set([
+    cognition.currentEvidenceId ?? evidence[0]?.id,
+    receipt?.id,
+    ...pair,
+    ...(Array.isArray(cognition.analysisEvidenceIds) ? cognition.analysisEvidenceIds : []),
+  ]);
   let retained = [...evidence];
   // Remove only unprotected history; keep the accepted candidate order, current
   // observation and latest receipt together. Never relabel dropped Laya advice.

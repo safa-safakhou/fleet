@@ -1,12 +1,9 @@
 import { randomUUID } from "node:crypto";
 import { Ajv } from "ajv";
 import { afterEach, describe, expect, it } from "vitest";
-import {
-  Cognition,
-  cognitiveDecisionGuide,
-  cognitiveSchemaForVersion,
-  deliveredCognition,
-} from "../../src/cognition.js";
+import { Cognition, cognitiveSchemaForVersion, deliveredCognition } from "../../src/cognition.js";
+import { analysisDecisionGuide, analysisSchemaForVersion, normalizeAnalysis } from "../../src/cognitive-analysis.js";
+import { fitMessages } from "../../src/context.js";
 import { type Data, type ModelPort, object } from "../../src/domain.js";
 import { Engine } from "../../src/engine.js";
 import { pactAdapter } from "../../src/games/pact/adapter.js";
@@ -80,6 +77,88 @@ function update(f: Awaited<ReturnType<typeof setup>>) {
   };
 }
 describe("LLM memory, plans and beliefs", () => {
+  it("rescues old incoming evidence from repetitive observations and persists a native hypothesis/reflection with exact owned grounding", async () => {
+    const f = await setup();
+    let current = "";
+    for (let i = 0; i < 20; i++)
+      current = await f.support.capture(f.claim, "observation", `repetitive-${i}`, {
+        asOfGameTimeMs: f.now().getTime(),
+        text: "farm construction trade winter supplies".repeat(50),
+        peerFacts: [],
+      });
+    const context = await f.support.context(f.claim, [], current, "farm construction trade winter supplies");
+    const fitted = fitMessages(
+      { environment: { core: "x".repeat(10000) }, cognition: context },
+      "Choose a grounded next step",
+      analysisSchemaForVersion(0, context),
+      24000,
+      () => [],
+    );
+    const delivered = object(JSON.parse(fitted[1].content).cognition);
+    expect(
+      (delivered.evidence as Data[]).some((e) => e.id === f.evidence && object(e.detail).direction === "incoming"),
+    ).toBe(true);
+    expect((delivered.analysisOpportunities as Data[]).map((o) => o.type)).toContain("belief");
+    const native = {
+      expectedVersion: 0,
+      analysis: {
+        type: "belief",
+        opportunity: "peer_evidence",
+        hypothesis: "The peer may prefer a small trial to reduce uncertainty",
+        alternative: "Their claim may be a pitch without reliable supply",
+        prediction: "They will reply to a concrete small grain trial offer",
+        confidence: "low",
+        predictedEvent: "reply",
+        reviewAfterMinutes: 60,
+      },
+    };
+    await f.support.apply(f.claim, 2, normalizeAnalysis(native, delivered), delivered);
+    const next = await f.support.context(f.claim, [], current, "farm construction");
+    await f.support.apply(
+      f.claim,
+      3,
+      normalizeAnalysis(
+        {
+          expectedVersion: 1,
+          analysis: {
+            type: "reflection",
+            opportunity: "recorded_result",
+            lesson: "Sending the invitation confirms only our request, not their agreement",
+            nextStep: "Wait for their response before promising a delivery",
+          },
+        },
+        next,
+      ),
+      next,
+    );
+    const inspected = await f.support.inspect(f.claim.agentId);
+    expect(inspected.beliefs).toHaveLength(1);
+    expect(object((inspected.beliefs as Data[])[0]).hypothesis).toBe(native.analysis.hypothesis);
+    expect(inspected.reflections).toHaveLength(1);
+    expect(object((inspected.reflections as Data[])[0]).outcomeRef).toBe(f.outcome);
+    expect(object((inspected.reflections as Data[])[0]).observed).toContain("later completion unknown");
+    expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(0);
+    const reloaded = await new Cognition(f.store).context(f.claim, [], current, "trade");
+    expect(
+      (reloaded.evidence as Data[]).some((e) => e.id === f.outcome)
+        ? (reloaded.reflectedOutcomeIds as string[]).includes(f.outcome)
+        : true,
+    ).toBe(true);
+    expect(() =>
+      normalizeAnalysis(
+        {
+          expectedVersion: 2,
+          analysis: {
+            type: "reflection",
+            opportunity: "recorded_result",
+            lesson: "Repeat the same lesson with another phrasing",
+            nextStep: "Wait for their reply once more",
+          },
+        },
+        reloaded,
+      ),
+    ).toThrow("COGNITION_ANALYSIS_NOT_OFFERED");
+  });
   it("refuses self speech and unrelated peer sources as evidence about another player", async () => {
     const f = await setup();
     const outgoing = await f.support.capture(f.claim, "message", "self-speech", {
@@ -497,7 +576,7 @@ describe("LLM memory, plans and beliefs", () => {
       f.id,
     ]);
     f.claim.cohort = await f.store.cohort(f.id);
-    const receipt = await f.support.capture(f.claim, "receipt", "confirmed", {
+    await f.support.capture(f.claim, "receipt", "confirmed", {
       commandId: randomUUID(),
       intent: "Start a farm upgrade",
       action: { kind: "game.building.queue" },
@@ -540,31 +619,12 @@ describe("LLM memory, plans and beliefs", () => {
           summary: "Check the peer claim before trusting another shipment",
           cognition: {
             expectedVersion: cognition.version,
-            review: {
-              beliefs: "updated",
-              reflection: "updated",
-              reason: "The claim permits a cautious hypothesis; the receipt confirms the recorded upgrade intention",
+            analysis: {
+              type: "reflection",
+              opportunity: "recorded_result",
+              lesson: "A committed queue command does not prove the upgrade finished",
+              nextStep: "Check fresh completion state before another upgrade",
             },
-            beliefs: [
-              {
-                peerId: f.peer,
-                hypothesis: "May value dependable supply",
-                alternative: "The claim may be inaccurate",
-                confidence: "low",
-                prediction: "They will reply to discuss a small grain trial",
-                basis: { sourceId: f.evidence, kind: "statement" },
-                test: { kind: "reply", afterGameTimeMs: f.now().getTime(), byGameTimeMs: f.now().getTime() + 3600000 },
-                assessment: "untested",
-                evidenceRefs: [f.evidence],
-              },
-            ],
-            reflections: [
-              {
-                outcomeRef: receipt,
-                revision: "Check completion in fresh state before another upgrade",
-                evidenceRefs: [receipt],
-              },
-            ],
           },
         };
         expect(new Ajv({ strict: false }).compile(input.schema)(decision)).toBe(true);
@@ -821,12 +881,12 @@ describe("LLM memory, plans and beliefs", () => {
     await engine.tick("test");
     expect(inputs).toHaveLength(2);
     expect(inputs[0].schema).toEqual(
-      cognitiveSchemaForVersion(0, deliveredCognition(JSON.parse(inputs[0].messages[1].content))),
+      analysisSchemaForVersion(0, deliveredCognition(JSON.parse(inputs[0].messages[1].content))),
     );
     expect(inputs[1].schema).toEqual(
-      cognitiveSchemaForVersion(1, deliveredCognition(JSON.parse(inputs[1].messages[1].content))),
+      analysisSchemaForVersion(1, deliveredCognition(JSON.parse(inputs[1].messages[1].content))),
     );
-    expect(JSON.parse(inputs[0].messages[1].content).decisionSchema).toEqual(cognitiveDecisionGuide);
+    expect(JSON.parse(inputs[0].messages[1].content).decisionSchema).toEqual(analysisDecisionGuide);
     expect(object(JSON.parse(inputs[1].messages[1].content).cognition.plan).status).toBe("waiting");
     expect(game.submits).toHaveLength(0);
     expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(2);

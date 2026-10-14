@@ -1,12 +1,13 @@
 import { randomUUID } from "node:crypto";
 import { statfs } from "node:fs/promises";
+import { Cognition, deliveredCognition } from "./cognition.js";
 import {
-  Cognition,
-  cognitionInstructions,
-  cognitiveDecisionGuide,
-  cognitiveSchemaForVersion,
-  deliveredCognition,
-} from "./cognition.js";
+  analysisDecisionGuide,
+  analysisInstructions,
+  analysisOpportunities,
+  analysisSchemaForVersion,
+  normalizeAnalysis,
+} from "./cognitive-analysis.js";
 import { Communications } from "./communications.js";
 import { fitMessages } from "./context.js";
 import type { DecisionSupport } from "./decision.js";
@@ -248,7 +249,7 @@ export class Engine {
           suppliedReadSchemas: this.adapter.suppliedReadSchemas?.(tools.filter(isRead)) ?? [],
           convenienceRead: { name: "fleet_action_schema", args: { kind: "one observed gameActionKinds value" } },
           readSchemaLookup: { name: "fleet_read_schema", args: { name: "one availableReads name" } },
-          decisionSchema: cognition ? cognitiveDecisionGuide : decisionSchema,
+          decisionSchema: cognition ? analysisDecisionGuide : decisionSchema,
           ...(cognition
             ? {
                 memoryRead: {
@@ -264,8 +265,10 @@ export class Engine {
               }
             : {}),
         };
-        let outputSchema = cognition ? cognitiveSchemaForVersion(object(context.cognition).version) : decisionSchema;
-        const instructions = this.adapter.instructions + (cognition ? ` ${cognitionInstructions}` : "");
+        let outputSchema = cognition
+          ? analysisSchemaForVersion(object(context.cognition).version, deliveredCognition(context))
+          : decisionSchema;
+        const instructions = this.adapter.instructions + (cognition ? ` ${analysisInstructions}` : "");
         let messages: ReturnType<typeof fitMessages>;
         try {
           let fittingContext: Data = context;
@@ -282,7 +285,7 @@ export class Engine {
             );
             if (!cognition) break;
             fittingContext = object(JSON.parse(messages[1].content));
-            outputSchema = cognitiveSchemaForVersion(
+            outputSchema = analysisSchemaForVersion(
               object(context.cognition).version,
               deliveredCognition(fittingContext),
             );
@@ -326,6 +329,7 @@ export class Engine {
             ),
             beliefs: Array.isArray(delivered.beliefs) ? delivered.beliefs.length : 0,
             reflections: Array.isArray(delivered.reflections) ? delivered.reflections.length : 0,
+            analysisOpportunities: analysisOpportunities(delivered),
             recallPairDelivered:
               object(delivered.recall).route === "laya-recall-v1" &&
               Array.isArray(object(delivered.recall).candidateIds) &&
@@ -403,15 +407,17 @@ export class Engine {
             await cognition.apply(
               claim,
               n,
-              cognitiveUpdate,
+              normalizeAnalysis(cognitiveUpdate, deliveredCognition(object(JSON.parse(messages[1].content)))),
               deliveredCognition(object(JSON.parse(messages[1].content))),
             );
           } catch (error) {
             if (!(error instanceof FleetError) || !error.code.startsWith("COGNITION_")) throw error;
             const feedback = {
               code: error.code,
+              proposalType: object(object(cognitiveUpdate).analysis).type ?? "canonical",
+              opportunity: object(object(cognitiveUpdate).analysis).opportunity ?? null,
               guidance:
-                "Cognitive update not saved. Match peer/direction and a prior test; reflect only recorded outcomes with intent. Omit unsupported fields or report insufficient_evidence. The game decision retains normal checks.",
+                "Analysis not saved. Use an offered analysisOpportunities key with its exact type; choose none if unsupported. Fleet supplies references/test times. The game decision retains normal checks.",
             };
             decisionFeedback.push(feedback);
             await observation.record(claim, "result", "Cognitive update rejected without changing authority", feedback);
