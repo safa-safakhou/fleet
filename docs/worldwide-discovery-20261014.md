@@ -12,8 +12,15 @@ Migration 010 adds guidance and opaque discovery cursors without rewriting ident
 
 ## Verification
 
-`npm run check`, `npm run build`, `npm run check:boundaries`, 106 unit tests and 164 integration tests passed. The added cases cover global pagination without a name filter, cursor wrap, actual account objectives, refusal to change guidance while running, preservation of consumed rows and history, and removal of generated strategy from the delivered model context. Production dependency audit reports zero vulnerabilities.
+`npm run check`, `npm run build`, `npm run check:boundaries`, 107 unit tests and 164 integration tests passed. The added cases cover global pagination without a name filter, cursor wrap, actual account objectives, refusal to change guidance while running, preservation of consumed rows and history, and removal of generated strategy from the delivered model context. Production dependency audit reports zero vulnerabilities.
 
 ## Rollout
 
-The two authorized cohorts were paused atomically under the existing host scheduler lock after all active turns finished. A private snapshot records all twenty identities and 342 historical turns. Deployment and live readback are pending in this source checkpoint. The continuous authorization, common anchor `2026-10-14T14:39:05.532Z`, five-minute interval and existing ordinal phases must be retained on resumption. The private snapshot and credentials are intentionally outside Git.
+The two authorized cohorts were paused atomically under the existing host scheduler lock after all active turns finished. A private snapshot records all twenty identities and 342 historical turns. The deployed local source is `35fa41e` (guidance/global fallback `564e3df`, fitted-input telemetry `3ce2e7d`, crowded-input correction `35fa41e`). Hosted PACT runs `worldwide-discovery-20261014-1`; all 927 selected release files matched the deployed runtime. All twenty accounts advertised the new tool and returned seven or eight candidates outside both fleets; exact handle search passed. Signals included recent, older and absent public observations. The continuous authorization, common anchor `2026-10-14T14:39:05.532Z`, five-minute interval and existing ordinal phases must be retained on resumption. The private snapshot and credentials are intentionally outside Git.
+
+
+### Live input acceptance and packing correction
+
+The first live check found that discovery observations were correct but the existing context packer dropped the whole eight-candidate directory after filling busy inboxes and optional rules. That initial rollout is recorded honestly in the protected initial-packing proof. The correction interleaves concise public identity/contact/activity records with other optional current pages, rather than treating discovery as an all-or-nothing rules blob. Public notice/Court details are explicitly omitted, with observed/retained counts; peer prose is never truncated into a claim. Core identity, stock, authority and construction facts, requested feedback and command receipts remain protected. No input limit, model budget, peer ranking or strategic instruction was changed.
+
+Both fleets reached a second quiescent boundary with 366 historical turns and resumed together at `2026-10-14T16:17:50.402Z`, retaining their original anchor. First complete corrected-round acceptance is pending in this documentation checkpoint.

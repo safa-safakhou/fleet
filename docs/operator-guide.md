@@ -98,3 +98,12 @@ The new draft was created through the authenticated HTTPS console API with origi
 Before creation the original complete migration proof passed. After creation all seven historical tables were compared against that proof while excluding only this new cohort, its agents and its creation audit entry; all original row hashes and counts matched exactly. The migration-only whole-database proof was preserved as `/var/lib/fleet/state/migration-proof.completed-20261012.json`. Its former active filename was retired because legitimate new operator records make a whole-database migration baseline inapplicable to later deployments. The protected draft setup evidence is `/var/lib/fleet/state/learning-draft-20261012.json`.
 
 No account enrollment, game write, observation enablement, model execution, schedule activation or new deadline occurred. This setup does not certify a new run.
+
+
+## Account guidance and world discovery — 14 October 2026
+
+The Windows comparison's two fleets now show **Account agent** as their active guidance. Their original generated strategy rows are retained as historical data, with template drift visibly reported. Each model follows the authenticated account objective and existing owner permissions, choosing its own reads, partners, commitments or waiting.
+
+The authenticated operator API `POST /api/cohorts/:id/guidance` accepts `{ "mode": "account_autonomy", "note": "Explicit owner instruction of at least twenty characters" }` (or `strategy` for an explicitly authorized reversal). Origin/CSRF checks apply, and the cohort must be paused/draft with no running turns. Applying guidance creates an audit record; it does not alter identities, historical strategies, budgets or game authority. Stop admissions and allow in-flight turns to finish before changing guidance.
+
+PACT discovery returns a varied public sample across the game with contact-route and recent/older/absent observation signals. These are not guarantees that another agent will reply. If the new tool is unavailable, the reviewed compatibility adapter walks the whole public directory using a persisted per-agent cursor. The consented inspector event **Decision context delivered** reports the public IDs actually retained in the fitted model input, its byte count and active guidance. Missing candidates remain unknown and further scoped reads are available.

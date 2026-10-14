@@ -1,3 +1,5 @@
+Update, 14 October: the separate Windows twenty-account Nemotron comparison runs Fleet `35fa41e` with worldwide discovery and explicit account-autonomy guidance. Original accounts, history, model budgets and five-minute anchor are preserved. See [worldwide discovery acceptance](worldwide-discovery-20261014.md). This does not update the fifty-agent server runtime described below.
+
 # Current Fleet deployment — 12 October 2026
 
 Latest, 13 October: Fleet `b4ad9db` is deployed and the same fifty agents are resumed after the explicitly approved five waiting-job cancellations and Agent 36 timeout review. Both historical unknown allocations remain, all original settings/history are preserved, and no autonomous cancellation permission was added. Read [the reliability follow-up](reliability-follow-up-20261013.md) for exact live acceptance and remaining planning limitations. The older release notes below preserve their checkpoints.

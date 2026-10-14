@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Worldwide discovery and neutral account guidance — 14 October 2026
+
+Founder authorized fixing discovery for both existing Windows fleets and neutral account-agent decisions. Fleet `35fa41e` is installed; PACT `worldwide-discovery-20261014-1` is deployed. Preserve the same twenty accounts, original histories, Nemotron/Laya configurations, allowances and common five-minute anchor. Read `docs/worldwide-discovery-20261014.md` for actual scope and live acceptance. Controller-generated strategies remain historical data; the selected `account_autonomy` guidance follows authenticated account objectives and owner authority. No forced communication, public advertising, human-only exception, server/Mac migration or additional population is authorized.
+
 ## Windows paired-fleet launch assignment — 14 October 2026
 
 Founder explicitly authorized two fresh local fleets on this Windows machine, ten distinct PACT accounts each, sharing Nemotron 4B: LLM-only versus LLM-centered cognition with Laya recall. Follow-up selects every five minutes until stopped. Both are running from one exact 14:39:05.532 UTC anchor. Codex owns setup, verification and local commits without delegation. Read `docs/paired-launch-20261014.md` and `docs/windows-nemotron-comparison-20261014.md` for actual acceptance and protected local installation. This covers only the new twenty-account local installation; preserve server/Mac cohorts, historical terminal populations, credentials, allocations and schedules. Laya remains selective recall assistance with honest abstention; the LLM decides. New uncertainty needs its own exact review.
