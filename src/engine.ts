@@ -411,7 +411,7 @@ export class Engine {
             const feedback = {
               code: error.code,
               guidance:
-                "Cognitive update was not saved. Use current cognition.version and delivered evidence IDs; hypotheses are not independent evidence. The game decision remains subject to its normal checks.",
+                "Cognitive update not saved. Match peer/direction and a prior test; reflect only recorded outcomes with intent. Omit unsupported fields or report insufficient_evidence. The game decision retains normal checks.",
             };
             decisionFeedback.push(feedback);
             await observation.record(claim, "result", "Cognitive update rejected without changing authority", feedback);
@@ -557,9 +557,22 @@ export class Engine {
                   "This action requires the actual owner. No command or approval was submitted. Choose another authorized step or wait.",
               }
             : this.adapter.preflight?.(decision.action, facts);
+        const recordNotSubmitted = async (code: string) => {
+          if (cognition)
+            await cognition.capture(claim, "receipt", `not-submitted:${claim.id}:${n}`, {
+              intent: decision.summary,
+              actionKind: decision.action.kind,
+              code,
+              source: "controller_rejection",
+              submitted: false,
+              committed: false,
+              coverage: "Controller validation outcome. No lease or game command was submitted.",
+            });
+        };
         if (preflight) {
           await rememberFeedback({ actionKind: decision.action.kind, ...preflight });
           lastCode = String(preflight.code);
+          await recordNotSubmitted(lastCode);
           await observation.record(claim, "result", "Proposed action deferred before submission", {
             ...preflight,
             action: decision.action,
@@ -574,6 +587,7 @@ export class Engine {
         } catch (error) {
           if (!(error instanceof FleetError)) throw error;
           lastCode = "INVALID_GAME_ACTION";
+          await recordNotSubmitted(lastCode);
           const feedback = {
             code: lastCode,
             actionKind: decision.action.kind,
@@ -641,6 +655,8 @@ export class Engine {
         if (cognition)
           await cognition.capture(claim, "receipt", id, {
             commandId: id,
+            peerId: this.adapter.actionPeer(decision.action),
+            submitted: true,
             intent: decision.summary,
             action: decision.action,
             receipt,

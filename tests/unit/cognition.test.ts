@@ -7,6 +7,7 @@ import {
   cognitiveDecisionSchema,
   cognitiveSchemaForVersion,
   compactEpisode,
+  episodeText,
   rankEpisodes,
   utf8Prefix,
 } from "../../src/cognition.js";
@@ -40,7 +41,7 @@ describe("cognitive decision contracts", () => {
     const review = { beliefs: "insufficient_evidence", reflection: "unchanged", reason: "No tested expectation" };
     const schema = cognitiveSchemaForVersion(3, {
       evidence: [
-        { id, kind: "observation" },
+        { id, kind: "message", detail: { peerId: "observed-peer", direction: "incoming" } },
         { id: invented, kind: "interpretation" },
       ],
       knownPeerIds: ["observed-peer"],
@@ -70,7 +71,9 @@ describe("cognitive decision contracts", () => {
       hypothesis: "May be interested",
       alternative: "Could be busy",
       confidence: "low",
-      prediction: "May reply",
+      prediction: "May reply to the invitation before the deadline",
+      basis: { sourceId: id, kind: "statement" },
+      test: { kind: "reply", afterGameTimeMs: 0, byGameTimeMs: 3600000 },
       assessment: "untested",
       evidenceRefs: [id],
     };
@@ -84,6 +87,23 @@ describe("cognitive decision contracts", () => {
     const none = new Ajv({ strict: false }).compile(cognitiveSchemaForVersion(3, { evidence: [], knownPeerIds: [] }));
     expect(none({ kind: "wait", summary: "Wait", cognition: { expectedVersion: 3, review } })).toBe(true);
     expect(none(decision)).toBe(false);
+  });
+  it("labels the speaker and direction in both Laya candidates and compact model evidence", () => {
+    const base = {
+      id: "message",
+      at: "now",
+      kind: "message",
+      detail: { peerId: "peer", direction: "outgoing", body: "Hello, we could form an alliance." },
+    };
+    expect(episodeText(base)).toBe("Outgoing self message; peer peer: Hello, we could form an alliance.");
+    const incoming = { ...base, detail: { ...base.detail, direction: "incoming" } };
+    expect(episodeText(incoming)).toMatch(/^Incoming peer statement/);
+    expect(compactEpisode(base).direction).toBe("outgoing");
+    const long = { ...base, detail: { ...base.detail, body: base.detail.body.repeat(100) } };
+    const compact = compactEpisode(long);
+    expect(compact.direction).toBe("outgoing");
+    expect(compact.excerpt).toMatch(/^Outgoing self message/);
+    expect(Buffer.byteLength(JSON.stringify(compact))).toBeLessThanOrEqual(600);
   });
   it("bounds multibyte observations without cutting a Unicode character", () => {
     const prefix = utf8Prefix("🌱 باغ memories".repeat(1000), 1000);
@@ -354,7 +374,7 @@ describe("cognitive decision contracts", () => {
     expect(Buffer.byteLength(JSON.stringify(escaped))).toBeLessThanOrEqual(600);
     expect(escaped.excerpt).not.toContain("�");
     expect(message.peerId).toBe("known-peer");
-    expect(message.excerpt).toMatch(/^The shipment is delayed/);
+    expect(message.excerpt).toContain("The shipment is delayed");
     expect(message.excerpt).not.toContain("�");
     const receipt = compactEpisode({
       id: "receipt",
@@ -404,7 +424,7 @@ describe("cognitive decision contracts", () => {
       context,
       "Choose",
       cognitiveSchemaForVersion(2),
-      12500,
+      14000,
       boundedReads,
       narrowRead,
       compactEnvironment,
@@ -426,7 +446,7 @@ describe("cognitive decision contracts", () => {
     expect(delivered.actionPermissions).toEqual(context.actionPermissions);
     expect(
       Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(cognitiveSchemaForVersion(2))),
-    ).toBeLessThanOrEqual(12500);
+    ).toBeLessThanOrEqual(14000);
   });
   it("protects the newest receipt even when Laya's preferred pair contains an older receipt", () => {
     const cognition = {

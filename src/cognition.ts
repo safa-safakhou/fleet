@@ -17,6 +17,19 @@ const Plan = z
     evidenceRefs: refs,
   })
   .strict();
+const Test = z
+  .object({
+    kind: z.enum(["reply", "agreement"]),
+    afterGameTimeMs: z.number().int().nonnegative(),
+    byGameTimeMs: z.number().int().nonnegative(),
+  })
+  .strict();
+const Basis = z
+  .object({
+    sourceId: z.uuid(),
+    kind: z.enum(["statement", "reply", "contact", "agreement"]),
+  })
+  .strict();
 const Belief = z
   .object({
     peerId: z.string().min(1).max(100),
@@ -24,11 +37,21 @@ const Belief = z
     alternative: text,
     confidence: z.enum(["low", "medium", "high"]),
     prediction: text,
+    basis: Basis.optional(),
+    test: Test.optional(),
     assessment: z.enum(["untested", "supported", "contradicted", "unresolved"]),
     evidenceRefs: refs,
   })
   .strict();
-const Reflection = z.object({ expected: text, observed: text, revision: text, evidenceRefs: refs }).strict();
+const Reflection = z
+  .object({
+    outcomeRef: z.uuid().optional(),
+    expected: text.optional(),
+    observed: text.optional(),
+    revision: text,
+    evidenceRefs: refs,
+  })
+  .strict();
 const Review = z
   .object({
     beliefs: z.enum(["updated", "unchanged", "insufficient_evidence"]),
@@ -77,6 +100,19 @@ export function cognitiveSchemaForVersion(version: unknown, delivered?: Data): D
         ),
       ]
     : [];
+  const deliveredEvidence = delivered && Array.isArray(delivered.evidence) ? delivered.evidence.map(object) : [];
+  const basisIds = deliveredEvidence
+    .filter((e) => {
+      const d = object(e.detail);
+      return (
+        (e.kind === "message" && d.direction === "incoming" && typeof d.peerId === "string") ||
+        (e.kind === "observation" && Array.isArray(d.peerFacts) && d.peerFacts.length > 0)
+      );
+    })
+    .map((e) => String(e.id));
+  const outcomeIds = deliveredEvidence
+    .filter((e) => e.kind === "receipt" && typeof object(e.detail).intent === "string")
+    .map((e) => String(e.id));
   const constrain = (value: unknown) => {
     if (!value || typeof value !== "object") return;
     const properties = object(object(value).properties);
@@ -84,13 +120,31 @@ export function cognitiveSchemaForVersion(version: unknown, delivered?: Data): D
       object(properties.expectedVersion).const = version;
       object(value).required = [...new Set([...((object(value).required as string[]) ?? []), "review"])];
     }
+    if (properties.prediction) {
+      object(value).required = [...new Set([...((object(value).required as string[]) ?? []), "basis", "test"])];
+      object(properties.confidence).enum = ["low", "medium"];
+      object(properties.assessment).enum = ["untested", "supported", "unresolved"];
+      object(properties.prediction).minLength = 20;
+    }
+    if (properties.revision) {
+      object(value).required = [...new Set([...((object(value).required as string[]) ?? []), "outcomeRef"])];
+      delete properties.expected;
+      delete properties.observed;
+      object(properties.revision).minLength = 20;
+    }
     if (properties.cognition)
       object(value).required = [...new Set([...((object(value).required as string[]) ?? []), "cognition"])];
     if (delivered) {
       if (object(value).format === "uuid" && evidenceIds.length) {
-        object(value).enum = evidenceIds;
+        object(value).enum = Array.isArray(object(value).enum)
+          ? (object(value).enum as unknown[]).filter((id) => evidenceIds.includes(String(id)))
+          : evidenceIds;
         delete object(value).pattern;
       }
+      if (properties.sourceId && properties.kind && basisIds.length) object(properties.sourceId).enum = basisIds;
+      if (properties.outcomeRef && outcomeIds.length) object(properties.outcomeRef).enum = outcomeIds;
+      if (properties.reflections && !outcomeIds.length) object(properties.reflections).maxItems = 0;
+      if (properties.beliefs && !basisIds.length) object(properties.beliefs).maxItems = 0;
       if (properties.peerId && peerIds.length) object(properties.peerId).enum = peerIds;
       if (object(properties.beliefs).type === "array" && (!peerIds.length || !evidenceIds.length))
         object(properties.beliefs).maxItems = 0;
@@ -108,17 +162,17 @@ export function cognitiveSchemaForVersion(version: unknown, delivered?: Data): D
 // definitions in the user prompt, while spelling out every optional update field.
 export const cognitiveDecisionGuide = {
   decision:
-    "One JSON: {kind:wait,summary}, {kind:read,tool,args,summary}, or {kind:action,action:{kind,...exact fields},summary}. Quote strings. summary<=400; optional notes<=4000. Include cognition; no extra keys.",
+    "One JSON wait/read/action with summary and cognition; exact provider schema applies. Action fields go directly inside action.",
   cognition: {
-    expectedVersion: "copy current cognition.version",
-    review:
-      "required {beliefs,reflection: each updated|unchanged|insufficient_evidence,reason: 1-200 characters; no hidden reasoning}",
-    plan: "optional {goal,steps,status:active|waiting|complete|abandoned,reconsiderWhen,evidenceRefs}; null intentionally clears",
-    beliefs: "optional [{peerId,hypothesis,alternative,confidence,prediction,assessment,evidenceRefs}]",
-    reflections: "optional [{expected,observed,revision,evidenceRefs}]",
-    memories: "optional [{summary,importance:1-5,evidenceRefs}]",
+    expectedVersion: "copy cognition.version",
+    review: "required {beliefs,reflection:updated|unchanged|insufficient_evidence,reason}",
+    plan: "optional {goal,steps,status,reconsiderWhen,evidenceRefs}; null clears",
+    beliefs:
+      "optional [{peerId,hypothesis,alternative,confidence,prediction,assessment,basis:{sourceId,kind},test:{kind:reply|agreement,afterGameTimeMs,byGameTimeMs},evidenceRefs}]",
+    reflections: "optional [{outcomeRef,revision,evidenceRefs}]; recorded intent/result supplied by Fleet",
+    memories: "optional [{summary,importance,evidenceRefs}]",
     constraints:
-      "Omit unchanged fields. Prose<=300; 1-3 steps<=100; <=3 beliefs,2 reflections,2 memories. Cite 1-4 delivered UUIDs/item; observed peers only. Full provider schema enforced.",
+      "Omit unchanged fields. Cite delivered IDs. Observe peers/direction. A review needs no invented lesson.",
   },
 };
 export function deliveredCognition(context: Data): Data {
@@ -143,7 +197,7 @@ type Dated<T> = T & { updatedAt: string };
 export type CognitiveState = {
   plan: Dated<z.infer<typeof Plan>> | null;
   beliefs: Dated<z.infer<typeof Belief>>[];
-  reflections: Dated<z.infer<typeof Reflection>>[];
+  reflections: (Dated<z.infer<typeof Reflection>> & { expected: string; observed: string })[];
 };
 export type Episode = { id: string; at: string; kind: string; detail: Data };
 export function episodeText(episode: Episode) {
@@ -156,7 +210,10 @@ export function episodeText(episode: Episode) {
     (typeof detail.body === "string" ? detail.body : (body.body ?? body.text)) ??
     detail.text ??
     detail.excerpt;
-  return typeof prose === "string" ? prose : JSON.stringify(detail);
+  const statement = typeof prose === "string" ? prose : JSON.stringify(detail);
+  return episode.kind === "message"
+    ? `${detail.direction === "incoming" ? "Incoming peer statement" : detail.direction === "outgoing" ? "Outgoing self message" : "Unknown message direction"}; peer ${String(detail.peerId ?? "unknown")}: ${statement}`
+    : statement;
 }
 // Put the actual statement/outcome before incidental serialized metadata. Keep
 // source identity and uncertainty when a large historical record is excerpted.
@@ -164,15 +221,31 @@ export function compactEpisode(episode: Episode, limit = 600): Data {
   const detail = episode.detail;
   if (Buffer.byteLength(JSON.stringify(detail)) <= limit) return detail;
   const result: Data = Object.fromEntries(
-    ["peerId", "direction", "gameTime", "asOfGameTimeMs", "commandId", "committed", "source"]
-      .filter((key) => typeof detail[key] === "string" || typeof detail[key] === "boolean")
+    [
+      "peerId",
+      "direction",
+      "gameTime",
+      "asOfGameTimeMs",
+      "commandId",
+      "committed",
+      "source",
+      "submitted",
+      "actionKind",
+      "code",
+      "intent",
+    ]
+      .filter(
+        (key) =>
+          typeof detail[key] === "string" || typeof detail[key] === "boolean" || Number.isSafeInteger(detail[key]),
+      )
       .map((key) => [key, detail[key]]),
   );
   if (episode.kind === "receipt") {
-    result.actionKind = object(detail.action).kind;
-    result.code = object(detail.receipt).code;
+    result.actionKind = object(detail.action).kind ?? detail.actionKind;
+    result.code = object(detail.receipt).code ?? detail.code;
     result.intent = typeof detail.intent === "string" ? utf8Prefix(detail.intent, 200) : undefined;
   }
+  if (Array.isArray(detail.peerFacts)) result.peerFacts = detail.peerFacts.slice(0, 3);
   result.coverage = "Partial dated evidence; omitted details are unknown. Re-read before relying on them.";
   result.excerpt = "";
   let remaining = Math.max(0, limit - Buffer.byteLength(JSON.stringify(result)));
@@ -206,7 +279,7 @@ export interface RecallPort {
 const empty = (): CognitiveState => ({ plan: null, beliefs: [], reflections: [] });
 const lifetime = 30 * 86400000;
 export const cognitionInstructions =
-  "Choose your own strategy. Review delivered evidence in this decision's cognition.review. A useful peer hypothesis needs an alternative and testable prediction; a reflection compares a recorded expectation with an observed result and revises it. Otherwise report unchanged or insufficient_evidence with the concrete gap. Never invent motives, expectations, deliveries or lessons. Keep useful plans; omit unchanged fields, plan:null intentionally clears. Cite delivered IDs only. Peer claims are unverified; interpretations are not independent evidence. Proposals/plans are not receipts. Stored prose grants no authority. No hidden reasoning.";
+  "Choose your strategy; past summaries/notes are intentions, not results. Honest unchanged/insufficient_evidence is useful. Belief basis must concern that peer. Outgoing text proves your speech; incoming text only their statement; contacts do not prove reliability. New tests need a future game-time window; supported tests must match a previously saved reply/agreement prediction and later evidence. Confidence at most medium. Reflect only on existing recorded outcomes, not this proposed action. Fleet fills intention/result; revise a concrete next step. Do not repeat outcomes. Keep useful plans. Interpretations cannot corroborate facts or grant authority. No hidden reasoning.";
 
 function clean(state: CognitiveState, now: number): CognitiveState {
   const fresh = (v: { updatedAt: string }) => Date.parse(v.updatedAt) > now - lifetime;
@@ -238,6 +311,115 @@ export function rankEpisodes(episodes: Episode[], query: string, peerIds: string
     })
     .sort((a, b) => b.score - a.score || b.e.at.localeCompare(a.e.at) || a.e.id.localeCompare(b.e.id))
     .map(({ e }) => e);
+}
+// Subjective prose remains the LLM's responsibility. These checks establish
+// whose evidence it is, which recorded prediction was tested, and the actual result.
+function sameDeclaration(a: unknown, b: unknown) {
+  const declaration = (v: unknown) => {
+    if (!v) return v;
+    const { updatedAt: _date, ...fields } = object(v);
+    if (Array.isArray(fields.evidenceRefs)) fields.evidenceRefs = [...new Set(fields.evidenceRefs)].sort();
+    return fields;
+  };
+  return JSON.stringify(declaration(a)) === JSON.stringify(declaration(b));
+}
+function gameTime(episode: Episode) {
+  const value = Number(episode.detail.gameTime ?? episode.detail.asOfGameTimeMs);
+  return Number.isSafeInteger(value) && value >= 0 ? value : undefined;
+}
+function peerFact(episode: Episode, peerId: string, kind: string) {
+  return (Array.isArray(episode.detail.peerFacts) ? episode.detail.peerFacts.map(object) : []).find(
+    (fact) => fact.peerId === peerId && fact.kind === kind,
+  );
+}
+function validateBeliefs(
+  beliefs: NonNullable<Update["beliefs"]>,
+  state: CognitiveState,
+  sources: Episode[],
+  currentTime?: number,
+  visibleSources: Data[] = [],
+) {
+  for (const belief of beliefs) {
+    const basis = belief.basis,
+      test = belief.test;
+    if (!basis || !test || !belief.evidenceRefs.includes(basis.sourceId))
+      throw new FleetError("COGNITION_BELIEF_BASIS_REQUIRED");
+    const source = sources.find((e) => e.id === basis.sourceId);
+    if (!source) throw new FleetError("COGNITION_BELIEF_BASIS_REQUIRED");
+    const incoming =
+      source.kind === "message" && source.detail.direction === "incoming" && source.detail.peerId === belief.peerId;
+    const scoped = ["statement", "reply"].includes(basis.kind)
+      ? incoming
+      : source.kind === "observation" && !!peerFact(source, belief.peerId, basis.kind);
+    const visible = object(visibleSources.find((e) => e.id === basis.sourceId)?.detail);
+    const visibleScoped = ["statement", "reply"].includes(basis.kind)
+      ? visible.direction === "incoming" && visible.peerId === belief.peerId
+      : (Array.isArray(visible.peerFacts) ? visible.peerFacts.map(object) : []).some(
+          (fact) => fact.peerId === belief.peerId && fact.kind === basis.kind,
+        );
+    if (!scoped || !visibleScoped) throw new FleetError("COGNITION_PEER_EVIDENCE_MISMATCH");
+    if (belief.confidence === "high") throw new FleetError("COGNITION_CONFIDENCE_UNSUPPORTED");
+    if (belief.prediction.length < 20 || belief.hypothesis.toLowerCase() === belief.alternative.toLowerCase())
+      throw new FleetError("COGNITION_TEST_NOT_SPECIFIC");
+    if (test.byGameTimeMs <= test.afterGameTimeMs || test.byGameTimeMs - test.afterGameTimeMs > lifetime)
+      throw new FleetError("COGNITION_TEST_WINDOW_INVALID");
+    const prior = state.beliefs.find((b) => b.peerId === belief.peerId && b.basis && b.test);
+    const sameTest =
+      prior && prior.prediction === belief.prediction && JSON.stringify(prior.test) === JSON.stringify(test);
+    if (!sameTest && currentTime !== undefined && test.afterGameTimeMs < currentTime)
+      throw new FleetError("COGNITION_RETROACTIVE_PREDICTION");
+    if (["supported", "contradicted"].includes(belief.assessment)) {
+      const at = gameTime(source);
+      // A reply tests responsiveness, never agreement or successful delivery.
+      // Missing replies have incomplete coverage and cannot prove contradiction.
+      if (
+        belief.assessment === "contradicted" ||
+        !sameTest ||
+        basis.kind !== test.kind ||
+        at === undefined ||
+        at <= test.afterGameTimeMs ||
+        at > test.byGameTimeMs
+      )
+        throw new FleetError("COGNITION_TEST_OUTCOME_UNVERIFIED");
+    }
+  }
+}
+function groundReflection(reflection: NonNullable<Update["reflections"]>[number], sources: Episode[]) {
+  const source = sources.find((e) => e.id === reflection.outcomeRef);
+  if (source?.kind !== "receipt" || !reflection.evidenceRefs.includes(source.id))
+    throw new FleetError("COGNITION_RECORDED_OUTCOME_REQUIRED");
+  const detail = source.detail,
+    receipt = object(detail.receipt);
+  const kind = String(object(detail.action).kind ?? detail.actionKind ?? "unknown");
+  const code = receipt.code ?? detail.code;
+  if (typeof detail.intent !== "string" || !detail.intent.trim())
+    throw new FleetError("COGNITION_RECORDED_EXPECTATION_REQUIRED");
+  const rejectedBeforeSubmission =
+    detail.source === "controller_rejection" && detail.submitted === false && detail.committed === false;
+  const committed = ["COMMITTED", "ALREADY_COMMITTED"].includes(String(code));
+  if (
+    typeof code !== "string" ||
+    (!rejectedBeforeSubmission &&
+      (!detail.commandId ||
+        !["receipt", "explicit_rejection"].includes(String(detail.source)) ||
+        detail.committed !== committed))
+  )
+    throw new FleetError("COGNITION_RECORDED_OUTCOME_REQUIRED");
+  const expected = utf8Prefix(detail.intent, 300);
+  const observed = `${kind}: ${code}; ${rejectedBeforeSubmission ? "not submitted" : committed ? "command committed; later completion unknown" : "command not committed"}.`;
+  if (
+    (reflection.expected !== undefined && reflection.expected !== expected) ||
+    (reflection.observed !== undefined && reflection.observed !== observed)
+  )
+    throw new FleetError("COGNITION_OUTCOME_MISMATCH");
+  if (reflection.revision.length < 20) throw new FleetError("COGNITION_REFLECTION_NOT_SPECIFIC");
+  return {
+    outcomeRef: source.id,
+    expected,
+    observed,
+    revision: reflection.revision,
+    evidenceRefs: [...new Set(reflection.evidenceRefs)],
+  };
 }
 export class Cognition {
   constructor(
@@ -407,7 +589,9 @@ export class Cognition {
       .filter((e, index, list) => list.findIndex((item) => item.id === e.id) === index)
       .slice(0, 5);
     const evidence = selected.map((e) => ({ ...e, detail: compactEpisode(e) }));
-    const beliefs = [...state.beliefs]
+    const groundedBeliefs = state.beliefs.filter((b) => b.basis && b.test);
+    const groundedReflections = state.reflections.filter((r) => r.outcomeRef);
+    const beliefs = [...groundedBeliefs]
       .sort(
         (a, b) =>
           Number(peers.includes(b.peerId)) - Number(peers.includes(a.peerId)) || b.updatedAt.localeCompare(a.updatedAt),
@@ -420,14 +604,14 @@ export class Cognition {
       latestReceiptId: recentReceipt?.id,
       plan: state.plan,
       beliefs,
-      reflections: state.reflections.slice(-2),
+      reflections: groundedReflections.slice(-2),
       evidence,
       evidenceAvailability: Object.fromEntries(
         [
           ...new Set([
             ...(state.plan?.evidenceRefs ?? []),
             ...beliefs.flatMap((b) => b.evidenceRefs),
-            ...state.reflections.slice(-2).flatMap((r) => r.evidenceRefs),
+            ...groundedReflections.slice(-2).flatMap((r) => r.evidenceRefs),
           ]),
         ].map((id) => [id, allIds.has(id) ? "retained" : "expired_or_evicted"]),
       ),
@@ -441,9 +625,11 @@ export class Cognition {
       coverage: {
         retainedEpisodes: episodes.length,
         deliveredEpisodes: evidence.length,
-        omittedBeliefs: state.beliefs.length - beliefs.length,
+        omittedBeliefs: groundedBeliefs.length - beliefs.length,
+        legacyUnverifiedBeliefs: state.beliefs.length - groundedBeliefs.length,
+        legacyUnverifiedReflections: state.reflections.length - groundedReflections.length,
         interpretation:
-          "Private dated history; subjective state. Cite delivered IDs only. Current facts and authority prevail.",
+          "Hypotheses remain subjective. Assessment tests only the typed reply/agreement event, not motives or reliability. Cite delivered sources; current facts prevail.",
       },
     };
   }
@@ -489,27 +675,74 @@ export class Cognition {
         throw new FleetError("COGNITION_STALE_VERSION");
       // Require the referenced evidence still to belong to this agent at commit.
       const sources = await c.query(
-        "SELECT id FROM cognitive_episodes WHERE agent_id=$1 AND id=ANY($2::uuid[]) AND occurred_at>$3",
-        [claim.agentId, [...new Set(cited)], new Date(this.store.now().getTime() - lifetime)],
+        "SELECT id,kind,occurred_at,detail_cipher FROM cognitive_episodes WHERE agent_id=$1 AND id=ANY($2::uuid[]) AND occurred_at>$3",
+        [
+          claim.agentId,
+          [
+            ...new Set([
+              ...cited,
+              ...(typeof delivered.currentEvidenceId === "string" && allowed.has(delivered.currentEvidenceId)
+                ? [delivered.currentEvidenceId]
+                : []),
+            ]),
+          ],
+          new Date(this.store.now().getTime() - lifetime),
+        ],
       );
-      if (sources.rowCount !== new Set(cited).size) throw new FleetError("COGNITION_EVIDENCE_EXPIRED");
+      if (cited.some((id) => !sources.rows.some((e) => e.id === id)))
+        throw new FleetError("COGNITION_EVIDENCE_EXPIRED");
       const state = row
         ? clean(
             this.store.vault.decrypt<CognitiveState>(row.detail_cipher, `cognition:${claim.agentId}`),
             this.store.now().getTime(),
           )
         : empty();
+      const sourceEpisodes: Episode[] = sources.rows.map((e) => ({
+        id: e.id,
+        kind: e.kind,
+        at: e.occurred_at.toISOString(),
+        detail: this.store.vault.decrypt<Data>(e.detail_cipher, `episode:${claim.agentId}:${e.id}`),
+      }));
+      validateBeliefs(
+        update.beliefs ?? [],
+        state,
+        sourceEpisodes,
+        gameTime(
+          sourceEpisodes.find((e) => e.id === delivered.currentEvidenceId) ?? { id: "", at: "", kind: "", detail: {} },
+        ),
+        evidence,
+      );
+      const groundedReflections = (update.reflections ?? []).map((r) => groundReflection(r, sourceEpisodes));
       const beforeState = JSON.stringify(state);
       const updatedAt = this.store.now().toISOString();
-      if (update.plan !== undefined) state.plan = update.plan ? { ...update.plan, updatedAt } : null;
-      for (const b of update.beliefs ?? []) {
+      if (update.plan !== undefined && !sameDeclaration(state.plan, update.plan))
+        state.plan = update.plan ? { ...update.plan, updatedAt } : null;
+      let beliefsRevised = 0,
+        reflectionsAdded = 0;
+      for (const raw of update.beliefs ?? []) {
+        const b = { ...raw, evidenceRefs: [...new Set(raw.evidenceRefs)] };
+        if (
+          sameDeclaration(
+            state.beliefs.find((old) => old.peerId === b.peerId),
+            b,
+          )
+        )
+          continue;
+        beliefsRevised++;
         state.beliefs = state.beliefs.filter((old) => old.peerId !== b.peerId);
         state.beliefs.push({ ...b, updatedAt });
       }
       state.beliefs = state.beliefs.slice(-12);
-      state.reflections = [...state.reflections, ...(update.reflections ?? []).map((r) => ({ ...r, updatedAt }))].slice(
-        -8,
-      );
+      for (const r of groundedReflections) {
+        const inserted = await c.query(
+          "INSERT INTO cognitive_reflection_keys(agent_id,outcome_id,created_at) VALUES($1,$2,$3) ON CONFLICT DO NOTHING RETURNING outcome_id",
+          [claim.agentId, r.outcomeRef, this.store.now()],
+        );
+        if (!inserted.rowCount) continue;
+        reflectionsAdded++;
+        state.reflections.push({ ...r, updatedAt });
+      }
+      state.reflections = state.reflections.slice(-8);
       const changed = JSON.stringify(state) !== beforeState || !!update.memories?.length;
       if (changed)
         await c.query(
@@ -563,8 +796,9 @@ export class Cognition {
           changed,
           review: update.review ? { beliefs: update.review.beliefs, reflection: update.review.reflection } : null,
           planStatus: state.plan?.status ?? null,
-          beliefsRevised: update.beliefs?.length ?? 0,
-          reflections: update.reflections?.length ?? 0,
+          beliefsRevised,
+          reflections: reflectionsAdded,
+          duplicateReflectionsSkipped: (update.reflections?.length ?? 0) - reflectionsAdded,
           memories: update.memories?.length ?? 0,
           meaning: "Subjective state; no game command or authority changed.",
         },
@@ -597,6 +831,14 @@ export class Cognition {
       enabled: !!cohort.model?.cognition,
       version,
       ...state,
+      beliefs: state.beliefs.map((b) => ({
+        ...b,
+        grounding: b.basis && b.test ? "source_checked_subjective" : "legacy_unverified",
+      })),
+      reflections: state.reflections.map((r) => ({
+        ...r,
+        grounding: r.outcomeRef ? "recorded_outcome" : "legacy_unverified",
+      })),
       latestReview,
       episodes: episodes.slice(0, 20),
       coverage:

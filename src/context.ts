@@ -128,7 +128,11 @@ export function fitMessages(
             "This decision's current observation. Only delivered environment fields are evidence; paged fields are unknown.",
         },
       };
-    if (episode.kind === "receipt" && outcomes.some((outcome) => outcome.commandId === detail.commandId))
+    if (
+      episode.kind === "receipt" &&
+      typeof detail.commandId === "string" &&
+      outcomes.some((outcome) => outcome.commandId === detail.commandId)
+    )
       return {
         ...episode,
         detail: {

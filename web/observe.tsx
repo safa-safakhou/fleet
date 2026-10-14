@@ -895,12 +895,19 @@ function CognitiveInspector({ value }: { value: Record<string, unknown> }) {
         beliefs.map((b) => (
           <article key={String(b.peerId)}>
             <p>
-              <strong>Player {String(b.peerId).slice(0, 8)}</strong> · {String(b.assessment)} · {String(b.confidence)}{" "}
-              subjective confidence
+              <strong>Player {String(b.peerId).slice(0, 8)}</strong> · prediction test {String(b.assessment)} ·{" "}
+              {String(b.confidence)} subjective confidence ·{" "}
+              {String(b.grounding ?? "legacy_unverified").replaceAll("_", " ")}
             </p>
             <p>{String(b.hypothesis)}</p>
             <p className="muted">Alternative: {String(b.alternative)}</p>
             <p>Prediction to review: {String(b.prediction)}</p>
+            {b.test ? (
+              <p className="muted">
+                Test: {String(obj(b.test).kind)}; game-time window {String(obj(b.test).afterGameTimeMs)}–
+                {String(obj(b.test).byGameTimeMs)}
+              </p>
+            ) : null}
           </article>
         ))
       ) : (
@@ -910,7 +917,8 @@ function CognitiveInspector({ value }: { value: Record<string, unknown> }) {
       {reflections.length ? (
         reflections.map((r) => (
           <article key={JSON.stringify(r)}>
-            <p>Expected: {String(r.expected)}</p>
+            <p className="muted">{String(r.grounding ?? "legacy_unverified").replaceAll("_", " ")}</p>
+            <p>Recorded intention: {String(r.expected)}</p>
             <p>Observed: {String(r.observed)}</p>
             <p>Revision: {String(r.revision)}</p>
           </article>

@@ -26,6 +26,14 @@ export function cognitiveObservation(facts: Data) {
         900,
       ),
       asOfGameTimeMs: world.asOfGameTimeMs,
+      peerFacts: [
+        ...list(guide.contacts).map((c) => ({ peerId: c.kingdomId, kind: "contact" })),
+        ...list(world.contracts).map((c) => ({
+          peerId: c.counterpartyKingdomId,
+          kind: "agreement",
+          agreementId: c.id,
+        })),
+      ].filter((f) => typeof f.peerId === "string"),
       buildings: world.buildings,
       builders: world.builders,
       balances: Object.fromEntries(

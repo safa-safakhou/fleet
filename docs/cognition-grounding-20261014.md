@@ -1,0 +1,25 @@
+# Cognitive grounding repair — 14 October 2026
+
+The founder requested repairing false beliefs/reflections, preserving message direction, verifying actual outcomes and stopping duplicate reflections, with local deployment to the same five Nemotron accounts and unchanged budgets. This is a same-cohort repair, not a comparison. Codex owns implementation without delegation.
+
+## Problem and resulting behavior
+
+Inspection of Agent 01 showed self-authored alliance messages treated as peer acceptance, a belief citing an unrelated contact snapshot, vague untested predictions marked supported, and repeated reflections claiming an answer that never executed. The prior delivery/storage acceptance did not establish meaningful learning. Private statements/source bodies remain outside this report and Git.
+
+Incoming/outgoing/unknown direction and peer identity now precede message prose in Laya candidate text and survive compaction. New beliefs require a visible, owned source matching that peer and a concrete reply/agreement test with a future game-time window. A supported test must match a previously recorded prediction/window and an actual later reply/observed agreement inside it. Initial statements/contact presence do not establish reliability. Sparse evidence admits only low/medium subjective confidence; missing coverage or contrary claims can lower a hypothesis to unresolved. Current generic tests do not certify non-response or arbitrary delivery/motive predictions as contradicted. These are narrowly checked events, not a semantic truth engine.
+
+New reflection proposals contain an outcomeRef, source references and concrete revision. Fleet supplies the recorded intention and factual result from the journal, distinguishing an admitted command from eventual completion and from controller rejection before submission. The current proposed action cannot be its own result. Unknown submissions retain the original pending command and produce no invented outcome. Existing exact-game authority/schema/receipt checks are unchanged.
+
+A durable per-agent/outcome key prevents re-reflection even after restart or visible-state eviction; paraphrases cannot bypass it. Unchanged beliefs/plans do not advance versions or refresh timestamps. Accepted field counts/skipped duplicates are recorded independently of subjective review labels. Old unsupported statements remain in history/inspection marked legacy_unverified and are withheld from model continuity; deployment does not rewrite them.
+
+Additive migration 007 adds the outcome deduplication table only. Encrypted prose, identities and accounting remain in existing tables. Keys expire with their source. Provider citation/basis/outcome enums reflect the final delivered context; unavailable source classes disable those optional proposals while preserving honest reviews. Controller checks still revalidate owned retained sources, actual visible peer evidence, stale versions, fencing and replay consistency. The LLM retains strategy and revision prose within existing decision calls; no extra inference, forced social action or online weight training.
+
+## Source checks
+
+Linux Node 24.21 / PostgreSQL 17.9: 92 unit and 145 integration tests passed (237 total). Checks include self-speech/foreign-peer refusal, paged evidence refusal, prior versus retroactive tests, actual results rather than fabricated answers/completion, not-submitted result propagation, duplicate paraphrases after visible eviction, unchanged version/time, legacy quarantine without history rewrite, unknown submission, fencing/expiry, dense Laya delivery and accounting/authority regressions. Type/lint, boundary and production build passed; lint retains the existing 17 warnings/one info. Production dependency audit: zero vulnerabilities. Tests use a separate fleet_test database and fake providers; no live account/inference is created.
+
+The actual loopback Laya helper passed its unchanged frozen HTTP set: 18 accepted/18 correct, 14 abstentions. This uses synthetic text only, with zero game/LLM calls. The pinned checkpoint, helper source, certificate and threshold are unchanged; direction labels do not certify broad relevance or intelligence. Read-only native reconstruction fitted all five current contexts at 23,636–23,984 bytes with a supplied candidate pair, without changing the 24,000-byte allowance. Initial Agent 04 reconstruction exposed excess duplicated guidance; concise guidance corrected it before activation. Reconstructed prompts are distinct from actual scheduled delivery.
+
+## Local activation
+
+Pending verified release installation and scheduled same-five acceptance. A quiescent deployment pause retained the original anchor, history, identities and six unknown allocations. A protected pre-deployment dump was restored into a networkless PostgreSQL 17.9 clone with all 14 nonvolatile tables matching; the live database was never restored. Protected artifacts live under the existing local installation's state/cognition-grounding-20261014 directory, outside Git.

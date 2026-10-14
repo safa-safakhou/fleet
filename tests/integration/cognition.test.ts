@@ -31,10 +31,20 @@ async function setup(count = 1) {
     peer = randomUUID();
   const evidence = await support.capture(claim, "message", "message-one", {
     peerId: peer,
+    direction: "incoming",
+    gameTime: String(f.now().getTime()),
     body: "The promised grain arrived on time.",
   });
+  const outcome = await support.capture(claim, "receipt", "recorded-result", {
+    commandId: randomUUID(),
+    intent: "Ask for a small grain trial",
+    actionKind: "game.message.send",
+    receipt: { code: "COMMITTED" },
+    source: "receipt",
+    committed: true,
+  });
   const context = await support.context(claim, [peer], evidence, "trade");
-  return { ...f, id, claim, support, peer, evidence, context };
+  return { ...f, id, claim, support, peer, evidence, outcome, context };
 }
 function update(f: Awaited<ReturnType<typeof setup>>) {
   return {
@@ -52,23 +62,296 @@ function update(f: Awaited<ReturnType<typeof setup>>) {
         hypothesis: "This partner may value reliability",
         alternative: "One timely shipment could be luck",
         confidence: "low",
-        prediction: "They will deliver the next agreed shipment on time",
+        prediction: "They will reply to discuss a small grain trial",
+        basis: { sourceId: f.evidence, kind: "statement" },
+        test: { kind: "reply", afterGameTimeMs: f.now().getTime(), byGameTimeMs: f.now().getTime() + 3600000 },
         assessment: "untested",
         evidenceRefs: [f.evidence],
       },
     ],
     reflections: [
       {
-        expected: "The partner might miss delivery",
-        observed: "This observed message reports arrival; receipt still needs checking",
+        outcomeRef: f.outcome,
         revision: "Consider a small trial, while retaining uncertainty",
-        evidenceRefs: [f.evidence],
+        evidenceRefs: [f.outcome],
       },
     ],
     memories: [{ summary: "A grain exchange worth reviewing", importance: 4, evidenceRefs: [f.evidence] }],
   };
 }
 describe("LLM memory, plans and beliefs", () => {
+  it("refuses self speech and unrelated peer sources as evidence about another player", async () => {
+    const f = await setup();
+    const outgoing = await f.support.capture(f.claim, "message", "self-speech", {
+      peerId: f.peer,
+      direction: "outgoing",
+      body: "We could form an alliance",
+    });
+    const context = await f.support.context(f.claim, [f.peer], outgoing, "alliance");
+    const belief = update(f).beliefs[0];
+    await expect(
+      f.support.apply(
+        f.claim,
+        0,
+        {
+          expectedVersion: 0,
+          beliefs: [
+            {
+              ...belief,
+              basis: { kind: "statement", sourceId: outgoing },
+              evidenceRefs: [outgoing],
+            },
+          ],
+        },
+        context,
+      ),
+    ).rejects.toThrow("COGNITION_PEER_EVIDENCE_MISMATCH");
+    await expect(
+      f.support.apply(
+        f.claim,
+        0,
+        {
+          expectedVersion: 0,
+          beliefs: [
+            {
+              ...belief,
+              peerId: "another-observed-peer",
+            },
+          ],
+        },
+        { ...f.context, knownPeerIds: [f.peer, "another-observed-peer"] },
+      ),
+    ).rejects.toThrow("COGNITION_PEER_EVIDENCE_MISMATCH");
+    expect((await f.pool.query("SELECT * FROM cognitive_states")).rowCount).toBe(0);
+  });
+  it("refuses peer facts that were retained privately but paged out of the delivered source", async () => {
+    const f = await setup();
+    const id = await f.support.capture(f.claim, "observation", "contact-fact", {
+      asOfGameTimeMs: f.now().getTime(),
+      peerFacts: [{ peerId: f.peer, kind: "contact" }],
+    });
+    const context = await f.support.context(f.claim, [f.peer], id, "contact");
+    const paged = {
+      ...context,
+      evidence: (context.evidence as Data[]).map((e) =>
+        e.id === id ? { ...e, detail: { factsAt: "environment", coverage: "Contact page omitted" } } : e,
+      ),
+    };
+    await expect(
+      f.support.apply(
+        f.claim,
+        0,
+        {
+          expectedVersion: 0,
+          beliefs: [
+            {
+              ...update(f).beliefs[0],
+              basis: { sourceId: id, kind: "contact" },
+              evidenceRefs: [id],
+            },
+          ],
+        },
+        paged,
+      ),
+    ).rejects.toThrow("COGNITION_PEER_EVIDENCE_MISMATCH");
+  });
+  it("tests an existing prediction against a later peer reply, never retroactively invents success", async () => {
+    const f = await setup(),
+      belief = update(f).beliefs[0];
+    await expect(
+      f.support.apply(f.claim, 0, { expectedVersion: 0, beliefs: [{ ...belief, assessment: "supported" }] }, f.context),
+    ).rejects.toThrow("COGNITION_TEST_OUTCOME_UNVERIFIED");
+    await f.support.apply(f.claim, 0, { expectedVersion: 0, beliefs: [belief] }, f.context);
+    f.advance(1000);
+    const reply = await f.support.capture(f.claim, "message", "later-reply", {
+      peerId: f.peer,
+      direction: "incoming",
+      gameTime: String(f.now().getTime()),
+      body: "Let us discuss the small trial",
+    });
+    const context = await f.support.context(f.claim, [f.peer], reply, "review trial");
+    const supported = {
+      ...belief,
+      assessment: "supported",
+      basis: { kind: "reply", sourceId: reply },
+      evidenceRefs: [reply],
+    };
+    await expect(
+      f.support.apply(
+        f.claim,
+        1,
+        {
+          expectedVersion: 1,
+          beliefs: [{ ...supported, prediction: "They will fulfil a completely different promise" }],
+        },
+        context,
+      ),
+    ).rejects.toThrow("COGNITION_RETROACTIVE_PREDICTION");
+    await expect(
+      f.support.apply(f.claim, 1, { expectedVersion: 1, beliefs: [{ ...supported, confidence: "high" }] }, context),
+    ).rejects.toThrow("COGNITION_CONFIDENCE_UNSUPPORTED");
+    await f.support.apply(f.claim, 1, { expectedVersion: 1, beliefs: [supported] }, context);
+    const stored = await f.support.inspect(f.claim.agentId);
+    expect(object((stored.beliefs as Data[])[0]).assessment).toBe("supported");
+    const before = (await f.pool.query("SELECT * FROM cognitive_states")).rows[0];
+    f.advance(1000);
+    await f.support.apply(f.claim, 2, { expectedVersion: 2, beliefs: [supported] }, { ...context, version: 2 });
+    expect((await f.pool.query("SELECT * FROM cognitive_states")).rows[0]).toEqual(before);
+  });
+  it("derives factual reflections from recorded results and refuses fabricated answers or completion", async () => {
+    const f = await setup();
+    const reflection = {
+      outcomeRef: f.outcome,
+      revision: "Check for the peer reply before treating the trial as agreed",
+      evidenceRefs: [f.outcome],
+    };
+    await expect(
+      f.support.apply(
+        f.claim,
+        0,
+        { expectedVersion: 0, reflections: [{ ...reflection, observed: "Peer contact answered via game.answer" }] },
+        f.context,
+      ),
+    ).rejects.toThrow("COGNITION_OUTCOME_MISMATCH");
+    await expect(
+      f.support.apply(
+        f.claim,
+        0,
+        { expectedVersion: 0, reflections: [{ ...reflection, outcomeRef: f.evidence, evidenceRefs: [f.evidence] }] },
+        f.context,
+      ),
+    ).rejects.toThrow("COGNITION_RECORDED_OUTCOME_REQUIRED");
+    await f.support.apply(f.claim, 0, { expectedVersion: 0, reflections: [reflection] }, f.context);
+    const saved = (await f.support.inspect(f.claim.agentId)).reflections as Data[];
+    expect(saved[0]).toMatchObject({
+      expected: "Ask for a small grain trial",
+      observed: "game.message.send: COMMITTED; command committed; later completion unknown.",
+      grounding: "recorded_outcome",
+    });
+  });
+  it("does not append paraphrases of the same outcome, including after visible reflection eviction", async () => {
+    const f = await setup();
+    const reflection = {
+      outcomeRef: f.outcome,
+      revision: "Check for a peer reply before another commitment",
+      evidenceRefs: [f.outcome],
+    };
+    await f.support.apply(f.claim, 0, { expectedVersion: 0, reflections: [reflection] }, f.context);
+    for (let i = 0; i < 8; i++) {
+      const id = await f.support.capture(f.claim, "receipt", `outcome-${i}`, {
+        commandId: randomUUID(),
+        intent: "Check schema before a commitment",
+        actionKind: "game.message.send",
+        receipt: { code: "REFUSED" },
+        source: "explicit_rejection",
+        committed: false,
+      });
+      const c = await f.support.context(f.claim, [f.peer], id, "review");
+      await f.support.apply(
+        f.claim,
+        i + 1,
+        { expectedVersion: c.version, reflections: [{ ...reflection, outcomeRef: id, evidenceRefs: [id] }] },
+        c,
+      );
+    }
+    const before = (await f.pool.query("SELECT * FROM cognitive_states")).rows[0];
+    const c = await f.support.context(f.claim, [f.peer], f.outcome, "review original");
+    await f.support.apply(
+      f.claim,
+      10,
+      {
+        expectedVersion: c.version,
+        reflections: [{ ...reflection, revision: "Review the counterpart response before committing again" }],
+      },
+      c,
+    );
+    expect((await f.pool.query("SELECT * FROM cognitive_states")).rows[0]).toEqual(before);
+    expect((await f.pool.query("SELECT * FROM cognitive_reflection_keys")).rowCount).toBe(9);
+    const events = (await new Observability(f.store).history(f.id)).turns[0].events;
+    expect(events.some((e) => e.detail?.duplicateReflectionsSkipped === 1)).toBe(true);
+  });
+  it("quarantines old unverified prose from prompts without rewriting history or inspection", async () => {
+    const f = await setup();
+    const legacy = {
+      plan: null,
+      beliefs: [
+        {
+          peerId: f.peer,
+          hypothesis: "Reliable ally",
+          assessment: "supported",
+          confidence: "high",
+          updatedAt: f.now().toISOString(),
+          evidenceRefs: [f.evidence],
+        },
+      ],
+      reflections: [
+        {
+          expected: "Alliance accepted",
+          observed: "Contact answered via game.answer",
+          revision: "Confirmed",
+          updatedAt: f.now().toISOString(),
+          evidenceRefs: [f.outcome],
+        },
+      ],
+    };
+    const cipher = f.store.vault.encrypt(legacy, `cognition:${f.claim.agentId}`);
+    await f.pool.query("INSERT INTO cognitive_states VALUES($1,$2,5,$3,$4)", [f.claim.agentId, f.id, f.now(), cipher]);
+    const context = await f.support.context(f.claim, [f.peer], f.evidence, "alliance");
+    expect(context.beliefs).toEqual([]);
+    expect(context.reflections).toEqual([]);
+    expect(object(context.coverage).legacyUnverifiedBeliefs).toBe(1);
+    expect((await f.pool.query("SELECT detail_cipher FROM cognitive_states")).rows[0].detail_cipher).toBe(cipher);
+    const view = await f.support.inspect(f.claim.agentId);
+    expect((view.beliefs as Data[])[0].grounding).toBe("legacy_unverified");
+    expect((view.reflections as Data[])[0].observed).toBe("Contact answered via game.answer");
+  });
+  it("makes a refused action available as a not-submitted outcome for the next decision", async () => {
+    const f = await setup(),
+      game = new FakeGame(f.claim);
+    let call = 0;
+    const model: ModelPort = {
+      decide: async (input) => {
+        const c = object(JSON.parse(input.messages[1].content).cognition);
+        if (call++ === 0)
+          return {
+            decision: { kind: "action", summary: "Try to accept the invitation", action: { kind: "game.answer" } },
+            inputTokens: 100,
+            outputTokens: 100,
+          };
+        const outcome = (c.evidence as Data[]).find((e) => object(e.detail).source === "controller_rejection");
+        expect(outcome).toBeTruthy();
+        return {
+          decision: {
+            kind: "wait",
+            summary: "Inspect the exact action schema next turn",
+            cognition: {
+              expectedVersion: c.version,
+              review: {
+                beliefs: "unchanged",
+                reflection: "updated",
+                reason: "The attempted action was rejected before submission",
+              },
+              reflections: [
+                {
+                  outcomeRef: outcome?.id,
+                  revision: "Inspect the admitted contact-answer schema before retrying",
+                  evidenceRefs: [outcome?.id],
+                },
+              ],
+            },
+          },
+          inputTokens: 100,
+          outputTokens: 100,
+        };
+      },
+    };
+    await new Engine(f.store, model, async () => game, true, pactAdapter, undefined, undefined, f.support).run(f.claim);
+    expect(game.submits).toHaveLength(0);
+    expect(game.opened).toBe(0);
+    const saved = (await f.support.inspect(f.claim.agentId)).reflections as Data[];
+    expect(saved[0].observed).toBe("game.answer: INVALID_GAME_ACTION; not submitted.");
+    expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(2);
+  });
   it("keeps Laya optional, retains both candidates and records abstention without changing the plan", async () => {
     const f = await setup();
     await f.support.capture(f.claim, "message", "other", { peerId: f.peer, body: "A timber offer" });
@@ -164,6 +447,7 @@ describe("LLM memory, plans and beliefs", () => {
       action: { kind: "game.building.queue" },
       receipt: { code: "COMMITTED" },
       committed: true,
+      source: "receipt",
     });
     let selected = "",
       candidates: string[] = [],
@@ -211,15 +495,16 @@ describe("LLM memory, plans and beliefs", () => {
                 hypothesis: "May value dependable supply",
                 alternative: "The claim may be inaccurate",
                 confidence: "low",
-                prediction: "A future verified receipt will match the promise",
+                prediction: "They will reply to discuss a small grain trial",
+                basis: { sourceId: f.evidence, kind: "statement" },
+                test: { kind: "reply", afterGameTimeMs: f.now().getTime(), byGameTimeMs: f.now().getTime() + 3600000 },
                 assessment: "untested",
                 evidenceRefs: [f.evidence],
               },
             ],
             reflections: [
               {
-                expected: "Start a farm upgrade",
-                observed: "The command receipt reports COMMITTED",
+                outcomeRef: receipt,
                 revision: "Check completion in fresh state before another upgrade",
                 evidenceRefs: [receipt],
               },
@@ -234,7 +519,7 @@ describe("LLM memory, plans and beliefs", () => {
       ...pactAdapter,
       compactFacts: (facts: Data) => ({
         ...pactAdapter.compactFacts(facts),
-        profile: { kingdomId: f.claim.agent.kingdom_id, whole: "x".repeat(6000) },
+        profile: { kingdomId: f.claim.agent.kingdom_id, whole: "x".repeat(4500) },
         contacts: [{ kingdomId: f.peer, whole: "x".repeat(9000) }],
       }),
       availableActions: (facts: Data, owner: Data | null | undefined) => {
@@ -319,7 +604,9 @@ describe("LLM memory, plans and beliefs", () => {
     const turn = (await f.pool.query("SELECT state,pending_command FROM turns")).rows[0];
     expect(turn.state).toBe("pending");
     expect(turn.pending_command).toBe(game.submits[0].commandId);
-    expect((await f.pool.query("SELECT * FROM cognitive_episodes WHERE kind='receipt'")).rowCount).toBe(0);
+    expect(
+      (await f.pool.query("SELECT * FROM cognitive_episodes WHERE kind='receipt' AND id<>$1", [f.outcome])).rowCount,
+    ).toBe(0);
   });
   it("persists and retrieves subjective state after restart, with source-linked reflection and no queued command", async () => {
     const f = await setup();
@@ -337,14 +624,17 @@ describe("LLM memory, plans and beliefs", () => {
     expect(state).not.toContain("winter");
     expect((await f.pool.query("SELECT pending_command FROM turns")).rows[0].pending_command).toBeNull();
     const raw = (await f.pool.query("SELECT kind FROM cognitive_episodes ORDER BY kind")).rows;
-    expect(raw.map((r) => r.kind)).toEqual(["interpretation", "message"]);
+    expect(raw.map((r) => r.kind)).toEqual(["interpretation", "message", "receipt"]);
   });
   it("accepts contrary evidence and lowers an earlier belief without replacing identity or the persistent plan", async () => {
     const f = await setup();
     await f.support.apply(f.claim, 0, update(f), f.context);
-    const newer = await f.support.capture(f.claim, "receipt", "late-delivery", {
+    f.advance(1000);
+    const newer = await f.support.capture(f.claim, "message", "uncertain-supply", {
       peerId: f.peer,
-      receipt: { code: "DELIVERY_MISSED" },
+      direction: "incoming",
+      gameTime: String(f.now().getTime()),
+      body: "I cannot promise reliable supply yet.",
     });
     const context = await f.support.context(f.claim, [f.peer], newer, "review reliability");
     const prior = update(f).beliefs[0];
@@ -357,16 +647,9 @@ describe("LLM memory, plans and beliefs", () => {
           {
             ...prior,
             confidence: "low",
-            assessment: "contradicted",
-            hypothesis: "The evidence now challenges reliable delivery",
-            evidenceRefs: [newer],
-          },
-        ],
-        reflections: [
-          {
-            expected: prior.prediction,
-            observed: "The supplied receipt reports a missed delivery",
-            revision: "Reconsider the trial before making another commitment",
+            assessment: "unresolved",
+            hypothesis: "The peer now expresses uncertainty about supply",
+            basis: { sourceId: newer, kind: "statement" },
             evidenceRefs: [newer],
           },
         ],
@@ -375,7 +658,7 @@ describe("LLM memory, plans and beliefs", () => {
     );
     const result = await f.support.context(f.claim, [f.peer], newer, "supply");
     expect(object(result.plan).goal).toBe(update(f).plan.goal);
-    expect((result.beliefs as Data[])[0].assessment).toBe("contradicted");
+    expect((result.beliefs as Data[])[0].assessment).toBe("unresolved");
     expect((await f.store.agent(f.claim.agentId)).account_id).toBe(f.claim.agent.account_id);
   });
   it("refuses fabricated references, unobserved players, stale versions and interpretation as corroborating evidence", async () => {
