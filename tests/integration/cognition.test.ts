@@ -106,12 +106,24 @@ describe("LLM memory, plans and beliefs", () => {
         opportunity: "peer_evidence",
         hypothesis: "The peer may prefer a small trial to reduce uncertainty",
         alternative: "Their claim may be a pitch without reliable supply",
-        prediction: "They will reply to a concrete small grain trial offer",
+        expectedInteraction: "A reply discussing the concrete small grain trial offer",
+        evidenceQuote: "promised grain arrived",
         confidence: "low",
         predictedEvent: "reply",
         reviewAfterMinutes: 60,
       },
     };
+    await expect(
+      f.support.apply(
+        f.claim,
+        2,
+        normalizeAnalysis(
+          { ...native, analysis: { ...native.analysis, evidenceQuote: "They promised to queue our barracks" } },
+          delivered,
+        ),
+        delivered,
+      ),
+    ).rejects.toThrow("COGNITION_QUOTE_NOT_OBSERVED");
     await f.support.apply(f.claim, 2, normalizeAnalysis(native, delivered), delivered);
     const next = await f.support.context(f.claim, [], current, "farm construction");
     await f.support.apply(
@@ -123,7 +135,8 @@ describe("LLM memory, plans and beliefs", () => {
           analysis: {
             type: "reflection",
             opportunity: "recorded_result",
-            lesson: "Sending the invitation confirms only our request, not their agreement",
+            difference: "Sending the invitation confirms only our request, not their agreement",
+            lesson: "Avoid committing supply until we learn whether the peer wants a trial",
             nextStep: "Wait for their response before promising a delivery",
           },
         },
@@ -151,6 +164,7 @@ describe("LLM memory, plans and beliefs", () => {
           analysis: {
             type: "reflection",
             opportunity: "recorded_result",
+            difference: "The same invitation is recorded, with no new response observed",
             lesson: "Repeat the same lesson with another phrasing",
             nextStep: "Wait for their reply once more",
           },
@@ -622,7 +636,8 @@ describe("LLM memory, plans and beliefs", () => {
             analysis: {
               type: "reflection",
               opportunity: "recorded_result",
-              lesson: "A committed queue command does not prove the upgrade finished",
+              difference: "A committed queue command does not prove the upgrade finished",
+              lesson: "Do not plan a second dependent upgrade until actual completion is observed",
               nextStep: "Check fresh completion state before another upgrade",
             },
           },

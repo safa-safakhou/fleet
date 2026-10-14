@@ -1,5 +1,6 @@
 import { z } from "zod";
 import {
+  beliefCue,
   type CognitiveState,
   CognitiveUpdate,
   type Episode,
@@ -18,6 +19,7 @@ type Opportunity = {
   basisKind?: string;
   expected?: string;
   observed?: string;
+  statement?: string;
 };
 // Recompute from the final delivered evidence. An alias is never an additional
 // fact, permission, or a way to cite an evicted source.
@@ -46,9 +48,10 @@ export function analysisOpportunities(delivered: Data): Opportunity[] {
   const current = evidence.find((e) => e.id === delivered.currentEvidenceId);
   if (
     basis &&
+    beliefCue(basis, incoming ? "statement" : "contact").trim().length >= 8 &&
     current &&
     gameTime(current) !== undefined &&
-    !state.beliefs.some((b) => b.basis?.sourceId === basis.id)
+    !state.beliefs.some((b) => b.basis?.sourceId === basis.id && b.evidenceQuote)
   ) {
     const fact = incoming
       ? object(incoming.detail)
@@ -62,6 +65,7 @@ export function analysisOpportunities(delivered: Data): Opportunity[] {
       sourceId: basis.id,
       peerId: String(fact.peerId),
       basisKind: incoming ? "statement" : String(fact.kind),
+      statement: beliefCue(basis, incoming ? "statement" : String(fact.kind)).slice(0, 180),
     });
   }
   const reply = evidence.find(
@@ -114,7 +118,8 @@ const Belief = z
     opportunity: z.literal("peer_evidence"),
     hypothesis: prose,
     alternative: prose,
-    prediction: prose,
+    evidenceQuote: z.string().trim().min(8).max(120),
+    expectedInteraction: z.string().trim().min(15).max(120),
     confidence: z.enum(["low", "medium"]),
     predictedEvent: z.enum(["reply", "agreement"]),
     reviewAfterMinutes: z.number().int().min(15).max(1440),
@@ -124,8 +129,9 @@ const Reflection = z
   .object({
     type: z.literal("reflection"),
     opportunity: z.literal("recorded_result"),
-    lesson: prose,
-    nextStep: z.string().trim().min(15).max(100),
+    difference: z.string().trim().min(20).max(100),
+    lesson: z.string().trim().min(20).max(100),
+    nextStep: z.string().trim().min(15).max(75),
   })
   .strict();
 const Reassessment = z
@@ -145,10 +151,10 @@ const NativeUpdate = CognitiveUpdate.omit({ review: true, beliefs: true, reflect
 export const analysisDecisionGuide = {
   decision: "One wait/read/action with summary and cognition. Action arguments directly in action.",
   cognition:
-    "expectedVersion=cognition.version; analysis required. Use one offered key: belief {type,opportunity,hypothesis,alternative,prediction,confidence:low|medium,predictedEvent:reply|agreement,reviewAfterMinutes:15..1440}; reflection {type,opportunity,lesson,nextStep}; reassessment {type,opportunity,hypothesis,alternative,confidence:low|medium,assessment:supported|unresolved}; or none {type,reason}. Fleet supplies source IDs/test times/verified result. Optional plan {goal,steps,status,reconsiderWhen,evidenceRefs}, memories [{summary,importance,evidenceRefs}]; omit unchanged fields.",
+    "expectedVersion=cognition.version; analysis required. Use one offered key: belief {type,opportunity,evidenceQuote,hypothesis,alternative,expectedInteraction,confidence:low|medium,predictedEvent:reply|agreement,reviewAfterMinutes:15..1440}; reflection {type,opportunity,difference,lesson,nextStep}; reassessment {type,opportunity,hypothesis,alternative,confidence:low|medium,assessment:supported|unresolved}; or none {type,reason}. Fleet supplies IDs/time/verified result. Optional plan {goal,steps,status,reconsiderWhen,evidenceRefs}, memories [{summary,importance,evidenceRefs}]; omit unchanged fields.",
 };
 export const analysisInstructions =
-  "Use analysisOpportunities to consider one useful update before choosing a move. For peer_evidence, infer a tentative motive from that incoming statement/contact, give a competing explanation and a specific future reply/agreement prediction; speech/contact is not trust. For recorded_result, compare its recorded intention with its verified result, explain what changes your approach and give a concrete next step. For tested_prediction, reassess the saved reply test; a reply supports responsiveness, not reliability. If nothing warrants learning, choose none with the specific reason. Never fabricate evidence or repeat a lesson. Keep plans unless evidence calls for revision. No hidden reasoning.";
+  "Use offered analysisOpportunities only. Peer: copy exact evidenceQuote from statement. Give a cautious motive hypothesis and competing explanation. expectedInteraction is specific future reply/agreement content, not confidence metadata or your upgrade. A greeting does not establish an ally or building commitment. Result: difference compares recorded intention and observed result; lesson explains its consequence; nextStep follows. Example: 'already linked' confirms a link, not cooperation; another request won't test interest; read the exchange and ask a concrete question. Explain this result, not an unrelated recalled action. Prior hypotheses may be wrong. For tested_prediction, a reply tests responsiveness, not reliability. Choose none when no new insight: repeating an intention is not reflection. Keep useful plans. No hidden reasoning.";
 
 export function analysisSchemaForVersion(version: unknown, delivered: Data): Data {
   if (typeof version !== "number" || !Number.isSafeInteger(version) || version < 0)
@@ -208,7 +214,7 @@ export function normalizeAnalysis(raw: unknown, delivered: Data): unknown {
     update.reflections = [
       {
         outcomeRef: opportunity.sourceId,
-        revision: `${analysis.lesson} Next: ${analysis.nextStep}`,
+        revision: `${analysis.difference} So: ${analysis.lesson} Next: ${analysis.nextStep}`,
         evidenceRefs: [opportunity.sourceId],
       },
     ];
@@ -245,7 +251,8 @@ export function normalizeAnalysis(raw: unknown, delivered: Data): unknown {
         peerId: opportunity.peerId,
         hypothesis: analysis.hypothesis,
         alternative: analysis.alternative,
-        prediction: analysis.prediction,
+        prediction: `Expect ${analysis.predictedEvent} within ${analysis.reviewAfterMinutes} game minutes: ${analysis.expectedInteraction}`,
+        evidenceQuote: analysis.evidenceQuote,
         confidence: analysis.confidence,
         assessment: "untested",
         basis: { sourceId: opportunity.sourceId, kind: opportunity.basisKind as "statement" | "contact" | "agreement" },

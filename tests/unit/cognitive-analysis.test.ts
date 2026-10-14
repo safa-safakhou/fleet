@@ -44,7 +44,8 @@ const belief = {
     opportunity: "peer_evidence",
     hypothesis: "They may want a cautious trial before committing",
     alternative: "They may be sounding out prices without intent to trade",
-    prediction: "They will reply to a concrete small trial offer",
+    expectedInteraction: "A reply discussing the concrete small trial offer",
+    evidenceQuote: "small grain exchange",
     predictedEvent: "reply",
     reviewAfterMinutes: 60,
     confidence: "low",
@@ -187,7 +188,7 @@ describe("native analysis grounded in final delivery", () => {
       },
     };
     const revised = object((object(normalizeAnalysis(raw, delivered)).beliefs as unknown[])[0]);
-    expect(revised.prediction).toBe(belief.analysis.prediction);
+    expect(revised.prediction).toBe(`Expect reply within 60 game minutes: ${belief.analysis.expectedInteraction}`);
     expect(revised.test).toEqual(object((saved as unknown[])[0]).test);
     expect(revised.basis).toEqual({ sourceId: reply.id, kind: "reply" });
     expect(

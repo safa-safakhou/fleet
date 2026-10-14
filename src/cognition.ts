@@ -37,6 +37,7 @@ const Belief = z
     alternative: text,
     confidence: z.enum(["low", "medium", "high"]),
     prediction: text,
+    evidenceQuote: z.string().trim().min(8).max(120).optional(),
     basis: Basis.optional(),
     test: Test.optional(),
     assessment: z.enum(["untested", "supported", "contradicted", "unresolved"]),
@@ -227,6 +228,15 @@ export function episodeText(episode: Episode) {
     ? `${detail.direction === "incoming" ? "Incoming peer statement" : detail.direction === "outgoing" ? "Outgoing self message" : "Unknown message direction"}; peer ${String(detail.peerId ?? "unknown")}: ${statement}`
     : statement;
 }
+export function beliefCue(episode: Episode, kind: string) {
+  if (kind === "contact" || kind === "agreement") return `Observed ${kind} record; motives and reliability unknown.`;
+  const d = episode.detail,
+    body = object(d.body);
+  const prose = typeof d.body === "string" ? d.body : (body.body ?? body.text ?? d.text ?? d.summary ?? d.excerpt);
+  const value = typeof prose === "string" ? prose : "";
+  const prefix = `Incoming peer statement; peer ${String(d.peerId ?? "unknown")}: `;
+  return value.startsWith(prefix) ? value.slice(prefix.length) : value;
+}
 // Put the actual statement/outcome before incidental serialized metadata. Keep
 // source identity and uncertainty when a large historical record is excerpted.
 export function compactEpisode(episode: Episode, limit = 600): Data {
@@ -373,6 +383,12 @@ function validateBeliefs(
           (fact) => fact.peerId === belief.peerId && fact.kind === basis.kind,
         );
     if (!scoped || !visibleScoped) throw new FleetError("COGNITION_PEER_EVIDENCE_MISMATCH");
+    if (
+      belief.evidenceQuote &&
+      (!beliefCue(source, basis.kind).includes(belief.evidenceQuote) ||
+        !beliefCue({ ...source, detail: visible }, basis.kind).includes(belief.evidenceQuote))
+    )
+      throw new FleetError("COGNITION_QUOTE_NOT_OBSERVED");
     if (belief.confidence === "high") throw new FleetError("COGNITION_CONFIDENCE_UNSUPPORTED");
     if (belief.prediction.length < 20 || belief.hypothesis.toLowerCase() === belief.alternative.toLowerCase())
       throw new FleetError("COGNITION_TEST_NOT_SPECIFIC");
@@ -500,7 +516,7 @@ export function selectCognitiveEvidence(
       (e) =>
         e.kind === "message" &&
         e.detail.direction === "incoming" &&
-        !state.beliefs.some((b) => b.basis?.sourceId === e.id),
+        !state.beliefs.some((b) => b.basis?.sourceId === e.id && b.evidenceQuote),
     ) ?? ranked.find((e) => e.kind === "message" && e.detail.direction === "incoming");
   const recentReceipt = episodes.find((e) => {
     if (reflected.has(e.id)) return false;

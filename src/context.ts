@@ -1,4 +1,4 @@
-import { deliveredCognition } from "./cognition.js";
+import { beliefCue, deliveredCognition, type Episode } from "./cognition.js";
 import { analysisOpportunities } from "./cognitive-analysis.js";
 import { type Data, FleetError, object } from "./domain.js";
 
@@ -122,6 +122,71 @@ export function fitMessages(
   let fitted = pack(context);
   if (fitted) return fitted;
   if (!context.cognition) throw new FleetError("CONTEXT_LIMIT");
+
+  if (cognition.nativeAnalysis === true) {
+    // Remove repeated transport metadata/prose, not the observed cue or result.
+    // The source ID and direction remain explicit; raw owned evidence is still
+    // rechecked at commit. This also keeps the peer's words separate from self.
+    evidence = evidence.map((episode) => {
+      const d = object(episode.detail);
+      if (episode.kind === "message") {
+        const cue = beliefCue(episode as Episode, "statement");
+        if (!cue) return episode;
+        const { body: _body, excerpt: _excerpt, ...fields } = d;
+        return {
+          ...episode,
+          detail: {
+            ...fields,
+            body: cue,
+            authorKind: object(d.body).authorKind,
+            coverage: "Statement only; transport metadata omitted.",
+          },
+        };
+      }
+      if (episode.kind === "receipt") {
+        const { excerpt: _excerpt, receipt: _receipt, ...fields } = d;
+        return {
+          ...episode,
+          detail: {
+            ...fields,
+            code: object(d.receipt).code ?? d.code,
+            coverage: "Recorded result; repeated prose omitted.",
+          },
+        };
+      }
+      return episode;
+    });
+    cognition = {
+      ...cognition,
+      evidence,
+      coverage: { ...object(cognition.coverage), interpretation: "Subjective. Omitted facts unknown." },
+      evidenceAvailability: Object.fromEntries(
+        Object.entries(object(cognition.evidenceAvailability)).filter(([, value]) => value !== "retained"),
+      ),
+      availabilityCoverage: "Only unavailable prior sources listed; cite delivered evidence only.",
+    };
+    const allowedKinds = Array.isArray(context.gameActionKinds) ? context.gameActionKinds : [];
+    context = {
+      ...context,
+      cognition,
+      decisionSchema: {
+        decision:
+          "Match the exact provider JSON schema. cognition.expectedVersion copies version; analysis uses an offered opportunity or none. Optional plan/memories follow the schema.",
+      },
+      humanOnlyActionKinds: (Array.isArray(context.humanOnlyActionKinds) ? context.humanOnlyActionKinds : []).filter(
+        (kind) => allowedKinds.includes(kind),
+      ),
+      humanOnlyCoverage: "Unadvertised human-only names omitted. No authority granted.",
+      readHistoryCoverage: "Dated/incomplete. Current facts prevail.",
+      permissionCoverage:
+        "Advertisement conditional; server enforces all identity, permission and prerequisite checks.",
+      memoryRead: context.memoryRead
+        ? { name: object(context.memoryRead).name, args: object(context.memoryRead).args }
+        : undefined,
+    };
+    fitted = pack(context);
+    if (fitted) return fitted;
+  }
 
   // Reference current facts/outcomes already delivered elsewhere in this exact
   // decision instead of serializing them twice. Historical requested recalls
