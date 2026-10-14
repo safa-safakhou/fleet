@@ -2,7 +2,7 @@
 
 ## Outcome grounding repair — 14 October 2026
 
-Founder authorized repairing peer-source/outcome grounding and duplicate reflections, with deployment to the same five local Nemotron agents and unchanged accounts/history/budgets. Read `docs/cognition-grounding-20261014.md`. Codex owns implementation without delegation. Keep old unsupported statements as marked history, use actual recorded outcomes, retain Laya direction/speaker information, and preserve six unknown allocations and original schedules. No comparison, new accounts or extra inference is authorized. New uncertainty requires its own exact review.
+Founder authorized repairing peer-source/outcome grounding and duplicate reflections, with deployment to the same five local Nemotron agents and unchanged accounts/history/budgets. Read `docs/cognition-grounding-20261014.md`. Codex owns implementation without delegation. Keep old unsupported statements as marked history, use actual recorded outcomes, retain Laya direction/speaker information, and preserve six unknown allocations and original schedules. Final f5ea9ce is deployed; all five completed normal turns with seven reported calls, no context/grounding errors and no new uncertain usage. Legacy entries are withheld, and the native round saved no new belief/reflection; improved intelligence remains unproven. No comparison, new accounts or extra inference is authorized. New uncertainty requires its own exact review.
 
 ## Recall packing and review repair — 14 October 2026
 
