@@ -43,10 +43,10 @@ const belief = {
   analysis: {
     type: "belief",
     opportunity: "peer_evidence",
-    hypothesis: "They may want a cautious trial before committing",
-    alternative: "They may be sounding out prices without intent to trade",
-    expectedInteraction: "A reply discussing the concrete small trial offer",
-    evidenceQuote: "small grain exchange",
+    inferredMotive: "They may want a cautious trial before committing",
+    alternativeMotive: "They may be sounding out prices without intent to trade",
+    expectedPeerResponse: "A reply discussing the concrete small trial offer",
+    evidenceQuote: incoming.detail.body,
     predictedEvent: "reply",
     reviewAfterMinutes: 60,
     confidence: "low",
@@ -148,7 +148,7 @@ describe("native analysis grounded in final delivery", () => {
     expect(validate({ cognition: belief, decision: { kind: "wait", summary: "Consider a small trial" } })).toBe(true);
     const update = object(normalizeAnalysis(belief, context));
     const saved = object((update.beliefs as unknown[])[0]);
-    expect(saved.hypothesis).toBe(belief.analysis.hypothesis);
+    expect(saved.hypothesis).toBe(belief.analysis.inferredMotive);
     expect(saved.basis).toEqual({ sourceId: incoming.id, kind: "statement" });
     expect(saved.test).toEqual({ kind: "reply", afterGameTimeMs: 1000000, byGameTimeMs: 4600000 });
     expect(saved.assessment).toBe("untested");
@@ -245,15 +245,15 @@ describe("native analysis grounded in final delivery", () => {
       analysis: {
         type: "reassessment",
         opportunity: "tested_prediction",
-        evidenceQuote: "cannot guarantee delivery",
-        hypothesis: "They respond to offers but supply remains unverified",
-        alternative: "They may be keeping negotiations open without stock",
+        evidenceQuote: reply.detail.body,
+        inferredMotive: "They respond to offers but supply remains unverified",
+        alternativeMotive: "They may be keeping negotiations open without stock",
         confidence: "low",
         assessment: "supported",
       },
     };
     const revised = object((object(normalizeAnalysis(raw, delivered)).beliefs as unknown[])[0]);
-    expect(revised.prediction).toBe(`Expect reply within 60 game minutes: ${belief.analysis.expectedInteraction}`);
+    expect(revised.prediction).toBe(`Expect reply within 60 game minutes: ${belief.analysis.expectedPeerResponse}`);
     expect(revised.test).toEqual(object((saved as unknown[])[0]).test);
     expect(revised.basis).toEqual({ sourceId: reply.id, kind: "reply" });
     expect(

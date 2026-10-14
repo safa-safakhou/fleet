@@ -412,7 +412,11 @@ function validateBeliefs(
     if (!sameTest && currentTime !== undefined && test.afterGameTimeMs < currentTime)
       throw new FleetError("COGNITION_RETROACTIVE_PREDICTION");
     if (["supported", "contradicted"].includes(belief.assessment)) {
-      const at = gameTime(source);
+      const eventAt =
+        basis.kind === "agreement"
+          ? Number(peerFact(source, belief.peerId, "agreement")?.eventGameTimeMs)
+          : gameTime(source);
+      const at = Number.isSafeInteger(eventAt) && Number(eventAt) >= 0 ? eventAt : undefined;
       // A reply tests responsiveness, never agreement or successful delivery.
       // Missing replies have incomplete coverage and cannot prove contradiction.
       if (

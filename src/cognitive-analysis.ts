@@ -9,6 +9,7 @@ import {
   isWorldResult,
   testedReply,
   type Update,
+  utf8Prefix,
 } from "./cognition.js";
 import { type Data, Decision, FleetError, object } from "./domain.js";
 
@@ -118,10 +119,10 @@ const Belief = z
   .object({
     type: z.literal("belief"),
     opportunity: z.literal("peer_evidence"),
-    hypothesis: prose,
-    alternative: prose,
+    inferredMotive: prose,
+    alternativeMotive: prose,
     evidenceQuote: z.string().trim().min(8).max(120),
-    expectedInteraction: z.string().trim().min(15).max(120),
+    expectedPeerResponse: z.string().trim().min(15).max(120),
     confidence: z.enum(["low", "medium"]),
     predictedEvent: z.enum(["reply", "agreement"]),
     reviewAfterMinutes: z.number().int().min(15).max(1440),
@@ -142,8 +143,8 @@ const Reassessment = z
     type: z.literal("reassessment"),
     opportunity: z.literal("tested_prediction"),
     evidenceQuote: z.string().trim().min(8).max(120),
-    hypothesis: prose,
-    alternative: prose,
+    inferredMotive: prose,
+    alternativeMotive: prose,
     confidence: z.enum(["low", "medium"]),
     assessment: z.enum(["supported", "unresolved"]),
   })
@@ -156,20 +157,22 @@ export const analysisDecisionGuide = {
   decision:
     "Return {cognition,decision} in that order. decision is one wait/read/action with summary; action arguments directly in decision.action.",
   cognition:
-    "expectedVersion=cognition.version; analysis required. Use one offered key: belief {type,opportunity,evidenceQuote,hypothesis,alternative,expectedInteraction,confidence:low|medium,predictedEvent:reply|agreement,reviewAfterMinutes:15..1440}; reflection {type,opportunity,observedFact,difference,lesson,nextStep}; reassessment {type,opportunity,evidenceQuote,hypothesis,alternative,confidence:low|medium,assessment:supported|unresolved}; or none {type,reason}. Fleet supplies IDs/time/verified result. Optional plan {goal,steps,status,reconsiderWhen,evidenceRefs}, memories [{summary,importance,evidenceRefs}]; omit unchanged fields.",
+    "expectedVersion=cognition.version; analysis required. Use one offered key: belief {type,opportunity,evidenceQuote,inferredMotive,alternativeMotive,expectedPeerResponse,confidence:low|medium,predictedEvent:reply|agreement,reviewAfterMinutes:15..1440}; reflection {type,opportunity,observedFact,difference,lesson,nextStep}; reassessment {type,opportunity,evidenceQuote,inferredMotive,alternativeMotive,confidence:low|medium,assessment:supported|unresolved}; or none {type,reason}. Fleet supplies IDs/time/verified result. Optional plan {goal,steps,status,reconsiderWhen,evidenceRefs}, memories [{summary,importance,evidenceRefs}]; omit unchanged fields.",
 };
 export const analysisInstructions =
-  "Return cognition before decision: inspect prior evidence before selecting a new move. Reflection observedFact must copy the offered observed result exactly. Use offered analysisOpportunities only. Peer: copy exact evidenceQuote from statement. Give a cautious motive hypothesis and competing explanation. expectedInteraction is specific future reply/agreement content, not confidence metadata or your upgrade. A greeting does not establish an ally or building commitment. Result: difference compares recorded intention and observed result; not submitted means no action occurred, a commit does not prove later completion; lesson explains its consequence; nextStep follows. Example: 'already linked' confirms a link, not cooperation; another request won't test interest; read the exchange and ask a concrete question. Explain this result, not an unrelated recalled action. Prior hypotheses may be wrong. For tested_prediction, a reply tests responsiveness, not reliability. Choose none when no new insight: repeating an intention is not reflection. Keep useful plans. No hidden reasoning.";
+  "Return cognition before decision: inspect prior evidence before selecting a new move. Reflection observedFact must copy the offered observed result exactly. Use offered analysisOpportunities only. Peer: copy exact evidenceQuote from statement. Give a cautious motive hypothesis and competing explanation. inferredMotive and alternativeMotive describe this peer's possible aims, not benefits to your builders. expectedPeerResponse predicts what they will say/agree, not your upgrade or confidence. A greeting does not establish an ally or building commitment. Result: difference compares recorded intention and observed result; not submitted means no action occurred, a commit does not prove later completion; lesson explains its consequence; nextStep follows. Example: 'already linked' confirms a link, not cooperation; another request won't test interest; read the exchange and ask a concrete question. Explain this result, not an unrelated recalled action. Prior hypotheses may be wrong. For tested_prediction, a reply tests responsiveness, not reliability. Choose none when no new insight: repeating an intention is not reflection. Keep useful plans. No hidden reasoning.";
 
 export function analysisSchemaForVersion(version: unknown, delivered: Data): Data {
   if (typeof version !== "number" || !Number.isSafeInteger(version) || version < 0)
     throw new FleetError("COGNITION_VERSION_REQUIRED");
   const opportunities = analysisOpportunities(delivered);
   const choices: [z.ZodType, ...z.ZodType[]] = [None];
-  if (opportunities.some((o) => o.type === "belief")) choices.push(Belief);
+  const peer = opportunities.find((o) => o.type === "belief");
+  if (peer) choices.push(Belief.extend({ evidenceQuote: z.literal(utf8Prefix(peer.statement ?? "", 120)) }));
   const result = opportunities.find((o) => o.type === "reflection");
   if (result) choices.push(Reflection.extend({ observedFact: z.literal(result.observed) }));
-  if (opportunities.some((o) => o.type === "reassessment")) choices.push(Reassessment);
+  const reply = opportunities.find((o) => o.type === "reassessment");
+  if (reply) choices.push(Reassessment.extend({ evidenceQuote: z.literal(utf8Prefix(reply.statement ?? "", 120)) }));
   const update = NativeUpdate.extend({ expectedVersion: z.literal(version), analysis: z.union(choices) });
   const schema = z.toJSONSchema(z.object({ cognition: update, decision: Decision }).strict(), {
     target: "draft-7",
@@ -237,8 +240,8 @@ export function normalizeAnalysis(raw: unknown, delivered: Data): unknown {
       {
         ...belief,
         evidenceQuote: analysis.evidenceQuote,
-        hypothesis: analysis.hypothesis,
-        alternative: analysis.alternative,
+        hypothesis: analysis.inferredMotive,
+        alternative: analysis.alternativeMotive,
         confidence: analysis.confidence,
         assessment: analysis.assessment,
         basis: { sourceId: opportunity.sourceId, kind: "reply" },
@@ -259,9 +262,9 @@ export function normalizeAnalysis(raw: unknown, delivered: Data): unknown {
     update.beliefs = [
       {
         peerId: opportunity.peerId,
-        hypothesis: analysis.hypothesis,
-        alternative: analysis.alternative,
-        prediction: `Expect ${analysis.predictedEvent} within ${analysis.reviewAfterMinutes} game minutes: ${analysis.expectedInteraction}`,
+        hypothesis: analysis.inferredMotive,
+        alternative: analysis.alternativeMotive,
+        prediction: `Expect ${analysis.predictedEvent} within ${analysis.reviewAfterMinutes} game minutes: ${analysis.expectedPeerResponse}`,
         evidenceQuote: analysis.evidenceQuote,
         confidence: analysis.confidence,
         assessment: "untested",

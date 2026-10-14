@@ -49,6 +49,14 @@ The final correction preserves complete encrypted receipts/history while permitt
 
 Regression coverage includes a large successful receipt beside a growing full plan, old judgments retained in inspection but withheld from the model, resolved-input feedback and quote changes on later evidence. Final verification: **100 unit + 151 integration = 251 Linux tests passed**, checks/build/boundaries pass, production audit zero vulnerabilities. Reconstructed inputs, including Agent 04's successful receipt and enlarged plan, fit the original 24,000-byte allowance.
 
+## Final cue binding and peer-model wording
+
+The native growth-correction pass completed all five accounts' normal turns without a context-limit failure, including successful-command follow-up prompts and echoed-result reflections. Agent 01 attempted another belief but selected an unobserved quote, which the core correctly rejected; its earlier anchored belief remained. Agent 04's new interpretation still blended its own builder goal into a peer belief. These limitations are retained as actual native evidence, not replaced by passing field counters.
+
+The final schema supplies the exact visible cue as a literal, as it already does for an observed result. This removes copying/source-selection bookkeeping from the LLM while keeping commit-time quote/source checks. Model-facing fields are now **inferredMotive**, **alternativeMotive** and **expectedPeerResponse**, distinguishing another player's possible aims from benefits to the owner's builders. Canonical persisted/API fields remain compatible. Agreement support conservatively requires a time-qualified authoritative agreement event; rereading an old contract cannot certify a new agreement prediction, and missing event-time evidence stays unverified.
+
+Final verification: **100 unit + 152 integration = 252 passing Linux tests**; checks/build/boundaries pass and production audit reports zero vulnerabilities. Final reconstructed inputs fit within the existing allowance with accepted-pair preservation. No intelligence guarantee, model/temperature change, extra inference, new account or comparison is claimed.
+
 ## Deployment status
 
-Final growth correction pending source verification and same-cohort native acceptance. The cohort is quiescently paused; no call or pending game command was cancelled. Protected evidence is stored outside Git in this installation's `state/cognition-usability-20261014` directory.
+Final cue-binding correction pending source verification and same-cohort native acceptance. The cohort is quiescently paused; no call or pending game command was cancelled. Protected evidence is stored outside Git in this installation's `state/cognition-usability-20261014` directory.

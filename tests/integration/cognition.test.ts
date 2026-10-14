@@ -84,6 +84,40 @@ function update(f: Awaited<ReturnType<typeof setup>>) {
   };
 }
 describe("LLM memory, plans and beliefs", () => {
+  it("does not count an old agreement observed again as fulfilment of a new agreement prediction", async () => {
+    const f = await setup(),
+      belief = {
+        ...update(f).beliefs[0],
+        test: { kind: "agreement", afterGameTimeMs: f.now().getTime(), byGameTimeMs: f.now().getTime() + 3600000 },
+      };
+    await f.support.apply(f.claim, 0, { expectedVersion: 0, beliefs: [belief] }, f.context);
+    f.advance(1000);
+    const source = await f.support.capture(f.claim, "observation", "old-agreement-still-present", {
+      asOfGameTimeMs: f.now().getTime(),
+      peerFacts: [{ peerId: f.peer, kind: "agreement", agreementId: "existing" }],
+    });
+    const context = await f.support.context(f.claim, [f.peer], source, "review agreement");
+    await expect(
+      f.support.apply(
+        f.claim,
+        1,
+        {
+          expectedVersion: 1,
+          beliefs: [
+            {
+              ...belief,
+              evidenceQuote: "Observed agreement record",
+              assessment: "supported",
+              basis: { sourceId: source, kind: "agreement" },
+              evidenceRefs: [source],
+            },
+          ],
+        },
+        context,
+      ),
+    ).rejects.toThrow("COGNITION_TEST_OUTCOME_UNVERIFIED");
+    expect((await f.pool.query("SELECT version FROM cognitive_states")).rows[0].version).toBe(1);
+  });
   it("stops carrying a resolved input rejection after the same action kind commits, retaining its history", async () => {
     const f = await setup(),
       game = new FakeGame(f.claim);
@@ -183,9 +217,9 @@ describe("LLM memory, plans and beliefs", () => {
       analysis: {
         type: "belief",
         opportunity: "peer_evidence",
-        hypothesis: "The peer may prefer a small trial to reduce uncertainty",
-        alternative: "Their claim may be a pitch without reliable supply",
-        expectedInteraction: "A reply discussing the concrete small grain trial offer",
+        inferredMotive: "The peer may prefer a small trial to reduce uncertainty",
+        alternativeMotive: "Their claim may be a pitch without reliable supply",
+        expectedPeerResponse: "A reply discussing the concrete small grain trial offer",
         evidenceQuote: "promised grain arrived",
         confidence: "low",
         predictedEvent: "reply",
@@ -226,7 +260,7 @@ describe("LLM memory, plans and beliefs", () => {
     );
     const inspected = await f.support.inspect(f.claim.agentId);
     expect(inspected.beliefs).toHaveLength(1);
-    expect(object((inspected.beliefs as Data[])[0]).hypothesis).toBe(native.analysis.hypothesis);
+    expect(object((inspected.beliefs as Data[])[0]).hypothesis).toBe(native.analysis.inferredMotive);
     expect(inspected.reflections).toHaveLength(1);
     expect(object((inspected.reflections as Data[])[0]).outcomeRef).toBe(f.outcome);
     expect(object((inspected.reflections as Data[])[0]).observed).toContain("later completion unknown");
