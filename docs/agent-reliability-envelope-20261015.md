@@ -1,0 +1,5 @@
+# Observation envelope source acceptance
+
+AR-F04 / AR-P04 source acceptance is recorded in the [joint report](../../pact/docs/implementation/reports/agent-reliability-envelope-20261015.md). [Context envelope](context-envelope.md) documents the unchanged 24 KB limit, semantic forecast priority, compact errors, explicit history omission and provisional recall admission. The reviewed new read is exported with a digest to vendor/pact-observations.json; runtime never imports PACT source or its database.
+
+Six scheduled fake-engine rounds with 72 growing stored observations and restart deliver all requested forecasts within the actual serialized cap. Dense pair/provenance/history/refusal tests remain. The 24,238-byte test is explicitly size-matched synthetic pressure, not a replay of an unretained private prompt. Provider/live qualification is not claimed. Full checks and exact verification counts are in the joint report; no running installation, model experiment, configuration, history or identity was changed. Next source batch: AR-P05 / AR-F05.

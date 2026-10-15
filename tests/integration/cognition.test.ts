@@ -796,7 +796,18 @@ describe("LLM memory, plans and beliefs", () => {
         expect(context).not.toHaveProperty("decisionSchema");
         expect(cognition.knownPeerIds).toContain(f.peer);
         expect(context.actionPermissions).toBeDefined();
-        expect(context.decisionFeedback[0].inputSchema.required).toContain("slot");
+        expect(context.decisionFeedback[0]).not.toHaveProperty("inputSchema");
+        expect(context.decisionFeedback[0].errors[0].params.missingProperty).toBe("slot");
+        expect(
+          new Ajv({ strict: false }).compile(input.schema)({
+            cognition: { expectedVersion: cognition.version, analysis: { type: "none", reason: "No useful change" } },
+            decision: {
+              kind: "action",
+              summary: "Missing slot negative control",
+              action: { kind: "game.building.queue", building: "farm", targetLevel: 2 },
+            },
+          }),
+        ).toBe(false);
         // Optional subjective records may be paged when a larger mandatory
         // executable schema needs space. Every omission must be explicit;
         // stored history and the accepted, ordered recall pair stay intact.

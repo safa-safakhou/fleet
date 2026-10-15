@@ -12,6 +12,7 @@ import { Communications } from "./communications.js";
 import { fitMessages } from "./context.js";
 import type { DecisionSupport } from "./decision.js";
 import { type Data, Decision, FleetError, type GamePort, type ModelPort, object, safeCode } from "./domain.js";
+import { promptFeedback } from "./feedback.js";
 import type { GameAdapter } from "./game.js";
 import { bindGenerationSchema, closedDecisionSchema, executableActionSchema } from "./generation.js";
 import { RemoteRejection } from "./http.js";
@@ -260,7 +261,7 @@ export class Engine {
             : undefined,
           permissionCoverage:
             "Advertisement is conditional. Server checks identity, scope, live lease, mandate, delegation, owner policy, permits, targets, quotas, stock and prerequisites.",
-          decisionFeedback,
+          decisionFeedback: decisionFeedback.map(promptFeedback),
           availableReads: tools
             .filter(isRead)
             .map((t) => ({ name: t.name, description: t.description?.slice(0, 180) })),

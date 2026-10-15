@@ -39,7 +39,7 @@ export function referencePreflight(action: Data, facts: Data): Data | undefined 
         action.requestId,
         "Only a pending incoming request can be answered by its recipient.",
       );
-    if (Number(request.expiresGameTimeMs) <= Number(world.asOfGameTimeMs))
+    if (request.expired === true || Number(request.expiresGameTimeMs) <= Number(world.asOfGameTimeMs))
       return refused(
         "OBSERVED_REQUEST_EXPIRED",
         "requestId",
@@ -106,7 +106,7 @@ export function referencePreflight(action: Data, facts: Data): Data | undefined 
           u.unitType === "spearman" &&
           u.homeGuard === false &&
           u.battleLocked === false &&
-          u.asOfGameTimeMs === world.asOfGameTimeMs,
+          u.asOfGameTimeMs === (units.asOfGameTimeMs ?? world.asOfGameTimeMs),
       );
       if (
         Array.isArray(action.unitIds) &&

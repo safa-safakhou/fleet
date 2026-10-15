@@ -37,3 +37,11 @@ await writeFile(
     2,
   ) + "\n",
 );
+
+if (contracts.pactObservationSectionTool) {
+  const reads = [contracts.pactObservationSectionTool];
+  await writeFile(
+    "vendor/pact-observations.json",
+    `${JSON.stringify({ source: "PACT reviewed scoped observation contract, 15 October 2026", sha256: createHash("sha256").update(JSON.stringify(reads)).digest("hex"), reads }, null, 2)}\n`,
+  );
+}

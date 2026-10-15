@@ -292,7 +292,9 @@ export const pactAdapter: GameAdapter = {
     if (
       error instanceof RemoteRejection &&
       error.status < 500 &&
-      ["RECEIPT_NOT_FOUND", "REQUEST_NOT_FOUND", "NOT_FOUND", "INVALID_REQUEST"].includes(error.code)
+      ["RECEIPT_NOT_FOUND", "REQUEST_NOT_FOUND", "NOT_FOUND", "INVALID_REQUEST", "STALE_OBSERVATION"].includes(
+        error.code,
+      )
     )
       return {
         code: error.code,
@@ -309,9 +311,13 @@ export const pactAdapter: GameAdapter = {
   suppliedReadSchemas(tools) {
     return tools
       .filter((t) =>
-        ["pact_world_read_v1", "pact_inbox_read_v1", "pact_conversation_read_v1", "pact_kingdom_discover_v2"].includes(
-          t.name,
-        ),
+        [
+          "pact_observation_read_v2",
+          "pact_world_read_v1",
+          "pact_inbox_read_v1",
+          "pact_conversation_read_v1",
+          "pact_kingdom_discover_v2",
+        ].includes(t.name),
       )
       .map((t) => ({ name: t.name, inputSchema: t.inputSchema }));
   },
@@ -319,6 +325,44 @@ export const pactAdapter: GameAdapter = {
   mergeReads,
   narrowRead,
   applyRead(facts, tool, args, result, expectedEntityId) {
+    if (tool === "pact_observation_read_v2" && result.ownerKingdomId === expectedEntityId) {
+      if (result.section === "construction")
+        facts.world = {
+          ...object(facts.world),
+          buildings: result.buildings,
+          builders: result.builders,
+          nextUpgradeChecks: result.nextUpgradeChecks,
+          constructionObservedAtGameTimeMs: result.asOfGameTimeMs,
+        };
+      if (result.section === "forecast") facts.forecastSection = result;
+      if (result.section === "requests")
+        facts.guide = {
+          ...object(facts.guide),
+          contactRequests: Array.isArray(result.records)
+            ? result.records.map(object).filter((r) => r.type === "ContactRequest")
+            : [],
+          requestCoverage: result.coverage,
+        };
+      if (result.section === "agreements")
+        facts.guide = {
+          ...object(facts.guide),
+          openSupplyOffers: Array.isArray(result.records)
+            ? result.records.map(object).filter((r) => r.type === "SupplyOffer" && r.status === "open")
+            : [],
+          agreementCoverage: result.coverage,
+        };
+      if (result.section === "units")
+        facts.world = {
+          ...object(facts.world),
+          unitReferences: {
+            schemaVersion: "pact.references.v1",
+            units: result.records,
+            hasMore: !!result.next,
+            asOfGameTimeMs: result.asOfGameTimeMs,
+          },
+        };
+    }
+
     if (tool === "pact_world_read_v1" && object(result.profile).kingdomId === expectedEntityId) facts.world = result;
     if (tool === "pact_agent_guide_v1" && [undefined, "start", "authority"].includes(args.topic as string | undefined))
       facts.guide = { ...object(facts.guide), ...result };

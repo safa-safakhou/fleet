@@ -718,6 +718,7 @@ export class Cognition {
         ranked.unshift(...ranked.splice(index, 1));
         recallStatus = {
           route: "laya-recall-v1",
+          admission: "provisional",
           certificate: selected.certificate,
           probability: selected.probability,
           candidateIds: candidates.map((candidate) => candidate.id),

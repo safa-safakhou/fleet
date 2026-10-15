@@ -56,8 +56,8 @@
       "id": "AR-F04",
       "title": "Measured observation and memory envelope",
       "depends_on": ["AR-F03", "AR-P04"],
-      "status": "todo",
-      "assignee": null,
+      "status": "done",
+      "assignee": "codex-agent-reliability-20261015",
       "plan": "docs/agent-reliability-plan-20261015.md",
       "acceptance": [
         "Agent 08's usable requested forecast reaches the next decision within the existing 24,000-byte full-envelope cap; a marker or omission notice alone is insufficient.",
@@ -66,8 +66,9 @@
         "Distinguish packet bytes from the 32,768-token model window, output headroom and RAM. Identical unfit packets cannot retry indefinitely; increasing context or implicit LLM summarization is not an assumed solution.",
         "Mandatory-schema/state/source pressure is tested with the actual compatible contracts from AR-P02\u201304, not only isolated section helpers."
       ],
-      "evidence": [],
-      "gated_acceptance": []
+      "evidence": ["docs/agent-reliability-envelope-20261015.md"],
+      "gated_acceptance": [],
+      "dependency_gate": "Joint executable section and measured fake-engine contract verified; no real provider or live acceptance claimed"
     },
     {
       "id": "AR-F05",

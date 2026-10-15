@@ -1,0 +1,71 @@
+{
+  "source": "PACT reviewed scoped observation contract, 15 October 2026",
+  "sha256": "d27affbac12a17d4235868109ecf0691d6f603aaea75db838b27b9b997fe8d90",
+  "reads": [
+    {
+      "name": "pact_observation_read_v2",
+      "description": "Read one owner-scoped current section: forecast, construction, requests, agreements or units. Retains complete records/terms and explicit coverage. Use returned cursor unchanged for another page; a changed snapshot requires a fresh first page. recordId selects an observed record within this account only. No target account/kingdom selector, message acknowledgement, inference, signature or authority change.",
+      "inputSchema": {
+        "$schema": "http://json-schema.org/draft-07/schema#",
+        "type": "object",
+        "properties": {
+          "section": {
+            "type": "string",
+            "enum": ["forecast", "construction", "requests", "agreements", "units"]
+          },
+          "forecastMinutes": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 60
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 32
+          },
+          "recordId": {
+            "type": "string",
+            "format": "uuid",
+            "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+          },
+          "cursor": {
+            "type": "object",
+            "properties": {
+              "ownerKingdomId": {
+                "type": "string",
+                "format": "uuid",
+                "pattern": "^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$"
+              },
+              "section": {
+                "type": "string",
+                "enum": ["requests", "agreements", "units"]
+              },
+              "committedTickSequence": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              },
+              "lastCommittedEventId": {
+                "type": "string",
+                "pattern": "^\\d+$"
+              },
+              "afterKey": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 100
+              }
+            },
+            "required": ["ownerKingdomId", "section", "committedTickSequence", "lastCommittedEventId", "afterKey"],
+            "additionalProperties": false
+          }
+        },
+        "required": ["section"],
+        "additionalProperties": false
+      },
+      "annotations": {
+        "readOnlyHint": true,
+        "destructiveHint": false,
+        "openWorldHint": false
+      }
+    }
+  ]
+}

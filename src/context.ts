@@ -14,6 +14,54 @@ export function fitMessages(
   narrowRead?: (read: Data, limit: number) => Data,
   compactEnvironment?: (environment: Data, limit: number) => Data,
 ) {
+  try {
+    return fitAcceptedMessages(context, instructions, schema, limit, compactReads, narrowRead, compactEnvironment);
+  } catch (error) {
+    const cognition = object(context.cognition),
+      recall = object(cognition.recall);
+    if (
+      !(error instanceof FleetError) ||
+      error.code !== "CONTEXT_LIMIT" ||
+      recall.route !== "laya-recall-v1" ||
+      recall.admission !== "provisional"
+    )
+      throw error;
+    // Selection remains advisory until the whole envelope can deliver its pair.
+    // An already accepted pair never takes this fallback.
+    return fitAcceptedMessages(
+      {
+        ...context,
+        cognition: {
+          ...cognition,
+          recall: {
+            route: "relevance-recency-importance",
+            assist: "deferred",
+            code: "LAYA_PAIR_NOT_DELIVERABLE",
+            deferredCandidateIds: recall.candidateIds,
+            coverage:
+              "Advisory selection was not accepted/pinned because its complete pair could not fit. Only delivered evidence is usable.",
+          },
+        },
+      },
+      instructions,
+      schema,
+      limit,
+      compactReads,
+      narrowRead,
+      compactEnvironment,
+    );
+  }
+}
+
+function fitAcceptedMessages(
+  context: Data,
+  instructions: string,
+  schema: Data,
+  limit: number,
+  compactReads: (reads: Data[], limit: number) => Data[],
+  narrowRead?: (read: Data, limit: number) => Data,
+  compactEnvironment?: (environment: Data, limit: number) => Data,
+) {
   const messages = (c: Data) => [
     { role: "system", content: instructions },
     {
@@ -24,6 +72,9 @@ export function fitMessages(
               ...Object.fromEntries(Object.entries(c).filter(([key]) => key !== "cognition")),
               cognition: {
                 ...object(c.cognition),
+                ...(object(object(c.cognition).recall).admission === "provisional"
+                  ? { recall: { ...object(object(c.cognition).recall), admission: "accepted" } }
+                  : {}),
                 analysisOpportunities: analysisOpportunities(deliveredCognition(c)),
               },
             }
@@ -41,7 +92,7 @@ export function fitMessages(
     throw new FleetError("COGNITION_RECALL_EVIDENCE_MISSING");
   if (pair.some((id) => !evidence.some((episode) => episode.id === id)))
     throw new FleetError("COGNITION_RECALL_EVIDENCE_MISSING");
-  const pack = (context: Data): ReturnType<typeof messages> | undefined => {
+  const pack = (context: Data, allowNarrowRequested = false): ReturnType<typeof messages> | undefined => {
     const full = messages(context);
     if (fits(full)) return full;
     const reads = Array.isArray(context.readResults) ? context.readResults.map(object) : [];
@@ -62,7 +113,8 @@ export function fitMessages(
     if (compactEnvironment) {
       const requested = context.requestedRead ? object(context.requestedRead) : undefined;
       const feedback = [requested];
-      if (requested && narrowRead) for (const size of [4000, 2000, 1000]) feedback.push(narrowRead(requested, size));
+      if (allowNarrowRequested && requested && narrowRead)
+        for (const size of [4000, 2000, 1000]) feedback.push(narrowRead(requested, size));
       // Exhaust optional fresh-environment reductions before narrowing requested feedback.
       for (const requestedRead of feedback) {
         // Dense authority/core state can require more than 4 KB while optional
@@ -105,7 +157,7 @@ export function fitMessages(
     }
     // A requested result is indispensable feedback, separate from optional history.
     // Only narrow it after evicting all optional reads, and never silently drop it.
-    if (context.requestedRead && narrowRead) {
+    if (allowNarrowRequested && context.requestedRead && narrowRead) {
       for (const allowance of [6000, 4000, 2000, 1000]) {
         const smaller = messages({
           ...context,
@@ -121,7 +173,11 @@ export function fitMessages(
   };
   let fitted = pack(context);
   if (fitted) return fitted;
-  if (!context.cognition) throw new FleetError("CONTEXT_LIMIT");
+  if (!context.cognition) {
+    fitted = pack(context, true);
+    if (fitted) return fitted;
+    throw new FleetError("CONTEXT_LIMIT");
+  }
 
   if (cognition.nativeAnalysis === true) {
     // Remove repeated transport metadata/prose, not the observed cue or result.
@@ -375,6 +431,10 @@ export function fitMessages(
     },
   };
   fitted = pack(candidate);
+  if (fitted) return fitted;
+
+  // Optional history has been exhausted before narrowing requested feedback.
+  fitted = pack(candidate, true);
   if (fitted) return fitted;
 
   // Fail before reserving inference if indispensable facts and continuity cannot

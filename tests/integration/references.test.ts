@@ -3,6 +3,7 @@ import { afterEach, expect, it } from "vitest";
 import { RemoteRejection } from "../../src/http.js";
 import { FakeGame, FakeModel, fixture, ready } from "../helpers.js";
 import { Engine } from "../pact-engine.js";
+
 let close: (() => Promise<void>) | undefined;
 afterEach(async () => {
   await close?.();

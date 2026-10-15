@@ -109,10 +109,10 @@ it("records sanitized invalid read arguments and field errors, permits correctio
     false,
   );
   expect(JSON.parse(model.inputs[0].messages[1].content).suppliedReadSchemas).toBeUndefined();
-  expect(feedback.inputSchema).toEqual(
-    (await f.game.tools()).find((t) => t.name === "pact_world_read_v1")?.inputSchema,
-  );
-  expect(feedback.attemptedArgs).toEqual({ forecastMinutes: 99, token: "[redacted]" });
+  expect(feedback).not.toHaveProperty("inputSchema");
+  expect(feedback.schemaDelivery).toContain("exact generation schema");
+  expect(feedback.attemptedReferences).toEqual({ forecastMinutes: 99 });
+  expect(feedback).not.toHaveProperty("attemptedArgs");
   expect(feedback.schemaDigest).toMatch(/^[a-f0-9]{64}$/);
   expect(feedback.errors[0].instancePath).toBe("/forecastMinutes");
   expect(f.game.reads.some((r) => r.args.forecastMinutes === 99)).toBe(false);

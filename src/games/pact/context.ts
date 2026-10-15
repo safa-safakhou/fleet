@@ -125,11 +125,27 @@ export function projectRead(raw: Data, limit = 6000): Data {
           "upkeep",
           "forecast",
         ]
-      : entry.tool === "pact_agent_guide_v1"
-        ? [...guide, "topic", ...common]
-        : entry.tool === "pact_play_view_v1"
-          ? ["parties", "interactions", "observedAt", "presenceMeaning", "bounded", "world"]
-          : Object.keys(result);
+      : entry.tool === "pact_world_read_v1"
+        ? [...common, "forecast", "builders", "buildings", "nextUpgradeChecks", "unitReferences", "profile", "balances"]
+        : entry.tool === "pact_observation_read_v2"
+          ? [
+              ...common,
+              "section",
+              "ownerKingdomId",
+              "lastCommittedEventId",
+              "forecast",
+              "records",
+              "builders",
+              "buildings",
+              "nextUpgradeChecks",
+              "coverage",
+              "next",
+            ]
+          : entry.tool === "pact_agent_guide_v1"
+            ? [...guide, "topic", ...common]
+            : entry.tool === "pact_play_view_v1"
+              ? ["parties", "interactions", "observedAt", "presenceMeaning", "bounded", "world"]
+              : Object.keys(result);
   for (const key of [...new Set([...keys, ...Object.keys(result)])]) {
     const value = result[key];
     if (Array.isArray(value)) page(key, value);
@@ -146,6 +162,21 @@ export function projectRead(raw: Data, limit = 6000): Data {
       pages.parties = { observed: Object.keys(value).length, retained: Object.keys(parties).length };
       if (Object.keys(parties).length < Object.keys(value).length) omitted.push(key);
     } else add(key, value);
+  }
+  if (
+    entry.tool === "pact_observation_read_v2" &&
+    Array.isArray(result.records) &&
+    Array.isArray(output.records) &&
+    output.records.length < result.records.length
+  ) {
+    output.coverage = {
+      ...object(result.coverage),
+      sourceComplete: object(result.coverage).complete,
+      complete: false,
+      delivered: output.records.length,
+      omittedFromThisInput: result.records.length - output.records.length,
+      meaning: "Whole records omitted from this input are unknown, not an empty source collection.",
+    };
   }
   const prior = object(entry.coverage);
   for (const [key, rawPage] of Object.entries(pages)) {
