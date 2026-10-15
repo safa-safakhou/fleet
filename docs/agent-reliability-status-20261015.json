@@ -185,8 +185,8 @@
       "id": "AR-F11",
       "title": "Reviewed controller rollout",
       "depends_on": ["AR-F10", "AR-P11"],
-      "status": "todo",
-      "assignee": null,
+      "status": "done",
+      "assignee": "codex-agent-reliability-20261015",
       "plan": "docs/agent-reliability-plan-20261015.md",
       "acceptance": [
         "Rehearsed source/data compatibility and rollback preserve all fifty Luna/twenty local bindings, history, original anchors/schedules/models/permissions/budgets, exact pending receipt IDs and unknown allocations. No terminal population restarts or new identity substitution.",
@@ -194,8 +194,11 @@
         "Late/stale workers cannot commit or overwrite rotated grants. Rollback cannot replace newer game state with an old backup or fabricate usage.",
         "Source implementation, experiments, actual reconnects/reviews, deployment and push each require explicit covering assignments. Saving this plan starts none of them."
       ],
-      "evidence": [],
-      "gated_acceptance": []
+      "evidence": ["docs/agent-reliability-rollout-20261015.md"],
+      "gated_acceptance": [
+        "Actual approved provider qualification, owner authority choice, exact bounded canaries/live preservation, rollout/reconnect/reviews and push remain separate gates"
+      ],
+      "dependency_gate": "Source compatibility, additive migration/retention/preservation rehearsal and gated release/rollback proposal complete"
     }
   ]
 }

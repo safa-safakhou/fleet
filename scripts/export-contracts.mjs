@@ -1,10 +1,11 @@
 // Explicit operator build step only. Runtime never imports the game repository or database.
 
 import { createHash } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { z } from "../node_modules/zod/index.js";
 
-const path = process.argv[2];
+const check = process.argv[2] === "--check";
+const path = process.argv[check ? 3 : 2];
 if (!path) throw Error("Supply the reviewed PACT contracts dist/index.js path");
 const contracts = await import(path);
 const names = [
@@ -24,6 +25,20 @@ const families = names.map((name) => ({
   }),
 }));
 const payload = JSON.stringify(families);
+if (check) {
+  const actions = JSON.parse(await readFile("vendor/pact-actions.json", "utf8"));
+  const observations = JSON.parse(await readFile("vendor/pact-observations.json", "utf8"));
+  const reads = [contracts.pactObservationSectionTool];
+  if (
+    JSON.stringify(actions.families) !== payload ||
+    actions.sha256 !== createHash("sha256").update(payload).digest("hex") ||
+    JSON.stringify(observations.reads) !== JSON.stringify(reads) ||
+    observations.sha256 !== createHash("sha256").update(JSON.stringify(reads)).digest("hex")
+  )
+    throw Error("REVIEWED_CONTRACTS_DIFFER");
+  console.log("Reviewed action and observation contracts match the explicit built PACT source; no files changed.");
+  process.exit(0);
+}
 await mkdir("vendor", { recursive: true });
 await writeFile(
   "vendor/pact-actions.json",
