@@ -146,8 +146,8 @@
       "id": "AR-F09",
       "title": "Feasible owner goals",
       "depends_on": ["AR-F08", "AR-P09"],
-      "status": "todo",
-      "assignee": null,
+      "status": "done",
+      "assignee": "codex-agent-reliability-20261015",
       "plan": "docs/agent-reliability-plan-20261015.md",
       "acceptance": [
         "Hall III 540 Iron versus available headroom is distinct from Hall IV 1,260, V 2,700 and VI 4,500 exceeding the full original 1,000 ceiling. Waiting for quota release cannot solve the latter.",
@@ -155,8 +155,11 @@
         "Declared goals are feasible under actual authority or have a specific unresolved owner decision. No automatic permission expansion, unlimited ceiling, model/budget/schedule change or political rule change occurs.",
         "Risk preferences and historical notes remain distinguishable from authoritative facts and current intent; communication and promotion are not imposed objectives."
       ],
-      "evidence": [],
-      "gated_acceptance": []
+      "evidence": ["docs/agent-reliability-feasibility-20261015.md"],
+      "gated_acceptance": [
+        "Owner must choose constrained goal, exact human approvals or reviewed bounded ceiling before live higher-Hall acceptance"
+      ],
+      "dependency_gate": "Rules-derived source feasibility complete; evaluation may use explicitly constrained synthetic goals"
     },
     {
       "id": "AR-F10",

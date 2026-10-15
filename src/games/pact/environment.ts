@@ -15,6 +15,7 @@ const core = [
   "constructionRecovery",
   "mandate",
   "authority",
+  "goalFeasibility",
   "socialDelegation",
   "charges",
   "upkeep",

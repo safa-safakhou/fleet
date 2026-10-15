@@ -84,6 +84,7 @@ export function compactFacts(input: Data) {
       }),
     ),
     authority: authoritySummary(world.authority),
+    goalFeasibility: guide.goalFeasibility,
     buildings: world.buildings,
     builders: world.builders,
     nextUpgradeChecks: world.nextUpgradeChecks,
