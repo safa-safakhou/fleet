@@ -54,6 +54,55 @@ const belief = {
 };
 
 describe("native analysis grounded in final delivery", () => {
+  it("does not re-offer reviewed peer evidence when belief prose is paged, while a newer incoming message stays eligible", () => {
+    const reviewed = { ...context, reviewedPeerEvidenceAt: { peer: Date.parse(incoming.at) } };
+    expect(analysisOpportunities(reviewed).map((o) => o.type)).toEqual(["reflection"]);
+    const newer = { ...incoming, id: randomUUID(), at: "2026-10-14T00:01:00Z" };
+    expect(analysisOpportunities({ ...reviewed, evidence: [current, newer, outcome] }).map((o) => o.type)).toEqual([
+      "belief",
+      "reflection",
+    ]);
+    const observed = { ...current, detail: { ...current.detail, peerFacts: [{ peerId: "peer", kind: "contact" }] } };
+    expect(analysisOpportunities({ ...reviewed, evidence: [observed, outcome] }).map((o) => o.type)).toEqual([
+      "reflection",
+    ]);
+    const check = new Ajv({ strict: false, validateFormats: false }).compile(analysisSchemaForVersion(2, reviewed));
+    const envelope = { cognition: belief, decision: { kind: "wait", summary: "Wait" } };
+    expect(
+      new Ajv({ strict: false, validateFormats: false }).compile(analysisSchemaForVersion(2, context))(envelope),
+    ).toBe(true);
+    expect(check(envelope)).toBe(false);
+    expect(
+      check({ ...envelope, cognition: { expectedVersion: 2, analysis: { type: "none", reason: "Already reviewed" } } }),
+    ).toBe(true);
+    const large = {
+      ...reviewed,
+      nativeAnalysis: true,
+      beliefs: [
+        {
+          peerId: "peer",
+          evidenceQuote: incoming.detail.body,
+          updatedAt: incoming.at,
+          basis: { sourceId: incoming.id },
+          inferredMotive: "Historical subjective prose ".repeat(500),
+        },
+      ],
+    };
+    const fitted = object(
+      JSON.parse(
+        fitMessages(
+          { environment: {}, cognition: large },
+          "Use owned facts",
+          analysisSchemaForVersion(2, large, { plan: false, memories: false }),
+          6000,
+          () => [],
+        )[1].content,
+      ).cognition,
+    );
+    expect(fitted.beliefs).toEqual([]);
+    expect(fitted.reviewedPeerEvidenceAt).toEqual(reviewed.reviewedPeerEvidenceAt);
+    expect(analysisOpportunities(fitted).map((o) => o.type)).toEqual(["reflection"]);
+  });
   it("fits a successful command's large receipt beside growing continuity without claiming omitted effects", () => {
     const receipt = {
       ...outcome,

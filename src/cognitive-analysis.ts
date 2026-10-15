@@ -35,13 +35,18 @@ export function analysisOpportunities(delivered: Data): Opportunity[] {
     beliefs: Array.isArray(delivered.beliefs) ? (delivered.beliefs as CognitiveState["beliefs"]) : [],
     reflections: [],
   };
+  const reviewed = object(delivered.reviewedPeerEvidenceAt);
+  const newPeerEvidence = (source: Episode, peerId: string) =>
+    isNewPeerEvidence(source, state.beliefs, peerId) &&
+    (typeof reviewed[peerId] !== "number" ||
+      (source.kind === "message" && Date.parse(source.at) > Number(reviewed[peerId])));
   const result: Opportunity[] = [];
   const incoming = evidence.find(
     (e) =>
       e.kind === "message" &&
       object(e.detail).direction === "incoming" &&
       peers.has(object(e.detail).peerId) &&
-      isNewPeerEvidence(e, state.beliefs, String(object(e.detail).peerId)),
+      newPeerEvidence(e, String(object(e.detail).peerId)),
   );
   const observation = evidence.find(
     (e) =>
@@ -51,7 +56,7 @@ export function analysisOpportunities(delivered: Data): Opportunity[] {
         (f) =>
           peers.has(object(f).peerId) &&
           ["contact", "agreement"].includes(String(object(f).kind)) &&
-          isNewPeerEvidence(e, state.beliefs, String(object(f).peerId)),
+          newPeerEvidence(e, String(object(f).peerId)),
       ),
   );
   const basis = incoming ?? observation;
@@ -71,7 +76,7 @@ export function analysisOpportunities(delivered: Data): Opportunity[] {
             (f) =>
               peers.has(f.peerId) &&
               ["contact", "agreement"].includes(String(f.kind)) &&
-              isNewPeerEvidence(basis, state.beliefs, String(f.peerId)),
+              newPeerEvidence(basis, String(f.peerId)),
           );
     if (!fact) throw new FleetError("COGNITION_ANALYSIS_NOT_OFFERED");
     result.push({

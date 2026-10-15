@@ -191,6 +191,23 @@ export function deliveredCognition(context: Data): Data {
   const recalled = object(read.result);
   return {
     ...current,
+    reviewedPeerEvidenceAt: Object.fromEntries(
+      [
+        ...new Set([
+          ...Object.keys(object(current.reviewedPeerEvidenceAt)),
+          ...Object.keys(object(recalled.reviewedPeerEvidenceAt)),
+        ]),
+      ]
+        .map((peer) => [
+          peer,
+          Math.max(
+            ...[object(current.reviewedPeerEvidenceAt)[peer], object(recalled.reviewedPeerEvidenceAt)[peer]].filter(
+              (at): at is number => typeof at === "number" && Number.isFinite(at),
+            ),
+          ),
+        ])
+        .filter(([, at]) => Number.isFinite(at)),
+    ),
     evidence: [
       ...(Array.isArray(current.evidence) ? current.evidence : []),
       ...(Array.isArray(recalled.evidence) ? recalled.evidence : []),
@@ -750,6 +767,14 @@ export class Cognition {
       recallStatus.route === "laya-recall-v1",
     );
     const evidence = selected.map((e) => ({ ...e, detail: compactEpisode(e) }));
+    const evidencePeers = new Set(
+      evidence.flatMap((e) => [
+        object(e.detail).peerId,
+        ...(Array.isArray(object(e.detail).peerFacts)
+          ? (object(e.detail).peerFacts as unknown[]).map((fact) => object(fact).peerId)
+          : []),
+      ]),
+    );
     const groundedBeliefs = state.beliefs.filter((b) => b.basis && b.test && b.evidenceQuote);
     const groundedReflections = state.reflections.filter(
       (r) =>
@@ -771,6 +796,13 @@ export class Cognition {
       latestReceiptId: recentReceipt?.id,
       analysisEvidenceIds: [incoming?.id, recentReceipt?.id].filter(Boolean),
       reflectedOutcomeIds: selected.filter((e) => reflected.has(e.id)).map((e) => e.id),
+      // Admission bookkeeping survives paging subjective belief prose. This is
+      // the same peer/time predicate enforced on save, not a new hypothesis.
+      reviewedPeerEvidenceAt: Object.fromEntries(
+        state.beliefs
+          .filter((b) => b.evidenceQuote && evidencePeers.has(b.peerId) && Number.isFinite(Date.parse(b.updatedAt)))
+          .map((b) => [b.peerId, Date.parse(b.updatedAt)]),
+      ),
       plan: state.plan,
       beliefs,
       reflections: groundedReflections.slice(-2),

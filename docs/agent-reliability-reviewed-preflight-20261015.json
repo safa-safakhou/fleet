@@ -1,0 +1,1009 @@
+{
+  "at": "2026-10-15T10:29:52.797Z",
+  "accounts": 10,
+  "realModelCalls": 0,
+  "realHelperCalls": 0,
+  "credentialOperations": 0,
+  "rows": [
+    {
+      "ordinal": 1,
+      "assist": "abstained",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23986,
+      "schemaBytes": 2747,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 1,
+      "assist": "abstained",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23990,
+      "schemaBytes": 3473,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 1,
+      "assist": "pair0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23809,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 1,
+      "assist": "pair0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23784,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 1,
+      "assist": "pair1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23809,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 1,
+      "assist": "pair1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23784,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 1,
+      "assist": "accepted0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23809,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 1,
+      "assist": "accepted0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23784,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 1,
+      "assist": "accepted1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23809,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 1,
+      "assist": "accepted1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23784,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 2,
+      "assist": "abstained",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23696,
+      "schemaBytes": 2746,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 2,
+      "assist": "abstained",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23873,
+      "schemaBytes": 3472,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 2,
+      "assist": "pair0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23873,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 2,
+      "assist": "pair0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23693,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 2,
+      "assist": "pair1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23873,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 2,
+      "assist": "pair1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23693,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 2,
+      "assist": "accepted0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23873,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 2,
+      "assist": "accepted0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23693,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 2,
+      "assist": "accepted1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23873,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 2,
+      "assist": "accepted1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23693,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 3,
+      "assist": "abstained",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23801,
+      "schemaBytes": 2746,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 3,
+      "assist": "abstained",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23972,
+      "schemaBytes": 3472,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 3,
+      "assist": "pair0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23978,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 3,
+      "assist": "pair0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23793,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 3,
+      "assist": "pair1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23978,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 3,
+      "assist": "pair1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23793,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 3,
+      "assist": "accepted0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23978,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 3,
+      "assist": "accepted0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23793,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 3,
+      "assist": "accepted1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23978,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 3,
+      "assist": "accepted1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23793,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 4,
+      "assist": "abstained",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23991,
+      "schemaBytes": 2747,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 4,
+      "assist": "abstained",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23873,
+      "schemaBytes": 3473,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 4,
+      "assist": "pair0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23714,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 4,
+      "assist": "pair0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23945,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 4,
+      "assist": "pair1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23714,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 4,
+      "assist": "pair1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23945,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 4,
+      "assist": "accepted0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23714,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 4,
+      "assist": "accepted0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23945,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 4,
+      "assist": "accepted1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23714,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 4,
+      "assist": "accepted1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23945,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 5,
+      "assist": "abstained",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23999,
+      "schemaBytes": 2746,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 5,
+      "assist": "abstained",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23668,
+      "schemaBytes": 3472,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 5,
+      "assist": "pair0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23703,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 5,
+      "assist": "pair0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23845,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 5,
+      "assist": "pair1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23703,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 5,
+      "assist": "pair1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23845,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 5,
+      "assist": "accepted0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23703,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 5,
+      "assist": "accepted0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23845,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 5,
+      "assist": "accepted1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23703,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 5,
+      "assist": "accepted1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23845,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 6,
+      "assist": "abstained",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23717,
+      "schemaBytes": 2747,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 6,
+      "assist": "abstained",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23814,
+      "schemaBytes": 3473,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 6,
+      "assist": "pair0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23894,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 6,
+      "assist": "pair0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23991,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 6,
+      "assist": "pair1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23894,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 6,
+      "assist": "pair1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23991,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 6,
+      "assist": "accepted0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23894,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 6,
+      "assist": "accepted0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23991,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 6,
+      "assist": "accepted1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23894,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 6,
+      "assist": "accepted1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23991,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 7,
+      "assist": "abstained",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23684,
+      "schemaBytes": 2747,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 7,
+      "assist": "abstained",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23999,
+      "schemaBytes": 3473,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 7,
+      "assist": "pair0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23756,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 7,
+      "assist": "pair0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23566,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 7,
+      "assist": "pair1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23756,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 7,
+      "assist": "pair1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23566,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 7,
+      "assist": "accepted0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23756,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 7,
+      "assist": "accepted0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23566,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 7,
+      "assist": "accepted1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23756,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 7,
+      "assist": "accepted1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23566,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 8,
+      "assist": "abstained",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23804,
+      "schemaBytes": 2747,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 8,
+      "assist": "abstained",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23847,
+      "schemaBytes": 3473,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 8,
+      "assist": "pair0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23981,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 8,
+      "assist": "pair0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23919,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 8,
+      "assist": "pair1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23981,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 8,
+      "assist": "pair1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23919,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 8,
+      "assist": "accepted0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23981,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 8,
+      "assist": "accepted0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23919,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 8,
+      "assist": "accepted1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23981,
+      "schemaBytes": 2747,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 8,
+      "assist": "accepted1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23919,
+      "schemaBytes": 3473,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 9,
+      "assist": "abstained",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23915,
+      "schemaBytes": 2746,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 9,
+      "assist": "abstained",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23874,
+      "schemaBytes": 3472,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 9,
+      "assist": "pair0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23851,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 9,
+      "assist": "pair0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23568,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 9,
+      "assist": "pair1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23851,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 9,
+      "assist": "pair1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23568,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 9,
+      "assist": "accepted0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23851,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 9,
+      "assist": "accepted0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23568,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 9,
+      "assist": "accepted1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23851,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 9,
+      "assist": "accepted1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23568,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 10,
+      "assist": "abstained",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23995,
+      "schemaBytes": 2746,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 10,
+      "assist": "abstained",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23721,
+      "schemaBytes": 3472,
+      "recall": "relevance-recency-importance",
+      "pairRetained": null
+    },
+    {
+      "ordinal": 10,
+      "assist": "pair0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23860,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 10,
+      "assist": "pair0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23992,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 10,
+      "assist": "pair1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23860,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 10,
+      "assist": "pair1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23992,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 10,
+      "assist": "accepted0",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23860,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 10,
+      "assist": "accepted0",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23992,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 10,
+      "assist": "accepted1",
+      "decision": 1,
+      "outcome": "fitted",
+      "bytes": 23860,
+      "schemaBytes": 2746,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    },
+    {
+      "ordinal": 10,
+      "assist": "accepted1",
+      "decision": 2,
+      "outcome": "fitted",
+      "bytes": 23992,
+      "schemaBytes": 3472,
+      "recall": "laya-recall-v1",
+      "pairRetained": true
+    }
+  ]
+}
