@@ -1,0 +1,61 @@
+{
+  "assignment": "founder_server50_recover_resume_local20_upgrade_20261015",
+  "assignee": "codex-recovery-20261015",
+  "tasks": [
+    {
+      "id": "RR01",
+      "task": "Capture protected pre-operation backup and exact recovery evidence",
+      "status": "verified",
+      "evidence": ["Encrypted snapshot restored/hash verified"]
+    },
+    {
+      "id": "RR02",
+      "task": "Review exact server17/27 blocked turns, reconnect same account17 and resume original50",
+      "status": "verified",
+      "evidence": [
+        "Supported exact turn reviews; same-account reconnect; preserved ledger/turn content/configuration; original cohort resumed generation18"
+      ]
+    },
+    {
+      "id": "RR03",
+      "task": "Stage verified Fleet243, naturally drain and upgrade actual local20 runner preserving original intent",
+      "status": "verified",
+      "evidence": [
+        "Exact verified image artifact; all19 original tables preserved; native process cwd/revision; ready; holds released"
+      ]
+    },
+    {
+      "id": "RR04",
+      "task": "Observe all existing50 and20 scheduled agents; document exact outcomes and any residual gates",
+      "status": "verified",
+      "evidence": [
+        "50 server and20 local first completed reported turns; no new unknown/pending; recovered17/27 actual normal progress"
+      ]
+    },
+    {
+      "id": "RR05",
+      "task": "Verify and commit/push both operational reports",
+      "status": "verified",
+      "evidence": [
+        "docs/recovery-resumption-20261015.md",
+        "JSON account coverage and outcomes validated; diff/format and PACT canonical planning check passed; origin/master report push verified at final completion."
+      ]
+    }
+  ],
+  "rulings": [
+    "Operational execution reuses verified source/artifacts; no feature implementation or new paid test is planned. Existing master checkout/report integration is explicitly authorized.",
+    "Previous source-only, server-pause and local-runtime-preservation restrictions are superseded only for the founder-requested existing-cohort recovery and local upgrade.",
+    "Reset means restore eligibility through supported review/reconnect; no accounting/history erasure.",
+    "Old local worker aborts active work on SIGTERM and predates maintenance holds. Stop only at a verified natural idle window, then install new holds before starting the upgraded worker."
+  ],
+  "coveredAuthority": "Founder explicitly requested server resumption/reconnect/recovery plus local20 upgrade; ordinary scheduled acceptance authorized. No subagents.",
+  "verification": {
+    "server": 50,
+    "local": 20,
+    "newUnknown": 0,
+    "newPending": 0,
+    "historicalUnknownRetained": 3,
+    "source": "243d9e469c9606987d1a0591d8bef21f69c46d6a",
+    "PACT": "1e21a6b8c57e32840d0f4cb9ee9352ff055e70a0"
+  }
+}

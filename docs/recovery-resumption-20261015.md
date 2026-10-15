@@ -1,0 +1,39 @@
+# Existing-cohort recovery and local Fleet upgrade — 15 October 2026
+
+The founder explicitly requested resuming/reconnecting the existing server agents and applying the verified release to the existing local20. Completed using the same accounts, original histories, allowances, models, settings and anchors. Reset meant restoring eligibility through exact-case review and same-account authentication; no counters, usage, memory or game state were erased. This follow-up supersedes the earlier server-paused/local-runtime-unchanged operational boundary only for these concrete recovery actions.
+
+## Installed runtimes and current status
+
+- Server50: **running, generation18, 50 ready**, original `2026-10-12T13:20:56.733Z` anchor. Resumed at **16:33:27 CEST**. All50 completed at least one ordinary reported turn after resumption.
+- Local10 LLM-only and local10 cognition: both **running, 20 ready**, unchanged common `2026-10-14T14:39:05.532Z` five-minute anchor. Actual console/worker installation switched at **16:34:35 CEST**. All20 completed at least one ordinary reported turn after upgrade.
+- Server and local Fleet both execute exact source **`243d9e469c9606987d1a0591d8bef21f69c46d6a`**. Server image remains `fleet:243d9e469c9606987d1a0591d8bef21f69c46d6a`. Native local code was extracted from the verified image without rebuilding; the owning processes' working directories and critical-file hashes confirm the installed release, not merely a source checkout.
+- PACT remains **`1e21a6b8c57e32840d0f4cb9ee9352ff055e70a0`**, image `pact-runtime:recovery-liveness-20261015-2`. No PACT application redeployment was needed.
+- Final server verification: **16:53:03 CEST**. No new unknown usage or pending command, and no blocked agent was observed across the acceptance interval. Mac remained excluded; no draft/pilot/terminal population was restarted.
+
+## Exact server recovery
+
+Agent17's `AUTH_REQUIRED` turn `1a6f7cba-ff5a-47c0-861a-9afe33493657` was reviewed with no pending command or unknown allocation. Its existing synthetic-owner entry key authenticated with `existingOnly:true`; the existing OAuth client received a fresh authorization-code grant with PKCE. The ambiguous rotating refresh was not replayed. Account/kingdom identity and the complete mandate response were verified unchanged. No social policy or grant scope was expanded. Its first post-recovery turn **`78e4c28f-fafb-4df8-a245-a47cfd26c7dd`** completed at **16:42:13 CEST**, code `WAIT`, with 1 reported call and no unknown usage/pending command.
+
+Agent27's exact `CODEX_TIMEOUT` turn `b16ba0f6-435e-4de1-9e2e-ebe6c0e70f00` was reviewed under the founder's covering request. The original code, timestamps and unknown-usage flag remain; the turn's recovery state changed to `cancelled`, the supported acknowledgment state. Its **40000 allocation remains unknown with null actual usage**. No command had been pending and none was replayed. Its first post-recovery turn **`50aa2914-a5d0-4b6a-a437-d9be951eddf1`** completed at **16:46:33 CEST**, code `READ`, with 2 reported calls and no unknown usage/pending command.
+
+All **three** historical unknown allocations remain exactly intact. The two older reviewed cases were not reopened: each of the four exact interruption cases (older two plus Agent17/27) has exactly one review event. Original server ledger rows and original turn contents, excluding only the two explicitly reviewed state transitions, still match their pre-recovery fingerprints after new scheduled work.
+
+## Local upgrade and rollback protection
+
+The previous local release was `9fe70e2d096f209ea73b308789f69d80f23019e0`. Its legacy worker aborts active calls on termination and does not honor new maintenance holds. The replacement therefore began only at a verified natural idle boundary: no running turn, reserved inference, refreshing credential, exchanging OAuth callback or pending command, with **10.97 seconds** until the next due slot. The existing owning console/worker services stopped without cancelling work. A quiescent dump was protected before migration.
+
+All **19 original local tables** matched exactly across migration. New five-minute maintenance holds kept original running intent while the new worker/console started; actual readiness and process directories were checked before both holds were released. Native `flock`/`timeout` are present; the server's corresponding binaries were checked too. The private environment files, database environment, launch wrapper and both service definitions remain byte-identical to their pre-upgrade backup. The local symlink now selects `/home/mnim/.local/share/fleet/windows-nemotron-comparison-20261014/releases/243d9e469c9606987d1a0591d8bef21f69c46d6a`.
+
+Encrypted pre-operation snapshot **`092115c9159122afbb780ec3d41f9330aa1d65e5676e580478310328f8f6822d`** and quiescent local snapshot **`dc624bdedd902e110d62eb04861e7bbdeb8a062bffd2327336153c79f2d0264c`** were restored with matching hashes. Backups, grants and detailed operator artifacts remain protected outside Git. Never restore an old database over subsequent game effects, usage or rotated credentials.
+
+## Acceptance and remaining limits
+
+The [coverage evidence](recovery-resumption-coverage-20261015.json) records the first completed, reported turn for every one of the same **50 server / 20 local** agents, with exact turn IDs/timestamps/codes. Qualification requires completed execution, reported usage and no pending command or unknown usage. It does not require a game mutation and does not equate `WAIT`/`READ` with strategic success. These were existing scheduled turns, not added paid tests. Both recovered agents are included; readiness alone was not accepted.
+
+At the outcome sample, the server had 52 completed turns, 83 recorded calls and 6 recorded committed actions. Completed turns averaged **21.55 seconds**; the maximum queue delay was **240.53 seconds**. A serial50/15-minute schedule needs average total service time below18 seconds, including overhead. The observed rate therefore causes queueing. Concurrency, model, allowances and timing were deliberately preserved; this is a remaining throughput constraint, not an account recovery blocker. All recorded due times in both installations remained on their original anchor phases.
+
+The local sample recorded **0 committed actions** and **4 LLM-only `INVALID_MODEL_OUTPUT` turns**; cognition turns were waits. Server outcomes included waits, reads and `INSUFFICIENT_ALLOWANCE` rejections, detailed in the [outcome evidence](recovery-resumption-outcomes-20261015.json). Those do not establish communication incentives, intelligent strategy or higher-bracket success. No communication was forced or authority/economy relaxed. Future unknown exposure, revoked grants or genuinely uncertain game receipts still require their supported scoped recovery decisions; these exact reviews do not authorize blanket future usage review.
+
+Source behavior was already verified by Fleet147unit/221integration and PACT384unit/436integration (one optional live-provider skip) in the preceding release report. Unchanged artifacts were reused here. Fresh operational checks verified the actual runtimes, per-account progress, original history/configuration, worker readiness/progress, public readiness and active game clock. PostgreSQL/gateway/public-edge identities/start times are unchanged; `archive_mode=off` and both server backup units remain masked. No new external notifications or model experiments were created.
+
+The finding-level source/rollout register remains in `recovery-liveness-findings-20261015.json`; this operation's five-step status register and adjacent coverage/outcome evidence provide the subsequent acceptance. Both repositories' committed reports are pushed through the existing authorized `origin/master` workflow.

@@ -1,5 +1,11 @@
 # Fleet engineering
 
+## Existing-cohort recovery and local upgrade - 15 October 2026
+
+Founder explicitly requests resuming the same server50, reconnecting its blocked existing account and reviewing exact interrupted execution to restore eligibility, plus installing the verified recovery Fleet release on both existing local10 cohorts. Read recovery-resumption-status-20261015.json in this repository's operational docs. This supersedes earlier no-review/no-reconnect/no-resume and local-runtime-unchanged restrictions only for these existing-cohort operations. Preserve identities, encrypted history, all allocations/older reviews, original configuration/allowances/anchors and terminal populations. No new experiments, grant-scope/authority/economy/model/budget changes, uncertain-command replay or Mac work. Natural drain, encrypted rollback, ordinary scheduled acceptance, commits and pushes are authorized. Codex owns this work without delegation.
+
+Verified operational acceptance: same server50 running at generation18, all50 completed a reported turn; actual local20 runtime on243d9e4, all20 completed a reported turn. Original3unknown allocations/history/settings/anchors retained. Read `docs/recovery-resumption-20261015.md` and adjacent coverage/outcomes for exact actions and remaining serial throughput/model-quality limits.
+
 ## Recovery/liveness execution - 15 October 2026
 
 Founder authorizes dependency-ordered recovery fixes, deterministic offline verification, commits, SERVER deployment and pushes in both repositories. Read docs/recovery-liveness-status-20261015.json. Codex owns this assignment without delegation. Preserve the existing server50 pause and historical unknown allocations/reviews; no Agent27 review, Agent17 reconnect or cohort resume. Existing local20 runtime stays unchanged; Mac excluded. No new real-model experiments, accounts, authority/economy, budget/schedule/model changes. This supersedes earlier source-only/no-push restrictions for this recovery scope only.

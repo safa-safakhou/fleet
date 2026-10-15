@@ -218,5 +218,13 @@
     "Revoked/expired/legacy ambiguous credentials need same-account owner reauthorization; never reuse an old rotating token blindly.",
     "Unverifiable legacy process locks, wrong keys/configuration and irreducible protected input need repair; never erase history or override authority."
   ],
-  "deploymentReport": "docs/recovery-liveness-deployment-20261015.md"
+  "deploymentReport": "docs/recovery-liveness-deployment-20261015.md",
+  "operationalFollowUp": {
+    "report": "docs/recovery-resumption-20261015.md",
+    "server50": "same accounts recovered and running generation18; all50 normal reported coverage",
+    "local20": "same accounts on243d9e4; all20 normal reported coverage",
+    "historicalUnknown": "all3 retained; older reviews not reopened",
+    "futureExposureReview": "scoped explicit decision remains required"
+  },
+  "remainingBoundariesContext": "Initial-deployment scope below is historical. The later founder request explicitly covered the concrete Agent17/27 recovery and same-cohort resumption; see operationalFollowUp."
 }

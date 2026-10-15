@@ -1,0 +1,142 @@
+{
+  "server": {
+    "at": "2026-10-15T14:53:21.141Z",
+    "counts": [
+      {
+        "name": "Luna 50 continuous 20261012",
+        "turns": 53,
+        "completed": 52,
+        "calls": 83,
+        "committed_actions": 6,
+        "mean_turn_seconds": "21.55",
+        "mean_queue_seconds": "100.41",
+        "maximum_queue_seconds": "240.529000"
+      }
+    ],
+    "codes": [
+      {
+        "name": "Luna 50 continuous 20261012",
+        "code": "COMMITTED",
+        "turns": 2
+      },
+      {
+        "name": "Luna 50 continuous 20261012",
+        "code": "INSUFFICIENT_ALLOWANCE",
+        "turns": 2
+      },
+      {
+        "name": "Luna 50 continuous 20261012",
+        "code": "READ",
+        "turns": 21
+      },
+      {
+        "name": "Luna 50 continuous 20261012",
+        "code": "WAIT",
+        "turns": 27
+      },
+      {
+        "name": "Luna 50 continuous 20261012",
+        "code": null,
+        "turns": 1
+      }
+    ],
+    "usage": [
+      {
+        "name": "Luna 50 continuous 20261012",
+        "status": "reported",
+        "calls": 82,
+        "allocated": "3280000",
+        "input": "1327775",
+        "output": "17459"
+      },
+      {
+        "name": "Luna 50 continuous 20261012",
+        "status": "reserved",
+        "calls": 1,
+        "allocated": "40000",
+        "input": null,
+        "output": null
+      }
+    ],
+    "offOriginalPhase": 0
+  },
+  "local": {
+    "at": "2026-10-15T14:53:20.790Z",
+    "counts": [
+      {
+        "name": "Windows Nemotron 10 vs 10 \u00b7 Cognition",
+        "turns": 38,
+        "completed": 37,
+        "calls": 40,
+        "committed_actions": 0,
+        "mean_turn_seconds": "8.76",
+        "mean_queue_seconds": "10.16",
+        "maximum_queue_seconds": "20.178000"
+      },
+      {
+        "name": "Windows Nemotron 10 vs 10 \u00b7 LLM only",
+        "turns": 38,
+        "completed": 38,
+        "calls": 52,
+        "committed_actions": 0,
+        "mean_turn_seconds": "7.81",
+        "mean_queue_seconds": "1.73",
+        "maximum_queue_seconds": "10.669000"
+      }
+    ],
+    "codes": [
+      {
+        "name": "Windows Nemotron 10 vs 10 \u00b7 Cognition",
+        "code": "WAIT",
+        "turns": 37
+      },
+      {
+        "name": "Windows Nemotron 10 vs 10 \u00b7 Cognition",
+        "code": null,
+        "turns": 1
+      },
+      {
+        "name": "Windows Nemotron 10 vs 10 \u00b7 LLM only",
+        "code": "INVALID_MODEL_OUTPUT",
+        "turns": 4
+      },
+      {
+        "name": "Windows Nemotron 10 vs 10 \u00b7 LLM only",
+        "code": "OBSERVED_BUILDING_BUSY",
+        "turns": 4
+      },
+      {
+        "name": "Windows Nemotron 10 vs 10 \u00b7 LLM only",
+        "code": "WAIT",
+        "turns": 30
+      }
+    ],
+    "usage": [
+      {
+        "name": "Windows Nemotron 10 vs 10 \u00b7 Cognition",
+        "status": "reported",
+        "calls": 39,
+        "allocated": "1560000",
+        "input": "239312",
+        "output": "14476"
+      },
+      {
+        "name": "Windows Nemotron 10 vs 10 \u00b7 Cognition",
+        "status": "reserved",
+        "calls": 1,
+        "allocated": "40000",
+        "input": null,
+        "output": null
+      },
+      {
+        "name": "Windows Nemotron 10 vs 10 \u00b7 LLM only",
+        "status": "reported",
+        "calls": 52,
+        "allocated": "2080000",
+        "input": "258137",
+        "output": "22272"
+      }
+    ],
+    "offOriginalPhase": 0
+  }
+}
