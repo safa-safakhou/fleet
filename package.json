@@ -17,7 +17,8 @@
     "start": "node dist/server/main.js",
     "worker": "node dist/server/worker.js",
     "demo": "tsx scripts/demo.ts",
-    "check:boundaries": "node scripts/check-boundaries.mjs"
+    "check:boundaries": "node scripts/check-boundaries.mjs",
+    "eval:offline": "vitest run tests/unit/evaluation.test.ts tests/unit/qualification.test.ts"
   },
   "dependencies": {
     "ajv": "8.20.0",

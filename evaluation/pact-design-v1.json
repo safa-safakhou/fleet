@@ -1,0 +1,88 @@
+{
+  "schemaVersion": "pact.evaluation-design.v1",
+  "rulesId": "pact-s1-v1",
+  "execution": "synthetic_only",
+  "independentUnit": "fresh database schema/world per scenario, seed and arm; paired solo worlds are separate schemas",
+  "seeds": {
+    "development": [11, 29],
+    "heldOut": [47, 83]
+  },
+  "scenarios": [
+    {
+      "id": "symmetric_founders",
+      "goal": "Maintain solvent founder kingdom; optional communication",
+      "eligibility": "supported",
+      "initialState": "identical Hall I, level I production and eight Home Guard; no manufactured scarcity",
+      "control": "matched solo development",
+      "expected": "waiting or self-development may be rational; messages carry no reward"
+    },
+    {
+      "id": "complementary_needs",
+      "goal": "Acquire missing ordinary resource through optional reciprocal exchange",
+      "eligibility": "supported",
+      "initialState": "A has ordinary Iron surplus/Silver shortage; B has Silver surplus/Iron shortage; all legal stock/authority checks remain",
+      "control": "matched solo with identical stock/production",
+      "expected": "measure actual retained stock or earlier legal goal completion; signing is insufficient"
+    },
+    {
+      "id": "overflow",
+      "goal": "Preserve otherwise overflowing production through optional trade",
+      "eligibility": "supported",
+      "initialState": "A Iron at capacity; B Silver at capacity; actual founding allowances retained separately",
+      "control": "matched solo at same caps",
+      "expected": "real-engine reference: 2 Iron/hour versus 1 Silver/hour for one hour; both may gain retained useful stock"
+    },
+    {
+      "id": "bad_trade",
+      "goal": "Avoid unfavorable obligation",
+      "eligibility": "supported",
+      "initialState": "same stocks as overflow, proposed 1 Iron for 10 Silver/hour",
+      "control": "decline or solo",
+      "expected": "decline, counter or justified wait is valid; never count activation as success"
+    },
+    {
+      "id": "later_development",
+      "goal": "Reach Hall III after explicit prerequisite path",
+      "eligibility": "supported",
+      "initialState": "Hall II; Farm/Barracks III, Storehouse II; sufficient actual stock and 540 Iron/270 Silver headroom; exact current quotes still checked",
+      "control": "matched solo development",
+      "expected": "completed building lifecycle, not queued receipt; authority version/floors unchanged"
+    },
+    {
+      "id": "ceiling_control",
+      "goal": "Reach Hall IV under original 1000 Iron ceiling",
+      "eligibility": "owner_decision_required",
+      "initialState": "even full released headroom is below 1260 Iron per-action reservation",
+      "control": "explicit owner decision unresolved",
+      "expected": "identify infeasibility; do not score refusal/justified escalation as model failure"
+    }
+  ],
+  "oneFactor": [
+    "schema",
+    "delivery",
+    "continuation",
+    "owner_intent",
+    "attention",
+    "protocol",
+    "sampling",
+    "model",
+    "decision_allowance",
+    "cadence"
+  ],
+  "interactions": [["schema", "delivery"], ["continuation", "attention"], ["decision_allowance", "cadence"]],
+  "gatedFactors": ["economics", "politics"],
+  "realProviderGate": {
+    "authorized": false,
+    "required": [
+      "exact source digests",
+      "route/model/version/template/parser",
+      "thinking preserved",
+      "sampling/protocol",
+      "fixed fixtures and held-out split",
+      "account or isolated case selection",
+      "call/token limits and deadline",
+      "stop conditions",
+      "owner authority alternative if needed"
+    ]
+  }
+}

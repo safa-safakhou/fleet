@@ -165,8 +165,8 @@
       "id": "AR-F10",
       "title": "Controlled provider and behavior evaluation",
       "depends_on": ["AR-F09", "AR-P10"],
-      "status": "todo",
-      "assignee": null,
+      "status": "done",
+      "assignee": "codex-agent-reliability-20261015",
       "plan": "docs/agent-reliability-plan-20261015.md",
       "acceptance": [
         "Separate synthetic correctness, provider generation accuracy and game behavior. Keep twenty local Nemotron/Laya and fifty server Luna baselines/settings/accounting distinct.",
@@ -175,8 +175,11 @@
         "Privacy-safe future instrumentation records schema IDs/field paths/delivery coverage with minimal retention, not raw prompts/secrets. Exact invalid offer arguments and historical full-term exposure stay unresolved until captured through authorized evidence.",
         "Optional provider qualification branch AR-F10-P may proceed after AR-F02/03/04/05/07 and their contract gates, without waiting for economic redesign or AR-P10 world variants. It still requires a concrete inference authorization; every task remains unstarted."
       ],
-      "evidence": [],
-      "gated_acceptance": []
+      "evidence": ["docs/agent-reliability-evaluation-20261015.md"],
+      "gated_acceptance": [
+        "Actual pinned provider generation qualification and bounded behavior runs remain unauthorized/unexecuted; 336 cells are planned, not results"
+      ],
+      "dependency_gate": "Fixed independent synthetic design, isolated setup, deterministic qualification and metric infrastructure verified"
     },
     {
       "id": "AR-F11",
