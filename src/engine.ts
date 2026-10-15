@@ -151,7 +151,17 @@ export class Engine {
           await this.store.active(claim);
           validateTool(tool, args);
           await observation.record(claim, "reading", "Reading a participating exchange", { tool: name, args });
-          const result = await connectedGame.read(name, args);
+          let result: Data;
+          try {
+            result = await connectedGame.read(name, args);
+          } catch (error) {
+            const feedback = this.adapter.readRejection?.(error, name, args);
+            if (!feedback) throw error;
+            await rememberFeedback(feedback);
+            await outcome("ordinary_read_failure", promptFeedback(feedback));
+            await observation.record(claim, "result", "Automatic scoped peer read failed without submission", feedback);
+            continue;
+          }
           await communications.ingest(claim.agentId, peer, name, result);
           if (cognition)
             for (const entry of this.adapter.normalizeCommunications(claim.agent.kingdom_id, name, result))

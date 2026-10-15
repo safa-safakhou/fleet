@@ -83,7 +83,10 @@
         "Agent 42's discretionary nil-receipt not-found cannot become a generic interrupted-commit reconciliation loop. Only an actual original pending command uses that recovery path.",
         "WAIT does not erase failure evidence or falsely count as progress. Restart/expiry/history migration preserves prior notes/plans as history and does not queue commands or invent model reasoning."
       ],
-      "evidence": ["docs/agent-reliability-continuation-20261015.md"],
+      "evidence": [
+        "docs/agent-reliability-continuation-20261015.md",
+        "docs/agent-reliability-peer-followup-20261015.md"
+      ],
       "gated_acceptance": [],
       "dependency_gate": "Joint canonical outcomes and fake-engine restart/source acceptance verified"
     },
@@ -136,7 +139,7 @@
         "Isolated beneficial/bad trades reach authoritative delivery/benefit outcomes; valid decline and solo play pass. Fake IDs and privacy attacks fail.",
         "No outreach quota, forced partner class, autoaccept, advertising or persona is introduced. The original gift's four turns do not prove full historical terms reached the model; Agent 03's six-hour/zero-notice values are permitted and its precise invalid fields remain unknown."
       ],
-      "evidence": ["docs/agent-reliability-social-20261015.md"],
+      "evidence": ["docs/agent-reliability-social-20261015.md", "docs/agent-reliability-peer-followup-20261015.md"],
       "gated_acceptance": [
         "Live delivery and model recognition/negotiation require separately approved rollout and real-provider qualification"
       ],
