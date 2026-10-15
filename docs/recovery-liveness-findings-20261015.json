@@ -1,7 +1,7 @@
 {
   "assignment": "recovery-liveness-20261015",
   "tracking": "Local finding register, not invented Linear issues.",
-  "verification": "Source/offline verification complete; actual server installation and readback pending.",
+  "verification": "All 23 findings source/offline verified; corresponding code installed on server and read back. No production fault injection or new real-model qualification.",
   "findings": [
     {
       "id": "L01",
@@ -9,7 +9,8 @@
       "finding": "Single Codex fault pauses unrelated accounts",
       "resolution": "Per-agent operation/exposure gates; cohort state retains owner intent.",
       "status": "source_verified",
-      "evidence": "tests/integration/liveness.test.ts"
+      "evidence": "tests/integration/liveness.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L02",
@@ -17,7 +18,8 @@
       "finding": "Malformed completed CLI answer loses known usage",
       "resolution": "Completed final usage returned separately from decisionError; ambiguous event streams remain unknown.",
       "status": "source_verified",
-      "evidence": "tests/unit/codex.test.ts"
+      "evidence": "tests/unit/codex.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L03",
@@ -25,7 +27,8 @@
       "finding": "Crash leaves filesystem execution lock forever",
       "resolution": "Kernel flock ownership, independent 95-second process-tree timeout, bounded cancellation; legacy unverifiable lock explicitly gated.",
       "status": "source_verified",
-      "evidence": "tests/unit/codex.test.ts"
+      "evidence": "tests/unit/codex.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L04",
@@ -33,7 +36,8 @@
       "finding": "Worker expiry guesses model usage before dispatch",
       "resolution": "Certified dispatch checkpoints distinguish nonexecution, inference uncertainty and original pending commands; conservative adapter fallback.",
       "status": "source_verified",
-      "evidence": "tests/integration/liveness.test.ts"
+      "evidence": "tests/integration/liveness.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L05",
@@ -41,7 +45,8 @@
       "finding": "Read transport/schema failures park agents permanently",
       "resolution": "Bounded observation-only retries and next original-slot recovery; canonical object-key schema comparison.",
       "status": "source_verified",
-      "evidence": "tests/integration/engine.test.ts"
+      "evidence": "tests/integration/engine.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L06",
@@ -49,7 +54,8 @@
       "finding": "Missing receipt has only manual recovery",
       "resolution": "Prospective receipt-only recovery queue with leases and capped backoff; original command never replayed; absence remains unresolved.",
       "status": "source_verified",
-      "evidence": "tests/integration/liveness.test.ts"
+      "evidence": "tests/integration/liveness.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L07",
@@ -57,7 +63,8 @@
       "finding": "Receipt resolution fails to restore readiness",
       "resolution": "Eligibility recomputed across credentials, pending/owner turns, operation gates, configuration blockers and explicit agent state.",
       "status": "source_verified",
-      "evidence": "tests/integration/liveness.test.ts"
+      "evidence": "tests/integration/liveness.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L08",
@@ -65,7 +72,8 @@
       "finding": "Refresh crash strands refreshing credential",
       "resolution": "Proof-bound result recovery plus atomic encrypted proof/job preparation and completion, per-account singleflight and CAS.",
       "status": "source_verified",
-      "evidence": "tests/integration/credential-recovery.test.ts; PACT tests/integration/oauth.test.ts"
+      "evidence": "tests/integration/credential-recovery.test.ts; PACT tests/integration/oauth.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L09",
@@ -73,7 +81,8 @@
       "finding": "Ambiguous rotating refresh replay revokes family",
       "resolution": "Independent 32-byte proof, encrypted bounded result, client/account/grant/child checks, protocol downgrade/expiry gates; legacy replay remains forbidden.",
       "status": "source_verified",
-      "evidence": "tests/integration/credential-recovery.test.ts; PACT tests/integration/oauth.test.ts"
+      "evidence": "tests/integration/credential-recovery.test.ts; PACT tests/integration/oauth.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L10",
@@ -81,7 +90,8 @@
       "finding": "Early access 401 or one reconnect stops whole cohort",
       "resolution": "One bounded forced refresh on session initialization auth rejection; same idle-account reconnect allowed while cohort runs; initial enrollment remains complete.",
       "status": "source_verified",
-      "evidence": "tests/integration/refresh-evidence.test.ts; tests/integration/enrollment.test.ts"
+      "evidence": "tests/integration/refresh-evidence.test.ts; tests/integration/enrollment.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L11",
@@ -89,7 +99,8 @@
       "finding": "Resume requires all credentials and callback clears unrelated blockers",
       "resolution": "Anchored owner resumption permits isolated blocked accounts; callback preserves other blocked turns/configuration and explicit pause.",
       "status": "source_verified",
-      "evidence": "tests/integration/liveness.test.ts; tests/integration/enrollment.test.ts"
+      "evidence": "tests/integration/liveness.test.ts; tests/integration/enrollment.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L12",
@@ -97,7 +108,8 @@
       "finding": "Low disk looks healthy and disables expiry supervision",
       "resolution": "Explicit /ready reason; supervision/recovery independent of new admissions and long turns; actual worker-process test.",
       "status": "source_verified",
-      "evidence": "tests/integration/worker-liveness.test.ts"
+      "evidence": "tests/integration/worker-liveness.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L13",
@@ -105,7 +117,8 @@
       "finding": "Database errors/hangs terminate or wedge workers",
       "resolution": "Bounded statement/lock/idle-transaction waits, sanitized pool error handlers, guarded polling and durable restart recovery.",
       "status": "source_verified",
-      "evidence": "tests/integration/worker-liveness.test.ts; PACT tests/integration/recovery-liveness.test.ts"
+      "evidence": "tests/integration/worker-liveness.test.ts; PACT tests/integration/recovery-liveness.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L14",
@@ -113,7 +126,8 @@
       "finding": "Capacity check after earliest candidate starves other cohorts",
       "resolution": "Capacity and blockers checked before candidate LIMIT; original anchored cadence and no catch-up burst.",
       "status": "source_verified",
-      "evidence": "tests/integration/liveness.test.ts; tests/integration/scheduler.test.ts"
+      "evidence": "tests/integration/liveness.test.ts; tests/integration/scheduler.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L15",
@@ -121,7 +135,8 @@
       "finding": "Budget waits have no durable wake/exposure policy",
       "resolution": "Persisted budget/dependency waits; daily UTC boundary; finite Codex unknown-exposure gate; original allocations retained.",
       "status": "source_verified",
-      "evidence": "tests/integration/liveness.test.ts; tests/integration/scheduler.test.ts"
+      "evidence": "tests/integration/liveness.test.ts; tests/integration/scheduler.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L16",
@@ -129,7 +144,8 @@
       "finding": "Maintenance pause overwrites owner intent",
       "resolution": "Leased maintenance hold blocks new admissions, drains naturally, checks quiescence on release/expiry; never clears manual pause.",
       "status": "source_verified",
-      "evidence": "tests/integration/liveness.test.ts"
+      "evidence": "tests/integration/liveness.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L17",
@@ -137,7 +153,8 @@
       "finding": "Optional helper and irreducible input failures",
       "resolution": "Existing helper abstention/fallback retained; required memory never erased. Retry state/next action exposed; irreducible protected input or corrupt security/configuration needs repair.",
       "status": "source_verified",
-      "evidence": "tests/unit/populated-envelope.test.ts; tests/integration/cognition.test.ts"
+      "evidence": "tests/unit/populated-envelope.test.ts; tests/integration/cognition.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L18",
@@ -145,7 +162,8 @@
       "finding": "30-second job lease expires during valid provider call",
       "resolution": "Renewable unique per-acquisition ownership, single-flight polling, bounded provider signal and stale-operation checks before tools.",
       "status": "source_verified",
-      "evidence": "tests/integration/recovery-liveness.test.ts"
+      "evidence": "tests/integration/recovery-liveness.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L19",
@@ -153,7 +171,8 @@
       "finding": "Pre-dispatch failures terminate runs/enrollment",
       "resolution": "Known safe failures and no-game-effect orphan phases recover within original call/token/deadline limits; unknown inference/game effects remain scoped gates.",
       "status": "source_verified",
-      "evidence": "tests/integration/recovery-liveness.test.ts; tests/integration/run-process-death.test.ts"
+      "evidence": "tests/integration/recovery-liveness.test.ts; tests/integration/run-process-death.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L20",
@@ -161,7 +180,8 @@
       "finding": "World operational pause persists after health returns",
       "resolution": "Future operational-origin pauses require repeated database/tick-history checks then resume from committed time; manual/legacy pauses stay held.",
       "status": "source_verified",
-      "evidence": "tests/integration/world-clock.test.ts"
+      "evidence": "tests/integration/world-clock.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L21",
@@ -169,7 +189,8 @@
       "finding": "Late acknowledgments and final usage disappear",
       "resolution": "Original command receipt reconciliation; late final usage retained as additional evidence without deleting unknown markers or refunding allocation.",
       "status": "source_verified",
-      "evidence": "tests/integration/liveness.test.ts; PACT tests/integration/recovery-liveness.test.ts"
+      "evidence": "tests/integration/liveness.test.ts; PACT tests/integration/recovery-liveness.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L22",
@@ -177,7 +198,8 @@
       "finding": "Healthy process is mistaken for agent progress",
       "resolution": "Separate worker readiness/progress, durable recovery ages/reasons/next checks, authenticated plain-language console; no external notifications created.",
       "status": "source_verified",
-      "evidence": "src/worker.ts; src/server.ts; web/main.tsx"
+      "evidence": "src/worker.ts; src/server.ts; web/main.tsx",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     },
     {
       "id": "L23",
@@ -185,7 +207,8 @@
       "finding": "Explicit stop/revocation/deadline or terminal population restarted by recovery",
       "resolution": "All automatic work remains conditional on current owner intent and fences. Historical decisions are not backfilled/reviewed; terminal cohorts remain terminal.",
       "status": "source_verified",
-      "evidence": "tests/integration/liveness.test.ts; PACT tests/integration/recovery-liveness.test.ts"
+      "evidence": "tests/integration/liveness.test.ts; PACT tests/integration/recovery-liveness.test.ts",
+      "deployment": "installed_server_20261015; deterministic regression evidence above"
     }
   ],
   "remainingBoundaries": [
@@ -194,5 +217,6 @@
     "A missing submitted-command receipt is not nonexecution proof; reconcile the original ID without replay.",
     "Revoked/expired/legacy ambiguous credentials need same-account owner reauthorization; never reuse an old rotating token blindly.",
     "Unverifiable legacy process locks, wrong keys/configuration and irreducible protected input need repair; never erase history or override authority."
-  ]
+  ],
+  "deploymentReport": "docs/recovery-liveness-deployment-20261015.md"
 }

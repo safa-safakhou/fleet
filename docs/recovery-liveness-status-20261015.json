@@ -27,9 +27,9 @@
     {
       "id": "RL-F04",
       "title": "Verified server rollout and pushes",
-      "status": "in_progress",
+      "status": "verified",
       "dependsOn": ["RL-F03"],
-      "evidence": []
+      "evidence": ["docs/recovery-liveness-deployment-20261015.md"]
     }
   ],
   "findingsRegister": "docs/recovery-liveness-findings-20261015.json",
@@ -38,5 +38,14 @@
     "integration": 221,
     "checks": ["type/style", "game boundaries", "build", "production dependency audit"],
     "realModelQualification": false
+  },
+  "deployment": {
+    "serverVerifiedAt": "2026-10-15T13:24:52Z",
+    "runtimeSource": "243d9e469c9606987d1a0591d8bef21f69c46d6a",
+    "sourcePushVerified": true,
+    "report": "docs/recovery-liveness-deployment-20261015.md",
+    "server50": "paused generation 17; historical gates retained",
+    "local20": "existing runtime unchanged; 20 ready, no unknown usage",
+    "mac": "unavailable/excluded"
   }
 }
