@@ -104,6 +104,8 @@ export function closedDecisionSchema(input: {
   reads: Tool[];
   selectedReadNames: string[];
   memory: boolean;
+  continuationLookup?: boolean;
+  continuationSchema?: Data;
 }): Data {
   const base = object(inline(decisionSchema)),
     branches = (base.oneOf ?? base.anyOf) as Data[];
@@ -113,6 +115,14 @@ export function closedDecisionSchema(input: {
     action = branch("action");
   const readNames = [...new Set(input.reads.map((t) => t.name))];
   const local: Tool[] = [
+    ...(input.continuationLookup
+      ? [
+          {
+            name: "fleet_continuation_schema",
+            inputSchema: { type: "object", properties: {}, additionalProperties: false },
+          },
+        ]
+      : []),
     ...(input.actionKinds.length
       ? [
           {
@@ -166,12 +176,20 @@ export function closedDecisionSchema(input: {
     .filter((s) => input.actionKinds.includes(String(object(object(s.properties).kind).const)));
   if (actions.length)
     variants.push({ ...action, properties: { ...object(action.properties), action: { anyOf: actions } } });
-  return { $schema: "http://json-schema.org/draft-07/schema#", anyOf: variants };
+  if (input.continuationSchema)
+    for (const variant of variants)
+      object(variant.properties).continuation = { $ref: "#/definitions/fleetContinuation" };
+  return {
+    $schema: "http://json-schema.org/draft-07/schema#",
+    anyOf: variants,
+    ...(input.continuationSchema ? { definitions: { fleetContinuation: input.continuationSchema } } : {}),
+  };
 }
 export function bindGenerationSchema(schema: Data, closed: Data): Data {
   const result = structuredClone(schema);
   if (!object(result.properties).decision) throw new FleetError("SCHEMA_CHANGED");
-  const { $schema: _dialect, ...inner } = closed;
+  const { $schema: _dialect, definitions: closedDefinitions, ...inner } = closed;
+  if (closedDefinitions) result.definitions = { ...object(result.definitions), ...object(closedDefinitions) };
   object(result.properties).decision = inner;
   // Remove unreachable legacy decision definitions. Cognition source IDs remain
   // constrained by the delivered evidence, independently of operation targets.

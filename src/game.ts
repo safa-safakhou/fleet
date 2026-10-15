@@ -4,6 +4,7 @@ import type { Data, GamePort, Tool } from "./domain.js";
 // One deployment selects one reviewed game integration. Core turns own scheduling,
 // accounting, identity checks, command recovery and fencing, never game rules.
 export interface GameAdapter {
+  continuationSignals?(facts: Data): import("./continuation.js").Signal[];
   decisionObservation?(facts: Data): import("./decision.js").DecisionObservation;
   cognitiveObservation?(facts: Data): { detail: Data; peers: string[] };
   readonly id: string;

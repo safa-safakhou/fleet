@@ -1,6 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { Cognition } from "./cognition.js";
+import { Continuation } from "./continuation.js";
 import { transaction } from "./db.js";
 import { type Data, FleetError, object } from "./domain.js";
 import { recoveryPlan } from "./recovery.js";
@@ -185,6 +186,7 @@ export class Observability {
       usage: usage[0],
       notes: cohort.observation_consent ? a.notes : null,
       cognition: await new Cognition(this.store).inspect(agentId),
+      decisionState: await new Continuation(this.store).inspect(agentId),
       memory: {
         reads,
         updatedAt: cohort.observation_consent ? a.read_memory_updated_at : null,

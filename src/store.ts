@@ -588,6 +588,12 @@ export class Store {
           ),
         ),
       );
+      const unresolvedFeedback = (
+        await c.query(
+          "SELECT decision_feedback_cipher IS NOT NULL AND decision_feedback_at > $2 AS present FROM agents WHERE id=$1",
+          [claim.agentId, new Date(now.getTime() - 24 * 3600000)],
+        )
+      ).rows[0]?.present;
       await c.query(
         "UPDATE agents SET next_due_at=$2,last_turn_at=$3,reason=$4,state=CASE WHEN $5 THEN 'needs_owner' ELSE state END,notes=coalesce($6,notes),failure_count=CASE WHEN $7 THEN 0 ELSE failure_count+1 END WHERE id=$1",
         [
@@ -597,7 +603,7 @@ export class Store {
           code,
           pending || bad || Boolean(codexFailure) || Boolean(unresolvedUsage),
           notes?.slice(0, 4000) ?? null,
-          ["WAIT", "COMMITTED", "ALREADY_COMMITTED"].includes(code),
+          ["COMMITTED", "ALREADY_COMMITTED"].includes(code) || (code === "WAIT" && !unresolvedFeedback),
         ],
       );
     });

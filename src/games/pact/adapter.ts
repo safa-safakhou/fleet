@@ -108,6 +108,39 @@ export function compactFacts(input: Data) {
 }
 
 export const pactAdapter: GameAdapter = {
+  continuationSignals(facts) {
+    const world = object(facts.world),
+      signals: import("../../continuation.js").Signal[] = [];
+    if (Array.isArray(world.buildings))
+      for (const b of world.buildings.map(object))
+        if (typeof b.kind === "string" && typeof b.level === "number")
+          signals.push({
+            kind: "building_level",
+            referenceId: b.kind,
+            value: b.level,
+            asOfGameTimeMs: Number(world.asOfGameTimeMs),
+          });
+    if (Array.isArray(world.builders))
+      for (const b of world.builders.map(object))
+        if (typeof b.instructionId === "string" && typeof b.state === "string")
+          signals.push({
+            kind: "construction",
+            referenceId: b.instructionId,
+            value: b.state,
+            asOfGameTimeMs: Number(world.asOfGameTimeMs),
+          });
+    const completed = object(world.consequences).builds;
+    if (Array.isArray(completed))
+      for (const b of completed.map(object))
+        if (typeof b.id === "string" && b.state === "completed")
+          signals.push({
+            kind: "construction",
+            referenceId: b.id,
+            value: "completed",
+            asOfGameTimeMs: Number(world.asOfGameTimeMs),
+          });
+    return signals;
+  },
   cognitiveObservation,
   decisionObservation,
   id: "pact",

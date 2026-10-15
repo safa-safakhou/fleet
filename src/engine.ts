@@ -10,6 +10,7 @@ import {
 } from "./cognitive-analysis.js";
 import { Communications } from "./communications.js";
 import { fitMessages } from "./context.js";
+import { Continuation, intentFingerprint } from "./continuation.js";
 import type { DecisionSupport } from "./decision.js";
 import { type Data, Decision, FleetError, type GamePort, type ModelPort, object, safeCode } from "./domain.js";
 import { promptFeedback } from "./feedback.js";
@@ -59,6 +60,10 @@ export class Engine {
       notes: string | undefined;
     const communications = new Communications(this.store, this.adapter.normalizeCommunications);
     const observation = new Observability(this.store);
+    const continuation = new Continuation(this.store);
+    let currentDecision = -1;
+    const outcome = async (category: string, detail: Data = {}) =>
+      continuation.outcome(claim, currentDecision, { category, ...detail });
     const cognition = m.cognition ? (this.cognitionSupport ?? new Cognition(this.store)) : undefined;
     const { actionKinds, actionSchema, boundedReads, mergeReads } = this.adapter;
     const isRead = (tool: import("./domain.js").Tool) =>
@@ -191,7 +196,14 @@ export class Engine {
         strategicFocus = await this.decisionSupport.begin(claim, this.adapter.decisionObservation(facts));
       }
       for (let n = 0; n < b.maxCallsPerTurn; n++) {
+        currentDecision = n;
         await this.store.active(claim);
+        const signals = this.adapter.continuationSignals?.(facts) ?? [];
+        const ownerFingerprint = intentFingerprint({
+          guidance: claim.cohort.owner_guidance,
+          objective: this.adapter.accountObjective?.(facts) ?? null,
+        });
+        const decisionState = await continuation.reconcile(claim, signals, ownerFingerprint);
         const capability = this.adapter.availableActions?.(facts, claim.cohort.synthetic_owner_policy);
         const context = {
           ownerValues: ownerValues(
@@ -215,6 +227,9 @@ export class Engine {
               }
             : {}),
           ...(strategicFocus ? { strategicFocus } : {}),
+          continuation: continuation.context(decisionState),
+          continuationGuide:
+            "Optional structured goal/steps/wait: use fleet_continuation_schema for the exact current contract and plan. It is your authored bookkeeping, never authority. Fresh facts, recorded outcomes and current owner intent prevail over old waits or prose.",
           privateNotes: claim.agent.notes,
           lastOutcome: claim.agent.reason,
           lastIntent,
@@ -285,7 +300,9 @@ export class Engine {
             : {}),
         };
         const lookups = [...previousReads, ...reads]
-          .filter((r) => ["fleet_read_schema", "fleet_action_schema"].includes(String(r.tool)))
+          .filter((r) =>
+            ["fleet_read_schema", "fleet_action_schema", "fleet_continuation_schema"].includes(String(r.tool)),
+          )
           .slice(-4);
         const selectedReads = new Set(
           (this.adapter.suppliedReadSchemas?.(tools.filter(isRead)) ?? []).map((r) => String(r.name)),
@@ -315,6 +332,10 @@ export class Engine {
           reads: tools.filter(isRead),
           selectedReadNames: [...selectedReads],
           memory: !!cognition,
+          continuationLookup: true,
+          ...(decisionState.goal || lookups.some((r) => r.tool === "fleet_continuation_schema")
+            ? { continuationSchema: await continuation.schema(claim.agentId) }
+            : {}),
         });
         let outputSchema = cognition
           ? bindGenerationSchema(
@@ -450,7 +471,10 @@ export class Engine {
             : Object.keys(flatDecision).length
               ? { invalidEnvelope: true }
               : wrappedDecision;
-        const parsed = Decision.safeParse(cognition ? baseDecision : response.decision);
+        const { continuation: proposedContinuation, ...decisionFields } = object(
+          cognition ? baseDecision : response.decision,
+        );
+        const parsed = Decision.safeParse(decisionFields);
         if (response.decisionError || !parsed.success) {
           lastCode = response.decisionError ?? "INVALID_MODEL_OUTPUT";
           const feedback = {
@@ -469,6 +493,22 @@ export class Engine {
           await this.store.rememberReads(claim, boundedReads(mergeReads([...previousReads, ...reads]), 23800));
         }
         const decision = parsed.data;
+        if (proposedContinuation !== undefined) {
+          try {
+            await continuation.apply(claim, n, proposedContinuation, signals, ownerFingerprint);
+          } catch (error) {
+            if (!(error instanceof FleetError) || !error.code.startsWith("CONTINUATION_")) throw error;
+            await rememberFeedback({
+              code: error.code,
+              submitted: false,
+              guidance:
+                "Structured continuation was not saved. Use its current version and valid dependencies; the game decision retains all normal checks.",
+            });
+            await observation.record(claim, "result", "Structured continuation rejected without authority change", {
+              code: error.code,
+            });
+          }
+        }
         if (cognition && cognitiveUpdate !== undefined) {
           try {
             await cognition.apply(
@@ -502,7 +542,7 @@ export class Engine {
         });
         summary = decision.summary;
         if (decision.kind === "wait") {
-          await this.store.rememberDecisionFeedback(claim, null);
+          await outcome("wait", { code: "WAIT", summary: decision.summary });
           notes = decision.notes ?? notes;
           lastCode = "WAIT";
           break;
@@ -520,6 +560,12 @@ export class Engine {
               throw new FleetError("INVALID_TOOL_ARGUMENTS");
             cognitiveQuery = decision.args.query;
             result = await cognition.context(claim, cognitivePeers, currentEvidence, cognitiveQuery);
+          } else if (decision.tool === "fleet_continuation_schema") {
+            if (Object.keys(decision.args).length) throw new FleetError("INVALID_TOOL_ARGUMENTS");
+            result = {
+              schema: await continuation.schema(claim.agentId),
+              state: await continuation.load(claim.agentId),
+            };
           } else if (decision.tool === "fleet_action_schema") {
             if (typeof decision.args.kind !== "string" || Object.keys(decision.args).length !== 1)
               throw new FleetError("INVALID_TOOL_ARGUMENTS");
@@ -546,7 +592,8 @@ export class Engine {
                 guidance:
                   "This read name is not admitted. No read or command was submitted. Choose an exact availableReads name and inspect its input with fleet_read_schema; do not guess tool versions. Correction uses only remaining decisions in this turn.",
               };
-              decisionFeedback.push(feedback);
+              await rememberFeedback(feedback);
+              await outcome("ordinary_read_failure", promptFeedback(feedback));
               await observation.record(claim, "result", "Read tool rejected before submission", feedback);
               lastCode = feedback.code;
               continue;
@@ -566,7 +613,8 @@ export class Engine {
                 guidance:
                   "Correct these fields using the exact input schema. No read or command was submitted. Remaining decision budget is unchanged.",
               };
-              decisionFeedback.push(feedback);
+              await rememberFeedback(feedback);
+              await outcome("ordinary_read_failure", promptFeedback(feedback));
               await observation.record(claim, "result", "Read arguments rejected before submission", feedback);
               lastCode = error.code;
               continue;
@@ -578,7 +626,8 @@ export class Engine {
             const preflightRead = this.adapter.preflightRead?.(t.name, decision.args, facts);
             if (preflightRead) {
               const feedback: Data = { tool: t.name, args: decision.args, ...preflightRead };
-              decisionFeedback.push(feedback);
+              await rememberFeedback(feedback);
+              await outcome("ordinary_read_failure", promptFeedback(feedback));
               await observation.record(claim, "result", "Read reference rejected before submission", feedback);
               lastCode = String(feedback.code);
               continue;
@@ -588,7 +637,8 @@ export class Engine {
             } catch (error) {
               const feedback = this.adapter.readRejection?.(error, t.name, decision.args);
               if (!feedback) throw error;
-              decisionFeedback.push(feedback);
+              await rememberFeedback(feedback);
+              await outcome("ordinary_read_failure", promptFeedback(feedback));
               await observation.record(claim, "result", "Ordinary scoped read failed", feedback);
               lastCode = String(feedback.code);
               continue;
@@ -608,6 +658,19 @@ export class Engine {
                   });
             await observeCognitiveState(`snapshot:${claim.id}:read:${n}`);
           }
+          if (decisionFeedback.some((f) => f.tool === decision.tool)) {
+            decisionFeedback.splice(
+              0,
+              decisionFeedback.length,
+              ...decisionFeedback.filter((f) => f.tool !== decision.tool),
+            );
+            await this.store.rememberDecisionFeedback(claim, decisionFeedback.at(-1) ?? null);
+          }
+          await outcome("read", {
+            code: "READ",
+            tool: decision.tool,
+            parameters: promptFeedback({ attemptedArgs: decision.args }).attemptedReferences ?? {},
+          });
           requestedRead = {
             tool: decision.tool,
             args: decision.args,
@@ -650,6 +713,12 @@ export class Engine {
               }
             : this.adapter.preflight?.(decision.action, facts);
         const recordNotSubmitted = async (code: string) => {
+          await outcome("not_submitted", {
+            code,
+            actionKind: decision.action.kind,
+            submitted: false,
+            reference: promptFeedback({ attemptedArgs: decision.action }).attemptedReferences ?? {},
+          });
           if (cognition)
             await cognition.capture(claim, "receipt", `not-submitted:${claim.id}:${n}`, {
               intent: decision.summary,
@@ -698,7 +767,6 @@ export class Engine {
         const freshCatalog = await game.tools();
         this.adapter.validateCatalog?.(freshCatalog);
         if (schemaChanged(tools, freshCatalog)) throw new FleetError("SCHEMA_CHANGED");
-        await this.store.rememberDecisionFeedback(claim, null);
         await game.open();
         await this.store.active(claim);
         const action = this.owner ? await this.owner.prepare(claim, decision.action) : decision.action;
@@ -761,7 +829,27 @@ export class Engine {
         notes = decision.notes ?? notes;
         actions++;
         reads.push({ commandId: id, action: decision.action, receipt, source });
-        if (!["COMMITTED", "ALREADY_COMMITTED"].includes(lastCode)) break;
+        await outcome(["COMMITTED", "ALREADY_COMMITTED"].includes(String(receipt.code)) ? "committed" : "rejected", {
+          code: receipt.code,
+          commandId: id,
+          actionKind: action.kind,
+          source,
+          recordVersions: receipt.recordVersions ?? {},
+        });
+        if (!["COMMITTED", "ALREADY_COMMITTED"].includes(lastCode)) {
+          await rememberFeedback({
+            code: lastCode,
+            actionKind: action.kind,
+            commandId: id,
+            submitted: true,
+            committed: false,
+            source,
+            detail: rejectionEvidence,
+            guidance:
+              "This known rejection did not commit. Original receipt/reference and failure remain recorded; replan from fresh facts without treating WAIT as resolution.",
+          });
+          break;
+        }
         const resolved = decisionFeedback.filter(
           (feedback) =>
             feedback.actionKind === decision.action.kind &&
@@ -789,6 +877,16 @@ export class Engine {
     } catch (error) {
       lastCode = safeCode(error);
       summary = "Turn interrupted; inspect the recorded status before resuming.";
+      try {
+        const pending = (await this.store.pool.query("SELECT pending_command FROM turns WHERE id=$1", [claim.id]))
+          .rows[0]?.pending_command;
+        await outcome(pending ? "uncertain" : "interrupted", {
+          code: lastCode,
+          ...(pending ? { commandId: pending, source: "actual_original_pending_command" } : { submitted: false }),
+        });
+      } catch {
+        /* Fencing must not allow a late continuation write or erase the original turn outcome. */
+      }
     } finally {
       if (game)
         try {

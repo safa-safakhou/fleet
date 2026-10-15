@@ -67,7 +67,7 @@ describe("bounded local replan and accounting", () => {
     await new Engine(f.store, corrected, async () => new FakeGame(next), true).run(next);
     expect(corrected.inputs[0].messages[1].content).toContain("INVALID_GAME_ACTION");
     expect((await f.store.agent(next.agentId)).account_id).toBe(f.claim.agent.account_id);
-    expect((await f.store.agent(next.agentId)).decision_feedback_cipher).toBeNull();
+    expect(Boolean((await f.store.agent(next.agentId)).decision_feedback_cipher)).toBe(true);
   });
   it("never treats malformed output with missing usage as harmless or automatically reviews it", async () => {
     const f = await setup();

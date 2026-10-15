@@ -4,6 +4,7 @@ const core = [
   "engine",
   "generation",
   "feedback",
+  "continuation",
   "owner-guidance",
   "context",
   "decision",

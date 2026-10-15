@@ -74,8 +74,8 @@
       "id": "AR-F05",
       "title": "Durable decision state and outcomes",
       "depends_on": ["AR-F04", "AR-P05"],
-      "status": "todo",
-      "assignee": null,
+      "status": "done",
+      "assignee": "codex-agent-reliability-20261015",
       "plan": "docs/agent-reliability-plan-20261015.md",
       "acceptance": [
         "Agent 50's completed Farm invalidates its stale build wait; legitimate resource, prerequisite or active-job waits remain valid.",
@@ -83,8 +83,9 @@
         "Agent 42's discretionary nil-receipt not-found cannot become a generic interrupted-commit reconciliation loop. Only an actual original pending command uses that recovery path.",
         "WAIT does not erase failure evidence or falsely count as progress. Restart/expiry/history migration preserves prior notes/plans as history and does not queue commands or invent model reasoning."
       ],
-      "evidence": [],
-      "gated_acceptance": []
+      "evidence": ["docs/agent-reliability-continuation-20261015.md"],
+      "gated_acceptance": [],
+      "dependency_gate": "Joint canonical outcomes and fake-engine restart/source acceptance verified"
     },
     {
       "id": "AR-F06",
