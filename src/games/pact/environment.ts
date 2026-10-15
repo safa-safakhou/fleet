@@ -42,6 +42,35 @@ export function compactEnvironment(environment: Data, limit: number): Data {
     } else if (values !== undefined) output[key] = values;
   }
   for (const key of Object.keys(environment)) if (!core.includes(key) && !pages.includes(key)) omitted.push(key);
+  const social = object(environment.socialAttention),
+    socialRecords = Array.isArray(social.records) ? social.records : [];
+  if (environment.socialAttention !== undefined) {
+    output.socialAttention = {
+      ...social,
+      records: [],
+      coverage: {
+        ...object(social.coverage),
+        sourceComplete: object(social.coverage).complete,
+        complete: socialRecords.length === 0 && object(social.coverage).complete === true,
+        delivered: 0,
+        omittedFromThisInput: socialRecords.length,
+      },
+    };
+    const index = omitted.indexOf("socialAttention");
+    if (index >= 0) omitted.splice(index, 1);
+    // Reserve a whole urgent record before optional history/contact pages. No action is prescribed.
+    if (socialRecords.length) {
+      object(output.socialAttention).records = [socialRecords[0]];
+      object(output.socialAttention).coverage = {
+        ...object(social.coverage),
+        sourceComplete: object(social.coverage).complete,
+        complete: socialRecords.length === 1 && object(social.coverage).complete === true,
+        delivered: 1,
+        omittedFromThisInput: socialRecords.length - 1,
+      };
+    }
+    if (bytes(output) > limit) throw new FleetError("CONTEXT_LIMIT");
+  }
   const discovery = object(environment.publicDiscovery);
   const discovered = Array.isArray(discovery.players)
     ? discovery.players.map((raw) => {
@@ -105,6 +134,30 @@ export function compactEnvironment(environment: Data, limit: number): Data {
       }
     }
   }
+  if (socialRecords.length > 1)
+    for (const record of socialRecords.slice(1)) {
+      const socialOut = object(output.socialAttention),
+        kept = socialOut.records as unknown[];
+      kept.push(record);
+      socialOut.coverage = {
+        ...object(social.coverage),
+        sourceComplete: object(social.coverage).complete,
+        complete: kept.length === socialRecords.length && object(social.coverage).complete === true,
+        delivered: kept.length,
+        omittedFromThisInput: socialRecords.length - kept.length,
+      };
+      if (bytes(output) > limit) {
+        kept.pop();
+        socialOut.coverage = {
+          ...object(social.coverage),
+          sourceComplete: object(social.coverage).complete,
+          complete: false,
+          delivered: kept.length,
+          omittedFromThisInput: socialRecords.length - kept.length,
+        };
+        break;
+      }
+    }
   // An observed public identity is part of the account's current surroundings,
   // not a prescribed social action. Do not let optional memory make a populated
   // world look empty; let the shared fitter reduce continuation context instead.

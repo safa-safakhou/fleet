@@ -6,8 +6,13 @@ export function cognitiveObservation(facts: Data) {
   const list = (value: unknown) => (Array.isArray(value) ? value.map(object) : []);
   const observedList = (value: unknown, format: (entry: Data) => string) =>
     Array.isArray(value) ? list(value).map(format).join(", ") || "none" : "unknown";
-  const peers = [...list(guide.contacts), ...list(guide.contactRequests), ...list(object(facts.discovery).players)]
-    .flatMap((p) => [p.kingdomId, p.senderKingdomId, p.recipientKingdomId])
+  const peers = [
+    ...list(guide.contacts),
+    ...list(guide.contactRequests),
+    ...list(object(facts.discovery).players),
+    ...list(object(facts.socialAttention).records),
+  ]
+    .flatMap((p) => [p.kingdomId, p.senderKingdomId, p.recipientKingdomId, p.counterpartyKingdomId])
     .filter((id): id is string => typeof id === "string" && id !== object(world.profile).kingdomId);
   return {
     peers: [...new Set(peers)],
@@ -26,6 +31,7 @@ export function cognitiveObservation(facts: Data) {
         900,
       ),
       asOfGameTimeMs: world.asOfGameTimeMs,
+      socialAttention: facts.socialAttention,
       peerFacts: [
         ...list(guide.contacts).map((c) => ({ peerId: c.kingdomId, kind: "contact" })),
         ...list(world.contracts).map((c) => ({

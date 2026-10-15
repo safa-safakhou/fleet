@@ -1,17 +1,17 @@
 {
   "source": "PACT reviewed scoped observation contract, 15 October 2026",
-  "sha256": "d27affbac12a17d4235868109ecf0691d6f603aaea75db838b27b9b997fe8d90",
+  "sha256": "96d2bad120a2e9b2b7cb672288174b8c21dba0e8b9af6c9ff0bdb32914a8dc9a",
   "reads": [
     {
       "name": "pact_observation_read_v2",
-      "description": "Read one owner-scoped current section: forecast, construction, requests, agreements or units. Retains complete records/terms and explicit coverage. Use returned cursor unchanged for another page; a changed snapshot requires a fresh first page. recordId selects an observed record within this account only. No target account/kingdom selector, message acknowledgement, inference, signature or authority change.",
+      "description": "Read one owner-scoped current section: forecast, construction, requests, agreements, units or social_attention. Retains complete records/terms and explicit coverage. Use returned cursor unchanged for another page; a changed snapshot requires a fresh first page. recordId selects an observed record within this account only. No target account/kingdom selector, message acknowledgement, inference, signature or authority change.",
       "inputSchema": {
         "$schema": "http://json-schema.org/draft-07/schema#",
         "type": "object",
         "properties": {
           "section": {
             "type": "string",
-            "enum": ["forecast", "construction", "requests", "agreements", "units"]
+            "enum": ["forecast", "construction", "requests", "agreements", "units", "social_attention"]
           },
           "forecastMinutes": {
             "type": "integer",
@@ -38,7 +38,7 @@
               },
               "section": {
                 "type": "string",
-                "enum": ["requests", "agreements", "units"]
+                "enum": ["requests", "agreements", "units", "social_attention"]
               },
               "committedTickSequence": {
                 "type": "string",

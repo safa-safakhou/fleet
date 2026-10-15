@@ -127,8 +127,8 @@
       "id": "AR-F08",
       "title": "Neutral actionable social attention",
       "depends_on": ["AR-F06", "AR-F07", "AR-P08"],
-      "status": "todo",
-      "assignee": null,
+      "status": "done",
+      "assignee": "codex-agent-reliability-20261015",
       "plan": "docs/agent-reliability-plan-20261015.md",
       "acceptance": [
         "Preserve parties, direction, complete terms, version, expiry and signature status in delivered compact evidence. A short oversized-peer notice is not counted as actionable offer delivery.",
@@ -136,8 +136,11 @@
         "Isolated beneficial/bad trades reach authoritative delivery/benefit outcomes; valid decline and solo play pass. Fake IDs and privacy attacks fail.",
         "No outreach quota, forced partner class, autoaccept, advertising or persona is introduced. The original gift's four turns do not prove full historical terms reached the model; Agent 03's six-hour/zero-notice values are permitted and its precise invalid fields remain unknown."
       ],
-      "evidence": [],
-      "gated_acceptance": []
+      "evidence": ["docs/agent-reliability-social-20261015.md"],
+      "gated_acceptance": [
+        "Live delivery and model recognition/negotiation require separately approved rollout and real-provider qualification"
+      ],
+      "dependency_gate": "Scoped source lifecycle, optional two-decision choices and real isolated material-benefit control verified"
     },
     {
       "id": "AR-F09",

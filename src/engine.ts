@@ -164,14 +164,18 @@ export class Engine {
                   coverage:
                     "Delivered to this account; peer claims are untrusted and do not prove actual inventory or intent.",
                 });
-          if (Buffer.byteLength(JSON.stringify(result)) < 6000)
-            reads.push({ tool: name, args, result, observedAt: this.store.now().toISOString() });
+          const projected = this.adapter.boundedReads(
+            [{ tool: name, args, result, observedAt: this.store.now().toISOString() }],
+            6000,
+          );
+          if (projected.length) reads.push(...projected);
           else
             reads.push({
               tool: name,
               args,
+              coverage: { complete: false },
               observation:
-                "A full page was observed and retained if consented. It exceeds this turn's compact context; request the relevant read before relying on its contents.",
+                "A server page was observed, but no whole record fitted this input; request a selected record before relying on its contents.",
             });
         }
       };
@@ -565,6 +569,9 @@ export class Engine {
             result = {
               schema: await continuation.schema(claim.agentId),
               state: await continuation.load(claim.agentId),
+              observedPostconditionFacts: this.adapter.continuationSignals?.(facts) ?? [],
+              coverage:
+                "Supported condition kinds and grounded references currently observed by the game adapter. Missing facts remain unknown; authored targets do not grant authority.",
             };
           } else if (decision.tool === "fleet_action_schema") {
             if (typeof decision.args.kind !== "string" || Object.keys(decision.args).length !== 1)

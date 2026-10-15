@@ -73,6 +73,13 @@ export function referencePreflight(action: Data, facts: Data): Data | undefined 
       );
     if (ref.type !== undefined && ref.type !== "SupplyOffer")
       return refused("OBSERVED_REFERENCE_TYPE_MISMATCH", "offerId", action.offerId, "This reference has another role.");
+    if (ref.ownerKingdomId !== undefined && ref.ownerKingdomId !== object(world.profile).kingdomId)
+      return refused(
+        "OBSERVED_REFERENCE_OWNER_MISMATCH",
+        "offerId",
+        action.offerId,
+        "This offer reference belongs to another kingdom.",
+      );
     const version = action.version ?? action.expectedVersion;
     if (version !== undefined && version !== offer.version)
       return refused(

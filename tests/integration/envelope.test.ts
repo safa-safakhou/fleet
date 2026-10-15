@@ -56,45 +56,55 @@ it("delivers requested forecasts over six growing-memory scheduled rounds and a 
     };
     game.tools = async () => [...(await originalTools()), read];
     game.read = async (tool, args) =>
-      tool === read.name
+      tool === read.name && args.section === "social_attention"
         ? {
             schemaVersion: "pact.observation-section.v1",
-            section: "forecast",
+            section: "social_attention",
             ownerKingdomId: claim.agent.kingdom_id,
-            forecast,
-            coverage: { complete: true },
+            asOfGameTimeMs: 60000,
+            records: [],
+            coverage: { complete: true, delivered: 0 },
             next: null,
           }
-        : tool === "pact_world_read_v1"
+        : tool === read.name
           ? {
-              ...(await originalRead(tool, args)),
-              authority: {
-                schemaVersion: "pact.authority-observation.v1",
-                asOfGameTimeMs: 60000,
-                mandateVersion: 1,
-                allowedActions: ["building.queue"],
-                troopLimit: 10,
-                troopReserved: 0,
-                resources: Object.fromEntries(
-                  ["iron", "silver", "grain"].map((asset) => [
-                    asset,
-                    {
-                      ceilingUnits: "600000",
-                      legacySpentUnits: "0",
-                      rollingSpentUnits: "90000",
-                      reservedUnits: "30000",
-                      headroomUnits: "480000",
-                      reserveFloorUnits: "0",
-                      releaseSchedule: [{ gameTimeMs: 86460000, units: "90000" }],
-                      reservations: [
-                        { commitmentId: "00000000-0000-4000-8000-000000000003", units: "30000", status: "reserved" },
-                      ],
-                    },
-                  ]),
-                ),
-              },
+              schemaVersion: "pact.observation-section.v1",
+              section: "forecast",
+              ownerKingdomId: claim.agent.kingdom_id,
+              forecast,
+              coverage: { complete: true },
+              next: null,
             }
-          : originalRead(tool, args);
+          : tool === "pact_world_read_v1"
+            ? {
+                ...(await originalRead(tool, args)),
+                authority: {
+                  schemaVersion: "pact.authority-observation.v1",
+                  asOfGameTimeMs: 60000,
+                  mandateVersion: 1,
+                  allowedActions: ["building.queue"],
+                  troopLimit: 10,
+                  troopReserved: 0,
+                  resources: Object.fromEntries(
+                    ["iron", "silver", "grain"].map((asset) => [
+                      asset,
+                      {
+                        ceilingUnits: "600000",
+                        legacySpentUnits: "0",
+                        rollingSpentUnits: "90000",
+                        reservedUnits: "30000",
+                        headroomUnits: "480000",
+                        reserveFloorUnits: "0",
+                        releaseSchedule: [{ gameTimeMs: 86460000, units: "90000" }],
+                        reservations: [
+                          { commitmentId: "00000000-0000-4000-8000-000000000003", units: "30000", status: "reserved" },
+                        ],
+                      },
+                    ]),
+                  ),
+                },
+              }
+            : originalRead(tool, args);
     let step = 0;
     const model: ModelPort = {
       decide: async (input) => {
