@@ -1,5 +1,7 @@
 import { readFileSync } from "node:fs";
 import { expect, it } from "vitest";
+import { object } from "../../src/domain.js";
+import { expandFactTables } from "../../src/fact-table.js";
 import { compactFacts } from "../../src/games/pact/adapter.js";
 import { projectRead } from "../../src/games/pact/context.js";
 import { compactEnvironment } from "../../src/games/pact/environment.js";
@@ -29,7 +31,7 @@ it("delivers each of 106 source quota observations without recomputing server pe
       world: { authority: { schemaVersion: "pact.authority-observation.v1", resources } },
       guide: {},
     });
-    const delivered = compactEnvironment({ ...facts, optional: "x".repeat(12000) }, 6000);
+    const delivered = object(expandFactTables(compactEnvironment({ ...facts, optional: "x".repeat(12000) }, 6000)));
     for (const asset of Object.keys(resources)) {
       const { releaseSchedule: _s, reservations: _r, ...totals } = resources[asset] as Record<string, unknown>;
       expect((delivered.authority as { resources: Record<string, unknown> }).resources[asset]).toMatchObject(totals);

@@ -1,6 +1,8 @@
 import { beliefCue, deliveredCognition, type Episode, utf8Prefix } from "./cognition.js";
 import { analysisOpportunities } from "./cognitive-analysis.js";
 import { type Data, FleetError, object } from "./domain.js";
+import { factTable } from "./fact-table.js";
+import { referenceOpportunityText, referenceSchemaFeedback } from "./schema-feedback.js";
 
 // Count the serialized transport envelope plus the separately supplied output schema.
 // Keep executable shapes, command outcomes and authoritative core facts whole.
@@ -74,26 +76,65 @@ function fitAcceptedMessages(
   compactEnvironment?: (environment: Data, limit: number) => Data,
   schemaForContext?: (context: Data) => Data,
 ) {
-  const messages = (c: Data) => [
-    { role: "system", content: instructions },
-    {
-      role: "user",
-      content: JSON.stringify(
-        object(c.cognition).nativeAnalysis === true
-          ? {
-              ...Object.fromEntries(Object.entries(c).filter(([key]) => key !== "cognition")),
-              cognition: {
-                ...object(c.cognition),
-                ...(object(object(c.cognition).recall).admission === "provisional"
-                  ? { recall: { ...object(object(c.cognition).recall), admission: "accepted" } }
-                  : {}),
-                analysisOpportunities: analysisOpportunities(deliveredCognition(c)),
-              },
-            }
-          : c,
-      ),
-    },
-  ];
+  let compactTransport = false;
+  const messages = (c: Data) => {
+    const encode = (value: Data) => {
+      if (!compactTransport) return value;
+      const actualSchema = schemaForContext ? schemaForContext(value) : schema;
+      let encoded = referenceSchemaFeedback(value, actualSchema);
+      if (String(value.schemaCoverage).includes("sameTextAs"))
+        encoded = referenceOpportunityText(encoded, actualSchema);
+      const environment = object(encoded.environment),
+        continuation = object(encoded.continuation);
+      const permissions = object(encoded.actionPermissions);
+      if (Array.isArray(permissions.blocked)) {
+        const blocked = factTable(permissions.blocked);
+        encoded = { ...encoded, actionPermissions: { ...permissions, blocked } };
+        if (blocked !== permissions.blocked && typeof environment.factEncoding !== "string")
+          encoded.factEncoding =
+            "Tables: dotted columns pair with row cells; common applies to every row. All facts retained.";
+      }
+      if (typeof environment.factEncoding === "string") {
+        const { factEncoding, ...facts } = environment;
+        const { outcomeEncoding: _duplicate, ...state } = continuation;
+        encoded = { ...encoded, factEncoding, environment: facts, continuation: state };
+      }
+      const read = object(encoded.requestedRead),
+        result = object(read.result),
+        state = object(result.state);
+      if (Array.isArray(state.outcomes)) {
+        const table = factTable(state.outcomes);
+        if (table !== state.outcomes)
+          encoded = {
+            ...encoded,
+            requestedRead: { ...read, result: { ...result, state: { ...state, outcomes: table } } },
+          };
+      }
+      return encoded;
+    };
+    return [
+      { role: "system", content: instructions },
+      {
+        role: "user",
+        content: JSON.stringify(
+          encode(
+            object(c.cognition).nativeAnalysis === true
+              ? {
+                  ...Object.fromEntries(Object.entries(c).filter(([key]) => key !== "cognition")),
+                  cognition: {
+                    ...object(c.cognition),
+                    ...(object(object(c.cognition).recall).admission === "provisional"
+                      ? { recall: { ...object(object(c.cognition).recall), admission: "accepted" } }
+                      : {}),
+                    analysisOpportunities: analysisOpportunities(deliveredCognition(c)),
+                  },
+                }
+              : c,
+          ),
+        ),
+      },
+    ];
+  };
   const fits = (m: ReturnType<typeof messages>) =>
     Buffer.byteLength(JSON.stringify(m)) +
       Buffer.byteLength(
@@ -111,6 +152,9 @@ function fitAcceptedMessages(
   const pack = (context: Data, allowNarrowRequested = false): ReturnType<typeof messages> | undefined => {
     const full = messages(context);
     if (fits(full)) return full;
+    compactTransport = true;
+    const shared = messages(context);
+    if (fits(shared)) return shared;
     const reads = Array.isArray(context.readResults) ? context.readResults.map(object) : [];
     const names = Array.isArray(context.availableReads)
       ? context.availableReads.map((r) => ({ name: object(r).name }))
@@ -142,13 +186,13 @@ function fitAcceptedMessages(
       ...(namedReads.length && same(namedReads, lookupValues("fleet_read_schema", "name"))
         ? {
             availableReads: undefined,
-            availableReadsAt: "fleet_read_schema.args.name enum in output schema (all names)",
+            availableReadsAt: "output fleet_read_schema.args.name enum",
           }
         : {}),
       ...(advertisedKinds.length && same(advertisedKinds, lookupValues("fleet_action_schema", "kind"))
         ? {
             gameActionKinds: undefined,
-            gameActionKindsAt: "fleet_action_schema.args.kind enum in output schema (all kinds; conditional)",
+            gameActionKindsAt: "output fleet_action_schema.args.kind enum; conditional",
           }
         : {}),
     };
@@ -212,9 +256,7 @@ function fitAcceptedMessages(
             ...pagedContinuation,
             readResults: [],
             requestedRead,
-            omissions: [
-              "Cache omitted; optional current records paged. Core facts, permissions, receipts and supplied schemas retained. Missing records are unknown.",
-            ],
+            omissions: ["Cache/optional pages omitted, unknown. Core/authority/receipts/supplied schemas whole."],
           };
           const wholeNotes = messages(reduced);
           if (fits(wholeNotes)) return wholeNotes;
@@ -518,6 +560,105 @@ function fitAcceptedMessages(
   if (fitted) return fitted;
 
   // Optional history has been exhausted before narrowing requested feedback.
+  fitted = pack(candidate, true);
+  if (fitted) return fitted;
+
+  // Last resort: normalize repeated bookkeeping, never source evidence.
+  // Whole outcome rows retain every original error, ID, time and meaning.
+  const state = object(candidate.continuation);
+  const priorOutcomes = Array.isArray(state.outcomes) ? state.outcomes.map(object) : [];
+  const packedCognition = object(candidate.cognition);
+  const {
+    packingCoverage,
+    stateCoverage,
+    subjectiveStateCoverage,
+    availabilityCoverage: _availabilityNotice,
+    ...cognitiveFacts
+  } = packedCognition;
+  const coverage: Data = {
+    ...object(packedCognition.coverage),
+    ...Object.fromEntries(
+      [packingCoverage, stateCoverage, subjectiveStateCoverage].flatMap((v) =>
+        Object.entries(object(v)).filter(([key]) => key !== "notice"),
+      ),
+    ),
+    interpretation:
+      "Subjective; omissions unknown, not cleared. Cite delivered IDs. Recall advisory; current authority prevails.",
+  };
+  const zeroCounts = Object.entries(coverage)
+    .filter(([, value]) => value === 0)
+    .map(([key]) => key);
+  for (const key of zeroCounts) delete (coverage as Data)[key];
+  if (zeroCounts.length) (coverage as Data).zeroCounts = zeroCounts; // Exact negatives, once, rather than repeated key/value scaffolding.
+  const peerIds = Array.isArray(packedCognition.knownPeerIds) ? packedCognition.knownPeerIds : [];
+  const deliveredPeers = new Set(
+    (Array.isArray(packedCognition.evidence) ? packedCognition.evidence.map(object) : []).flatMap((e) => {
+      const detail = object(e.detail);
+      return [
+        detail.peerId,
+        ...(Array.isArray(detail.peerFacts) ? detail.peerFacts.map((fact) => object(fact).peerId) : []),
+      ];
+    }),
+  );
+  const neededPeers = peerIds.filter((id) => deliveredPeers.has(id));
+  const guidance = object(candidate.ownerValues);
+  const localTools = new Set<string>();
+  const findTools = (value: unknown) => {
+    if (Array.isArray(value)) {
+      for (const child of value) findTools(child);
+      return;
+    }
+    if (!value || typeof value !== "object") return;
+    const node = object(value),
+      tool = object(object(node.properties).tool).const;
+    if (typeof tool === "string") localTools.add(tool);
+    for (const child of Object.values(node)) findTools(child);
+  };
+  findTools(schemaForContext ? schemaForContext(candidate) : schema);
+  candidate = {
+    ...candidate,
+    schemaCoverage: "Shapes paged: lookup/section enums. Requested/correction kept. sameTextAs=delivered text.",
+    permissionCoverage: undefined, // The system instructions and whole authority already state the admission boundary.
+    ...(Array.isArray(candidate.humanOnlyActionKinds) && candidate.humanOnlyActionKinds.length === 0
+      ? { humanOnlyCoverage: undefined }
+      : {}),
+    ...(Array.isArray(candidate.readResults) && candidate.readResults.length === 0
+      ? { readHistoryCoverage: undefined }
+      : {}),
+    // These are optional repetitions of exact lookup shapes already supplied
+    // to the model; the actual operations, arguments and enums remain whole.
+    ...(localTools.has("fleet_action_schema") ? { convenienceRead: undefined } : {}),
+    ...(localTools.has("fleet_read_schema") ? { readSchemaLookup: undefined } : {}),
+    ...(localTools.has("fleet_memory_recall") ? { memoryRead: undefined } : {}),
+    ...(localTools.has("fleet_continuation_schema") ? { continuationGuide: undefined } : {}),
+    ...(instructions.includes("analysisOpportunities") ? { analysisGuide: undefined } : {}),
+    ...(guidance.mode === "account_autonomy"
+      ? {
+          ownerValues: {
+            ...guidance,
+            instruction: "No invented persona/goals; notes/plans are revisable history, not facts.",
+          },
+        }
+      : {}),
+    continuation: {
+      ...state,
+      coverage: "Bookkeeping, not authority. Missing history unknown; WAIT/queue!=completion. Lookup full plan.",
+      outcomes: factTable(priorOutcomes),
+      outcomeEncoding:
+        typeof object(candidate.environment).factEncoding === "string"
+          ? "See environment.factEncoding; all original outcomes retained."
+          : "Whole rows: columns are dotted paths; common applies to EVERY row. All original outcomes, IDs and meanings retained.",
+    },
+    cognition: {
+      ...cognitiveFacts,
+      coverage,
+      knownPeerIds: neededPeers,
+      peerCoverage: {
+        omittedHistoricalPeerIds: peerIds.length - neededPeers.length,
+        meaning: "Delivered evidence index; other history unknown.",
+      },
+    },
+  };
   fitted = pack(candidate, true);
   if (fitted) return fitted;
 

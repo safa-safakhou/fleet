@@ -2,8 +2,11 @@ import { readFile } from "node:fs/promises";
 import { afterEach, expect, it } from "vitest";
 import { Cognition } from "../../src/cognition.js";
 import type { Data, ModelPort } from "../../src/domain.js";
+import { object } from "../../src/domain.js";
 import { Engine } from "../../src/engine.js";
+import { expandFactTables } from "../../src/fact-table.js";
 import { pactAdapter } from "../../src/games/pact/adapter.js";
+import { expandSchemaFeedback } from "../../src/schema-feedback.js";
 import { validateTool } from "../../src/tools.js";
 import { FakeGame, fixture, ready } from "../helpers.js";
 
@@ -11,9 +14,15 @@ let close: (() => Promise<void>) | undefined;
 afterEach(async () => {
   await close?.();
 });
-it.each([false, true])(
-  "fits the sanitized deployed packet with cognition=%s and keeps requested executable shapes",
-  async (cognition) => {
+it.each([
+  [false, "action"],
+  [true, "action"],
+  [true, "cognitive_plan"],
+  [true, "cognitive_memories"],
+  [false, "continuation"],
+] as const)(
+  "fits the deployed packet cognition=%s lookup=%s with executable requested shapes",
+  async (cognition, lookup) => {
     const f = await fixture();
     close = () => f.pool.end();
     const id = await ready(f.store, 1);
@@ -32,8 +41,9 @@ it.each([false, true])(
     let calls = 0;
     const model: ModelPort = {
       decide: async (input) => {
-        const context = JSON.parse(input.messages[1].content);
+        const context = expandSchemaFeedback(JSON.parse(input.messages[1].content), input.schema);
         bodies.push(context);
+        const requestedResult = object(object(context.requestedRead).result);
         expect(
           Buffer.byteLength(JSON.stringify(input.messages)) + Buffer.byteLength(JSON.stringify(input.schema)),
         ).toBeLessThanOrEqual(24000);
@@ -49,31 +59,36 @@ it.each([false, true])(
           "goalFeasibility",
           "socialDelegation",
         ])
-          expect(context.environment[field]).toEqual(environment[field]);
-        expect(context.environment.publicDiscovery.players.length).toBeGreaterThan(0);
-        expect(context.environment.socialAttention.records[0]).toEqual(environment.socialAttention.records[0]);
+          expect(object(expandFactTables(context.environment))[field]).toEqual(environment[field]);
+        expect(object(object(context.environment).publicDiscovery).players).not.toHaveLength(0);
+        const socialRecords = object(object(context.environment).socialAttention).records;
+        expect(Array.isArray(socialRecords) ? socialRecords[0] : undefined).toEqual(
+          environment.socialAttention.records[0],
+        );
         const decision =
           calls++ % 2 === 0
             ? {
                 kind: "read",
-                tool: "fleet_action_schema",
-                args: { kind: "game.building.queue" },
+                tool: lookup === "action" ? "fleet_action_schema" : "fleet_continuation_schema",
+                args: lookup === "action" ? { kind: "game.building.queue" } : { section: lookup },
                 summary: "Inspect the exact shape",
               }
             : { kind: "wait", summary: "Wait on current verified facts" };
         const wrapped = cognition
           ? {
               cognition: {
-                expectedVersion: context.cognition.version,
+                expectedVersion: object(context.cognition).version,
                 analysis: { type: "none", reason: "No new verified change" },
+                ...(calls % 2 === 0 && lookup === "cognitive_plan" ? { plan: null } : {}),
+                ...(calls % 2 === 0 && lookup === "cognitive_memories" ? { memories: [] } : {}),
               },
               decision,
             }
           : decision;
         validateTool({ name: "generated", inputSchema: input.schema }, wrapped);
-        if (calls % 2 === 0) {
-          expect(context.requestedRead.tool).toBe("fleet_action_schema");
-          expect(context.requestedRead.result.schema).toEqual(pactAdapter.actionSchema("game.building.queue"));
+        if (calls % 2 === 0 && lookup === "action") {
+          expect(object(context.requestedRead).tool).toBe("fleet_action_schema");
+          expect(requestedResult.schema).toEqual(pactAdapter.actionSchema("game.building.queue"));
           const action = {
             kind: "action",
             action: { kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 1 },
@@ -83,6 +98,16 @@ it.each([false, true])(
             { name: "requested-shape", inputSchema: input.schema },
             cognition ? { ...wrapped, decision: action } : action,
           );
+        }
+        if (calls % 2 === 0 && lookup !== "action") {
+          expect(object(context.requestedRead).tool).toBe("fleet_continuation_schema");
+          if (lookup === "continuation")
+            expect(object(object(requestedResult.schema).properties).expectedVersion).toBeDefined();
+          else {
+            const field = lookup === "cognitive_plan" ? "plan" : "memories";
+            expect(object(object(object(input.schema.properties).cognition).properties)[field]).toBeDefined();
+            expect(requestedResult.schemaAtOutput).toBe(`/properties/cognition/properties/${field}`);
+          }
         }
         return { decision: wrapped, inputTokens: 500, outputTokens: 100 };
       },
@@ -129,5 +154,5 @@ it.each([false, true])(
     if (cognition) expect(bodies.some((body) => String(body.schemaCoverage).includes("paged"))).toBe(true);
     expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger WHERE status='unknown'")).rows[0].n).toBe(0);
   },
-  15000, // Three offline scheduled rounds include the bounded packing search.
+  30000, // Three offline scheduled rounds include the bounded packing search.
 );

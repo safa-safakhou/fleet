@@ -37,6 +37,10 @@ it("closes exact operations/args, rejects all four archived synthetic calls and 
   expect(check(valid)).toBe(true);
   for (const bad of invalid) expect(check(bad)).toBe(false);
   expect(check({ kind: "read", summary: "Read", tool: "pact_world_read_v1", args: { arbitrary: true } })).toBe(false);
+  for (const args of [null, false, 1, "{}", []])
+    expect(check({ kind: "read", summary: "Read", tool: "pact_world_read_v1", args })).toBe(false);
+  expect(check({ kind: "read", summary: "Read", tool: "pact_world_read_v1" })).toBe(false);
+  expect(check({ kind: "read", summary: "Read", tool: 1, args: {} })).toBe(false);
   expect(
     check({ kind: "read", summary: "Read", tool: "fleet_read_schema", args: { name: "pact_conversation_read_v2" } }),
   ).toBe(false);

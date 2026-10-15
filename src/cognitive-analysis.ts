@@ -180,9 +180,13 @@ export const analysisDecisionGuide = {
     "expectedVersion=cognition.version; analysis required. Use one offered key: belief {type,opportunity,evidenceQuote,inferredMotive,alternativeMotive,expectedPeerResponse,confidence:low|medium,predictedEvent:reply|agreement,reviewAfterMinutes:15|30|60|120|360|1440}; reflection {type,opportunity,observedFact,difference,lesson,nextStep}; reassessment {type,opportunity,evidenceQuote,inferredMotive,alternativeMotive,confidence:low|medium,assessment:supported|unresolved}; or none {type,reason}. Fleet supplies IDs/time/verified result. Optional plan {goal,steps,status,reconsiderWhen,evidenceRefs}, memories [{summary,importance,evidenceRefs}]; omit unchanged fields.",
 };
 export const analysisInstructions =
-  "Return cognition before decision; inspect delivered evidence and offered analysisOpportunities. Copy exact peer evidenceQuote or observed result. Offer cautious peer motives plus alternatives, not builder benefits. Predict peer reply/agreement, not your upgrade/confidence. Greetings prove neither alliance nor commitments. Reflection compares recorded intent to actual result, explains the difference, lesson and next step. No submission means no action; commit is not completion. Repeating intent is not reflection. Reconsider prior hypotheses: a reply tests responsiveness, not reliability. Choose none without new insight; retain useful plans. No hidden reasoning.";
+  "Cognition first: inspect sources/analysisOpportunities; quote exact text/result. Cautious peer motive + alternative; predict reply/agreement, not builder benefit/confidence. Greeting!=commitment. Compare intent/result: difference, lesson, next step. Not submitted=no action; commit!=completion; repeated intent!=reflection. Reply tests responsiveness, not reliability. No new insight: none; keep useful plans.";
 
-export function analysisSchemaForVersion(version: unknown, delivered: Data): Data {
+export function analysisSchemaForVersion(
+  version: unknown,
+  delivered: Data,
+  edits: { plan?: boolean; memories?: boolean } = {},
+): Data {
   if (typeof version !== "number" || !Number.isSafeInteger(version) || version < 0)
     throw new FleetError("COGNITION_VERSION_REQUIRED");
   const opportunities = analysisOpportunities(delivered);
@@ -216,6 +220,8 @@ export function analysisSchemaForVersion(version: unknown, delivered: Data): Dat
     for (const child of Object.values(v)) constrain(child);
   };
   constrain(schema);
+  const properties = object(object(object(schema.properties).cognition).properties);
+  for (const field of ["plan", "memories"] as const) if (edits[field] === false) delete properties[field];
   return schema;
 }
 

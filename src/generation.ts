@@ -119,7 +119,13 @@ export function closedDecisionSchema(input: {
       ? [
           {
             name: "fleet_continuation_schema",
-            inputSchema: { type: "object", properties: {}, additionalProperties: false },
+            inputSchema: {
+              type: "object",
+              properties: {
+                section: { enum: ["continuation", ...(input.memory ? ["cognitive_plan", "cognitive_memories"] : [])] },
+              },
+              additionalProperties: false,
+            },
           },
         ]
       : []),
@@ -166,10 +172,22 @@ export function closedDecisionSchema(input: {
   const selected = new Set(input.selectedReadNames);
   // Share the read envelope without widening any tool/argument pair.
   // Repeating summary/notes/closure for every advertised schema is pure overhead.
-  const readPairs = [...input.reads.filter((t) => selected.has(t.name)), ...local].map((t) => ({
+  const readTools = [...input.reads.filter((t) => selected.has(t.name)), ...local];
+  const readPairs = readTools.map((t) => ({
     properties: { tool: { const: t.name }, args: argsShape(t.inputSchema) },
   }));
-  const variants: Data[] = [wait, ...(readPairs.length ? [{ ...read, anyOf: readPairs }] : [])];
+  // Each exact pair already requires object arguments and a literal tool name.
+  // Keep the outer property whitelist/required list without duplicating those
+  // assertions; preserve the generic name bound if any literal can exceed it.
+  const readProperties = {
+    ...object(read.properties),
+    args: {},
+    ...(readTools.every((t) => t.name.length <= 100) ? { tool: {} } : {}),
+  };
+  const variants: Data[] = [
+    wait,
+    ...(readPairs.length ? [{ ...read, properties: readProperties, anyOf: readPairs }] : []),
+  ];
   const actions = input.actionSchemas
     .map(executableActionSchema)
     .filter((s) => input.actionKinds.includes(String(object(object(s.properties).kind).const)));

@@ -1,4 +1,5 @@
 import { type Data, FleetError, object } from "../../domain.js";
+import { factTable } from "../../fact-table.js";
 
 const bytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value));
 // These are whole current facts used for identity, authority, resource and
@@ -25,13 +26,47 @@ const core = [
 const pages = ["openSupplyOffers", "contactRequests", "contacts", "contracts"];
 const rules = ["resourceRules", "developmentRules", "diplomacyRules", "constructionStockChecks", "planningCautions"];
 
+export { expandFactTables } from "../../fact-table.js";
+
 export function compactEnvironment(environment: Data, limit: number): Data {
   if (bytes(environment) <= limit) return environment;
   const output: Data = Object.fromEntries(core.filter((k) => k in environment).map((k) => [k, environment[k]]));
+  let encoded = false;
+  for (const key of ["balances", "buildings", "builders", "nextUpgradeChecks"]) {
+    const packed = factTable(output[key]);
+    if (packed !== output[key]) {
+      output[key] = packed;
+      encoded = true;
+    }
+  }
+  const authority = object(output.authority),
+    resources = factTable(authority.resources);
+  if (resources !== authority.resources) {
+    output.authority = { ...authority, resources };
+    encoded = true;
+  }
+  const feasibility = object(output.goalFeasibility),
+    upgrades = factTable(feasibility.hallUpgrades);
+  if (upgrades !== feasibility.hallUpgrades) {
+    output.goalFeasibility = { ...feasibility, hallUpgrades: upgrades };
+    encoded = true;
+  }
+  const mandate = object(output.mandate);
+  const sameAllowed = { sameFact: "authority.allowedActions" };
+  if (
+    Array.isArray(mandate.allowedActions) &&
+    JSON.stringify(mandate.allowedActions) === JSON.stringify(object(output.authority).allowedActions) &&
+    bytes(mandate.allowedActions) > bytes(sameAllowed) + 64
+  ) {
+    output.mandate = { ...mandate, allowedActions: sameAllowed };
+    encoded = true;
+  }
+  if (encoded)
+    output.factEncoding =
+      "Whole tables: columns=dotted paths, common=EVERY row, $key=map key, absent[row]=missing (not null/0), keyFormat=field substitution. sameFact paths: environment.";
   const coverage: Data = { complete: false, omittedFields: [], pages: {} };
   output.coverage = coverage;
-  output.observationNotice =
-    "Core facts/authority are whole. Omitted records are unknown; use supported scoped reads, never invent filters.";
+  output.observationNotice = "Whole core/authority. Omitted=unknown. Use supported scoped reads/filters.";
   const omitted = coverage.omittedFields as string[];
   const pageCoverage = object(coverage.pages);
   // Reserve metadata before filling pages so an omitted tail never looks empty.
@@ -95,6 +130,7 @@ export function compactEnvironment(environment: Data, limit: number): Data {
   if (environment.publicDiscovery !== undefined) {
     output.publicDiscovery = {
       players: [],
+
       selection: discovery.selection,
       page: discovery.page,
       hasMore: discovery.hasMore,

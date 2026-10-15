@@ -341,7 +341,12 @@ export class Engine {
             if (!actionShapes.some((s) => JSON.stringify(s) === JSON.stringify(shape))) actionShapes.push(shape);
           }
         const continuationShape =
-          decisionState.goal || lookups.some((r) => r.tool === "fleet_continuation_schema")
+          decisionState.goal ||
+          lookups.some(
+            (r) =>
+              r.tool === "fleet_continuation_schema" &&
+              ["continuation"].includes(String(object(r.args).section ?? "continuation")),
+          )
             ? await continuation.schema(claim.agentId)
             : undefined;
         const buildGeneration = (pageOptional: boolean) =>
@@ -369,12 +374,29 @@ export class Engine {
             continuationLookup: true,
             ...(continuationShape ? { continuationSchema: continuationShape } : {}),
           });
+        let pageCognitiveEdits = false;
+        const nativeSchema = (delivered: Data) =>
+          analysisSchemaForVersion(object(context.cognition).version, delivered, {
+            plan:
+              !pageCognitiveEdits ||
+              lookups.some(
+                (r) =>
+                  r === requestedRead &&
+                  r.tool === "fleet_continuation_schema" &&
+                  object(r.args).section === "cognitive_plan",
+              ),
+            memories:
+              !pageCognitiveEdits ||
+              lookups.some(
+                (r) =>
+                  r === requestedRead &&
+                  r.tool === "fleet_continuation_schema" &&
+                  object(r.args).section === "cognitive_memories",
+              ),
+          });
         let generation = buildGeneration(false);
         let outputSchema = cognition
-          ? bindGenerationSchema(
-              analysisSchemaForVersion(object(context.cognition).version, deliveredCognition(context)),
-              generation,
-            )
+          ? bindGenerationSchema(nativeSchema(deliveredCognition(context)), generation)
           : generation;
         const instructions = this.adapter.instructions + (cognition ? ` ${analysisInstructions}` : "");
         let messages!: ReturnType<typeof fitMessages>;
@@ -404,10 +426,7 @@ export class Engine {
               );
               if (!cognition) break;
               fittingContext = object(JSON.parse(messages[1].content));
-              outputSchema = bindGenerationSchema(
-                analysisSchemaForVersion(object(context.cognition).version, deliveredCognition(fittingContext)),
-                generation,
-              );
+              outputSchema = bindGenerationSchema(nativeSchema(deliveredCognition(fittingContext)), generation);
               if (
                 Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(outputSchema)) <=
                 b.inputByteLimit
@@ -424,14 +443,15 @@ export class Engine {
             // Optional upfront shapes are pages, not mandatory evidence. Retain
             // correction/requested schemas and every advertised lookup choice.
             // Start again from the original context so accepted recall is intact.
+            pageCognitiveEdits = true;
             generation = buildGeneration(true);
             context.schemaCoverage =
-              "Other schemas paged; use fleet_read_schema/fleet_action_schema. Requested/correction shapes retained; never guess.";
+              "Other schemas paged; use fleet_read_schema/fleet_action_schema. Requested/correction shapes retained; never guess." +
+              (cognition
+                ? " Cognitive plan/memory edits: fleet_continuation_schema section cognitive_plan/cognitive_memories."
+                : "");
             outputSchema = cognition
-              ? bindGenerationSchema(
-                  analysisSchemaForVersion(object(context.cognition).version, deliveredCognition(context)),
-                  generation,
-                )
+              ? bindGenerationSchema(nativeSchema(deliveredCognition(context)), generation)
               : generation;
             packDecision();
           }
@@ -624,14 +644,31 @@ export class Engine {
             cognitiveQuery = decision.args.query;
             result = await cognition.context(claim, cognitivePeers, currentEvidence, cognitiveQuery);
           } else if (decision.tool === "fleet_continuation_schema") {
-            if (Object.keys(decision.args).length) throw new FleetError("INVALID_TOOL_ARGUMENTS");
-            result = {
-              schema: await continuation.schema(claim.agentId),
-              state: await continuation.load(claim.agentId),
-              observedPostconditionFacts: this.adapter.continuationSignals?.(facts) ?? [],
-              coverage:
-                "Supported condition kinds and grounded references currently observed by the game adapter. Missing facts remain unknown; authored targets do not grant authority.",
-            };
+            const section = decision.args.section ?? "continuation";
+            if (
+              Object.keys(decision.args).some((key) => key !== "section") ||
+              !["continuation", "cognitive_plan", "cognitive_memories"].includes(String(section)) ||
+              (section !== "continuation" && !cognition)
+            )
+              throw new FleetError("INVALID_TOOL_ARGUMENTS");
+            if (section !== "continuation")
+              result = {
+                section,
+                schemaAtOutput:
+                  section === "cognitive_plan"
+                    ? "/properties/cognition/properties/plan"
+                    : "/properties/cognition/properties/memories",
+                coverage:
+                  "The exact requested edit schema is supplied in the next decision's output schema. Only that input's delivered source IDs are admissible; normal owned-state/version checks remain.",
+              };
+            else
+              result = {
+                schema: await continuation.schema(claim.agentId),
+                state: await continuation.load(claim.agentId),
+                observedPostconditionFacts: this.adapter.continuationSignals?.(facts) ?? [],
+                coverage:
+                  "Supported condition kinds and grounded references currently observed by the game adapter. Missing facts remain unknown; authored targets do not grant authority.",
+              };
           } else if (decision.tool === "fleet_action_schema") {
             if (typeof decision.args.kind !== "string" || Object.keys(decision.args).length !== 1)
               throw new FleetError("INVALID_TOOL_ARGUMENTS");
