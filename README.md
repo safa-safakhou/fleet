@@ -36,6 +36,8 @@ The completed five-agent Luna pilot is preserved. A subsequent founder assignmen
 
 [Release preservation review](docs/agent-reliability-rollout-20261015.md) completes AR-11 source preparation; no deployment or real experiment is approved.
 
+[Consolidated source acceptance](docs/agent-reliability-source-acceptance-20261015.md) maps all 22 tasks and actual batch commits/checks; owner/provider/recovery/rollout gates remain.
+
 ## Consolidated reliability proposal 15 October
 
 The [Fleet task plan](docs/agent-reliability-plan-20261015.md) and [PACT counterpart](../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md) define proposed/unstarted owner-intent, contract, context, planning/recovery, social and evaluation work. The [twenty local agents investigation](docs/fleet-failure-investigation-20261014.md) and [fifty server Luna causal report](../pact/docs/implementation/reports/fleet-root-causes-20261014.md) remain separate dated evidence. Saving the plans does not authorize implementation, experiments, deployment or changes to existing accounts/settings.

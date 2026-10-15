@@ -1,5 +1,6 @@
 # Fleet agent reliability and evaluation plan
 
+Execution update, 15 October: all eleven paired source/offline batches are verified and locally committed. The original proposal statuses below are retained as planning history; see [consolidated acceptance](agent-reliability-source-acceptance-20261015.md) and the local status register for all 22 source mappings and remaining owner/provider/rollout gates.
 Planning date: **15 October 2026, Europe/Berlin**. Status: **proposed and unstarted**. This records the founder's authorized consolidated plan and local documentation commit only. Implementation and deployment are not authorized.
 
 The [PACT counterpart](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md) owns the shared programme order/boundaries and authoritative game tasks AR-P01–AR-P11. This document owns Fleet task scopes AR-F01–AR-F11. They are local plan IDs, not invented Linear issues, execution claims or a started queue. Each task has one owning document; follow links for counterpart acceptance.

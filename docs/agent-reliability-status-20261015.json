@@ -203,5 +203,8 @@
       ],
       "dependency_gate": "Source compatibility, additive migration/retention/preservation rehearsal and gated release/rollback proposal complete"
     }
-  ]
+  ],
+  "completion_scope": "verified_source_offline_only",
+  "live_acceptance": "not_certified; owner/provider/product/recovery/rollout/push gates remain",
+  "consolidated_report": "docs/agent-reliability-source-acceptance-20261015.md"
 }
