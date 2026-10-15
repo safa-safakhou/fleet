@@ -24,9 +24,26 @@ it("rehearses additive migration, idempotence and old-column read compatibility 
     let now = new Date("2026-10-11T12:00:00Z");
     const vault = new Vault(key),
       store = new Store(pool, vault, () => now),
-      cohort = await ready(store, 3),
-      claim = await store.claim("old-source");
-    if (!claim) throw Error("claim");
+      cohort = await ready(store, 3);
+    const agent = (await pool.query("SELECT * FROM agents WHERE cohort_id=$1 ORDER BY ordinal LIMIT 1", [cohort]))
+      .rows[0];
+    const c = await store.cohort(cohort);
+    const claim = {
+      id: randomUUID(),
+      agentId: agent.id,
+      cohortId: cohort,
+      generation: Number(c.generation),
+      fence: Number(agent.fence),
+      worker: "old-source",
+      deadline: new Date(now.getTime() + 120000),
+      dueAt: now,
+      agent,
+      cohort: c,
+    };
+    await pool.query(
+      "INSERT INTO turns(id,agent_id,cohort_id,generation,fence,worker,state,due_at,started_at,deadline_at) VALUES($1,$2,$3,$4,$5,$6,'running',$7,$7,$8)",
+      [claim.id, agent.id, cohort, c.generation, agent.fence, claim.worker, now, claim.deadline],
+    );
     await new Cognition(store).capture(claim, "observation", "preserved-source", {
       summary: "Synthetic retained source",
       importance: 2,
@@ -36,7 +53,11 @@ it("rehearses additive migration, idempotence and old-column read compatibility 
     await store.recordUsage(allocation, null, null);
     const commandId = randomUUID();
     await store.pending(claim, commandId, { kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 1 });
-    await store.finish(claim, "TRANSPORT_UNCERTAIN");
+    await pool.query(
+      "UPDATE turns SET state='pending',code='TRANSPORT_UNCERTAIN',unknown_usage=true,finished_at=$2 WHERE id=$1",
+      [claim.id, now],
+    );
+    await pool.query("UPDATE agents SET state='needs_owner',reason='TRANSPORT_UNCERTAIN' WHERE id=$1", [claim.agentId]);
     const secret = vault.encrypt({ syntheticCredential: "fixture-only", fence: claim.fence }, `oauth:fixture`);
     await pool.query(
       "INSERT INTO oauth_attempts(state,agent_id,operator_session,secret_cipher,expires_at,phase) VALUES('fixture',$1,'fixture',$2,$3,'uncertain')",

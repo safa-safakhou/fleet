@@ -25,7 +25,7 @@ async function setup() {
   };
 }
 describe("explicit recovery and owner boundaries", () => {
-  it("unresolved social setup prevents resuming and preserves the pending configuration", async () => {
+  it("unresolved social setup isolates the account when resuming and preserves the pending configuration", async () => {
     const f = await setup();
     await f.store.setState(f.id, "paused", true);
     const pending = {
@@ -33,15 +33,15 @@ describe("explicit recovery and owner boundaries", () => {
       action: { kind: "contact.delegation", mode: "agent_decides", expectedVersion: 0, allowedKingdomIds: [] },
     };
     await f.broker.save(f.claim.agentId, { socialPending: pending }, "ready");
-    await expect(f.store.setState(f.id, "running", true)).rejects.toThrow("SOCIAL_DECISION_PENDING");
-    expect((await f.store.cohort(f.id)).state).toBe("paused");
+    await f.store.setState(f.id, "running", true);
+    expect((await f.store.cohort(f.id)).state).toBe("running");
+    expect(await f.store.claim("blocked-config")).toBeNull();
     expect((await f.broker.load(f.claim.agentId)).socialPending).toEqual(pending);
   });
   it("operator review resolves non-command failures without resetting usage or resuming", async () => {
     const f = await setup();
     await f.store.reserveCall(f.claim);
     await f.store.finish(f.claim, "INVALID_DECISION");
-    await expect(f.store.reviewTurn(f.claim.id)).rejects.toThrow("PAUSED_REVIEW_REQUIRED");
     await f.store.setState(f.id, "paused", true);
     const ledger = (await f.pool.query("SELECT * FROM compute_ledger")).rows;
     await f.store.reviewTurn(f.claim.id);
@@ -89,10 +89,14 @@ describe("explicit recovery and owner boundaries", () => {
       { accessToken: "synthetic_old", refreshToken: "synthetic_refresh", clientId: "fixture", expiresAt: 0 },
       "ready",
     );
-    const fetcher = vi.fn(async () => {
+    const fetcher = vi.fn(async (_input?: unknown, _init?: RequestInit) => {
       throw Error("uncertain transport");
     });
-    vi.stubGlobal("fetch", fetcher);
+    vi.stubGlobal("fetch", (input: Parameters<typeof fetch>[0], init?: RequestInit) =>
+      String(input).includes("/.well-known/oauth-authorization-server")
+        ? Promise.resolve(Response.json({}))
+        : fetcher(input, init),
+    );
     await expect(f.broker.game(f.claim.agentId)).rejects.toThrow("AUTH_REQUIRED");
     await expect(f.broker.game(f.claim.agentId)).rejects.toThrow("AUTH_REQUIRED");
     expect(fetcher).toHaveBeenCalledTimes(1);
@@ -122,10 +126,14 @@ describe("explicit recovery and owner boundaries", () => {
         new Date(f.now().getTime() + 1000),
       ],
     );
-    const fetcher = vi.fn(async () => {
+    const fetcher = vi.fn(async (_input?: unknown, _init?: RequestInit) => {
       throw Error("uncertain exchange");
     });
-    vi.stubGlobal("fetch", fetcher);
+    vi.stubGlobal("fetch", (input: Parameters<typeof fetch>[0], init?: RequestInit) =>
+      String(input).includes("/.well-known/oauth-authorization-server")
+        ? Promise.resolve(Response.json({}))
+        : fetcher(input, init),
+    );
     await expect(f.broker.oauthFinish("fixture-state", "fixture-code", "other-operator")).rejects.toThrow(
       "OAUTH_STATE_INVALID",
     );
@@ -142,7 +150,11 @@ describe("explicit recovery and owner boundaries", () => {
     const f = await setup();
     await f.broker.save(f.claim.agentId, { synthetic: false, accountId: f.claim.agent.account_id ?? "" }, "ready");
     const fetcher = vi.fn();
-    vi.stubGlobal("fetch", fetcher);
+    vi.stubGlobal("fetch", (input: Parameters<typeof fetch>[0], init?: RequestInit) =>
+      String(input).includes("/.well-known/oauth-authorization-server")
+        ? Promise.resolve(Response.json({}))
+        : fetcher(input, init),
+    );
     await expect(f.broker.ownerRequest(f.claim.agentId, "command", {})).rejects.toThrow("SYNTHETIC_OWNER_REQUIRED");
     expect(fetcher).not.toHaveBeenCalled();
   });

@@ -47,6 +47,7 @@ function mockGame() {
     vi.fn(async (input: unknown, init: RequestInit = {}) => {
       const path = new URL(String(input)).pathname,
         body = init.body ? JSON.parse(String(init.body)) : {};
+      if (path === "/.well-known/oauth-authorization-server") return Response.json({});
       if (path === "/v1/play/join") {
         entries.push(body);
         return Response.json(

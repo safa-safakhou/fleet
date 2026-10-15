@@ -27,6 +27,7 @@ services:
     security_opt: [no-new-privileges:true]
     restart: unless-stopped
   worker:
+    stop_grace_period: 130s
     build: .
     command: [node, dist/server/worker.js]
     env_file: .env

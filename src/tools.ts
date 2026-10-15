@@ -29,10 +29,24 @@ export function validateTool(tool: Tool, args: Data) {
     });
 }
 export function schemaChanged(old: Tool[], fresh: Tool[]) {
+  const canonical = (value: unknown): unknown =>
+    Array.isArray(value)
+      ? value.map(canonical)
+      : value && typeof value === "object"
+        ? Object.fromEntries(
+            Object.entries(value)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([key, value]) => [key, canonical(value)]),
+          )
+        : value;
   const key = (ts: Tool[]) =>
     JSON.stringify(
       ts
-        .map((t) => ({ name: t.name, inputSchema: object(t.inputSchema) }))
+        .map((t) => ({
+          name: t.name,
+          inputSchema: canonical(object(t.inputSchema)),
+          readOnly: t.annotations?.readOnlyHint === true,
+        }))
         .sort((a, b) => a.name.localeCompare(b.name)),
     );
   return key(old) !== key(fresh);

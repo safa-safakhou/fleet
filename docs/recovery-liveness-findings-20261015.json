@@ -1,0 +1,198 @@
+{
+  "assignment": "recovery-liveness-20261015",
+  "tracking": "Local finding register, not invented Linear issues.",
+  "verification": "Source/offline verification complete; actual server installation and readback pending.",
+  "findings": [
+    {
+      "id": "L01",
+      "owner": "Fleet",
+      "finding": "Single Codex fault pauses unrelated accounts",
+      "resolution": "Per-agent operation/exposure gates; cohort state retains owner intent.",
+      "status": "source_verified",
+      "evidence": "tests/integration/liveness.test.ts"
+    },
+    {
+      "id": "L02",
+      "owner": "Fleet",
+      "finding": "Malformed completed CLI answer loses known usage",
+      "resolution": "Completed final usage returned separately from decisionError; ambiguous event streams remain unknown.",
+      "status": "source_verified",
+      "evidence": "tests/unit/codex.test.ts"
+    },
+    {
+      "id": "L03",
+      "owner": "Fleet",
+      "finding": "Crash leaves filesystem execution lock forever",
+      "resolution": "Kernel flock ownership, independent 95-second process-tree timeout, bounded cancellation; legacy unverifiable lock explicitly gated.",
+      "status": "source_verified",
+      "evidence": "tests/unit/codex.test.ts"
+    },
+    {
+      "id": "L04",
+      "owner": "Fleet",
+      "finding": "Worker expiry guesses model usage before dispatch",
+      "resolution": "Certified dispatch checkpoints distinguish nonexecution, inference uncertainty and original pending commands; conservative adapter fallback.",
+      "status": "source_verified",
+      "evidence": "tests/integration/liveness.test.ts"
+    },
+    {
+      "id": "L05",
+      "owner": "Fleet",
+      "finding": "Read transport/schema failures park agents permanently",
+      "resolution": "Bounded observation-only retries and next original-slot recovery; canonical object-key schema comparison.",
+      "status": "source_verified",
+      "evidence": "tests/integration/engine.test.ts"
+    },
+    {
+      "id": "L06",
+      "owner": "Fleet",
+      "finding": "Missing receipt has only manual recovery",
+      "resolution": "Prospective receipt-only recovery queue with leases and capped backoff; original command never replayed; absence remains unresolved.",
+      "status": "source_verified",
+      "evidence": "tests/integration/liveness.test.ts"
+    },
+    {
+      "id": "L07",
+      "owner": "Fleet",
+      "finding": "Receipt resolution fails to restore readiness",
+      "resolution": "Eligibility recomputed across credentials, pending/owner turns, operation gates, configuration blockers and explicit agent state.",
+      "status": "source_verified",
+      "evidence": "tests/integration/liveness.test.ts"
+    },
+    {
+      "id": "L08",
+      "owner": "Fleet/PACT",
+      "finding": "Refresh crash strands refreshing credential",
+      "resolution": "Proof-bound result recovery plus atomic encrypted proof/job preparation and completion, per-account singleflight and CAS.",
+      "status": "source_verified",
+      "evidence": "tests/integration/credential-recovery.test.ts; PACT tests/integration/oauth.test.ts"
+    },
+    {
+      "id": "L09",
+      "owner": "Fleet/PACT",
+      "finding": "Ambiguous rotating refresh replay revokes family",
+      "resolution": "Independent 32-byte proof, encrypted bounded result, client/account/grant/child checks, protocol downgrade/expiry gates; legacy replay remains forbidden.",
+      "status": "source_verified",
+      "evidence": "tests/integration/credential-recovery.test.ts; PACT tests/integration/oauth.test.ts"
+    },
+    {
+      "id": "L10",
+      "owner": "Fleet",
+      "finding": "Early access 401 or one reconnect stops whole cohort",
+      "resolution": "One bounded forced refresh on session initialization auth rejection; same idle-account reconnect allowed while cohort runs; initial enrollment remains complete.",
+      "status": "source_verified",
+      "evidence": "tests/integration/refresh-evidence.test.ts; tests/integration/enrollment.test.ts"
+    },
+    {
+      "id": "L11",
+      "owner": "Fleet",
+      "finding": "Resume requires all credentials and callback clears unrelated blockers",
+      "resolution": "Anchored owner resumption permits isolated blocked accounts; callback preserves other blocked turns/configuration and explicit pause.",
+      "status": "source_verified",
+      "evidence": "tests/integration/liveness.test.ts; tests/integration/enrollment.test.ts"
+    },
+    {
+      "id": "L12",
+      "owner": "Fleet",
+      "finding": "Low disk looks healthy and disables expiry supervision",
+      "resolution": "Explicit /ready reason; supervision/recovery independent of new admissions and long turns; actual worker-process test.",
+      "status": "source_verified",
+      "evidence": "tests/integration/worker-liveness.test.ts"
+    },
+    {
+      "id": "L13",
+      "owner": "Fleet/PACT",
+      "finding": "Database errors/hangs terminate or wedge workers",
+      "resolution": "Bounded statement/lock/idle-transaction waits, sanitized pool error handlers, guarded polling and durable restart recovery.",
+      "status": "source_verified",
+      "evidence": "tests/integration/worker-liveness.test.ts; PACT tests/integration/recovery-liveness.test.ts"
+    },
+    {
+      "id": "L14",
+      "owner": "Fleet",
+      "finding": "Capacity check after earliest candidate starves other cohorts",
+      "resolution": "Capacity and blockers checked before candidate LIMIT; original anchored cadence and no catch-up burst.",
+      "status": "source_verified",
+      "evidence": "tests/integration/liveness.test.ts; tests/integration/scheduler.test.ts"
+    },
+    {
+      "id": "L15",
+      "owner": "Fleet",
+      "finding": "Budget waits have no durable wake/exposure policy",
+      "resolution": "Persisted budget/dependency waits; daily UTC boundary; finite Codex unknown-exposure gate; original allocations retained.",
+      "status": "source_verified",
+      "evidence": "tests/integration/liveness.test.ts; tests/integration/scheduler.test.ts"
+    },
+    {
+      "id": "L16",
+      "owner": "Fleet",
+      "finding": "Maintenance pause overwrites owner intent",
+      "resolution": "Leased maintenance hold blocks new admissions, drains naturally, checks quiescence on release/expiry; never clears manual pause.",
+      "status": "source_verified",
+      "evidence": "tests/integration/liveness.test.ts"
+    },
+    {
+      "id": "L17",
+      "owner": "Fleet",
+      "finding": "Optional helper and irreducible input failures",
+      "resolution": "Existing helper abstention/fallback retained; required memory never erased. Retry state/next action exposed; irreducible protected input or corrupt security/configuration needs repair.",
+      "status": "source_verified",
+      "evidence": "tests/unit/populated-envelope.test.ts; tests/integration/cognition.test.ts"
+    },
+    {
+      "id": "L18",
+      "owner": "PACT",
+      "finding": "30-second job lease expires during valid provider call",
+      "resolution": "Renewable unique per-acquisition ownership, single-flight polling, bounded provider signal and stale-operation checks before tools.",
+      "status": "source_verified",
+      "evidence": "tests/integration/recovery-liveness.test.ts"
+    },
+    {
+      "id": "L19",
+      "owner": "PACT",
+      "finding": "Pre-dispatch failures terminate runs/enrollment",
+      "resolution": "Known safe failures and no-game-effect orphan phases recover within original call/token/deadline limits; unknown inference/game effects remain scoped gates.",
+      "status": "source_verified",
+      "evidence": "tests/integration/recovery-liveness.test.ts; tests/integration/run-process-death.test.ts"
+    },
+    {
+      "id": "L20",
+      "owner": "PACT",
+      "finding": "World operational pause persists after health returns",
+      "resolution": "Future operational-origin pauses require repeated database/tick-history checks then resume from committed time; manual/legacy pauses stay held.",
+      "status": "source_verified",
+      "evidence": "tests/integration/world-clock.test.ts"
+    },
+    {
+      "id": "L21",
+      "owner": "Fleet/PACT",
+      "finding": "Late acknowledgments and final usage disappear",
+      "resolution": "Original command receipt reconciliation; late final usage retained as additional evidence without deleting unknown markers or refunding allocation.",
+      "status": "source_verified",
+      "evidence": "tests/integration/liveness.test.ts; PACT tests/integration/recovery-liveness.test.ts"
+    },
+    {
+      "id": "L22",
+      "owner": "Fleet/PACT",
+      "finding": "Healthy process is mistaken for agent progress",
+      "resolution": "Separate worker readiness/progress, durable recovery ages/reasons/next checks, authenticated plain-language console; no external notifications created.",
+      "status": "source_verified",
+      "evidence": "src/worker.ts; src/server.ts; web/main.tsx"
+    },
+    {
+      "id": "L23",
+      "owner": "Fleet/PACT",
+      "finding": "Explicit stop/revocation/deadline or terminal population restarted by recovery",
+      "resolution": "All automatic work remains conditional on current owner intent and fences. Historical decisions are not backfilled/reviewed; terminal cohorts remain terminal.",
+      "status": "source_verified",
+      "evidence": "tests/integration/liveness.test.ts; PACT tests/integration/recovery-liveness.test.ts"
+    }
+  ],
+  "remainingBoundaries": [
+    "Existing server50 pause, Agent27 review and Agent17 same-account reconnect are not authorized by deployment.",
+    "Unknown actual Codex consumption retains its allocation and requires scoped exposure review; finite shared allowances gate new paid work. Automatic unknown-cost continuation needs an explicit owner policy or enforceable provider ceiling.",
+    "A missing submitted-command receipt is not nonexecution proof; reconcile the original ID without replay.",
+    "Revoked/expired/legacy ambiguous credentials need same-account owner reauthorization; never reuse an old rotating token blindly.",
+    "Unverifiable legacy process locks, wrong keys/configuration and irreducible protected input need repair; never erase history or override authority."
+  ]
+}

@@ -2,7 +2,18 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { PoolClient } from "pg";
 import pg from "pg";
-export const connect = (url: string) => new pg.Pool({ connectionString: url, max: 5, connectionTimeoutMillis: 5000 });
+export function connect(url: string) {
+  const pool = new pg.Pool({
+    connectionString: url,
+    max: 8,
+    connectionTimeoutMillis: 5000,
+    statement_timeout: 20000,
+    lock_timeout: 5000,
+    idle_in_transaction_session_timeout: 30000,
+  });
+  pool.on("error", () => console.error("fleet database connection unavailable"));
+  return pool;
+}
 export type Pool = pg.Pool;
 export async function transaction<T>(pool: Pool, work: (client: PoolClient) => Promise<T>): Promise<T> {
   const c = await pool.connect();
@@ -32,5 +43,6 @@ export async function migrate(pool: Pool) {
     await c.query(await readFile(resolve("migrations/009_five_minute_schedule.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/010_account_guidance.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/011_continuation.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/012_recovery.sql"), "utf8"));
   });
 }

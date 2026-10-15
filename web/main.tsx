@@ -106,6 +106,17 @@ function App() {
   const [csrf, setCsrf] = useState(""),
     [password, setPassword] = useState(""),
     [state, setState] = useState<State | null>(null),
+    [recovery, setRecovery] = useState<{
+      operations: {
+        turn_id: string;
+        agent_id: string;
+        cohort_id: string;
+        status: string;
+        nextAction: string;
+        next_attempt_at: string | null;
+      }[];
+      credentials: { agent_id: string; cohort_id: string; status: string; next_attempt_at: string | null }[];
+    }>({ operations: [], credentials: [] }),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
     [tab, setTab] = useState("overview"),
@@ -141,6 +152,7 @@ function App() {
   const refresh = useCallback(async () => {
     const s = await api<State>("/state");
     setState(s);
+    setRecovery(await api<typeof recovery>("/recovery"));
     setCohortId((id) => (s.cohorts.some((c) => c.id === id) ? id : (s.cohorts[0]?.id ?? "")));
   }, [api]);
   async function act(work: () => Promise<void>, refreshAfter = true) {
@@ -382,6 +394,42 @@ function App() {
               Dismiss
             </button>
           </div>
+        )}
+        {recovery.operations.some((o) => o.cohort_id === cohortId && o.status !== "executing") && (
+          <section className="quiet-banner" aria-label="Recovery progress">
+            <details>
+              <summary>Recovery and waiting work</summary>
+              <ul>
+                {recovery.operations
+                  .filter((o) => o.cohort_id === cohortId && o.status !== "executing")
+                  .map((o) => (
+                    <li key={o.turn_id}>
+                      <strong>{agents.find((a) => a.id === o.agent_id)?.name ?? "Agent"}</strong>: {o.nextAction}
+                      {o.next_attempt_at && <span> Next check: {new Date(o.next_attempt_at).toLocaleString()}.</span>}
+                    </li>
+                  ))}
+              </ul>
+            </details>
+          </section>
+        )}
+        {recovery.credentials.some((o) => o.cohort_id === cohortId) && (
+          <section className="quiet-banner" aria-label="Connection recovery">
+            <details>
+              <summary>Connection recovery</summary>
+              <ul>
+                {recovery.credentials
+                  .filter((o) => o.cohort_id === cohortId)
+                  .map((o) => (
+                    <li key={o.agent_id}>
+                      {agents.find((a) => a.id === o.agent_id)?.name ?? "Agent"}:{" "}
+                      {o.status === "owner"
+                        ? "Reconnect the same account to restore access."
+                        : "Recovering the saved connection attempt automatically."}
+                    </li>
+                  ))}
+              </ul>
+            </details>
+          </section>
         )}
         {tab !== "comparisons" && (
           <section className="stats" aria-label="Fleet summary">

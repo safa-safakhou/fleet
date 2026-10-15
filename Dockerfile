@@ -13,7 +13,7 @@ RUN npm run check && npm run check:boundaries && npm run build
 FROM build AS production-deps
 RUN npm prune --omit=dev
 FROM node:24.21.0-bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates=20230311+deb12u1 && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends util-linux coreutils ca-certificates=20230311+deb12u1 && rm -rf /var/lib/apt/lists/*
 ARG FLEET_REVISION=development
 LABEL org.opencontainers.image.source="https://github.com/safa-safakhou/fleet" org.opencontainers.image.revision=$FLEET_REVISION
 WORKDIR /app

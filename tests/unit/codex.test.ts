@@ -1,4 +1,6 @@
-import { access, chmod, readFile, rm } from "node:fs/promises";
+import { spawn } from "node:child_process";
+import { once } from "node:events";
+import { access, chmod, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { CodexModel } from "../../src/codex.js";
@@ -69,7 +71,6 @@ describe.skipIf(process.platform !== "linux")("subscription Codex process adapte
     ["no-auth", "CODEX_PROCESS_FAILED"],
     ["fail", "CODEX_PROCESS_FAILED"],
     ["large", "CODEX_OUTPUT_LIMIT"],
-    ["bad-output", "CODEX_PROCESS_FAILED"],
     ["bad-events", "CODEX_PROCESS_FAILED"],
     ["turn-failed", "CODEX_TURN_FAILED"],
     ["no-completed", "CODEX_INVALID_EVENTS"],
@@ -79,6 +80,15 @@ describe.skipIf(process.platform !== "linux")("subscription Codex process adapte
     await expect(f.model.decide(input())).rejects.toThrow(code);
     if (mode === "api" || mode === "no-auth") expect(await f.invocations()).toHaveLength(1);
     await expect(access(join(f.home, "fleet-execution.lock"))).rejects.toThrow();
+  });
+  it("retains final usage when a completed execution has malformed output", async () => {
+    const f = await setup("bad-output");
+    expect(await f.model.decide(input())).toMatchObject({
+      decision: null,
+      decisionError: "INVALID_MODEL_OUTPUT",
+      inputTokens: 123,
+      outputTokens: 45,
+    });
   });
   it("preserves absent usage as unknown, without adding cached tokens twice", async () => {
     const f = await setup("unknown");
@@ -139,6 +149,58 @@ describe.skipIf(process.platform !== "linux")("subscription Codex process adapte
     await expect(f.model.decide(input())).rejects.toThrow("CODEX_PRIVATE_HOME_REQUIRED");
     await expect(f.invocations()).rejects.toThrow();
   });
+  it("keeps the kernel lock after worker death and releases it after the independent process deadline", async () => {
+    const f = await setup("sleep");
+    const script = `import {CodexModel} from './src/codex.ts';await new CodexModel(JSON.parse(process.argv[1]),1500).decide({...JSON.parse(process.argv[2]),signal:AbortSignal.timeout(10000)}).catch(()=>{});`;
+    const child = spawn(
+      process.execPath,
+      [
+        "--import",
+        "tsx",
+        "--input-type=module",
+        "-e",
+        script,
+        JSON.stringify({ home: f.home, executable: f.executable }),
+        JSON.stringify({ ...input(), signal: undefined }),
+      ],
+      { cwd: process.cwd(), stdio: "ignore" },
+    );
+    // The child supplies its own bounded signal; JSON cannot transport an AbortSignal.
+    try {
+      await expect
+        .poll(
+          async () => {
+            try {
+              await access(join(f.home, "child"));
+              return true;
+            } catch {
+              return false;
+            }
+          },
+          { timeout: 5000, interval: 20 },
+        )
+        .toBe(true);
+      const exited = once(child, "exit");
+      child.kill("SIGKILL");
+      await exited;
+      await expect(new CodexModel(f).decide(input())).rejects.toThrow("CODEX_BUSY");
+      await writeFile(join(f.home, "mode"), "ok");
+      await expect
+        .poll(
+          async () => {
+            try {
+              return (await new CodexModel(f).decide(input())).inputTokens;
+            } catch {
+              return null;
+            }
+          },
+          { timeout: 5000, interval: 200 },
+        )
+        .toBe(123);
+    } finally {
+      if (child.exitCode === null && child.signalCode === null) child.kill("SIGKILL");
+    }
+  }, 12000);
   it("routes only Codex selections to the CLI", async () => {
     const http = { decide: vi.fn() },
       codex = { decide: vi.fn() };

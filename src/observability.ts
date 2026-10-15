@@ -182,7 +182,7 @@ export class Observability {
         ownerGuidance: cohort.owner_guidance,
         observation: cohort.observation_consent,
       },
-      recovery: recoveryPlan(cohort.state, a.credential_state, a.state, blockers),
+      recovery: recoveryPlan(cohort.state, a.credential_state, a.state, blockers, a.reason),
       usage: usage[0],
       notes: cohort.observation_consent ? a.notes : null,
       cognition: await new Cognition(this.store).inspect(agentId),

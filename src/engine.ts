@@ -72,6 +72,32 @@ export class Engine {
       await this.store.active(claim);
       await observation.record(claim, "observing", "Reading current game state");
       game = await this.game(claim.agentId);
+      const original = game;
+      const observe = async <T>(operation: () => Promise<T>): Promise<T> => {
+        for (let attempt = 0; ; attempt++) {
+          try {
+            return await operation();
+          } catch (error) {
+            if (
+              attempt >= 2 ||
+              !["TRANSPORT_UNCERTAIN", "RATE_LIMITED"].includes(safeCode(error)) ||
+              claim.deadline.getTime() - this.store.now().getTime() < 25000
+            )
+              throw error;
+            await new Promise((resolve) => setTimeout(resolve, 200 * 2 ** attempt));
+            await this.store.active(claim);
+          }
+        }
+      };
+      game = {
+        profile: () => observe(() => original.profile()),
+        tools: () => observe(() => original.tools()),
+        read: (tool, args) => observe(() => original.read(tool, args)),
+        open: () => original.open(),
+        submit: (id, action) => original.submit(id, action),
+        receipt: (id) => original.receipt(id),
+        close: () => original.close(),
+      };
       const profile = await game.profile();
       if (profile.accountId !== claim.agent.account_id) throw new FleetError("IDENTITY_MISMATCH");
       const tools = await game.tools();
@@ -518,7 +544,9 @@ export class Engine {
             inputBytes: bytes,
             inputByteLimit: b.inputByteLimit,
           });
+        if (this.model.tracksDispatch) await this.store.phase(claim, "model_preparing_tracked");
         const reservation = await this.store.reserveCall(claim);
+        await this.store.phase(claim, this.model.tracksDispatch ? "model_reserved_tracked" : "model_reserved");
         await observation.record(claim, "thinking", "Waiting for the model decision", { execution: n + 1 });
         if (this.stopping) throw new FleetError("CLAIM_FENCED");
         const controller = new AbortController();
@@ -533,11 +561,15 @@ export class Engine {
             messages,
             schema: outputSchema,
             maxOutputTokens: b.maxOutputTokens,
+            onDispatch: () => this.store.phase(claim, "model_dispatched"),
             signal: AbortSignal.any([
               controller.signal,
               AbortSignal.timeout(Math.max(1, Math.min(90000, claim.deadline.getTime() - this.store.now().getTime()))),
             ]),
           });
+        } catch (error) {
+          if (error instanceof FleetError && error.notDispatched) await this.store.notDispatched(reservation);
+          throw error;
         } finally {
           clearInterval(guard);
           if (this.controller === controller) this.controller = undefined;
@@ -546,6 +578,7 @@ export class Engine {
         if (response.inputTokens === null || response.outputTokens === null) throw new FleetError("USAGE_UNKNOWN");
         if (response.inputTokens + response.outputTokens > b.perCallTokenLimit) throw new FleetError("USAGE_EXCEEDED");
         await this.store.active(claim);
+        await this.store.phase(claim, "model_settled");
         const rawDecision = object(response.decision);
         const { cognition: cognitiveUpdate, decision: wrappedDecision, ...flatDecision } = rawDecision;
         const baseDecision =
@@ -874,13 +907,14 @@ export class Engine {
         await this.store.active(claim);
         const action = this.owner ? await this.owner.prepare(claim, decision.action) : decision.action;
         const id = randomUUID();
-        await this.store.pending(claim, id, action);
+        await this.store.pending(claim, id, action, true);
         let receipt: Data,
           source: "receipt" | "explicit_rejection" = "receipt",
           rejectionEvidence: Data = {};
         try {
           await this.store.active(claim);
           if (this.stopping) throw new FleetError("CLAIM_FENCED");
+          await this.store.phase(claim, "command_dispatched");
           receipt = await game.submit(id, action);
         } catch (error) {
           if (error instanceof RemoteRejection && error.status >= 500) throw new FleetError("TRANSPORT_UNCERTAIN");

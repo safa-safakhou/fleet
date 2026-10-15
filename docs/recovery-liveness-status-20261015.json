@@ -1,0 +1,42 @@
+{
+  "assignment": "founder_20261015_implement_validate_server_deploy_push",
+  "assignee": "codex-recovery-20261015",
+  "tracking": "Local assignment register; Linear reauthentication unavailable; no remote issues invented.",
+  "tasks": [
+    {
+      "id": "RL-F01",
+      "title": "Scoped execution, accounting and durable recovery",
+      "status": "verified",
+      "dependsOn": [],
+      "evidence": ["docs/recovery-liveness-source-20261015.md"]
+    },
+    {
+      "id": "RL-F02",
+      "title": "Credential attempt/result recovery",
+      "status": "verified",
+      "dependsOn": ["RL-F01"],
+      "evidence": ["docs/recovery-liveness-source-20261015.md"]
+    },
+    {
+      "id": "RL-F03",
+      "title": "Worker and execution supervision",
+      "status": "verified",
+      "dependsOn": ["RL-F02"],
+      "evidence": ["docs/recovery-liveness-source-20261015.md"]
+    },
+    {
+      "id": "RL-F04",
+      "title": "Verified server rollout and pushes",
+      "status": "in_progress",
+      "dependsOn": ["RL-F03"],
+      "evidence": []
+    }
+  ],
+  "findingsRegister": "docs/recovery-liveness-findings-20261015.json",
+  "sourceVerification": {
+    "unit": 147,
+    "integration": 221,
+    "checks": ["type/style", "game boundaries", "build", "production dependency audit"],
+    "realModelQualification": false
+  }
+}

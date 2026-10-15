@@ -46,16 +46,18 @@ describe("Codex scheduling and accounting", () => {
     expect(result.usage[0].unknown_calls).toBe(0);
     expect(f.game.submits).toHaveLength(0);
   });
-  it("continuous mode still pauses uncertain usage without changing account identity or resetting usage", async () => {
+  it("continuous mode isolates uncertain usage without changing account identity or resetting usage", async () => {
     const f = await setup("unknown", true);
     await f.engine.run(f.claim);
-    expect((await f.store.cohort(f.id)).state).toBe("paused");
+    expect((await f.store.cohort(f.id)).state).toBe("running");
     expect((await f.store.publicState()).usage[0].unknown_calls).toBe(1);
     expect((await f.store.publicState()).usage[0].allocated_tokens).toBe("40000");
     expect(f.game.submits).toHaveLength(0);
     f.advance(3653 * 86400000);
-    expect(await f.store.claim("replacement")).toBe(null);
-    expect((await f.store.cohort(f.id)).state).toBe("paused");
+    const replacement = await f.store.claim("replacement");
+    if (replacement) expect(replacement.agentId).not.toBe(f.claim.agentId);
+    expect((await f.store.agent(f.claim.agentId)).state).toBe("needs_owner");
+    expect((await f.store.cohort(f.id)).state).toBe("running");
     expect((await f.store.agent(f.claim.agentId)).account_id).toBe(f.claim.agent.account_id);
   });
   it("requires explicit execution accounting consent and serial cohort admission", async () => {
@@ -90,20 +92,25 @@ describe("Codex scheduling and accounting", () => {
     expect((await f.store.publicState()).turns[0].actions).toBe(3);
     expect((await f.store.publicState()).turns[0].code).toBe("COMMITTED");
   });
-  it.each(["overrun", "unknown", "fail", "api"])("pauses the whole cohort before committing on %s", async (mode) => {
-    const f = await setup(mode);
-    await f.engine.run(f.claim);
-    const state = await f.store.publicState();
-    expect((await f.store.cohort(f.id)).state).toBe("paused");
-    expect(f.game.submits).toHaveLength(0);
-    expect(state.usage[0].allocated_tokens).toBe(mode === "overrun" ? "45045" : "40000");
-    expect(state.usage[0].unknown_calls).toBe(mode === "overrun" ? 0 : 1);
-    if (mode === "overrun" || mode === "unknown") {
-      expect(state.turns[0].code).toBe(mode === "overrun" ? "USAGE_EXCEEDED" : "USAGE_UNKNOWN");
-    }
-    f.advance(900000);
-    expect(await f.store.claim("later")).toBe(null);
-  });
+  it.each(["overrun", "unknown", "fail", "api"])(
+    "isolates the affected execution before committing on %s",
+    async (mode) => {
+      const f = await setup(mode);
+      await f.engine.run(f.claim);
+      const state = await f.store.publicState();
+      expect((await f.store.cohort(f.id)).state).toBe("running");
+      expect(f.game.submits).toHaveLength(0);
+      expect(state.usage[0].allocated_tokens).toBe(mode === "overrun" ? "45045" : "40000");
+      expect(state.usage[0].unknown_calls).toBe(["overrun", "api"].includes(mode) ? 0 : 1);
+      if (mode === "overrun" || mode === "unknown") {
+        expect(state.turns[0].code).toBe(mode === "overrun" ? "USAGE_EXCEEDED" : "USAGE_UNKNOWN");
+      }
+      f.advance(900000);
+      const later = await f.store.claim("later");
+      expect(later).toBeTruthy();
+      if (mode !== "api") expect(later?.agentId).not.toBe(f.claim.agentId);
+    },
+  );
   it("disabled execution dispatches neither authentication checks nor game reads", async () => {
     const f = await setup();
     let connects = 0;
@@ -120,12 +127,14 @@ describe("Codex scheduling and accounting", () => {
     expect(connects).toBe(0);
     await expect(access(join(f.cli.home, "invocations"))).rejects.toThrow();
   });
-  it("crashed workers retain reservations and pause every other owner in the cohort", async () => {
+  it("crashed workers retain reservations without changing cohort intent", async () => {
     const f = await setup();
     await f.store.reserveCall(f.claim);
     f.advance(121000);
-    expect(await f.store.claim("replacement")).toBe(null);
-    expect((await f.store.cohort(f.id)).state).toBe("paused");
+    const replacement = await f.store.claim("replacement");
+    if (replacement) expect(replacement.agentId).not.toBe(f.claim.agentId);
+    expect((await f.store.agent(f.claim.agentId)).state).toBe("needs_owner");
+    expect((await f.store.cohort(f.id)).state).toBe("running");
     expect((await f.store.publicState()).usage[0].unknown_calls).toBe(1);
   });
   it("late overrun usage preserves permanently stopped cohorts", async () => {

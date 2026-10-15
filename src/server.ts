@@ -13,6 +13,7 @@ import { actionKinds } from "./games/pact/contracts.js";
 import type { CredentialBroker } from "./games/pact/credentials.js";
 import { OwnerPolicy } from "./games/pact/owner.js";
 import { Observability } from "./observability.js";
+import { recoveryHint } from "./recovery.js";
 import type { Store } from "./store.js";
 
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -252,6 +253,46 @@ export function buildServer(options: {
     return { reviewed: true };
   });
   app.get("/health", async () => ({ ok: true, service: "fleet", game: "pact", liveEnabled: options.liveAllowed }));
+  app.post<{ Params: { id: string } }>("/api/cohorts/:id/maintenance", async (r) => {
+    const body = z
+      .object({ reason: z.string().min(10).max(400) })
+      .strict()
+      .parse(r.body);
+    return store.beginMaintenance(z.uuid().parse(r.params.id), body.reason);
+  });
+  app.post<{ Params: { id: string } }>("/api/maintenance/:id", async (r) => {
+    const body = z.object({ owner: z.uuid(), release: z.boolean() }).strict().parse(r.body);
+    await store.maintenance(z.uuid().parse(r.params.id), body.owner, body.release);
+    return { ok: true };
+  });
+  app.get("/ready", async (_request, reply) => {
+    const health = (
+      await store.pool.query(
+        "SELECT dispatch_ready,reason,last_progress_at FROM worker_health WHERE updated_at>now()-interval '45 seconds' ORDER BY updated_at DESC LIMIT 1",
+      )
+    ).rows[0];
+    return reply
+      .code(health?.dispatch_ready ? 200 : 503)
+      .send({ ready: Boolean(health?.dispatch_ready), reason: health?.reason ?? "WORKER_STALE" });
+  });
+  app.get("/api/recovery", async () => {
+    const operations = (
+      await store.pool.query(
+        "SELECT turn_id,agent_id,cohort_id,phase,failed_phase,status,code,attempts,next_attempt_at,updated_at,policy FROM recovery_operations WHERE status<>'complete' ORDER BY updated_at LIMIT 200",
+      )
+    ).rows;
+    return {
+      operations: operations.map((o) => ({
+        ...o,
+        nextAction: recoveryHint(o.phase, o.code, o.status, o.failed_phase),
+      })),
+      credentials: (
+        await store.pool.query(
+          "SELECT j.agent_id,a.cohort_id,j.status,j.attempts,j.next_attempt_at,j.updated_at FROM credential_recovery_jobs j JOIN agents a ON a.id=j.agent_id WHERE j.status<>'complete'",
+        )
+      ).rows,
+    };
+  });
   app.get("/*", async (request, reply) => {
     const path = request.url.split("?")[0],
       root = resolve("dist/web"),

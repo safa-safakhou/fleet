@@ -186,12 +186,26 @@ export class Store {
               [id],
             )
           ).rows[0].n;
-          if (ready !== row.count) throw new FleetError("ACCOUNTS_INCOMPLETE");
+          const bound = (
+            await c.query("SELECT count(*)::int n FROM agents WHERE cohort_id=$1 AND account_id IS NOT NULL", [id])
+          ).rows[0].n;
+          if (bound !== row.count || (!row.anchor_at && ready !== row.count))
+            throw new FleetError("ACCOUNTS_INCOMPLETE");
           const secrets = (
             await c.query("SELECT id,secret_cipher FROM agents WHERE cohort_id=$1 AND secret_cipher IS NOT NULL", [id])
           ).rows;
-          if (secrets.some((a) => this.vault.decrypt<Data>(a.secret_cipher, `agent:${a.id}`).socialPending))
-            throw new FleetError("SOCIAL_DECISION_PENDING");
+          for (const a of secrets)
+            if (this.vault.decrypt<Data>(a.secret_cipher, `agent:${a.id}`).socialPending) {
+              if (!row.anchor_at) throw new FleetError("SOCIAL_DECISION_PENDING");
+              await c.query(
+                "INSERT INTO agent_blockers(agent_id,kind,reason,updated_at) VALUES($1,'configuration','CONFIGURATION_RECEIPT_REQUIRED',$2) ON CONFLICT(agent_id,kind) DO NOTHING",
+                [a.id, now],
+              );
+              await c.query(
+                "UPDATE agents SET state=CASE WHEN state IN('paused','stopped') THEN state ELSE 'needs_owner' END,reason='CONFIGURATION_RECEIPT_REQUIRED' WHERE id=$1",
+                [a.id],
+              );
+            }
         }
         const anchor = row.anchor_at ?? now;
         await c.query("UPDATE cohorts SET state=$2,generation=generation+1,anchor_at=$3 WHERE id=$1", [
@@ -234,7 +248,8 @@ export class Store {
           [id],
         )
       ).rowCount;
-      if (state === "ready" && uncertain) throw new FleetError("RECOVERY_REQUIRED");
+      const held = (await c.query("SELECT 1 FROM agent_blockers WHERE agent_id=$1 LIMIT 1", [id])).rowCount;
+      if (state === "ready" && (uncertain || held)) throw new FleetError("RECOVERY_REQUIRED");
       await c.query("UPDATE agents SET state=$2,fence=fence+1 WHERE id=$1", [id, state]);
       await this.audit(c, a.cohort_id, `agent.${state}`, { agentId: id });
     });
@@ -296,28 +311,9 @@ export class Store {
   }
   async claim(worker: string, maxConcurrency = 1): Promise<Claim | null> {
     const now = this.now();
+    await this.recoverExpired();
     return transaction(this.pool, async (c) => {
       await c.query("SELECT pg_advisory_xact_lock(19281462)");
-      const expired = (
-        await c.query(
-          "SELECT id,agent_id,cohort_id,pending_command FROM turns WHERE state='running' AND deadline_at<=$1 FOR UPDATE",
-          [now],
-        )
-      ).rows;
-      for (const t of expired) {
-        await c.query(
-          "UPDATE turns SET state=CASE WHEN pending_command IS NOT NULL THEN 'pending' ELSE 'needs_owner' END,code='WORKER_EXPIRED',unknown_usage=true WHERE id=$1",
-          [t.id],
-        );
-        await c.query("UPDATE agents SET state='needs_owner',reason='WORKER_EXPIRED',fence=fence+1 WHERE id=$1", [
-          t.agent_id,
-        ]);
-        await c.query("UPDATE compute_ledger SET status='unknown' WHERE turn_id=$1 AND status='reserved'", [t.id]);
-        await c.query(
-          "UPDATE cohorts SET state=CASE WHEN (budget->>'deadlineAt')::timestamptz<=$2 THEN 'finished' ELSE 'paused' END,generation=generation+1 WHERE id=$1 AND state='running' AND model->>'route'='codex-cli'",
-          [t.cohort_id, now],
-        );
-      }
       await c.query(
         "UPDATE cohorts SET state='finished',generation=generation+1 WHERE state='running' AND (budget->>'deadlineAt')::timestamptz<=$1",
         [now],
@@ -326,7 +322,7 @@ export class Store {
       if (total >= maxConcurrency) return null;
       const a = (
         await c.query<AgentRow>(
-          "SELECT a.* FROM agents a JOIN cohorts c ON c.id=a.cohort_id WHERE c.state='running' AND a.state='ready' AND a.credential_state='ready' AND a.next_due_at<=$1 AND NOT EXISTS(SELECT 1 FROM turns t WHERE t.agent_id=a.id AND t.state IN('running','pending')) ORDER BY a.next_due_at,a.ordinal FOR UPDATE OF a SKIP LOCKED LIMIT 1",
+          "SELECT a.* FROM agents a JOIN cohorts c ON c.id=a.cohort_id WHERE c.state='running' AND a.state='ready' AND a.credential_state='ready' AND a.next_due_at<=$1 AND NOT EXISTS(SELECT 1 FROM agent_blockers b WHERE b.agent_id=a.id) AND NOT EXISTS(SELECT 1 FROM turns t WHERE t.agent_id=a.id AND t.state IN('running','pending','needs_owner')) AND NOT EXISTS(SELECT 1 FROM maintenance_holds h WHERE h.cohort_id=c.id AND h.released_at IS NULL) AND (SELECT count(*) FROM turns x WHERE x.cohort_id=c.id AND x.state='running') < (c.budget->>'concurrency')::int ORDER BY a.next_due_at,a.ordinal FOR UPDATE OF a SKIP LOCKED LIMIT 1",
           [now],
         )
       ).rows[0];
@@ -347,6 +343,16 @@ export class Store {
         "INSERT INTO turns(id,agent_id,cohort_id,generation,fence,worker,state,due_at,started_at,deadline_at) VALUES($1,$2,$3,$4,$5,$6,'running',$7,$8,$9)",
         [id, a.id, cohort.id, cohort.generation, fence, worker, a.next_due_at, now, deadline],
       );
+      await c.query(
+        "UPDATE recovery_operations SET status='complete',phase='retry_admitted',next_attempt_at=NULL,updated_at=$2 WHERE agent_id=$1 AND status='retry'",
+        [a.id, now],
+      );
+      await c.query("INSERT INTO recovery_operations(turn_id,agent_id,cohort_id,updated_at) VALUES($1,$2,$3,$4)", [
+        id,
+        a.id,
+        cohort.id,
+        now,
+      ]);
       return {
         id,
         agentId: a.id,
@@ -360,6 +366,156 @@ export class Store {
         cohort,
       };
     });
+  }
+  async restoreEligibility(id: string, c: Pool | PoolClient = this.pool) {
+    const a = await this.agent(id, c),
+      cohort = await this.cohort(a.cohort_id, c),
+      now = this.now();
+    const interval = cohort.interval_minutes * 60000;
+    const due =
+      a.next_due_at && a.next_due_at > now
+        ? a.next_due_at
+        : new Date(
+            nextSlot(
+              (cohort.anchor_at ?? now).getTime(),
+              interval,
+              Math.floor((a.ordinal * interval) / cohort.count),
+              now.getTime(),
+            ),
+          );
+    await c.query(
+      `UPDATE agents a SET state='ready',reason='RECOVERED',fence=fence+1,next_due_at=$2
+      WHERE a.id=$1 AND a.state='needs_owner' AND a.credential_state='ready'
+      AND NOT EXISTS(SELECT 1 FROM agent_blockers b WHERE b.agent_id=a.id)
+      AND NOT EXISTS(SELECT 1 FROM turns t WHERE t.agent_id=a.id AND (t.state IN('running','pending','needs_owner') OR t.pending_command IS NOT NULL))
+      AND NOT EXISTS(SELECT 1 FROM recovery_operations o WHERE o.agent_id=a.id AND o.status IN('owner','reconcile','executing'))`,
+      [id, due],
+    );
+  }
+  async phase(claim: Claim, phase: string) {
+    await transaction(this.pool, async (c) => {
+      await c.query("SELECT id FROM turns WHERE id=$1 FOR UPDATE", [claim.id]);
+      await this.check(c, claim);
+      await c.query("UPDATE recovery_operations SET phase=$2,updated_at=$3 WHERE turn_id=$1", [
+        claim.id,
+        phase,
+        this.now(),
+      ]);
+    });
+  }
+  async notDispatched(id: string) {
+    // Retain allocation/call counters; this is execution evidence, never fabricated zero usage.
+    await this.pool.query("UPDATE compute_ledger SET status='not_dispatched' WHERE id=$1 AND status='reserved'", [id]);
+  }
+  async beginMaintenance(cohortId: string, reason: string) {
+    if (reason.trim().length < 10 || reason.length > 400) throw new FleetError("MAINTENANCE_REASON_REQUIRED");
+    const cohort = await this.cohort(cohortId);
+    if (["stopped", "finished"].includes(cohort.state)) throw new FleetError("TERMINAL_COHORT");
+    const id = randomUUID(),
+      owner = randomUUID(),
+      now = this.now();
+    await this.pool.query(
+      "INSERT INTO maintenance_holds(id,cohort_id,owner,reason,created_at,expires_at) VALUES($1,$2,$3,$4,$5,$6)",
+      [id, cohortId, owner, reason, now, new Date(now.getTime() + 300000)],
+    );
+    return { id, owner, expiresAt: new Date(now.getTime() + 300000) };
+  }
+  async maintenance(id: string, owner: string, release: boolean) {
+    const now = this.now();
+    const result = await this.pool.query(
+      `UPDATE maintenance_holds h SET expires_at=$3::timestamptz+interval '5 minutes',released_at=CASE WHEN $4 THEN $3 ELSE NULL END
+      WHERE h.id=$1 AND h.owner=$2 AND h.released_at IS NULL AND h.expires_at>$3
+      AND (NOT $4 OR (NOT EXISTS(SELECT 1 FROM turns t WHERE t.cohort_id=h.cohort_id AND t.state='running') AND NOT EXISTS(SELECT 1 FROM agents a WHERE a.cohort_id=h.cohort_id AND a.credential_state='refreshing') AND NOT EXISTS(SELECT 1 FROM oauth_attempts o JOIN agents a ON a.id=o.agent_id WHERE a.cohort_id=h.cohort_id AND o.phase='exchanging'))) RETURNING h.id`,
+      [id, owner, now, release],
+    );
+    if (!result.rowCount) throw new FleetError("MAINTENANCE_NOT_QUIESCENT_OR_FENCED");
+  }
+  async recoverExpired() {
+    const now = this.now();
+    return transaction(this.pool, async (c) => {
+      await c.query("SELECT pg_advisory_xact_lock(19281462)");
+      await c.query(
+        "UPDATE maintenance_holds h SET released_at=$1 WHERE h.released_at IS NULL AND h.expires_at<=$1 AND NOT EXISTS(SELECT 1 FROM turns t WHERE t.cohort_id=h.cohort_id AND t.state='running') AND NOT EXISTS(SELECT 1 FROM agents a WHERE a.cohort_id=h.cohort_id AND a.credential_state='refreshing') AND NOT EXISTS(SELECT 1 FROM oauth_attempts o JOIN agents a ON a.id=o.agent_id WHERE a.cohort_id=h.cohort_id AND o.phase='exchanging')",
+        [now],
+      );
+      const expired = (await c.query("SELECT * FROM turns WHERE state='running' AND deadline_at<=$1 FOR UPDATE", [now]))
+        .rows;
+      for (const t of expired) {
+        const a = await this.agent(t.agent_id, c),
+          cohort = await this.cohort(t.cohort_id, c);
+        const interval = cohort.interval_minutes * 60000;
+        const due = new Date(
+          nextSlot(
+            (cohort.anchor_at ?? now).getTime(),
+            interval,
+            Math.floor((a.ordinal * interval) / cohort.count),
+            now.getTime() + 60000 - 1,
+          ),
+        );
+        await this.settleUndispatched(c, t);
+        const operation = (await c.query("SELECT phase FROM recovery_operations WHERE turn_id=$1", [t.id])).rows[0];
+        if (["model_preparing_tracked", "model_reserved_tracked"].includes(operation?.phase))
+          await c.query("UPDATE compute_ledger SET status='not_dispatched' WHERE turn_id=$1 AND status='reserved'", [
+            t.id,
+          ]);
+        await c.query("UPDATE compute_ledger SET status='unknown' WHERE turn_id=$1 AND status='reserved'", [t.id]);
+        const unknown = Boolean(
+          (await c.query("SELECT 1 FROM compute_ledger WHERE turn_id=$1 AND status='unknown' LIMIT 1", [t.id]))
+            .rowCount,
+        );
+        const state = t.pending_command ? "pending" : unknown ? "needs_owner" : "finished";
+        await c.query(
+          "UPDATE turns SET state=$2,code='WORKER_EXPIRED',unknown_usage=unknown_usage OR $3,finished_at=$4 WHERE id=$1",
+          [t.id, state, unknown, now],
+        );
+        await c.query(
+          "UPDATE recovery_operations SET status=$2,failed_phase=phase,phase=$3,code='WORKER_EXPIRED',next_attempt_at=$4,updated_at=$5 WHERE turn_id=$1",
+          [
+            t.id,
+            t.pending_command ? "reconcile" : unknown ? "owner" : "complete",
+            t.pending_command ? "command_uncertain" : unknown ? "usage_uncertain" : "settled",
+            t.pending_command ? now : null,
+            now,
+          ],
+        );
+        await c.query(
+          "UPDATE agents SET state=CASE WHEN state IN('paused','stopped','unconnected') THEN state WHEN $2 THEN 'needs_owner' ELSE state END,reason='WORKER_EXPIRED',fence=fence+1,next_due_at=greatest(next_due_at,$3::timestamptz) WHERE id=$1",
+          [t.agent_id, unknown || Boolean(t.pending_command), due],
+        );
+        await this.audit(c, t.cohort_id, "operation.expired", {
+          turnId: t.id,
+          unknownUsage: unknown,
+          pendingCommand: Boolean(t.pending_command),
+          scope: "agent",
+        });
+      }
+      await c.query(
+        "UPDATE cohorts SET state='finished',generation=generation+1 WHERE state='running' AND (budget->>'deadlineAt')::timestamptz<=$1",
+        [now],
+      );
+    });
+  }
+  async recoveryCandidate(worker: string) {
+    return (
+      await this.pool.query<{ turn_id: string }>(
+        `WITH candidate AS (
+      SELECT o.turn_id FROM recovery_operations o JOIN cohorts c ON c.id=o.cohort_id
+      JOIN agents a ON a.id=o.agent_id WHERE o.status='reconcile' AND c.state='running'
+      AND a.state NOT IN('paused','stopped') AND o.next_attempt_at<=$1 AND (o.lease_until IS NULL OR o.lease_until<=$1)
+      ORDER BY o.next_attempt_at FOR UPDATE OF o SKIP LOCKED LIMIT 1)
+      UPDATE recovery_operations o SET lease_owner=$2,lease_until=$1::timestamptz+interval '45 seconds',attempts=attempts+1
+      FROM candidate x WHERE o.turn_id=x.turn_id RETURNING o.turn_id`,
+        [this.now(), worker],
+      )
+    ).rows[0];
+  }
+  async deferRecovery(id: string, worker: string, code: string) {
+    await this.pool.query(
+      `UPDATE recovery_operations SET lease_owner=NULL,lease_until=NULL,code=$3,
+      next_attempt_at=$4::timestamptz+least(300,5*power(2,least(attempts,6)))*interval '1 second',updated_at=$4
+      WHERE turn_id=$1 AND lease_owner=$2 AND status='reconcile'`,
+      [id, worker, code, this.now()],
+    );
   }
   private async check(c: Pool | PoolClient, claim: Claim) {
     const r = await c.query(
@@ -402,6 +558,17 @@ export class Store {
     return transaction(this.pool, async (c) => {
       await c.query("SELECT id FROM cohorts WHERE id=$1 FOR UPDATE", [claim.cohortId]);
       await this.check(c, claim);
+      if (
+        claim.cohort.model?.route === "codex-cli" &&
+        b.mode !== "continuous" &&
+        (
+          await c.query(
+            "SELECT 1 FROM compute_ledger l JOIN turns t ON t.id=l.turn_id WHERE l.cohort_id=$1 AND l.status='unknown' AND t.state IN('needs_owner','pending') LIMIT 1",
+            [claim.cohortId],
+          )
+        ).rowCount
+      )
+        throw new FleetError("USAGE_EXPOSURE_GATE");
       const turn = (await c.query("SELECT calls FROM turns WHERE id=$1 FOR UPDATE", [claim.id])).rows[0];
       if (turn.calls >= b.maxCallsPerTurn) throw new FleetError("TURN_CALL_LIMIT");
       const period = b.mode === "daily" ? now.toISOString().slice(0, 10) : "lifetime";
@@ -429,6 +596,11 @@ export class Store {
       if (n !== null && (!Number.isSafeInteger(n) || n < 0)) throw new FleetError("INVALID_USAGE");
     await transaction(this.pool, async (c) => {
       const row = (await c.query("SELECT * FROM compute_ledger WHERE id=$1 FOR UPDATE", [id])).rows[0];
+      if (row?.status === "unknown" && input !== null && output !== null)
+        await c.query(
+          "INSERT INTO usage_observations(allocation_id,input_tokens,output_tokens,observed_at) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING",
+          [id, input, output, this.now()],
+        );
       if (row?.status !== "reserved") return;
       const reported = input !== null && output !== null;
       if (reported)
@@ -443,15 +615,7 @@ export class Store {
         "UPDATE turns SET input_tokens=input_tokens+$2,output_tokens=output_tokens+$3,unknown_usage=unknown_usage OR $4 WHERE id=$1",
         [row.turn_id, input ?? 0, output ?? 0, !reported],
       );
-      const codex =
-        (await c.query("SELECT model->>'route' route FROM cohorts WHERE id=$1", [row.cohort_id])).rows[0]?.route ===
-        "codex-cli";
-      if ((reported && input + output > Number(row.tokens)) || (codex && !reported)) {
-        if (codex)
-          await c.query(
-            "UPDATE cohorts SET state=CASE WHEN (budget->>'deadlineAt')::timestamptz<=$2 THEN 'finished' ELSE 'paused' END,generation=generation+1 WHERE id=$1 AND state='running'",
-            [row.cohort_id, this.now()],
-          );
+      if (reported && input + output > Number(row.tokens)) {
         await c.query(
           "UPDATE agents SET state='needs_owner',reason=$2,fence=fence+1 WHERE id=(SELECT agent_id FROM turns WHERE id=$1)",
           [row.turn_id, reported ? "USAGE_EXCEEDED" : "USAGE_UNKNOWN"],
@@ -459,10 +623,15 @@ export class Store {
       }
     });
   }
-  async pending(claim: Claim, id: string, action: Data) {
+  async pending(claim: Claim, id: string, action: Data, tracked = false) {
     await transaction(this.pool, async (c) => {
       await this.check(c, claim);
       await c.query("UPDATE turns SET pending_command=$2,pending_action=$3 WHERE id=$1", [claim.id, id, action]);
+      if (tracked)
+        await c.query("UPDATE recovery_operations SET phase='command_prepared',updated_at=$2 WHERE turn_id=$1", [
+          claim.id,
+          this.now(),
+        ]);
       await new Observability(this).record(claim, "acting", "Submitting game action", { commandId: id, action }, c);
     });
   }
@@ -470,7 +639,7 @@ export class Store {
     c: PoolClient,
     turn: { id: string; agent_id: string; cohort_id: string; pending_command: string; pending_action: Data },
     code: string,
-    source: "receipt" | "explicit_rejection" | "operator_review",
+    source: "receipt" | "explicit_rejection" | "operator_review" | "not_dispatched",
     evidence: Data,
   ) {
     await c.query(
@@ -487,6 +656,24 @@ export class Store {
         evidence,
       ],
     );
+  }
+  private async settleUndispatched(
+    c: PoolClient,
+    t: { id: string; agent_id: string; cohort_id: string; pending_command: string | null; pending_action: Data | null },
+  ) {
+    if (!t.pending_command || !t.pending_action) return;
+    const op = (await c.query("SELECT phase FROM recovery_operations WHERE turn_id=$1", [t.id])).rows[0];
+    if (op?.phase !== "command_prepared") return;
+    await this.archiveCommand(
+      c,
+      { ...t, pending_command: t.pending_command, pending_action: t.pending_action },
+      "COMMAND_NOT_DISPATCHED",
+      "not_dispatched",
+      { phase: "command_prepared", policy: "scoped-recovery-v1", replayed: false },
+    );
+    await c.query("UPDATE turns SET pending_command=NULL,pending_action=NULL WHERE id=$1", [t.id]);
+    t.pending_command = null;
+    t.pending_action = null;
   }
   async receipt(
     claim: Pick<Claim, "id" | "agentId" | "cohortId">,
@@ -511,6 +698,19 @@ export class Store {
           this.now(),
         ],
       );
+      if (terminal) {
+        const unknown = (
+          await c.query("SELECT 1 FROM compute_ledger WHERE turn_id=$1 AND status IN('reserved','unknown') LIMIT 1", [
+            claim.id,
+          ])
+        ).rowCount;
+        if (unknown) await c.query("UPDATE turns SET state='needs_owner' WHERE id=$1", [claim.id]);
+        await c.query(
+          "UPDATE recovery_operations SET status=$2,phase=$3,next_attempt_at=NULL,lease_owner=NULL,lease_until=NULL,updated_at=$4 WHERE turn_id=$1",
+          [claim.id, unknown ? "owner" : "complete", unknown ? "usage_uncertain" : "settled", this.now()],
+        );
+        await this.restoreEligibility(claim.agentId, c);
+      }
       await new Observability(this).record(
         claim,
         "result",
@@ -531,6 +731,7 @@ export class Store {
     await transaction(this.pool, async (c) => {
       const t = (await c.query("SELECT * FROM turns WHERE id=$1 FOR UPDATE", [claim.id])).rows[0];
       if (!t || !["running", "pending", "needs_owner"].includes(t.state)) return;
+      await this.settleUndispatched(c, t);
       const unknown = await c.query(
         "UPDATE compute_ledger SET status='unknown' WHERE turn_id=$1 AND status='reserved' RETURNING id",
         [claim.id],
@@ -539,32 +740,11 @@ export class Store {
       const fenced =
         (await c.query("SELECT 1 FROM agents WHERE id=$1 AND fence=$2", [claim.agentId, claim.fence])).rowCount === 0;
       const pending = Boolean(t.pending_command),
-        bad = [
-          "TRANSPORT_UNCERTAIN",
-          "IDENTITY_MISMATCH",
-          "AUTH_REQUIRED",
-          "INVALID_DECISION",
-          "USAGE_EXCEEDED",
-          "USAGE_UNKNOWN",
-          "SCHEMA_CHANGED",
-        ].includes(code);
-      const codexFailure = claim.cohort.model?.route === "codex-cli" && (unknown.rowCount || code.startsWith("CODEX_"));
-      if (codexFailure) {
-        await c.query(
-          "UPDATE cohorts SET state=CASE WHEN (budget->>'deadlineAt')::timestamptz<=$2 THEN 'finished' ELSE 'paused' END,generation=generation+1 WHERE id=$1 AND state='running'",
-          [claim.cohortId, now],
-        );
-      }
+        bad = ["IDENTITY_MISMATCH", "AUTH_REQUIRED", "USAGE_EXCEEDED", "USAGE_UNKNOWN"].includes(code);
       const unresolvedUsage = (
         await c.query("SELECT 1 FROM compute_ledger WHERE turn_id=$1 AND status='unknown' LIMIT 1", [claim.id])
       ).rowCount;
-      const result = pending
-        ? "pending"
-        : bad || codexFailure || unresolvedUsage
-          ? "needs_owner"
-          : fenced
-            ? "cancelled"
-            : "finished";
+      const result = pending ? "pending" : bad || unresolvedUsage ? "needs_owner" : fenced ? "cancelled" : "finished";
       await c.query("UPDATE turns SET state=$2,finished_at=$3,code=$4,summary=$5 WHERE id=$1", [
         claim.id,
         result,
@@ -573,6 +753,23 @@ export class Store {
         summary.slice(0, 400),
       ]);
       await new Observability(this).record(claim, "finished", "Turn completed", { code, summary, state: result }, c);
+      await c.query(
+        `UPDATE recovery_operations SET status=$2,code=$3,failed_phase=phase,phase=$4,next_attempt_at=$5,updated_at=$6 WHERE turn_id=$1`,
+        [
+          claim.id,
+          pending ? "reconcile" : bad || unresolvedUsage ? "owner" : "complete",
+          code,
+          pending
+            ? "command_uncertain"
+            : unresolvedUsage
+              ? "usage_uncertain"
+              : bad
+                ? "authorization_or_exposure"
+                : "settled",
+          pending ? new Date(now.getTime() + 5000) : null,
+          now,
+        ],
+      );
       if (fenced) return;
       const backoff = ["RUN_ALREADY_ACTIVE", "RATE_LIMITED"].includes(code) ? 60000 : 0;
       const anchor = claim.cohort.anchor_at ?? now,
@@ -588,6 +785,36 @@ export class Store {
           ),
         ),
       );
+      if (code === "BUDGET_EXHAUSTED") {
+        const b = claim.cohort.budget;
+        const wake =
+          b?.mode === "daily"
+            ? new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate() + 1))
+            : b?.deadlineAt
+              ? new Date(b.deadlineAt)
+              : next;
+        next.setTime(
+          Math.max(
+            next.getTime(),
+            nextSlot(
+              anchor.getTime(),
+              interval,
+              Math.floor((claim.agent.ordinal * interval) / claim.cohort.count),
+              wake.getTime() - 1,
+            ),
+          ),
+        );
+        await c.query(
+          "UPDATE recovery_operations SET status='retry',phase='budget_wait',next_attempt_at=$2 WHERE turn_id=$1",
+          [claim.id, next],
+        );
+      }
+      if (!pending && !bad && !unresolvedUsage && !["WAIT", "COMMITTED", "ALREADY_COMMITTED"].includes(code))
+        await c.query("UPDATE recovery_operations SET status='retry',phase=$2,next_attempt_at=$3 WHERE turn_id=$1", [
+          claim.id,
+          code === "CONTEXT_LIMIT" ? "input_wait" : "dependency_wait",
+          next,
+        ]);
       const unresolvedFeedback = (
         await c.query(
           "SELECT decision_feedback_cipher IS NOT NULL AND decision_feedback_at > $2 AS present FROM agents WHERE id=$1",
@@ -601,7 +828,7 @@ export class Store {
           next,
           now,
           code,
-          pending || bad || Boolean(codexFailure) || Boolean(unresolvedUsage),
+          pending || bad || Boolean(unresolvedUsage),
           notes?.slice(0, 4000) ?? null,
           ["COMMITTED", "ALREADY_COMMITTED"].includes(code) || (code === "WAIT" && !unresolvedFeedback),
         ],
@@ -621,8 +848,9 @@ export class Store {
       const t = (await c.query("SELECT * FROM turns WHERE id=$1 FOR UPDATE", [id])).rows[0];
       if (!t || t.state !== "needs_owner" || t.pending_command) throw new FleetError("RECOVERY_REQUIRED");
       const cohort = await this.cohort(t.cohort_id, c);
-      if (cohort.state !== "paused") throw new FleetError("PAUSED_REVIEW_REQUIRED");
-      if ((await c.query("SELECT 1 FROM turns WHERE cohort_id=$1 AND state='running' LIMIT 1", [t.cohort_id])).rowCount)
+      const prospective = (await c.query("SELECT 1 FROM recovery_operations WHERE turn_id=$1", [id])).rowCount;
+      if (cohort.state !== "paused" && !prospective) throw new FleetError("PAUSED_REVIEW_REQUIRED");
+      if ((await c.query("SELECT 1 FROM turns WHERE agent_id=$1 AND state='running' LIMIT 1", [t.agent_id])).rowCount)
         throw new FleetError("QUIESCENT_REVIEW_REQUIRED");
       const usage = (
         await c.query(
@@ -632,17 +860,11 @@ export class Store {
       ).rows;
       if (usage.some((u) => u.status === "reserved")) throw new FleetError("EXECUTION_IN_FLIGHT");
       await c.query("UPDATE turns SET state='cancelled' WHERE id=$1", [id]);
-      const otherBlockers = (
-        await c.query(
-          "SELECT 1 FROM turns WHERE agent_id=$1 AND (state IN('running','pending','needs_owner') OR pending_command IS NOT NULL) LIMIT 1",
-          [t.agent_id],
-        )
-      ).rowCount;
-      if (!otherBlockers)
-        await c.query(
-          "UPDATE agents SET state=CASE WHEN credential_state='ready' THEN 'ready' ELSE 'needs_owner' END,fence=fence+1 WHERE id=$1",
-          [t.agent_id],
-        );
+      await c.query(
+        "UPDATE recovery_operations SET status='complete',phase='owner_reviewed',updated_at=$2 WHERE turn_id=$1",
+        [id, this.now()],
+      );
+      await this.restoreEligibility(t.agent_id, c);
       const detail = {
         turnId: id,
         originalCode: t.code,

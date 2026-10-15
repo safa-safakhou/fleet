@@ -1,5 +1,10 @@
 # Fleet engineering
 
+## Recovery/liveness execution - 15 October 2026
+
+Founder authorizes dependency-ordered recovery fixes, deterministic offline verification, commits, SERVER deployment and pushes in both repositories. Read docs/recovery-liveness-status-20261015.json. Codex owns this assignment without delegation. Preserve the existing server50 pause and historical unknown allocations/reviews; no Agent27 review, Agent17 reconnect or cohort resume. Existing local20 runtime stays unchanged; Mac excluded. No new real-model experiments, accounts, authority/economy, budget/schedule/model changes. This supersedes earlier source-only/no-push restrictions for this recovery scope only.
+
+
 ## Existing-installation deployment — 15 October 2026
 
 Founder authorized deploying verified changes to the existing server and Windows/WSL fleets, preserving accounts/history/budgets/schedules and starting no new experiments. PACT `agent-reliability-20261015-1` (385f9fc) and Fleet `9fe70e2d096f209ea73b308789f69d80f23019e0` are installed. Both original local ten-account cohorts are running on their unchanged settings/anchor, with separately recorded normal scheduled coverage; server50 remains paused with all three unknown allocations and Agent17 refresh uncertainty retained. The newest Agent27 timeout needs its own review; do not reopen older reviewed cases. Mac is unavailable/excluded. Read `docs/agent-reliability-deployment-20261015.md`. Do not delegate, push, run new model experiments, reconnect, review unknowns, cancel/replay, change authority/economy, reset counters or restart terminal populations. Earlier source-only sections below are historical; this covering deployment authorization supersedes their deployment restriction for this release.

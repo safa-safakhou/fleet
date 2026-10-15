@@ -1,16 +1,17 @@
 import { FleetError, type ModelPort, object } from "./domain.js";
 import { jsonRequest } from "./http.js";
 export class HttpModel implements ModelPort {
+  readonly tracksDispatch = true;
   constructor(
     private routes: { ollama?: string; "openai-compatible"?: string },
     private apiKey: string | undefined,
   ) {}
   async decide(input: Parameters<ModelPort["decide"]>[0]) {
-    if (input.model.route === "codex-cli") throw new FleetError("CODEX_CONFIGURATION_REQUIRED");
+    if (input.model.route === "codex-cli") throw new FleetError("CODEX_CONFIGURATION_REQUIRED", true);
     const base = this.routes[input.model.route];
-    if (!base) throw new FleetError("MODEL_ENDPOINT_REQUIRED");
+    if (!base) throw new FleetError("MODEL_ENDPOINT_REQUIRED", true);
     const ollama = input.model.route === "ollama";
-    if (!ollama && !this.apiKey) throw new FleetError("MODEL_CREDENTIAL_REQUIRED");
+    if (!ollama && !this.apiKey) throw new FleetError("MODEL_CREDENTIAL_REQUIRED", true);
     const body = ollama
       ? {
           model: input.model.model,
@@ -31,6 +32,7 @@ export class HttpModel implements ModelPort {
             json_schema: { name: "fleet_decision", strict: false, schema: input.schema },
           },
         };
+    await input.onDispatch?.();
     const { data } = await jsonRequest(
       `${base}${ollama ? "/api/chat" : "/chat/completions"}`,
       {
@@ -67,6 +69,9 @@ export class HttpModel implements ModelPort {
 }
 
 export class RoutedModel implements ModelPort {
+  get tracksDispatch() {
+    return this.http.tracksDispatch === true && this.codex.tracksDispatch === true;
+  }
   constructor(
     private http: ModelPort,
     private codex: ModelPort,

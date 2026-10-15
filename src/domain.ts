@@ -105,7 +105,10 @@ export function safeCode(error: unknown): string {
   return "TRANSPORT_UNCERTAIN";
 }
 export class FleetError extends Error {
-  constructor(readonly code: string) {
+  constructor(
+    readonly code: string,
+    readonly notDispatched = false,
+  ) {
     super(code);
   }
 }
@@ -148,11 +151,13 @@ export interface GamePort {
   close(): Promise<void>;
 }
 export interface ModelPort {
+  readonly tracksDispatch?: boolean;
   decide(input: {
     model: ModelSettings;
     messages: { role: string; content: string }[];
     schema: Data;
     maxOutputTokens: number;
     signal: AbortSignal;
+    onDispatch?: () => Promise<void>;
   }): Promise<{ decision: unknown; inputTokens: number | null; outputTokens: number | null; decisionError?: string }>;
 }
