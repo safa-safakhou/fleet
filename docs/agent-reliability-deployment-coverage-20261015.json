@@ -1,0 +1,232 @@
+{
+  "observedThrough": "2026-10-15T10:45:18.151Z",
+  "resumedAt": "2026-10-15T10:36:52.403400+00:00",
+  "fleetRuntimeSource": "9fe70e2d096f209ea73b308789f69d80f23019e0",
+  "gameRuntimeSource": "385f9fc079b7529f274c0a593c5278c91f5fa1ac",
+  "preservedBindingsAndConfigurationAndAnchors": true,
+  "newExperiments": false,
+  "unknown": 0,
+  "pendingCommands": 0,
+  "accounts": [
+    {
+      "cohort": "cognition_laya",
+      "ordinal": 1,
+      "turns": 2,
+      "finished": 2,
+      "calls": 4,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "cognition_laya",
+      "ordinal": 2,
+      "turns": 3,
+      "finished": 3,
+      "calls": 3,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "cognition_laya",
+      "ordinal": 3,
+      "turns": 3,
+      "finished": 3,
+      "calls": 3,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "cognition_laya",
+      "ordinal": 4,
+      "turns": 2,
+      "finished": 2,
+      "calls": 2,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "cognition_laya",
+      "ordinal": 5,
+      "turns": 2,
+      "finished": 2,
+      "calls": 2,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "cognition_laya",
+      "ordinal": 6,
+      "turns": 2,
+      "finished": 2,
+      "calls": 2,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "cognition_laya",
+      "ordinal": 7,
+      "turns": 2,
+      "finished": 2,
+      "calls": 2,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "cognition_laya",
+      "ordinal": 8,
+      "turns": 2,
+      "finished": 2,
+      "calls": 2,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "cognition_laya",
+      "ordinal": 9,
+      "turns": 2,
+      "finished": 2,
+      "calls": 3,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "cognition_laya",
+      "ordinal": 10,
+      "turns": 2,
+      "finished": 2,
+      "calls": 2,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "llm_only",
+      "ordinal": 1,
+      "turns": 2,
+      "finished": 2,
+      "calls": 4,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "OBSERVED_BUILDING_BUSY"
+    },
+    {
+      "cohort": "llm_only",
+      "ordinal": 2,
+      "turns": 3,
+      "finished": 3,
+      "calls": 4,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "llm_only",
+      "ordinal": 3,
+      "turns": 3,
+      "finished": 2,
+      "calls": 5,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "OBSERVED_BUILDING_BUSY"
+    },
+    {
+      "cohort": "llm_only",
+      "ordinal": 4,
+      "turns": 2,
+      "finished": 2,
+      "calls": 2,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "llm_only",
+      "ordinal": 5,
+      "turns": 2,
+      "finished": 2,
+      "calls": 4,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "OBSERVED_BUILDING_BUSY"
+    },
+    {
+      "cohort": "llm_only",
+      "ordinal": 6,
+      "turns": 2,
+      "finished": 2,
+      "calls": 3,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "llm_only",
+      "ordinal": 7,
+      "turns": 2,
+      "finished": 2,
+      "calls": 3,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "INVALID_MODEL_OUTPUT"
+    },
+    {
+      "cohort": "llm_only",
+      "ordinal": 8,
+      "turns": 2,
+      "finished": 2,
+      "calls": 3,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "llm_only",
+      "ordinal": 9,
+      "turns": 2,
+      "finished": 2,
+      "calls": 4,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    },
+    {
+      "cohort": "llm_only",
+      "ordinal": 10,
+      "turns": 2,
+      "finished": 2,
+      "calls": 2,
+      "actions": 0,
+      "state": "ready",
+      "credential_state": "ready",
+      "reason": "WAIT"
+    }
+  ]
+}

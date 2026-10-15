@@ -1,6 +1,6 @@
 {
   "schema_version": 1,
-  "authorization": "founder_20261015_source_offline_only",
+  "authorization": "founder_20261015_existing_server_and_windows_deployment_no_new_experiments",
   "remote_tracking": "Linear read UNAUTHORIZED: connector requires reauthentication; no remote issue/status/assignee invented",
   "tasks": [
     {
@@ -197,14 +197,27 @@
         "Late/stale workers cannot commit or overwrite rotated grants. Rollback cannot replace newer game state with an old backup or fabricate usage.",
         "Source implementation, experiments, actual reconnects/reviews, deployment and push each require explicit covering assignments. Saving this plan starts none of them."
       ],
-      "evidence": ["docs/agent-reliability-rollout-20261015.md"],
+      "evidence": ["docs/agent-reliability-rollout-20261015.md", "docs/agent-reliability-deployment-20261015.md"],
       "gated_acceptance": [
-        "Actual approved provider qualification, owner authority choice, exact bounded canaries/live preservation, rollout/reconnect/reviews and push remain separate gates"
+        "Server resumption needs newest Agent27 timeout review; Agent17 same-account reconnect remains separate. Older reviewed unknown markers stay retained.",
+        "Owner authority/product choices, actual pinned provider qualification, independent behavior experiments and push remain separate gates."
       ],
-      "dependency_gate": "Source compatibility, additive migration/retention/preservation rehearsal and gated release/rollback proposal complete"
+      "dependency_gate": "Verified source and installed preservation/readiness complete; local20 observed on original schedules; server50 live-provider acceptance remains paused."
     }
   ],
-  "completion_scope": "verified_source_offline_only",
-  "live_acceptance": "not_certified; owner/provider/product/recovery/rollout/push gates remain",
-  "consolidated_report": "docs/agent-reliability-source-acceptance-20261015.md"
+  "completion_scope": "verified_source_offline_and_actual_existing_installations_deployed",
+  "live_acceptance": "Windows20 observed separately on original schedules; server50 paused with recovery gates retained; strategic/provider/economic qualification not certified",
+  "consolidated_report": "docs/agent-reliability-source-acceptance-20261015.md",
+  "deployment_report": "docs/agent-reliability-deployment-20261015.md",
+  "deployment": {
+    "gameSource": "385f9fc079b7529f274c0a593c5278c91f5fa1ac",
+    "fleetSource": "9fe70e2d096f209ea73b308789f69d80f23019e0",
+    "server50": "installed_paused",
+    "windows20": "installed_original_running_settings_preserved",
+    "mac": "unavailable_excluded",
+    "unknownReviewsOrReconnects": false,
+    "newExperiments": false,
+    "push": false
+  },
+  "deployment_coverage": "docs/agent-reliability-deployment-coverage-20261015.json"
 }

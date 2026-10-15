@@ -1,5 +1,7 @@
 # Consolidated source acceptance and remaining gates
 
+Subsequent authorized existing-installation deployment: [actual acceptance](agent-reliability-deployment-20261015.md). The source/offline scope and gates below describe the earlier stage.
+
 15 October 2026. Founder-authorized dependency-ordered implementation, verification and local commits for all 22 PACT/Fleet tasks is complete **at source/offline scope**. This is not full live/product acceptance, proof of improved model intelligence, or a claim that every possible bug is found. The original plan's proposal language is historical; the local status registers and this report describe execution. Linear returned UNAUTHORIZED / reauthentication required, so no remote issue, assignment or hosted result is invented. PACT-170 and unrelated roadmap/assignees are preserved.
 
 The implementation corrects actual owner-intent/recall wiring, overly broad output schemas, typed-reference errors, unusable observation packing, stale waits/final-decision handoff, incomplete authority evidence and unsafe recovery classification. Social attention now exposes whole actionable proposals and obligations without prescribing a strategy. Guide acknowledgement was already false by default; its explicit opt-out is a safeguard, not a confirmed historical bug. A later review reproduced and repaired automatic peer-read failures that previously ended a turn before inference. These changes are committed source and are not installed in the running fleets.
