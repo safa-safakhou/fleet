@@ -91,8 +91,8 @@
       "id": "AR-F06",
       "title": "Consume authoritative admission quotes",
       "depends_on": ["AR-F05", "AR-P06"],
-      "status": "todo",
-      "assignee": null,
+      "status": "done",
+      "assignee": "codex-agent-reliability-20261015",
       "plan": "docs/agent-reliability-plan-20261015.md",
       "acceptance": [
         "All 106 Luna quota cases and seventeen local legitimate waiting orders are correctly classified through the shared fixtures. Zero reserve floors are not blamed; overlapping stock/prerequisite blockers remain visible.",
@@ -100,8 +100,9 @@
         "Stale/racing quotes safely hand off the server refusal without duplicate commands, guessed targets or automatic cancellation/authority relaxation.",
         "An offered action family is never equated with enough stock, ordinary troops or remaining permission. Existing budgets, original pending IDs and human-only routes remain intact."
       ],
-      "evidence": [],
-      "gated_acceptance": []
+      "evidence": ["docs/agent-reliability-admission-20261015.md"],
+      "gated_acceptance": [],
+      "dependency_gate": "Joint source numeric and isolated database admission/version/privacy/delivery acceptance verified"
     },
     {
       "id": "AR-F07",

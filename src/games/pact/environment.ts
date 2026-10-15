@@ -14,6 +14,7 @@ const core = [
   "nextUpgradeChecks",
   "constructionRecovery",
   "mandate",
+  "authority",
   "socialDelegation",
   "charges",
   "upkeep",

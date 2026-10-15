@@ -1,0 +1,3120 @@
+{
+  "source": "Sanitized numeric diagnostics retained 14 October 2026. IDs/timestamps/private content removed. Quota replay establishes sufficient authority cause, not complete historical stock/state. Waiting replay reconstructs reported prerequisite categories; original complete levels were not retained in this diagnostic.",
+  "quotaRefusals": [
+    {
+      "case": 1,
+      "building": "hall",
+      "target": 3,
+      "costWhole": {
+        "iron": 540.0,
+        "silver": 270.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 690.0,
+          "reserved": 0.0,
+          "remaining": 310.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 345.0,
+          "reserved": 0.0,
+          "remaining": 655.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 2,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 800.0,
+          "reserved": 0.0,
+          "remaining": 200.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 420.0,
+          "reserved": 0.0,
+          "remaining": 580.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 3,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 800.0,
+          "reserved": 0.0,
+          "remaining": 200.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 420.0,
+          "reserved": 0.0,
+          "remaining": 580.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 4,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 750.0,
+          "reserved": 240.0,
+          "remaining": 10.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 405.0,
+          "reserved": 120.0,
+          "remaining": 475.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 5,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 750.0,
+          "reserved": 240.0,
+          "remaining": 10.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 405.0,
+          "reserved": 120.0,
+          "remaining": 475.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 6,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 7,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 750.0,
+          "reserved": 240.0,
+          "remaining": 10.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 405.0,
+          "reserved": 120.0,
+          "remaining": 475.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 8,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 9,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 10,
+      "building": "hall",
+      "target": 3,
+      "costWhole": {
+        "iron": 540.0,
+        "silver": 270.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 800.0,
+          "reserved": 150.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 420.0,
+          "reserved": 75.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 11,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 12,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 13,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 14,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 15,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 16,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 17,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 18,
+      "building": "hall",
+      "target": 3,
+      "costWhole": {
+        "iron": 540.0,
+        "silver": 270.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 810.0,
+          "reserved": 0.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 435.0,
+          "reserved": 0.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 19,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 20,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 21,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 22,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 23,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 570.0,
+          "reserved": 240.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 315.0,
+          "reserved": 120.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 24,
+      "building": "hall",
+      "target": 3,
+      "costWhole": {
+        "iron": 540.0,
+        "silver": 270.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 25,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 26,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 27,
+      "building": "hall",
+      "target": 3,
+      "costWhole": {
+        "iron": 540.0,
+        "silver": 270.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 630.0,
+          "reserved": 280.0,
+          "remaining": 90.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 345.0,
+          "reserved": 140.0,
+          "remaining": 515.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 28,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 810.0,
+          "reserved": 0.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 435.0,
+          "reserved": 0.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 29,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 30,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 630.0,
+          "reserved": 280.0,
+          "remaining": 90.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 345.0,
+          "reserved": 140.0,
+          "remaining": 515.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 31,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 32,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 33,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 34,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 35,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 810.0,
+          "reserved": 0.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 435.0,
+          "reserved": 0.0,
+          "remaining": 565.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 36,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 37,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 38,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 39,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 40,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 41,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 42,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 43,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 44,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 45,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 46,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 47,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 48,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 49,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 50,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 690.0,
+          "reserved": 280.0,
+          "remaining": 30.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 375.0,
+          "reserved": 140.0,
+          "remaining": 485.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 51,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 52,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 840.0,
+          "reserved": 0.0,
+          "remaining": 160.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 420.0,
+          "reserved": 0.0,
+          "remaining": 580.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 53,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 54,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 690.0,
+          "reserved": 280.0,
+          "remaining": 30.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 375.0,
+          "reserved": 140.0,
+          "remaining": 485.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 55,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 56,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 840.0,
+          "reserved": 0.0,
+          "remaining": 160.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 420.0,
+          "reserved": 0.0,
+          "remaining": 580.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 57,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 58,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 690.0,
+          "reserved": 280.0,
+          "remaining": 30.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 375.0,
+          "reserved": 140.0,
+          "remaining": 485.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 59,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 60,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 840.0,
+          "reserved": 0.0,
+          "remaining": 160.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 420.0,
+          "reserved": 0.0,
+          "remaining": 580.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 61,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 62,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 690.0,
+          "reserved": 280.0,
+          "remaining": 30.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 375.0,
+          "reserved": 140.0,
+          "remaining": 485.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 63,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 64,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 840.0,
+          "reserved": 0.0,
+          "remaining": 160.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 420.0,
+          "reserved": 0.0,
+          "remaining": 580.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 65,
+      "building": "hall",
+      "target": 3,
+      "costWhole": {
+        "iron": 540.0,
+        "silver": 270.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 930.0,
+          "reserved": 0.0,
+          "remaining": 70.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 66,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 67,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 690.0,
+          "reserved": 280.0,
+          "remaining": 30.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 375.0,
+          "reserved": 140.0,
+          "remaining": 485.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 68,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 69,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 70,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 690.0,
+          "reserved": 280.0,
+          "remaining": 30.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 375.0,
+          "reserved": 140.0,
+          "remaining": 485.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 71,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 72,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 73,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 690.0,
+          "reserved": 280.0,
+          "remaining": 30.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 375.0,
+          "reserved": 140.0,
+          "remaining": 485.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 74,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 890.0,
+          "reserved": 0.0,
+          "remaining": 110.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 465.0,
+          "reserved": 0.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 75,
+      "building": "market",
+      "target": 3,
+      "costWhole": {
+        "iron": 120.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 390.0,
+          "reserved": 540.0,
+          "remaining": 70.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 195.0,
+          "reserved": 270.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 76,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 77,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 690.0,
+          "reserved": 280.0,
+          "remaining": 30.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 375.0,
+          "reserved": 140.0,
+          "remaining": 485.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 78,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 770.0,
+          "reserved": 0.0,
+          "remaining": 230.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 405.0,
+          "reserved": 0.0,
+          "remaining": 595.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 79,
+      "building": "market",
+      "target": 3,
+      "costWhole": {
+        "iron": 120.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 390.0,
+          "reserved": 540.0,
+          "remaining": 70.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 195.0,
+          "reserved": 270.0,
+          "remaining": 535.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 80,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 81,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 690.0,
+          "reserved": 280.0,
+          "remaining": 30.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 375.0,
+          "reserved": 140.0,
+          "remaining": 485.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 82,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 770.0,
+          "reserved": 0.0,
+          "remaining": 230.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 405.0,
+          "reserved": 0.0,
+          "remaining": 595.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 83,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 84,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 540.0,
+          "reserved": 280.0,
+          "remaining": 180.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 300.0,
+          "reserved": 140.0,
+          "remaining": 560.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 85,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 770.0,
+          "reserved": 0.0,
+          "remaining": 230.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 405.0,
+          "reserved": 0.0,
+          "remaining": 595.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 86,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 87,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 540.0,
+          "reserved": 280.0,
+          "remaining": 180.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 300.0,
+          "reserved": 140.0,
+          "remaining": 560.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 88,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 770.0,
+          "reserved": 0.0,
+          "remaining": 230.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 405.0,
+          "reserved": 0.0,
+          "remaining": 595.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 89,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 950.0,
+          "reserved": 0.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 495.0,
+          "reserved": 0.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 90,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 540.0,
+          "reserved": 280.0,
+          "remaining": 180.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 300.0,
+          "reserved": 140.0,
+          "remaining": 560.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 91,
+      "building": "wall",
+      "target": 3,
+      "costWhole": {
+        "iron": 240.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 770.0,
+          "reserved": 0.0,
+          "remaining": 230.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 405.0,
+          "reserved": 0.0,
+          "remaining": 595.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 92,
+      "building": "farm",
+      "target": 4,
+      "costWhole": {
+        "iron": 280.0,
+        "silver": 140.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 810.0,
+          "reserved": 0.0,
+          "remaining": 190.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 375.0,
+          "reserved": 0.0,
+          "remaining": 625.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 93,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 360.0,
+          "reserved": 540.0,
+          "remaining": 100.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 210.0,
+          "reserved": 270.0,
+          "remaining": 520.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 94,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 360.0,
+          "reserved": 540.0,
+          "remaining": 100.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 210.0,
+          "reserved": 270.0,
+          "remaining": 520.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 95,
+      "building": "hall",
+      "target": 3,
+      "costWhole": {
+        "iron": 540.0,
+        "silver": 270.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 780.0,
+          "reserved": 0.0,
+          "remaining": 220.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 390.0,
+          "reserved": 0.0,
+          "remaining": 610.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 96,
+      "building": "farm",
+      "target": 4,
+      "costWhole": {
+        "iron": 280.0,
+        "silver": 140.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 780.0,
+          "reserved": 0.0,
+          "remaining": 220.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 390.0,
+          "reserved": 0.0,
+          "remaining": 610.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 97,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 360.0,
+          "reserved": 540.0,
+          "remaining": 100.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 210.0,
+          "reserved": 270.0,
+          "remaining": 520.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 98,
+      "building": "hall",
+      "target": 3,
+      "costWhole": {
+        "iron": 540.0,
+        "silver": 270.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 780.0,
+          "reserved": 0.0,
+          "remaining": 220.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 390.0,
+          "reserved": 0.0,
+          "remaining": 610.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 99,
+      "building": "hall",
+      "target": 3,
+      "costWhole": {
+        "iron": 540.0,
+        "silver": 270.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 540.0,
+          "reserved": 280.0,
+          "remaining": 180.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 300.0,
+          "reserved": 140.0,
+          "remaining": 560.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 100,
+      "building": "farm",
+      "target": 4,
+      "costWhole": {
+        "iron": 280.0,
+        "silver": 140.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 780.0,
+          "reserved": 0.0,
+          "remaining": 220.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 390.0,
+          "reserved": 0.0,
+          "remaining": 610.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 101,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 360.0,
+          "reserved": 540.0,
+          "remaining": 100.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 210.0,
+          "reserved": 270.0,
+          "remaining": 520.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 102,
+      "building": "farm",
+      "target": 4,
+      "costWhole": {
+        "iron": 280.0,
+        "silver": 140.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 780.0,
+          "reserved": 0.0,
+          "remaining": 220.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 390.0,
+          "reserved": 0.0,
+          "remaining": 610.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 103,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 360.0,
+          "reserved": 540.0,
+          "remaining": 100.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 210.0,
+          "reserved": 270.0,
+          "remaining": 520.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 104,
+      "building": "hall",
+      "target": 3,
+      "costWhole": {
+        "iron": 540.0,
+        "silver": 270.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 780.0,
+          "reserved": 0.0,
+          "remaining": 220.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 390.0,
+          "reserved": 0.0,
+          "remaining": 610.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 105,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 410.0,
+          "reserved": 540.0,
+          "remaining": 50.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 225.0,
+          "reserved": 270.0,
+          "remaining": 505.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    },
+    {
+      "case": 106,
+      "building": "storehouse",
+      "target": 3,
+      "costWhole": {
+        "iron": 180.0,
+        "silver": 90.0
+      },
+      "permissionWhole": {
+        "iron": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 360.0,
+          "reserved": 540.0,
+          "remaining": 100.0
+        },
+        "silver": {
+          "limit": 1000.0,
+          "legacy": 0.0,
+          "rolling_spent": 210.0,
+          "reserved": 270.0,
+          "remaining": 520.0
+        }
+      },
+      "overLimitAssets": ["iron"]
+    }
+  ],
+  "waitingOrders": [
+    {
+      "case": 1,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "34800",
+          "allowance": "24000",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "22700",
+          "allowance": "6000",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 2,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["hall_prerequisite"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "34800",
+          "allowance": "96000",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "17400",
+          "allowance": "48000",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 3,
+      "building": "farm",
+      "target": 3,
+      "state": "waiting",
+      "reasons": ["hall_limit", "insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "72000",
+          "ordinary": "34800",
+          "allowance": "24000",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "36000",
+          "ordinary": "18400",
+          "allowance": "12000",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 4,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "35600",
+          "allowance": "0",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "17800",
+          "allowance": "6000",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 5,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "35600",
+          "allowance": "48000",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "17800",
+          "allowance": "24000",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 6,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["hall_prerequisite"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "35600",
+          "allowance": "96000",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "17800",
+          "allowance": "48000",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 7,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "23400",
+          "allowance": "0",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "13150",
+          "allowance": "0",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 8,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["hall_prerequisite", "insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "23400",
+          "allowance": "0",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "17000",
+          "allowance": "0",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 9,
+      "building": "barracks",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "48000",
+          "ordinary": "23400",
+          "allowance": "0",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "24000",
+          "ordinary": "17000",
+          "allowance": "0",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 10,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "35200",
+          "allowance": "48000",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "17600",
+          "allowance": "24000",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 11,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["hall_prerequisite", "insufficient_iron"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "35200",
+          "allowance": "72000",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "17600",
+          "allowance": "42000",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 12,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["hall_prerequisite", "insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "35200",
+          "allowance": "42000",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "21750",
+          "allowance": "15000",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 14,
+      "building": "wall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["insufficient_iron"],
+      "resources": {
+        "iron": {
+          "cost": "48000",
+          "ordinary": "35000",
+          "allowance": "12000",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "18000",
+          "ordinary": "17500",
+          "allowance": "6000",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 15,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "35000",
+          "allowance": "12000",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "17500",
+          "allowance": "6000",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 16,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["hall_prerequisite", "insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "2200",
+          "allowance": "0",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "2550",
+          "allowance": "0",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 18,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "35000",
+          "allowance": "48000",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "17500",
+          "allowance": "24000",
+          "floor": "0"
+        }
+      }
+    },
+    {
+      "case": 19,
+      "building": "hall",
+      "target": 2,
+      "state": "waiting",
+      "reasons": ["hall_prerequisite", "insufficient_iron", "insufficient_silver"],
+      "resources": {
+        "iron": {
+          "cost": "108000",
+          "ordinary": "34800",
+          "allowance": "72000",
+          "floor": "0"
+        },
+        "silver": {
+          "cost": "54000",
+          "ordinary": "23850",
+          "allowance": "30000",
+          "floor": "0"
+        }
+      }
+    }
+  ]
+}

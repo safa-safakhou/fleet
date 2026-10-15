@@ -14,7 +14,7 @@ function legacy(entry: Data): Data {
   for (let n = 0; n < 8 && value.partialObservation; n++) value = object(value.partialObservation);
   return value;
 }
-const common = ["schemaVersion", "rulesId", "asOfGameTimeMs", "committedTickSequence", "worldStatus"];
+const common = ["schemaVersion", "rulesId", "asOfGameTimeMs", "committedTickSequence", "worldStatus", "authority"];
 const guide = [
   "firstContact",
   "discovery",

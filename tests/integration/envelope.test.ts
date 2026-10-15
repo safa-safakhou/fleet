@@ -65,13 +65,43 @@ it("delivers requested forecasts over six growing-memory scheduled rounds and a 
             coverage: { complete: true },
             next: null,
           }
-        : originalRead(tool, args);
+        : tool === "pact_world_read_v1"
+          ? {
+              ...(await originalRead(tool, args)),
+              authority: {
+                schemaVersion: "pact.authority-observation.v1",
+                asOfGameTimeMs: 60000,
+                mandateVersion: 1,
+                allowedActions: ["building.queue"],
+                troopLimit: 10,
+                troopReserved: 0,
+                resources: Object.fromEntries(
+                  ["iron", "silver", "grain"].map((asset) => [
+                    asset,
+                    {
+                      ceilingUnits: "600000",
+                      legacySpentUnits: "0",
+                      rollingSpentUnits: "90000",
+                      reservedUnits: "30000",
+                      headroomUnits: "480000",
+                      reserveFloorUnits: "0",
+                      releaseSchedule: [{ gameTimeMs: 86460000, units: "90000" }],
+                      reservations: [
+                        { commitmentId: "00000000-0000-4000-8000-000000000003", units: "30000", status: "reserved" },
+                      ],
+                    },
+                  ]),
+                ),
+              },
+            }
+          : originalRead(tool, args);
     let step = 0;
     const model: ModelPort = {
       decide: async (input) => {
         calls++;
         const c = JSON.parse(input.messages[1].content);
         bodies.push(input.messages[1].content);
+        expect(c.environment.authority.resources.iron.headroomUnits).toBe("480000");
         expect(
           Buffer.byteLength(JSON.stringify(input.messages)) + Buffer.byteLength(JSON.stringify(input.schema)),
         ).toBeLessThanOrEqual(24000);

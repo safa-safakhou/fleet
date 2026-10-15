@@ -79,6 +79,7 @@ export function compactFacts(input: Data) {
         ];
       }),
     ),
+    authority: authoritySummary(world.authority),
     buildings: world.buildings,
     builders: world.builders,
     nextUpgradeChecks: world.nextUpgradeChecks,
@@ -440,3 +441,31 @@ export const pactAdapter: GameAdapter = {
   },
   normalizeCommunications: normalize,
 };
+
+function authoritySummary(value: unknown): unknown {
+  const authority = object(value);
+  if (!Object.keys(authority).length) return undefined;
+  return {
+    ...authority,
+    resources: Object.fromEntries(
+      Object.entries(object(authority.resources)).map(([asset, raw]) => {
+        const r = object(raw),
+          schedule = Array.isArray(r.releaseSchedule) ? r.releaseSchedule : [],
+          reservations = Array.isArray(r.reservations) ? r.reservations : [];
+        return [
+          asset,
+          {
+            ...r,
+            releaseSchedule: undefined,
+            reservations: undefined,
+            nextSpendRelease: schedule[0] ?? null,
+            releaseCount: schedule.length,
+            reservationCount: reservations.length,
+            coverage:
+              "Current totals are whole; per-commitment and further release records remain available in selected server decision-support quotes. Reservations have no inferred time expiry.",
+          },
+        ];
+      }),
+    ),
+  };
+}
