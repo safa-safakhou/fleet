@@ -204,7 +204,15 @@ describe("observe decide commit", () => {
                 : [],
               contactRequests:
                 requested && !accepted && claim.agent.kingdom_id === agents[1].kingdom_id
-                  ? [{ requestId, senderKingdomId: agents[0].kingdom_id }]
+                  ? [
+                      {
+                        id: requestId,
+                        kingdomId: agents[0].kingdom_id,
+                        direction: "incoming",
+                        status: "pending",
+                        expiresGameTimeMs: String(f.now().getTime() + 3600000),
+                      },
+                    ]
                   : [],
             }
           : tool === "pact_play_view_v1"

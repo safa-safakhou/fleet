@@ -27,6 +27,8 @@ export interface GameAdapter {
   ): { kinds: string[]; schemas: Data[]; humanOnly: string[]; matrix?: Data[] };
   reviewableRejection?(code: string, action: Data): boolean;
   preflight?(action: Data, facts: Data): Data | undefined;
+  preflightRead?(tool: string, args: Data, facts: Data): Data | undefined;
+  readRejection?(error: unknown, tool: string, args: Data): Data | undefined;
   attention?(facts: Data): { label: string; detail: Data } | undefined;
   compactFacts(facts: Data): Data;
   compactEnvironment?(environment: Data, limit: number): Data;

@@ -39,8 +39,8 @@
       "id": "AR-F03",
       "title": "Grounded typed references",
       "depends_on": ["AR-F02", "AR-P03"],
-      "status": "todo",
-      "assignee": null,
+      "status": "done",
+      "assignee": "codex-agent-reliability-20261015",
       "plan": "docs/agent-reliability-plan-20261015.md",
       "acceptance": [
         "Outgoing/nonexistent/expired/wrong-type/stale-version request controls fail with precise noncommit feedback; valid incoming requests and revoked delegation controls are included.",
@@ -48,8 +48,9 @@
         "Nil/placeholder receipt IDs cannot create fictitious uncertainty or activate original-pending-command reconciliation.",
         "Public/private role controls preserve privacy. Local checks are advisory and PACT atomically rechecks; no client permission system or gameplay arithmetic is introduced."
       ],
-      "evidence": [],
-      "gated_acceptance": []
+      "evidence": ["docs/agent-reliability-references-20261015.md"],
+      "gated_acceptance": [],
+      "dependency_gate": "Joint typed references, privacy, role and fake-engine controls source verified"
     },
     {
       "id": "AR-F04",

@@ -1,0 +1,7 @@
+# Grounded PACT references
+
+AR-F03 consumes PACT-owned typed roles, never a second game permission system. Fresh incoming pending requests alone can be answered; outgoing/nonexistent/wrong-role/expired IDs are refused precisely before a lease or command. Offer sign/counter/withdraw preflight checks current roles and supplied versions. A reference's delegation version must agree with fresh policy; the server still checks actual scope, delegation, status and races atomically.
+
+Owner world unit references distinguish ordinary home Spearmen from Home Guard, offsite, foreign, battle-locked and stale units. Explicit IDs must be fresh and eligible; a complete page with insufficient eligible units cannot certify a scout. An incomplete page never proves the whole army is absent. Older aggregate-only servers do not gain an eligibility guarantee from this adapter. Exact troop, stock and charge admission stays in PACT.
+
+Nil/placeholder receipt IDs yield ordinary failed-read feedback before remote submission. A scoped remote `RECEIPT_NOT_FOUND` likewise remains an ordinary lookup failure within existing decisions; it cannot create an original pending command or activate reconciliation. HTTP 5xx/unknown transport remains unclassified and fails safely. Generic core has optional read-preflight/classification ports and imports no PACT rules. Durable cross-turn feedback is tracked separately under AR-F05.

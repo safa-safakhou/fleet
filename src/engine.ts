@@ -574,7 +574,24 @@ export class Engine {
               tool: t.name,
               args: decision.args,
             });
-            result = await game.read(t.name, decision.args);
+            const preflightRead = this.adapter.preflightRead?.(t.name, decision.args, facts);
+            if (preflightRead) {
+              const feedback: Data = { tool: t.name, args: decision.args, ...preflightRead };
+              decisionFeedback.push(feedback);
+              await observation.record(claim, "result", "Read reference rejected before submission", feedback);
+              lastCode = String(feedback.code);
+              continue;
+            }
+            try {
+              result = await game.read(t.name, decision.args);
+            } catch (error) {
+              const feedback = this.adapter.readRejection?.(error, t.name, decision.args);
+              if (!feedback) throw error;
+              decisionFeedback.push(feedback);
+              await observation.record(claim, "result", "Ordinary scoped read failed", feedback);
+              lastCode = String(feedback.code);
+              continue;
+            }
             this.adapter.applyRead?.(facts, t.name, decision.args, result, claim.agent.kingdom_id);
             const peer = this.adapter.readPeer(t.name, decision.args);
             if (typeof peer === "string") await communications.ingest(claim.agentId, peer, t.name, result);
