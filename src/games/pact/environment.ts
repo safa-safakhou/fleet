@@ -31,7 +31,7 @@ export function compactEnvironment(environment: Data, limit: number): Data {
   const coverage: Data = { complete: false, omittedFields: [], pages: {} };
   output.coverage = coverage;
   output.observationNotice =
-    "Optional records are unknown where omitted; core identity/resources/construction/authority are whole. Use fleet_read_schema and a supported read for missing facts; never invent filters.";
+    "Core facts/authority are whole. Omitted records are unknown; use supported scoped reads, never invent filters.";
   const omitted = coverage.omittedFields as string[];
   const pageCoverage = object(coverage.pages);
   // Reserve metadata before filling pages so an omitted tail never looks empty.
@@ -98,11 +98,10 @@ export function compactEnvironment(environment: Data, limit: number): Data {
       selection: discovery.selection,
       page: discovery.page,
       hasMore: discovery.hasMore,
-      coverage:
-        "Bounded public sample; notice/Court details omitted. Activity is an observation, not a reply promise. Use scoped discovery for further facts.",
+      coverage: "Sample only; notice/Court details omitted. Activity promises no reply. Read further facts.",
     };
     pageCoverage.publicDiscovery = { observed: discovered.length, retained: 0, omitted: discovered.length };
-    pageKinds.push("publicDiscovery");
+    pageKinds.unshift("publicDiscovery");
     const index = omitted.indexOf("publicDiscovery");
     if (index >= 0) omitted.splice(index, 1);
   }

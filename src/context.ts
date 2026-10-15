@@ -13,9 +13,19 @@ export function fitMessages(
   compactReads: (reads: Data[], limit: number) => Data[],
   narrowRead?: (read: Data, limit: number) => Data,
   compactEnvironment?: (environment: Data, limit: number) => Data,
+  schemaForContext?: (context: Data) => Data,
 ) {
   try {
-    return fitAcceptedMessages(context, instructions, schema, limit, compactReads, narrowRead, compactEnvironment);
+    return fitAcceptedMessages(
+      context,
+      instructions,
+      schema,
+      limit,
+      compactReads,
+      narrowRead,
+      compactEnvironment,
+      schemaForContext,
+    );
   } catch (error) {
     const cognition = object(context.cognition),
       recall = object(cognition.recall);
@@ -49,6 +59,7 @@ export function fitMessages(
       compactReads,
       narrowRead,
       compactEnvironment,
+      schemaForContext,
     );
   }
 }
@@ -61,6 +72,7 @@ function fitAcceptedMessages(
   compactReads: (reads: Data[], limit: number) => Data[],
   narrowRead?: (read: Data, limit: number) => Data,
   compactEnvironment?: (environment: Data, limit: number) => Data,
+  schemaForContext?: (context: Data) => Data,
 ) {
   const messages = (c: Data) => [
     { role: "system", content: instructions },
@@ -83,7 +95,11 @@ function fitAcceptedMessages(
     },
   ];
   const fits = (m: ReturnType<typeof messages>) =>
-    Buffer.byteLength(JSON.stringify(m)) + Buffer.byteLength(JSON.stringify(schema)) <= limit;
+    Buffer.byteLength(JSON.stringify(m)) +
+      Buffer.byteLength(
+        JSON.stringify(schemaForContext ? schemaForContext(object(JSON.parse(m[1].content))) : schema),
+      ) <=
+    limit;
   let cognition = object(context.cognition);
   let evidence = Array.isArray(cognition.evidence) ? cognition.evidence.map(object) : [];
   const recall = object(cognition.recall);
@@ -99,10 +115,70 @@ function fitAcceptedMessages(
     const names = Array.isArray(context.availableReads)
       ? context.availableReads.map((r) => ({ name: object(r).name }))
       : [];
+    const currentSchema = schemaForContext ? schemaForContext(context) : schema;
+    const lookupValues = (tool: string, field: string): unknown[] => {
+      const found: unknown[][] = [];
+      const visit = (v: unknown) => {
+        if (Array.isArray(v)) {
+          for (const child of v) visit(child);
+          return;
+        }
+        if (!v || typeof v !== "object") return;
+        const node = object(v),
+          props = object(node.properties);
+        if (object(props.tool).const === tool) {
+          const values = object(object(object(props.args).properties)[field]).enum;
+          if (Array.isArray(values)) found.push(values);
+        }
+        for (const child of Object.values(node)) visit(child);
+      };
+      visit(currentSchema);
+      return found[0] ?? [];
+    };
+    const same = (a: unknown[], b: unknown[]) => a.length === b.length && a.every((v) => b.includes(v));
+    const namedReads = names.map((entry) => entry.name);
+    const advertisedKinds = Array.isArray(context.gameActionKinds) ? context.gameActionKinds : [];
+    const sharedAdvertisements = {
+      ...(namedReads.length && same(namedReads, lookupValues("fleet_read_schema", "name"))
+        ? {
+            availableReads: undefined,
+            availableReadsAt: "fleet_read_schema.args.name enum in output schema (all names)",
+          }
+        : {}),
+      ...(advertisedKinds.length && same(advertisedKinds, lookupValues("fleet_action_schema", "kind"))
+        ? {
+            gameActionKinds: undefined,
+            gameActionKindsAt: "fleet_action_schema.args.kind enum in output schema (all kinds; conditional)",
+          }
+        : {}),
+    };
+    const continuation = object(context.continuation);
+    const history = Array.isArray(continuation.outcomes) ? continuation.outcomes.map(object) : [];
+    const recent = history.at(-1);
+    const retainedOutcomes = history.filter(
+      (outcome) => outcome === recent || !["read", "wait"].includes(String(outcome.category)),
+    );
+    const pagedContinuation =
+      retainedOutcomes.length < history.length
+        ? {
+            continuation: {
+              ...continuation,
+              coverage:
+                "Bounded authored bookkeeping; missing history unknown. WAIT/queue is not completion. Lookup the complete plan.",
+              outcomes: retainedOutcomes,
+              outcomeCoverage: {
+                omittedSuccessfulReadsOrWaits: history.length - retainedOutcomes.length,
+                notice: "Earlier successful reads/waits paged; all failures/commands/latest outcome retained.",
+              },
+            },
+          }
+        : {};
     for (const allowance of [8000, 6000, 4000, 2000, 0]) {
       const smaller = messages({
         ...context,
         availableReads: names,
+        ...sharedAdvertisements,
+        ...pagedContinuation,
         readResults: compactReads(reads, allowance),
         omissions: [
           "Read descriptions/dated cache reduced; core facts, receipts and supplied schemas retained. Missing history is unknown; request it if needed.",
@@ -120,7 +196,7 @@ function fitAcceptedMessages(
         // Dense authority/core state can require more than 4 KB while optional
         // pages make 6 KB too large for the complete provider envelope. Search
         // that interval as well; never infer that a failed coarse bucket cannot fit.
-        for (const allowance of Array.from({ length: 41 }, (_, index) => 12000 - index * 250)) {
+        for (const allowance of Array.from({ length: 201 }, (_, index) => 12000 - index * 50)) {
           let environment: Data;
           try {
             environment = compactEnvironment(object(context.environment), allowance);
@@ -132,6 +208,8 @@ function fitAcceptedMessages(
             ...context,
             environment,
             availableReads: names,
+            ...sharedAdvertisements,
+            ...pagedContinuation,
             readResults: [],
             requestedRead,
             omissions: [
@@ -232,6 +310,12 @@ function fitAcceptedMessages(
       readHistoryCoverage: "Dated/incomplete. Current facts prevail.",
       permissionCoverage:
         "Advertisement conditional; server enforces all identity, permission and prerequisite checks.",
+      // Field listings duplicate the exact delivered schema; retain the analysis
+      // instructions/opportunities and let that schema express the current choices.
+      analysisGuide: context.analysisGuide ? "Follow cognition schema/opportunities; omit unchanged state." : undefined,
+      continuationGuide: context.continuationGuide
+        ? "Bookkeeping, not authority. Fresh facts/outcomes/owner intent prevail; schema lookup."
+        : undefined,
       memoryRead: context.memoryRead
         ? { name: object(context.memoryRead).name, args: object(context.memoryRead).args }
         : undefined,

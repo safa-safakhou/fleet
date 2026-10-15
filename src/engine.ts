@@ -340,17 +340,36 @@ export class Engine {
             const shape = actionSchema(String(object(entry.args).kind));
             if (!actionShapes.some((s) => JSON.stringify(s) === JSON.stringify(shape))) actionShapes.push(shape);
           }
-        const generation = closedDecisionSchema({
-          actionKinds: capability?.kinds ?? actionKinds,
-          actionSchemas: actionShapes,
-          reads: tools.filter(isRead),
-          selectedReadNames: [...selectedReads],
-          memory: !!cognition,
-          continuationLookup: true,
-          ...(decisionState.goal || lookups.some((r) => r.tool === "fleet_continuation_schema")
-            ? { continuationSchema: await continuation.schema(claim.agentId) }
-            : {}),
-        });
+        const continuationShape =
+          decisionState.goal || lookups.some((r) => r.tool === "fleet_continuation_schema")
+            ? await continuation.schema(claim.agentId)
+            : undefined;
+        const buildGeneration = (pageOptional: boolean) =>
+          closedDecisionSchema({
+            actionKinds: capability?.kinds ?? actionKinds,
+            actionSchemas: pageOptional
+              ? actionShapes.filter(
+                  (shape) =>
+                    correctionShapes.includes(shape) ||
+                    lookups.some(
+                      (entry) =>
+                        entry === requestedRead &&
+                        entry.tool === "fleet_action_schema" &&
+                        object(entry.args).kind === object(object(shape.properties).kind).const,
+                    ),
+                )
+              : actionShapes,
+            reads: tools.filter(isRead),
+            selectedReadNames: pageOptional
+              ? lookups
+                  .filter((entry) => entry === requestedRead && entry.tool === "fleet_read_schema")
+                  .map((entry) => String(object(entry.args).name))
+              : [...selectedReads],
+            memory: !!cognition,
+            continuationLookup: true,
+            ...(continuationShape ? { continuationSchema: continuationShape } : {}),
+          });
+        let generation = buildGeneration(false);
         let outputSchema = cognition
           ? bindGenerationSchema(
               analysisSchemaForVersion(object(context.cognition).version, deliveredCognition(context)),
@@ -358,33 +377,63 @@ export class Engine {
             )
           : generation;
         const instructions = this.adapter.instructions + (cognition ? ` ${analysisInstructions}` : "");
-        let messages: ReturnType<typeof fitMessages>;
+        let messages!: ReturnType<typeof fitMessages>;
         try {
-          let fittingContext: Data = context;
-          for (let pass = 0; ; pass++) {
-            if (pass >= 16) throw new FleetError("CONTEXT_LIMIT");
-            messages = fitMessages(
-              fittingContext,
-              instructions,
-              outputSchema,
-              b.inputByteLimit,
-              boundedReads,
-              this.adapter.narrowRead,
-              this.adapter.compactEnvironment,
-            );
-            if (!cognition) break;
-            fittingContext = object(JSON.parse(messages[1].content));
-            outputSchema = bindGenerationSchema(
-              analysisSchemaForVersion(object(context.cognition).version, deliveredCognition(fittingContext)),
-              generation,
-            );
-            if (
-              Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(outputSchema)) <=
-              b.inputByteLimit
-            )
-              break;
-            // Refit only the already delivered subset, then constrain IDs again.
-            // No evicted source can become an admissible citation through padding.
+          const packDecision = () => {
+            let fittingContext: Data = context;
+            for (let pass = 0; ; pass++) {
+              if (pass >= 16) throw new FleetError("CONTEXT_LIMIT");
+              messages = fitMessages(
+                fittingContext,
+                instructions,
+                outputSchema,
+                b.inputByteLimit,
+                boundedReads,
+                this.adapter.narrowRead,
+                this.adapter.compactEnvironment,
+                cognition
+                  ? (deliveredContext) =>
+                      bindGenerationSchema(
+                        analysisSchemaForVersion(
+                          object(context.cognition).version,
+                          deliveredCognition(deliveredContext),
+                        ),
+                        generation,
+                      )
+                  : undefined,
+              );
+              if (!cognition) break;
+              fittingContext = object(JSON.parse(messages[1].content));
+              outputSchema = bindGenerationSchema(
+                analysisSchemaForVersion(object(context.cognition).version, deliveredCognition(fittingContext)),
+                generation,
+              );
+              if (
+                Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(outputSchema)) <=
+                b.inputByteLimit
+              )
+                break;
+              // Refit only the already delivered subset, then constrain IDs again.
+              // No evicted source can become an admissible citation through padding.
+            }
+          };
+          try {
+            packDecision();
+          } catch (error) {
+            if (!(error instanceof FleetError) || error.code !== "CONTEXT_LIMIT") throw error;
+            // Optional upfront shapes are pages, not mandatory evidence. Retain
+            // correction/requested schemas and every advertised lookup choice.
+            // Start again from the original context so accepted recall is intact.
+            generation = buildGeneration(true);
+            context.schemaCoverage =
+              "Other schemas paged; use fleet_read_schema/fleet_action_schema. Requested/correction shapes retained; never guess.";
+            outputSchema = cognition
+              ? bindGenerationSchema(
+                  analysisSchemaForVersion(object(context.cognition).version, deliveredCognition(context)),
+                  generation,
+                )
+              : generation;
+            packDecision();
           }
         } catch (error) {
           if (error instanceof FleetError && error.code === "CONTEXT_LIMIT")

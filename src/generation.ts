@@ -164,13 +164,12 @@ export function closedDecisionSchema(input: {
       : []),
   ];
   const selected = new Set(input.selectedReadNames);
-  const variants: Data[] = [
-    wait,
-    ...[...input.reads.filter((t) => selected.has(t.name)), ...local].map((t) => ({
-      ...read,
-      properties: { ...object(read.properties), tool: { const: t.name }, args: argsShape(t.inputSchema) },
-    })),
-  ];
+  // Share the read envelope without widening any tool/argument pair.
+  // Repeating summary/notes/closure for every advertised schema is pure overhead.
+  const readPairs = [...input.reads.filter((t) => selected.has(t.name)), ...local].map((t) => ({
+    properties: { tool: { const: t.name }, args: argsShape(t.inputSchema) },
+  }));
+  const variants: Data[] = [wait, ...(readPairs.length ? [{ ...read, anyOf: readPairs }] : [])];
   const actions = input.actionSchemas
     .map(executableActionSchema)
     .filter((s) => input.actionKinds.includes(String(object(object(s.properties).kind).const)));
