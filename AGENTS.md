@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Local reboot recovery — 15 October 2026
+
+Founder reported a complete computer restart and explicitly requested running the same local20 again. Exact twenty reboot interruptions were reviewed with original unknown40000 allocations and history retained; Windows Ollama was restarted with its prior process settings and missing certified Laya helper files restored from the previous verified installation. Same accounts, runtime243d9e4, generation18, five-minute anchor, models/allowances and terminal populations remain. Read [docs/local-reboot-recovery-20261015.md](docs/local-reboot-recovery-20261015.md) for preservation and scheduled acceptance. No blanket future unknown review or new experiment is authorized.
+
 ## Existing-cohort recovery and local upgrade - 15 October 2026
 
 Founder explicitly requests resuming the same server50, reconnecting its blocked existing account and reviewing exact interrupted execution to restore eligibility, plus installing the verified recovery Fleet release on both existing local10 cohorts. Read recovery-resumption-status-20261015.json in this repository's operational docs. This supersedes earlier no-review/no-reconnect/no-resume and local-runtime-unchanged restrictions only for these existing-cohort operations. Preserve identities, encrypted history, all allocations/older reviews, original configuration/allowances/anchors and terminal populations. No new experiments, grant-scope/authority/economy/model/budget changes, uncertain-command replay or Mac work. Natural drain, encrypted rollback, ordinary scheduled acceptance, commits and pushes are authorized. Codex owns this work without delegation.
