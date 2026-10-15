@@ -103,6 +103,7 @@ describe("explicit recovery and owner boundaries", () => {
   });
   it("OAuth callback nonce is operator-bound and consumed before an uncertain exchange", async () => {
     const f = await setup();
+    await f.store.setState(f.id, "paused", true);
     await f.store.pool.query(
       "INSERT INTO oauth_attempts(state,agent_id,operator_session,secret_cipher,expires_at) VALUES($1,$2,$3,$4,$5)",
       [
@@ -110,7 +111,12 @@ describe("explicit recovery and owner boundaries", () => {
         f.claim.agentId,
         "operator-one",
         f.store.vault.encrypt(
-          { clientId: "fixture", verifier: "fixture", redirect: "http://fixture/callback" },
+          {
+            clientId: "fixture",
+            verifier: "fixture",
+            redirect: "http://fixture/callback",
+            agentFence: (await f.store.agent(f.claim.agentId)).fence,
+          },
           "oauth:fixture-state",
         ),
         new Date(f.now().getTime() + 1000),

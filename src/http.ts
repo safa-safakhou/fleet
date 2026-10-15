@@ -64,7 +64,7 @@ export async function jsonRequest(
     throw new FleetError("INVALID_REMOTE_RESPONSE");
   }
   if (!r.ok) {
-    const code = object(data.error).code ?? data.code;
+    const code = object(data.error).code ?? (typeof data.error === "string" ? data.error : data.code);
     throw new RemoteRejection(
       typeof code === "string" && /^[A-Z][A-Z0-9_]{1,60}$/.test(code)
         ? code

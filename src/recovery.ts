@@ -21,6 +21,14 @@ export function recoveryPlan(cohortState: string, credentialState: string, agent
         "Pause the fleet and reconnect this same account. Preserve any pending command and avoid repeating an uncertain token exchange.",
     });
   for (const t of turns) {
+    if (t.code === "AUTH_TEMPORARY" && !t.pending_command && credentialState === "ready")
+      steps.push({
+        kind: "scheduled_retry",
+        turnId: String(t.id),
+        instruction:
+          "Both bounded refresh attempts were locally confirmed not processed. The same credentials may retry only at the original scheduled turn; no usage, command, identity or schedule was reset.",
+      });
+
     if (t.state === "running")
       steps.push({
         kind: "wait",

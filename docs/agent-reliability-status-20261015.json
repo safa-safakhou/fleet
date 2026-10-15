@@ -108,8 +108,8 @@
       "id": "AR-F07",
       "title": "Precise command and credential recovery",
       "depends_on": ["AR-F05", "AR-P07"],
-      "status": "todo",
-      "assignee": null,
+      "status": "done",
+      "assignee": "codex-agent-reliability-20261015",
       "plan": "docs/agent-reliability-plan-20261015.md",
       "acceptance": [
         "Nil discretionary receipt, local invalid action and explicit denial replan or hand off as known noncommits. Lost acknowledgment retains the original command and exact reconciliation path; no blind replay.",
@@ -117,8 +117,11 @@
         "Agent 17's 14 October gateway/unused-token evidence remains history. Any future actual reconnect/review requires its own covering authorization; tests use fake credentials/providers.",
         "Unknown usage remains unknown with its allocation; no refund/reset/fabricated usage. Every genuinely blocked state exposes a concrete next step without silently migrating provider or account."
       ],
-      "evidence": [],
-      "gated_acceptance": []
+      "evidence": ["docs/agent-reliability-recovery-20261015.md"],
+      "gated_acceptance": [
+        "Actual Agent 17 or other live reconnect/review remains separately authorized; generic gateway ambiguity still requires same-account reconnect"
+      ],
+      "dependency_gate": "Scoped source diagnostics and deterministic controller recovery/CAS/fence acceptance verified"
     },
     {
       "id": "AR-F08",

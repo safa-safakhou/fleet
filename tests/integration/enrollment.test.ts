@@ -218,20 +218,16 @@ describe("account enrollment", () => {
       id = f.agents[0].id;
     await f.broker.provision(id, mandate);
     const before = await f.broker.load(id);
-    await f.pool.query(
-      "INSERT INTO oauth_attempts(state,agent_id,operator_session,secret_cipher,expires_at) VALUES($1,$2,$3,$4,$5)",
-      [
-        "fixture-state",
-        id,
-        "operator",
-        f.store.vault.encrypt(
-          { clientId: "new-client", verifier: "fixture", redirect: "http://fixture/callback" },
-          "oauth:fixture-state",
-        ),
-        new Date(f.now().getTime() + 1000),
-      ],
+    const originalFetch = fetch;
+    vi.stubGlobal("fetch", async (input: unknown, init: RequestInit = {}) =>
+      new URL(String(input)).pathname === "/oauth/register"
+        ? Response.json({ client_id: "new-client" })
+        : originalFetch(input as RequestInfo, init),
     );
-    await f.broker.oauthFinish("fixture-state", "code", "operator");
+    const started = await f.broker.oauthStart(id, "operator");
+    const state = new URL(started.url).searchParams.get("state");
+    if (!state) throw Error("missing OAuth state");
+    await f.broker.oauthFinish(state, "code", "operator");
     const after = await f.broker.load(id);
     expect(after.entryKey).toBe(before.entryKey);
     expect(after.synthetic).toBe(true);

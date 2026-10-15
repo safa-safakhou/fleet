@@ -26,6 +26,8 @@ The completed five-agent Luna pilot is preserved. A subsequent founder assignmen
 
 [Admission quote source acceptance](docs/agent-reliability-admission-20261015.md) verifies AR-F06 / AR-P06 offline.
 
+[Credential recovery source acceptance](docs/agent-reliability-recovery-20261015.md) verifies AR-F07 / AR-P07 offline; actual reconnect remains gated.
+
 ## Consolidated reliability proposal 15 October
 
 The [Fleet task plan](docs/agent-reliability-plan-20261015.md) and [PACT counterpart](../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md) define proposed/unstarted owner-intent, contract, context, planning/recovery, social and evaluation work. The [twenty local agents investigation](docs/fleet-failure-investigation-20261014.md) and [fifty server Luna causal report](../pact/docs/implementation/reports/fleet-root-causes-20261014.md) remain separate dated evidence. Saving the plans does not authorize implementation, experiments, deployment or changes to existing accounts/settings.

@@ -5,6 +5,7 @@ import { type Data, FleetError, object } from "../../domain.js";
 import { jsonRequest } from "../../http.js";
 import type { Store } from "../../store.js";
 import { McpGame } from "./mcp.js";
+import { refreshFailureEvidence } from "./refresh-evidence.js";
 
 export interface Credentials {
   synthetic?: boolean;
@@ -63,7 +64,13 @@ export class CredentialBroker {
   }
   private async token(secret: Credentials, body: Data) {
     const r = await this.ownerHttp(secret, "/oauth/token", body);
-    if (typeof r.access_token !== "string" || typeof r.refresh_token !== "string" || typeof r.expires_in !== "number")
+    if (
+      typeof r.access_token !== "string" ||
+      typeof r.refresh_token !== "string" ||
+      typeof r.expires_in !== "number" ||
+      !Number.isFinite(r.expires_in) ||
+      r.expires_in <= 0
+    )
       throw new FleetError("AUTH_REQUIRED");
     secret.accessToken = r.access_token;
     secret.refreshToken = r.refresh_token;
@@ -83,25 +90,98 @@ export class CredentialBroker {
     }
   }
   private async refresh(id: string, s: Credentials) {
-    if ((s.expiresAt ?? 0) <= this.store.now().getTime() + 60000) {
-      if (!s.refreshToken || !s.clientId) throw new FleetError("AUTH_REQUIRED");
-      await this.save(id, s, "refreshing");
-      try {
-        await this.token(s, {
-          grant_type: "refresh_token",
-          client_id: s.clientId,
-          refresh_token: s.refreshToken,
-          resource: `${this.base}/mcp`,
-        });
-        await this.save(id, s, "ready");
-      } catch {
-        await this.save(id, s, "needs_reconnect");
-        await this.store.pool.query(
-          "UPDATE agents SET state='needs_owner',reason='REFRESH_UNCERTAIN',fence=fence+1 WHERE id=$1",
-          [id],
-        );
-        throw new FleetError("AUTH_REQUIRED");
+    if ((s.expiresAt ?? 0) > this.store.now().getTime() + 60000) return;
+    if (!s.refreshToken || !s.clientId) throw new FleetError("AUTH_REQUIRED");
+    const before = await this.store.agent(id);
+    const actual = before.secret_cipher
+      ? this.store.vault.decrypt<Credentials>(before.secret_cipher, `agent:${id}`)
+      : {};
+    if (
+      actual.refreshToken !== s.refreshToken ||
+      actual.accessToken !== s.accessToken ||
+      actual.clientId !== s.clientId
+    )
+      throw new FleetError("CLAIM_FENCED");
+    const encrypted = this.store.vault.encrypt(s, `agent:${id}`);
+    const started = await this.store.pool.query(
+      "UPDATE agents SET secret_cipher=$2,credential_state='refreshing' WHERE id=$1 AND secret_cipher IS NOT DISTINCT FROM $3 AND fence=$4 AND account_id IS NOT DISTINCT FROM $5",
+      [id, encrypted, before.secret_cipher, before.fence, before.account_id],
+    );
+    if (started.rowCount !== 1) throw new FleetError("CLAIM_FENCED");
+    const audit = async (phase: string, attempt: number) =>
+      this.store.audit(this.store.pool, before.cohort_id, "credential.refresh", {
+        agentId: id,
+        phase,
+        attempt,
+        meaning: "Metadata only; no credential or usage review.",
+      });
+    const current = async () => {
+      const row = await this.store.agent(id);
+      if (row.fence !== before.fence || row.secret_cipher !== encrypted || row.account_id !== before.account_id)
+        throw new FleetError("CLAIM_FENCED");
+    };
+    let lastEvidence = "not_processed";
+    try {
+      await audit("started", 0);
+      for (let attempt = 1; attempt <= 2; attempt++) {
+        await current();
+        try {
+          lastEvidence = "rotation_unknown";
+          await this.token(s, {
+            grant_type: "refresh_token",
+            client_id: s.clientId,
+            refresh_token: s.refreshToken,
+            resource: `${this.base}/mcp`,
+          });
+          lastEvidence = "rotated";
+          const saved = await this.store.pool.query(
+            "UPDATE agents SET secret_cipher=$2,credential_state='ready' WHERE id=$1 AND secret_cipher=$3 AND fence=$4 AND account_id IS NOT DISTINCT FROM $5",
+            [id, this.store.vault.encrypt(s, `agent:${id}`), encrypted, before.fence, before.account_id],
+          );
+          if (saved.rowCount !== 1) throw new FleetError("CLAIM_FENCED");
+          await audit("rotation_response_saved", attempt);
+          return;
+        } catch (error) {
+          if (lastEvidence === "rotated" || (error instanceof FleetError && error.code === "CLAIM_FENCED")) throw error;
+          lastEvidence = refreshFailureEvidence(error);
+          await audit(lastEvidence, attempt);
+          if (lastEvidence !== "not_processed") throw error;
+          if (attempt === 2) {
+            await current();
+            const reset = await this.store.pool.query(
+              "UPDATE agents SET credential_state='ready' WHERE id=$1 AND secret_cipher=$2 AND fence=$3",
+              [id, encrypted, before.fence],
+            );
+            if (reset.rowCount !== 1) throw new FleetError("CLAIM_FENCED");
+            throw new FleetError("AUTH_TEMPORARY");
+          }
+        }
       }
+    } catch (error) {
+      if (error instanceof FleetError && error.code === "AUTH_TEMPORARY") throw error;
+      if (error instanceof FleetError && error.code === "CLAIM_FENCED" && lastEvidence === "not_processed") {
+        await this.store.pool.query(
+          "UPDATE agents SET credential_state='ready' WHERE id=$1 AND secret_cipher=$2 AND credential_state='refreshing'",
+          [id, encrypted],
+        );
+        throw error;
+      }
+
+      // CAS never overwrites a newer grant. A paused/stale worker may only quarantine
+      // its own still-refreshing ciphertext, preserving tokens and all pending/usage state.
+      await this.store.pool.query(
+        "UPDATE agents SET credential_state='needs_reconnect',state=CASE WHEN state IN('stopped','finished','paused') THEN state ELSE 'needs_owner' END,reason=$3,fence=fence+1 WHERE id=$1 AND secret_cipher=$2 AND credential_state='refreshing'",
+        [
+          id,
+          encrypted,
+          lastEvidence === "rotated"
+            ? "REFRESH_FENCED_ROTATION"
+            : lastEvidence === "rejected"
+              ? "REFRESH_REJECTED"
+              : "REFRESH_UNCERTAIN",
+        ],
+      );
+      throw new FleetError("AUTH_REQUIRED");
     }
   }
   async game(id: string) {
@@ -334,10 +414,11 @@ export class CredentialBroker {
     const a = await this.store.agent(id),
       cohort = await this.store.cohort(a.cohort_id);
     if (["running", "stopped", "finished"].includes(cohort.state)) throw new FleetError("COHORT_NOT_EDITABLE");
-    await transaction(this.store.pool, async (c) => {
+    const agentFence = await transaction(this.store.pool, async (c) => {
       const current = (await c.query("SELECT state FROM cohorts WHERE id=$1 FOR UPDATE", [a.cohort_id])).rows[0];
       if (!["draft", "paused"].includes(current.state)) throw new FleetError("COHORT_NOT_EDITABLE");
-      await c.query("UPDATE agents SET state='unconnected',fence=fence+1 WHERE id=$1", [id]);
+      return (await c.query("UPDATE agents SET state='unconnected',fence=fence+1 WHERE id=$1 RETURNING fence", [id]))
+        .rows[0].fence;
     });
     const redirect = `${this.origin}/api/oauth/callback`,
       verifier = randomBytes(32).toString("base64url"),
@@ -354,7 +435,7 @@ export class CredentialBroker {
         state,
         id,
         operatorSession,
-        this.store.vault.encrypt({ clientId: r.client_id, verifier, redirect }, `oauth:${state}`),
+        this.store.vault.encrypt({ clientId: r.client_id, verifier, redirect, agentFence }, `oauth:${state}`),
         new Date(this.store.now().getTime() + 600000),
       ],
     );
@@ -374,6 +455,17 @@ export class CredentialBroker {
   }
   async oauthFinish(state: string, code: string, session: string) {
     this.enabled();
+    const pending = (
+      await this.store.pool.query(
+        "SELECT agent_id FROM oauth_attempts WHERE state=$1 AND operator_session=$2 AND phase='pending' AND expires_at>$3",
+        [state, session, this.store.now()],
+      )
+    ).rows[0];
+    if (!pending) throw new FleetError("OAUTH_STATE_INVALID");
+    return this.lock(pending.agent_id, () => this.oauthFinishLocked(state, code, session));
+  }
+  private async oauthFinishLocked(state: string, code: string, session: string) {
+    this.enabled();
     const attempt = await transaction(this.store.pool, async (c) => {
       const r = (
         await c.query(
@@ -385,12 +477,21 @@ export class CredentialBroker {
       await c.query("UPDATE oauth_attempts SET phase='exchanging' WHERE state=$1", [state]);
       return r;
     });
-    const s = this.store.vault.decrypt<{ clientId: string; verifier: string; redirect: string }>(
+    const s = this.store.vault.decrypt<{ clientId: string; verifier: string; redirect: string; agentFence?: string }>(
         attempt.secret_cipher,
         `oauth:${state}`,
       ),
       tokens: Credentials = { ...(await this.load(attempt.agent_id)), clientId: s.clientId };
+    const original = await this.store.agent(attempt.agent_id);
     try {
+      if (
+        typeof s.agentFence !== "string" ||
+        !/^(0|[1-9][0-9]*)$/.test(s.agentFence) ||
+        original.fence !== s.agentFence
+      )
+        throw new FleetError("CLAIM_FENCED");
+      if (!["draft", "paused"].includes((await this.store.cohort(original.cohort_id)).state))
+        throw new FleetError("COHORT_NOT_EDITABLE");
       await this.token(tokens, {
         grant_type: "authorization_code",
         client_id: s.clientId,
@@ -410,12 +511,22 @@ export class CredentialBroker {
           const a = await this.store.agent(attempt.agent_id, c);
           const cohort = (await c.query("SELECT state FROM cohorts WHERE id=$1 FOR UPDATE", [a.cohort_id])).rows[0];
           if (!["draft", "paused"].includes(cohort.state)) throw new FleetError("COHORT_NOT_EDITABLE");
+          if (a.fence !== s.agentFence || a.secret_cipher !== original.secret_cipher)
+            throw new FleetError("CLAIM_FENCED");
           if (a.account_id && a.account_id !== profile.accountId) throw new FleetError("IDENTITY_MISMATCH");
           if (a.kingdom_id && a.kingdom_id !== kingdom) throw new FleetError("IDENTITY_MISMATCH");
-          await c.query(
-            "UPDATE agents SET account_id=$2,kingdom_id=$3,secret_cipher=$4,credential_state='ready',state='ready',reason=NULL WHERE id=$1",
-            [a.id, profile.accountId, kingdom, this.store.vault.encrypt(tokens, `agent:${a.id}`)],
+          const saved = await c.query(
+            "UPDATE agents SET account_id=$2,kingdom_id=$3,secret_cipher=$4,credential_state='ready',state='ready',reason=NULL,fence=fence+1 WHERE id=$1 AND fence=$5 AND secret_cipher IS NOT DISTINCT FROM $6",
+            [
+              a.id,
+              profile.accountId,
+              kingdom,
+              this.store.vault.encrypt(tokens, `agent:${a.id}`),
+              s.agentFence,
+              original.secret_cipher,
+            ],
           );
+          if (saved.rowCount !== 1) throw new FleetError("CLAIM_FENCED");
           await c.query("DELETE FROM oauth_attempts WHERE state=$1", [state]);
         });
       } finally {
