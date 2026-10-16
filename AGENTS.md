@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Run debugging deployment — 16 October 2026
+
+Founder authorized local/server installation. Fleet `e1cad0e793a284e96df57c9bddc2dc6e7b5d5898` is installed on both existing runtimes. Read `docs/run-debugging-deployment-20261016.md` for encrypted rollback, exact 23-table preservation, runtime/HTTP checks and actual scheduled server debug capture. Both local cohorts retain running intent, but all20 agents were already blocked by TRANSPORT_UNCERTAIN before deployment;40 unknown allocations remain intact. No interruption review, reconnect or replay was authorized or performed. Server50 continues its original schedule with its3 historical unknown allocations retained. All installation holds are released. No new uncertainty, game deployment, model/budget/schedule change, terminal restart or push occurred.
+
 ## Run debugging dashboard — 16 October 2026
 
 Founder requested and approved the Runs browser and per-run debugging view, with detailed inputs/outputs and clear titles/timing. Read `docs/run-debugging-20261016.md` for locally verified implementation, capture limits, historical coverage and browser evidence. Authenticated per-run reports add encrypted consent-controlled model/tool/Laya/cognition telemetry, exact event timestamps and measured operation durations, JSON export and navigation from every dashboard page and agent history. No migration, runtime installation, push, real-model experiment, account/history/allowance/schedule change or recovery review was performed. Existing runtimes remain pinned; richer capture requires separately authorized installation. Work is owned without delegation.

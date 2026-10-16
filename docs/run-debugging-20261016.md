@@ -1,5 +1,7 @@
 # Run debugging — 16 October 2026
 
+Subsequent founder-authorized installation is complete on the existing local and server runtimes. Read [deployment acceptance and remaining local recovery gates](run-debugging-deployment-20261016.md). Source-only statements below describe the earlier implementation handoff.
+
 Founder requested a dashboard entry on every page, searchable run history, and detailed inputs, outputs and reports for each selected run, with clear titles and timing. The approved bounded design extends the existing authenticated observation/history flow. Implemented locally without delegation; this report does not claim deployment.
 
 ## Operator workflow
