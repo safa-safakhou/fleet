@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Readable run steps, local-first — 16 October 2026
+
+Founder requested explanatory step outcomes with labeled inputs/outputs and retained raw JSON, deployed locally first for testing. Local console selects `7093cb8782e1b81df1ebddfd24a00eec9927b5b5`; read `docs/readable-run-steps-20261016.md` for tests, browser checks and actual local acceptance. Only web assets changed and the console restarted. Existing worker/helper processes and byte-identical backend/dependencies/migrations were retained;22 non-ephemeral table fingerprints matched. No server update, push, recovery review, replay, new inference or account/model/budget/schedule change was performed. Server remains on e1cad0e. Local existing recovery gates remain unchanged.
+
 ## Run debugging deployment — 16 October 2026
 
 Founder authorized local/server installation. Fleet `e1cad0e793a284e96df57c9bddc2dc6e7b5d5898` is installed on both existing runtimes. Read `docs/run-debugging-deployment-20261016.md` for encrypted rollback, exact 23-table preservation, runtime/HTTP checks and actual scheduled server debug capture. Both local cohorts retain running intent, but all20 agents were already blocked by TRANSPORT_UNCERTAIN before deployment;40 unknown allocations remain intact. No interruption review, reconnect or replay was authorized or performed. Server50 continues its original schedule with its3 historical unknown allocations retained. All installation holds are released. No new uncertainty, game deployment, model/budget/schedule change, terminal restart or push occurred.
