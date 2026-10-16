@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { type RecordedTurn, readable } from "./observe.js";
+import { explainStep, StepExplanation } from "./run-steps.js";
 
 type RunData = {
   turn: RecordedTurn & { deadline_at?: string; unknown_usage?: boolean };
@@ -21,21 +22,6 @@ const instant = (at?: string | null) =>
         timeZoneName: "short",
       }).format(new Date(at))
     : "Not recorded";
-const payloadTitles: Record<string, string> = {
-  messages: "Model input messages",
-  outputSchema: "Expected output schema",
-  decision: "Parsed model output",
-  outputText: "Final answer text",
-  result: "Response body",
-  input: "System input",
-  output: "System output",
-  update: "Accepted cognition update",
-  state: "Recorded state",
-  facts: "Observed facts",
-  candidates: "Recall candidates",
-  action: "Game action",
-  receipt: "Command receipt",
-};
 const seconds = (ms: number) => `${(Math.max(0, ms) / 1000).toFixed(3)} s`;
 function Json({ title, value }: { title: string; value: unknown }) {
   return (
@@ -50,11 +36,15 @@ export function RunReport({ data }: { data: RunData }) {
     [stage, setStage] = useState("");
   const t = data.turn,
     events = t.events ?? [];
-  const selected = events.filter(
-    (e) =>
+  const selected = events.filter((e, index) => {
+    const view = explainStep(e, events, index);
+    return (
       (!stage || e.stage === stage) &&
-      `${e.label} ${e.stage} ${JSON.stringify(e.detail)}`.toLowerCase().includes(search.toLowerCase()),
-  );
+      `${e.label} ${e.stage} ${view.explanation} ${view.outcome} ${JSON.stringify(e.detail)}`
+        .toLowerCase()
+        .includes(search.toLowerCase())
+    );
+  });
   return (
     <>
       <div className="section-heading">
@@ -158,7 +148,7 @@ export function RunReport({ data }: { data: RunData }) {
           const index = events.indexOf(e),
             previous = events[index - 1];
           return (
-            <li key={e.id}>
+            <li key={e.id} id={`step-${e.id}`}>
               <span className="step-dot" />
               <div className="step-header">
                 <strong>
@@ -171,54 +161,25 @@ export function RunReport({ data }: { data: RunData }) {
                   {instant(e.at)}
                 </time>{" "}
                 · +{seconds(Date.parse(e.at) - Date.parse(t.started_at))} from start ·{" "}
-                {seconds(Date.parse(e.at) - Date.parse(previous?.at ?? t.started_at))} since previous event
+                {seconds(Date.parse(e.at) - Date.parse(previous?.at ?? t.started_at))} gap since previous event (not
+                step duration)
               </p>
-              {e.detail ? (
-                <>
-                  {typeof e.detail.execution === "number" && <p>Model execution {e.detail.execution}</p>}
-                  {typeof e.detail.elapsedMs === "number" && <p>Operation duration: {seconds(e.detail.elapsedMs)}</p>}
-                  {typeof e.detail.tool === "string" && (
-                    <p>
-                      <b>Tool:</b> {e.detail.tool}
-                    </p>
-                  )}
-                  {typeof e.detail.code === "string" && (
-                    <p>
-                      <b>Result:</b> {e.detail.code}
-                    </p>
-                  )}
-                  {typeof e.detail.summary === "string" && <p>{e.detail.summary}</p>}
-                  {e.detail.omitted === true && (
-                    <p className="error">Payload omitted: {String(e.detail.bytes)} bytes exceeded the capture limit.</p>
-                  )}
-                  {Object.entries(e.detail)
-                    .filter(
-                      ([key, value]) =>
-                        value !== null &&
-                        [
-                          "messages",
-                          "outputSchema",
-                          "decision",
-                          "outputText",
-                          "result",
-                          "input",
-                          "output",
-                          "update",
-                          "state",
-                          "facts",
-                          "candidates",
-                          "action",
-                          "receipt",
-                        ].includes(key),
-                    )
-                    .map(([key, value]) => (
-                      <Json key={key} title={payloadTitles[key] ?? readable(key)} value={value} />
-                    ))}
-                  <Json title="All recorded fields · raw JSON" value={e.detail} />
-                </>
-              ) : (
-                <p className="muted">Private details were not captured, have expired, or observation consent is off.</p>
+              {typeof e.detail?.execution === "number" && <p>Model execution {e.detail.execution}</p>}
+              {typeof e.detail?.elapsedMs === "number" && (
+                <p>Measured operation duration: {seconds(e.detail.elapsedMs)}</p>
               )}
+              <StepExplanation
+                event={e}
+                events={events}
+                index={index}
+                showStep={(id) => {
+                  setSearch("");
+                  setStage("");
+                  requestAnimationFrame(() =>
+                    document.getElementById(`step-${id}`)?.scrollIntoView({ block: "start", behavior: "smooth" }),
+                  );
+                }}
+              />
             </li>
           );
         })}
