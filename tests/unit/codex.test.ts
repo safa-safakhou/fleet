@@ -34,6 +34,7 @@ describe.skipIf(process.platform !== "linux")("subscription Codex process adapte
     const r = await f.model.decide(input());
     expect(r).toEqual({
       decision: { kind: "wait", summary: "Wait for observed changes" },
+      outputText: '{"kind":"wait","summary":"Wait for observed changes"}',
       inputTokens: 123,
       outputTokens: 45,
     });

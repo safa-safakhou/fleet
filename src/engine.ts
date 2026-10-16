@@ -92,7 +92,26 @@ export class Engine {
       game = {
         profile: () => observe(() => original.profile()),
         tools: () => observe(() => original.tools()),
-        read: (tool, args) => observe(() => original.read(tool, args)),
+        read: async (tool, args) => {
+          const startedAt = this.store.now().getTime();
+          await observation.recordDebug(claim, "reading", "Game read request", { tool, args });
+          try {
+            const result = await observe(() => original.read(tool, args));
+            await observation.recordDebug(claim, "ready", "Game read response", {
+              tool,
+              result,
+              elapsedMs: Math.max(0, this.store.now().getTime() - startedAt),
+            });
+            return result;
+          } catch (error) {
+            await observation.recordDebug(claim, "reading", "Game read failed", {
+              tool,
+              code: safeCode(error),
+              elapsedMs: Math.max(0, this.store.now().getTime() - startedAt),
+            });
+            throw error;
+          }
+        },
         open: () => original.open(),
         submit: (id, action) => original.submit(id, action),
         receipt: (id) => original.receipt(id),
@@ -544,6 +563,22 @@ export class Engine {
             inputBytes: bytes,
             inputByteLimit: b.inputByteLimit,
           });
+        await observation.recordDebug(claim, "ready", "Model request", {
+          execution: n + 1,
+          model: m,
+          messages: messages.map((message) => {
+            let content: unknown = message.content;
+            try {
+              content = JSON.parse(message.content);
+            } catch {
+              /* System instructions are plain text. */
+            }
+            return { role: message.role, content };
+          }),
+          outputSchema,
+          maxOutputTokens: b.maxOutputTokens,
+          inputBytes: bytes,
+        });
         if (this.model.tracksDispatch) await this.store.phase(claim, "model_preparing_tracked");
         const reservation = await this.store.reserveCall(claim);
         await this.store.phase(claim, this.model.tracksDispatch ? "model_reserved_tracked" : "model_reserved");
@@ -555,6 +590,7 @@ export class Engine {
           void this.store.active(claim).catch(() => controller.abort());
         }, 500);
         let response: Awaited<ReturnType<ModelPort["decide"]>>;
+        const modelStartedAt = this.store.now().getTime();
         try {
           response = await this.model.decide({
             model: m,
@@ -569,12 +605,28 @@ export class Engine {
           });
         } catch (error) {
           if (error instanceof FleetError && error.notDispatched) await this.store.notDispatched(reservation);
+          await observation.recordDebug(claim, "thinking", "Model execution failed", {
+            execution: n + 1,
+            code: safeCode(error),
+            notDispatched: error instanceof FleetError && error.notDispatched,
+            elapsedMs: Math.max(0, this.store.now().getTime() - modelStartedAt),
+          });
           throw error;
         } finally {
           clearInterval(guard);
           if (this.controller === controller) this.controller = undefined;
         }
         await this.store.recordUsage(reservation, response.inputTokens, response.outputTokens);
+        await observation.recordDebug(claim, "deciding", "Model response", {
+          execution: n + 1,
+          elapsedMs: Math.max(0, this.store.now().getTime() - modelStartedAt),
+          decision: response.decision,
+          outputText: response.outputText ?? null,
+          decisionError: response.decisionError ?? null,
+          inputTokens: response.inputTokens,
+          outputTokens: response.outputTokens,
+          coverage: "Provider final answer only; provider internal reasoning is not captured.",
+        });
         if (response.inputTokens === null || response.outputTokens === null) throw new FleetError("USAGE_UNKNOWN");
         if (response.inputTokens + response.outputTokens > b.perCallTokenLimit) throw new FleetError("USAGE_EXCEEDED");
         await this.store.active(claim);
@@ -814,6 +866,12 @@ export class Engine {
             observedAt: this.store.now().toISOString(),
           };
           reads.push(requestedRead);
+          await observation.recordDebug(claim, "ready", "Tool response", {
+            execution: n + 1,
+            tool: decision.tool,
+            args: decision.args,
+            result,
+          });
           await observation.record(claim, "ready", "Read completed", {
             tool: decision.tool,
             resultFields: Object.keys(result).slice(0, 24),

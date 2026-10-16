@@ -62,6 +62,7 @@ export class HttpModel implements ModelPort {
     return {
       decision,
       decisionError,
+      outputText: typeof message.content === "string" ? message.content : undefined,
       inputTokens: typeof i === "number" ? i : null,
       outputTokens: typeof o === "number" ? o : null,
     };

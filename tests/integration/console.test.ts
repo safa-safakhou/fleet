@@ -36,6 +36,38 @@ async function login(app: ReturnType<typeof buildServer>) {
   return { cookie: String(r.headers["set-cookie"]).split(";")[0], origin, "x-csrf-token": r.json().csrf };
 }
 describe("private operator console", () => {
+  it("loads one complete run with authenticated access, redacted payloads and revocation", async () => {
+    const f = await setup();
+    const id = await ready(f.store, 1);
+    const claim = await f.store.claim("debug-fixture");
+    if (!claim) throw Error("missing claim");
+    await f.store.consent(id, true);
+    const { Observability } = await import("../../src/observability.js");
+    const observation = new Observability(f.store);
+    await observation.recordDebug(claim, "ready", "Model request", {
+      context: { objective: "inspect " + "x".repeat(12000), accessToken: "private-fixture" },
+      outputText: JSON.stringify({ password: "private-fixture" }),
+    });
+    expect((await f.app.inject({ url: `/api/turns/${claim.id}` })).statusCode).toBe(401);
+    const headers = await login(f.app);
+    const result = await f.app.inject({ url: `/api/turns/${claim.id}`, headers });
+    expect(result.statusCode).toBe(200);
+    expect(result.json().turn.id).toBe(claim.id);
+    expect(result.json().turn.events[0].detail.context.objective).toHaveLength(12008);
+    expect(result.json().turn.events[0].detail.context.accessToken).toBe("[redacted]");
+    expect(result.body).not.toContain("private-fixture");
+    const history = await f.app.inject({ url: `/api/cohorts/${id}/turns`, headers });
+    expect(history.json().turns[0].events).toHaveLength(0);
+    await observation.recordDebug(claim, "ready", "Oversized fixture", { input: "x".repeat(300000) });
+    const limited = await f.app.inject({ url: `/api/turns/${claim.id}`, headers });
+    expect(limited.json().turn.events[1].detail).toMatchObject({ omitted: true });
+    const missing = await f.app.inject({ url: `/api/turns/${randomUUID()}`, headers });
+    expect(missing.json().error.code).toBe("NOT_FOUND");
+    await f.store.consent(id, false);
+    const revoked = await f.app.inject({ url: `/api/turns/${claim.id}`, headers });
+    expect(revoked.json().turn.events[0].detail).toBeNull();
+  });
+
   it("saves LLM-centered configuration without enrollment and refuses new VW selections", async () => {
     const f = await setup(),
       headers = await login(f.app);

@@ -48,15 +48,24 @@ interface ResolutionRow {
 }
 const secretKey = /password|secret|token$|(^|[_-])(token|tokens)([_-]|$)|cookie|authorization|credential|api[_-]?key/i;
 export function scrub(value: unknown): unknown {
+  if (typeof value === "string") {
+    try {
+      const parsed: unknown = JSON.parse(value);
+      if (parsed && typeof parsed === "object") return JSON.stringify(scrub(parsed));
+    } catch {
+      /* Plain text remains text. */
+    }
+    return value.replace(/Bearer\s+[A-Za-z0-9._~+/=-]+/gi, "Bearer [redacted]");
+  }
   if (Array.isArray(value)) return value.map(scrub);
   if (value && typeof value === "object")
     return Object.fromEntries(Object.entries(value).map(([k, v]) => [k, secretKey.test(k) ? "[redacted]" : scrub(v)]));
   return value;
 }
-function bounded(data: Data): Data {
+function bounded(data: Data, limit = 8192): Data {
   const clean = object(scrub(data));
   const bytes = Buffer.byteLength(JSON.stringify(clean));
-  return bytes <= 8192 ? clean : { omitted: true, bytes, explanation: "Detail exceeded the observation size limit." };
+  return bytes <= limit ? clean : { omitted: true, bytes, explanation: "Detail exceeded the observation size limit." };
 }
 export class Observability {
   constructor(private store: Store) {}
@@ -66,8 +75,9 @@ export class Observability {
     label: string,
     detail: Data = {},
     client?: PoolClient,
+    detailLimit = 8192,
   ): Promise<void> {
-    if (!client) return transaction(this.store.pool, (c) => this.record(claim, stage, label, detail, c));
+    if (!client) return transaction(this.store.pool, (c) => this.record(claim, stage, label, detail, c, detailLimit));
     const db = client ?? this.store.pool,
       id = randomUUID();
     const consent = (await db.query("SELECT observation_consent FROM cohorts WHERE id=$1 FOR SHARE", [claim.cohortId]))
@@ -82,11 +92,27 @@ export class Observability {
         this.store.now(),
         stage,
         label.slice(0, 200),
-        consent ? this.store.vault.encrypt(bounded(detail), `turn-event:${id}`) : null,
+        consent ? this.store.vault.encrypt(bounded(detail, detailLimit), `turn-event:${id}`) : null,
       ],
     );
   }
-  async history(cohortId: string, agentId?: string, cursor: HistoryCursor = {}) {
+  async recordDebug(claim: Pick<Claim, "id" | "agentId" | "cohortId">, stage: Stage, title: string, detail: Data) {
+    await this.record(claim, stage, `Debug: ${title}`, detail, undefined, 262144);
+  }
+  async run(turnId: string) {
+    const row = (await this.store.pool.query("SELECT cohort_id,agent_id FROM turns WHERE id=$1", [turnId])).rows[0];
+    if (!row) throw new FleetError("NOT_FOUND");
+    const page = await this.history(row.cohort_id, row.agent_id, {}, turnId);
+    const agent = await this.store.agent(row.agent_id);
+    const executions = (
+      await this.store.pool.query(
+        "SELECT id,created_at,status,tokens::text allocated_tokens,input_tokens::text,output_tokens::text FROM compute_ledger WHERE turn_id=$1 ORDER BY created_at,id",
+        [turnId],
+      )
+    ).rows;
+    return { turn: page.turns[0], agent: { id: agent.id, name: agent.name }, executions, coverage: page.coverage };
+  }
+  async history(cohortId: string, agentId?: string, cursor: HistoryCursor = {}, turnId?: string) {
     await this.store.cohort(cohortId);
     if (agentId && (await this.store.agent(agentId)).cohort_id !== cohortId)
       throw new FleetError("AGENT_COHORT_MISMATCH");
@@ -96,14 +122,14 @@ export class Observability {
        CASE WHEN c.observation_consent THEN t.pending_action ELSE NULL END pending_action
        FROM turns t JOIN cohorts c ON c.id=t.cohort_id WHERE t.cohort_id=$1 AND ($2::uuid IS NULL OR t.agent_id=$2)
        AND ($3::timestamptz IS NULL OR (t.started_at,t.id)<($3::timestamptz,$4::uuid))
-       ORDER BY t.started_at DESC,t.id DESC LIMIT 51`,
-      [cohortId, agentId ?? null, cursor.beforeAt ?? null, cursor.beforeId ?? null],
+       AND ($5::uuid IS NULL OR t.id=$5) ORDER BY t.started_at DESC,t.id DESC LIMIT 51`,
+      [cohortId, agentId ?? null, cursor.beforeAt ?? null, cursor.beforeId ?? null, turnId ?? null],
     );
     const more = rows.length > 50,
       turns = rows.slice(0, 50);
     const { rows: events } = await this.store.pool.query<EventRow>(
-      "SELECT e.*,c.observation_consent FROM turn_events e JOIN cohorts c ON c.id=e.cohort_id WHERE turn_id=ANY($1::uuid[]) ORDER BY sequence",
-      [turns.map((t) => t.id)],
+      "SELECT e.*,c.observation_consent FROM turn_events e JOIN cohorts c ON c.id=e.cohort_id WHERE turn_id=ANY($1::uuid[]) AND ($2::boolean OR e.label NOT LIKE 'Debug:%') ORDER BY sequence",
+      [turns.map((t) => t.id), Boolean(turnId)],
     );
     const last = turns.at(-1);
     const consent = (await this.store.cohort(cohortId)).observation_consent;
@@ -116,7 +142,7 @@ export class Observability {
     return {
       turns: turns.map((t) => ({
         ...t,
-        pending_action: t.pending_action ? bounded(t.pending_action) : null,
+        pending_action: t.pending_action ? bounded(t.pending_action, turnId ? 262144 : 8192) : null,
         resolutions: resolutions
           .filter((r) => r.turn_id === t.id)
           .map((r) => ({
@@ -125,7 +151,10 @@ export class Observability {
             code: r.code,
             source: r.source,
             action: consent
-              ? bounded(this.store.vault.decrypt<Data>(r.action_cipher, `command-resolution:${r.command_id}`))
+              ? bounded(
+                  this.store.vault.decrypt<Data>(r.action_cipher, `command-resolution:${r.command_id}`),
+                  turnId ? 262144 : 8192,
+                )
               : null,
           })),
         events: events
@@ -144,7 +173,7 @@ export class Observability {
       })),
       next: more && last ? { beforeAt: last.started_at.toISOString(), beforeId: last.id } : null,
       coverage:
-        "Detailed steps are captured from the observability release and retained for 30 days. Older turns retain their recorded summary and counters; missing steps are not reconstructed.",
+        "Detailed steps are captured from the observability release and retained for 30 days. Full debug payloads appear in individual run details from the debugging release, up to 256 KiB per payload; larger payloads are explicitly omitted. Older turns retain their recorded summary and counters; missing steps are not reconstructed.",
     };
   }
   async inspect(agentId: string, cursor: HistoryCursor = {}) {

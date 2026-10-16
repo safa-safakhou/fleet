@@ -159,5 +159,11 @@ export interface ModelPort {
     maxOutputTokens: number;
     signal: AbortSignal;
     onDispatch?: () => Promise<void>;
-  }): Promise<{ decision: unknown; inputTokens: number | null; outputTokens: number | null; decisionError?: string }>;
+  }): Promise<{
+    decision: unknown;
+    inputTokens: number | null;
+    outputTokens: number | null;
+    decisionError?: string;
+    outputText?: string;
+  }>;
 }

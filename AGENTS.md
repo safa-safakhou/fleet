@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Run debugging dashboard — 16 October 2026
+
+Founder requested and approved the Runs browser and per-run debugging view, with detailed inputs/outputs and clear titles/timing. Read `docs/run-debugging-20261016.md` for locally verified implementation, capture limits, historical coverage and browser evidence. Authenticated per-run reports add encrypted consent-controlled model/tool/Laya/cognition telemetry, exact event timestamps and measured operation durations, JSON export and navigation from every dashboard page and agent history. No migration, runtime installation, push, real-model experiment, account/history/allowance/schedule change or recovery review was performed. Existing runtimes remain pinned; richer capture requires separately authorized installation. Work is owned without delegation.
+
 ## Local reboot recovery — 15 October 2026
 
 Founder reported a complete computer restart and explicitly requested running the same local20 again. Exact twenty reboot interruptions were reviewed with original unknown40000 allocations and history retained; Windows Ollama was restarted with its prior process settings and missing certified Laya helper files restored from the previous verified installation. Same accounts, runtime243d9e4, generation18, five-minute anchor, models/allowances and terminal populations remain. Read [docs/local-reboot-recovery-20261015.md](docs/local-reboot-recovery-20261015.md) for preservation and scheduled acceptance. No blanket future unknown review or new experiment is authorized.

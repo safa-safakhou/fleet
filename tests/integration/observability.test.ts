@@ -64,6 +64,14 @@ describe("operator observability", () => {
       committed: true,
     });
     expect(view.agent.committed_actions).toBe(1);
+    const run = await f.observation.run(f.claim.id);
+    const request = run.turn.events.find((e) => e.label === "Debug: Model request");
+    expect(request?.detail?.messages).toBeInstanceOf(Array);
+    expect(request?.detail?.outputSchema).toBeTruthy();
+    const output = run.turn.events.find((e) => e.label === "Debug: Model response");
+    expect(output?.detail?.decision).toMatchObject({ kind: "read", tool: "fleet_action_schema" });
+    expect(run.turn.events.find((e) => e.label === "Debug: Tool response")?.detail?.result).toHaveProperty("schema");
+    expect(run.executions).toHaveLength(3);
     const stored = (await f.pool.query("SELECT detail_cipher FROM turn_events")).rows;
     expect(JSON.stringify(stored)).not.toContain("Synthetic private construction intent");
     expect(JSON.stringify(view)).not.toContain("secret_cipher");

@@ -230,6 +230,9 @@ export function buildServer(options: {
     const q = historyQuery.extend({ agentId: z.uuid().optional() }).parse(r.query);
     return new Observability(store).history(z.uuid().parse(r.params.id), q.agentId, q);
   });
+  app.get<{ Params: { id: string } }>("/api/turns/:id", async (r) =>
+    new Observability(store).run(z.uuid().parse(r.params.id)),
+  );
   app.post<{ Params: { id: string } }>("/api/turns/:id/reconcile", async (r) =>
     options.engine.reconcile(z.uuid().parse(r.params.id)),
   );

@@ -264,6 +264,7 @@ export class CodexModel implements ModelPort {
       // A completed execution's usage survives a malformed answer or result file.
       let decision: unknown = null;
       let decisionError: string | undefined;
+      let outputText: string | undefined;
       try {
         const file = await lstat(result);
         if (!file.isFile() || file.isSymbolicLink() || file.size > 32000)
@@ -271,6 +272,7 @@ export class CodexModel implements ModelPort {
         const envelope = object(JSON.parse(await readFile(result, "utf8")));
         if (typeof envelope.decisionJson !== "string" || Object.keys(envelope).length !== 1)
           throw new FleetError("CODEX_INVALID_DECISION");
+        outputText = envelope.decisionJson;
         const raw = object(JSON.parse(envelope.decisionJson));
         const { cognition, ...base } = raw;
         const parsed = Decision.safeParse(input.model.cognition ? base : raw);
@@ -279,7 +281,7 @@ export class CodexModel implements ModelPort {
       } catch {
         decisionError = "INVALID_MODEL_OUTPUT";
       }
-      response = { decision, inputTokens, outputTokens, ...(decisionError ? { decisionError } : {}) };
+      response = { decision, inputTokens, outputTokens, outputText, ...(decisionError ? { decisionError } : {}) };
       return response;
     } catch (error) {
       if (error instanceof FleetError) throw new FleetError(error.code, !dispatched || error.notDispatched);

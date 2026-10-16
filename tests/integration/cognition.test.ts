@@ -679,6 +679,15 @@ describe("LLM memory, plans and beliefs", () => {
     });
     const fallback = await abstaining.context(f.claim, [f.peer], f.evidence, "food");
     expect(object(fallback.recall).assist).toBe("abstained");
+    const run = await new Observability(f.store).run(f.claim.id);
+    expect(run.turn.events.find((e) => e.label === "Debug: Laya recall request")?.detail?.input).toMatchObject({
+      query: "food",
+    });
+    expect(run.turn.events.find((e) => e.label === "Debug: Laya recall response")?.detail?.output).toMatchObject({
+      probability: 0.8,
+    });
+    const last = run.turn.events.filter((e) => e.label === "Debug: Recall selection outcome").at(-1);
+    expect(last?.detail?.output).toMatchObject({ assist: "abstained", code: "LAYA_ABSTAINED" });
     expect((await f.pool.query("SELECT * FROM cognitive_states")).rowCount).toBe(0);
   });
   it("journals an evidence review without pretending an empty update changed state", async () => {

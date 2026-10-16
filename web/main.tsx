@@ -12,6 +12,7 @@ import {
   Status,
   TurnHistory,
 } from "./observe.js";
+import { RunDetails } from "./runs.js";
 
 type Obj = Record<string, unknown>;
 type Agent = {
@@ -119,7 +120,8 @@ function App() {
     }>({ operations: [], credentials: [] }),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
-    [tab, setTab] = useState("overview"),
+    [tab, setTab] = useState(location.hash.startsWith("#run=") ? "activity" : "overview"),
+    [runId, setRunId] = useState(location.hash.match(/^#run=([0-9a-f-]{36})$/i)?.[1] ?? ""),
     [cohortId, setCohortId] = useState(""),
     [selected, setSelected] = useState<Pair | null>(null),
     [thread, setThread] = useState<Thread | null>(null),
@@ -130,6 +132,21 @@ function App() {
     [inspectionId, setInspectionId] = useState(""),
     [agentSearch, setAgentSearch] = useState(""),
     [agentFilter, setAgentFilter] = useState("all");
+  const openRun = (id: string) => {
+    setInspectionId("");
+    setRunId(id);
+    setTab("activity");
+    location.hash = `run=${id}`;
+  };
+  useEffect(() => {
+    const changed = () => {
+      const id = location.hash.match(/^#run=([0-9a-f-]{36})$/i)?.[1] ?? "";
+      setRunId(id);
+      if (id) setTab("activity");
+    };
+    window.addEventListener("hashchange", changed);
+    return () => window.removeEventListener("hashchange", changed);
+  }, []);
   const api = useCallback(
     async <T,>(path: string, body?: unknown): Promise<T> => {
       const r = await fetch(`/api${path}`, {
@@ -302,11 +319,20 @@ function App() {
             ["overview", "◉", "Overview"],
             ["society", "◎", "Society"],
             ["agents", "◈", "Agents"],
-            ["activity", "↗", "Turn history"],
+            ["activity", "↗", "Runs / debugging"],
             ["comparisons", "⇄", "Comparisons"],
             ["settings", "⚙", "Fleet settings"],
           ].map(([key, icon, label]) => (
-            <button type="button" key={key} className={tab === key ? "nav active" : "nav"} onClick={() => setTab(key)}>
+            <button
+              type="button"
+              key={key}
+              className={tab === key ? "nav active" : "nav"}
+              onClick={() => {
+                setTab(key);
+                setRunId("");
+                location.hash = "";
+              }}
+            >
               <span>{icon}</span>
               {label}
             </button>
@@ -349,7 +375,7 @@ function App() {
                     : tab === "agents"
                       ? "Your agents"
                       : tab === "activity"
-                        ? "Turn history"
+                        ? "Runs / debugging"
                         : "Fleet settings"}
             </h1>
           </div>
@@ -770,14 +796,28 @@ function App() {
             )}
           </>
         ) : tab === "activity" ? (
-          <TurnHistory
-            key={`${cohort.id}:${cohort.observation_consent}`}
-            cohort={cohort}
-            agents={agents}
-            api={api}
-            inspect={setInspectionId}
-            recover={recoverTurn}
-          />
+          runId ? (
+            <RunDetails
+              key={runId}
+              id={runId}
+              api={api}
+              inspect={setInspectionId}
+              back={() => {
+                setRunId("");
+                location.hash = "";
+              }}
+            />
+          ) : (
+            <TurnHistory
+              openRun={openRun}
+              key={`${cohort.id}:${cohort.observation_consent}`}
+              cohort={cohort}
+              agents={agents}
+              api={api}
+              inspect={setInspectionId}
+              recover={recoverTurn}
+            />
+          )
         ) : (
           <section className="settings-grid">
             <article className="panel">
@@ -958,6 +998,7 @@ function App() {
         </footer>
         {inspectionId && cohort && (
           <AgentInspector
+            openRun={openRun}
             key={`${inspectionId}:${cohort.observation_consent}`}
             id={inspectionId}
             api={api}

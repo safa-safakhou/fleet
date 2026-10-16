@@ -722,14 +722,23 @@ export class Cognition {
       coverage: "Bounded deterministic recall; full history is not delivered.",
     };
     if (claim.cohort.model?.recallAssist && ranked.length >= 2) {
+      const recallStartedAt = this.store.now().getTime();
       try {
         if (!this.recall) throw new FleetError("LAYA_NOT_CONFIGURED");
         const candidates = ranked.slice(0, 2).map((e) => ({ id: e.id, text: utf8Prefix(episodeText(e), 220) }));
+        const recallQuery = `${state.plan?.goal ?? query}`.slice(0, 240);
+        await new Observability(this.store).recordDebug(claim, "ready", "Laya recall request", {
+          input: { query: recallQuery, candidates },
+        });
         const selected = await this.recall.choose(
-          `${state.plan?.goal ?? query}`.slice(0, 240),
+          recallQuery,
           candidates,
           AbortSignal.timeout(Math.max(1, Math.min(3000, claim.deadline.getTime() - this.store.now().getTime()))),
         );
+        await new Observability(this.store).recordDebug(claim, "ready", "Laya recall response", {
+          output: selected,
+          elapsedMs: Math.max(0, this.store.now().getTime() - recallStartedAt),
+        });
         const index = ranked.findIndex((e) => e.id === selected.id);
         if (index < 0 || index >= candidates.length) throw new FleetError("LAYA_INVALID_SELECTION");
         ranked.unshift(...ranked.splice(index, 1));
@@ -750,6 +759,10 @@ export class Cognition {
           coverage: "Kept deterministic recall. LLM decision remains enabled; no facts or permissions inferred.",
         };
       }
+      await new Observability(this.store).recordDebug(claim, "ready", "Recall selection outcome", {
+        output: recallStatus,
+        elapsedMs: Math.max(0, this.store.now().getTime() - recallStartedAt),
+      });
     }
     const reflected = new Set(
       (
@@ -993,6 +1006,20 @@ export class Cognition {
           ],
         );
       }
+      await new Observability(this.store).record(
+        claim,
+        "ready",
+        "Debug: Saved cognition update",
+        {
+          decision,
+          version: version + Number(changed),
+          update,
+          state,
+          coverage: "Subjective memory, plan and beliefs after this accepted update; no gameplay authority.",
+        },
+        c,
+        262144,
+      );
       await this.trim(c, claim.agentId, newIds);
       await c.query("INSERT INTO cognitive_updates VALUES($1,$2,$3,$4,$5)", [
         claim.id,

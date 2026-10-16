@@ -458,7 +458,9 @@ function TurnList({
   agents,
   inspect,
   recover,
+  openRun,
 }: {
+  openRun?: (id: string) => void;
   turns: RecordedTurn[];
   agents?: ObservedAgent[];
   inspect?: (id: string) => void;
@@ -478,11 +480,19 @@ function TurnList({
               {t.summary ?? "Turn in progress…"}
             </span>
             <span className="turn-counts">
-              {t.calls} decisions · {t.actions} commits
+              {t.calls} calls · {t.actions} commits
+              {t.finished_at && (
+                <small>{((Date.parse(t.finished_at) - Date.parse(t.started_at)) / 1000).toFixed(3)} s</small>
+              )}
             </span>
           </summary>
           <div className="turn-expanded">
             <div className="turn-meta">
+              {openRun && (
+                <button type="button" onClick={() => openRun(t.id)}>
+                  Open full run debugging →
+                </button>
+              )}
               <span>Reported tokens: {number(Number(t.input_tokens ?? 0) + Number(t.output_tokens ?? 0))}</span>
               <span>Finished: {when(t.finished_at)}</span>
               {inspect && (
@@ -555,7 +565,9 @@ export function AgentInspector({
   api,
   close,
   pause,
+  openRun,
 }: {
+  openRun: (id: string) => void;
   id: string;
   api: Api;
   close: () => void;
@@ -738,7 +750,7 @@ export function AgentInspector({
               <span className="live-indicator">Refreshes every 5 seconds</span>
             </div>
             {data.turns.length ? (
-              <TurnList turns={data.turns} />
+              <TurnList turns={data.turns} openRun={openRun} />
             ) : (
               <p className="small-empty">No turns recorded yet.</p>
             )}
@@ -773,7 +785,9 @@ export function TurnHistory({
   api,
   inspect,
   recover,
+  openRun,
 }: {
+  openRun: (id: string) => void;
   cohort: CohortView;
   agents: ObservedAgent[];
   api: Api;
@@ -781,11 +795,20 @@ export function TurnHistory({
   recover: (t: RecordedTurn) => void;
 }) {
   const [filter, setFilter] = useState(""),
+    [query, setQuery] = useState(""),
+    [status, setStatus] = useState(""),
     [page, setPage] = useState<Page | null>(null),
     [error, setError] = useState(""),
     [loading, setLoading] = useState(false),
     loadedOlder = useRef(false),
     requestGeneration = useRef(0);
+  const visible = (page?.turns ?? []).filter(
+    (t) =>
+      (!status || t.state === status) &&
+      `${t.id} ${t.code ?? ""} ${t.summary ?? ""} ${agents.find((a) => a.id === t.agent_id)?.name ?? ""}`
+        .toLowerCase()
+        .includes(query.toLowerCase()),
+  );
   const base = `/cohorts/${cohort.id}/turns`,
     filterQuery = filter ? `agentId=${filter}` : "";
   useEffect(() => {
@@ -834,8 +857,8 @@ export function TurnHistory({
     <section className="panel">
       <div className="section-heading">
         <div>
-          <p className="eyebrow">EXECUTION HISTORY</p>
-          <h2>Follow every recorded turn</h2>
+          <p className="eyebrow">RUNS</p>
+          <h2>Browse recorded runs</h2>
           <p>Decisions, reads, confirmed actions and interruptions.</p>
         </div>
         <label className="compact-filter">
@@ -850,6 +873,31 @@ export function TurnHistory({
           </select>
         </label>
       </div>
+      <div className="run-filters">
+        <label>
+          Search loaded runs
+          <input
+            type="search"
+            value={query}
+            onChange={(e) => setQuery(e.target.value)}
+            placeholder="Agent, run ID, summary or error"
+          />
+        </label>
+        <label>
+          Status
+          <select value={status} onChange={(e) => setStatus(e.target.value)}>
+            <option value="">All statuses</option>
+            {["running", "finished", "pending", "needs_owner", "cancelled"].map((s) => (
+              <option key={s} value={s}>
+                {readable(s)}
+              </option>
+            ))}
+          </select>
+        </label>
+        <span>
+          {visible.length} matching / {page?.turns.length ?? 0} loaded. Load older runs to search further.
+        </span>
+      </div>
       {error && (
         <p className="error" role="alert">
           {readable(error)}
@@ -857,8 +905,8 @@ export function TurnHistory({
       )}
       {!page ? (
         <p className="small-empty">Loading history…</p>
-      ) : page.turns.length ? (
-        <TurnList turns={page.turns} agents={agents} inspect={inspect} recover={recover} />
+      ) : visible.length ? (
+        <TurnList turns={visible} agents={agents} inspect={inspect} recover={recover} openRun={openRun} />
       ) : (
         <p className="small-empty">No turns recorded for this selection.</p>
       )}
