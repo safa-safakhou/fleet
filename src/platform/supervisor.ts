@@ -1,0 +1,147 @@
+import { FleetError, safeCode } from "../domain.js";
+import { Observability } from "../observability.js";
+import type { ModelAdmission } from "./admission.js";
+import type { Bindings } from "./bindings.js";
+import type { EnvironmentSession, Observation } from "./contracts.js";
+import type { EngineRegistry } from "./engine-registry.js";
+import { type EnvironmentRegistry, requireCapabilities } from "./environment-registry.js";
+import type { CommandExecutor } from "./execution.js";
+import { assertDeadline, type TaskClaim, type TaskStore } from "./tasks.js";
+export class OperationSupervisor {
+  private stopping = false;
+  private operations = new Map<string, { claim: TaskClaim; controller: AbortController; promise: Promise<void> }>();
+  constructor(private tasks: TaskStore) {}
+  run(claim: TaskClaim, operation: (signal: AbortSignal) => Promise<void>): Promise<void> {
+    if (this.stopping) return Promise.reject(new FleetError("HOST_STOPPED"));
+    if (this.operations.has(claim.taskId)) return Promise.reject(new FleetError("OPERATION_ALREADY_ACTIVE"));
+    const controller = new AbortController();
+    const promise = (async () => {
+      const signal = AbortSignal.any([
+        controller.signal,
+        AbortSignal.timeout(Math.max(1, claim.turn.deadline.getTime() - this.tasks.store.now().getTime())),
+      ]);
+      const guard = setInterval(() => {
+        void this.tasks.check(claim).catch((error) => controller.abort(error));
+      }, 250);
+      try {
+        await this.tasks.check(claim);
+        if (signal.aborted) throw new FleetError("TASK_FENCED");
+        await operation(signal);
+        await this.tasks.finish(claim, "WAIT");
+      } catch (error) {
+        await this.tasks.finish(claim, safeCode(error));
+        throw error;
+      } finally {
+        clearInterval(guard);
+        this.operations.delete(claim.taskId);
+      }
+    })();
+    this.operations.set(claim.taskId, { claim, controller, promise });
+    return promise;
+  }
+  async stop(taskId?: string) {
+    if (taskId === undefined) this.stopping = true;
+    const operations = [...this.operations.values()].filter((op) => taskId === undefined || op.claim.taskId === taskId);
+    for (const operation of operations) {
+      operation.controller.abort();
+      try {
+        await this.tasks.cancel(operation.claim);
+      } catch (error) {
+        if (!(error instanceof FleetError) || !["TASK_FENCED", "CLAIM_FENCED"].includes(error.code)) throw error;
+      }
+    }
+  }
+  async drain() {
+    await Promise.allSettled([...this.operations.values()].map((op) => op.promise));
+  }
+}
+export class PlatformHost {
+  constructor(
+    private tasks: TaskStore,
+    private bindings: Bindings,
+    private environments: EnvironmentRegistry,
+    private engines: EngineRegistry,
+    private model: ModelAdmission,
+    private commands: CommandExecutor,
+    readonly supervisor: OperationSupervisor,
+  ) {}
+  async run(claim: TaskClaim) {
+    return this.supervisor.run(claim, async (signal) => {
+      const engine = this.engines.resolve(claim.profile),
+        binding = await this.bindings.get(claim.bindingId),
+        task = await this.tasks.get(claim.taskId);
+      const adapter = this.environments.resolve(binding.environment);
+      requireCapabilities(adapter, engine.requiredCapabilities, engine.requiredSchemas);
+      let session: EnvironmentSession | undefined;
+      if (engine.observationOwner !== "engine")
+        session = await this.environments.connect(binding, engine.requiredCapabilities, engine.requiredSchemas);
+      try {
+        const observe = async (query: import("../domain.js").Data) => {
+          await this.tasks.check(claim);
+          if (signal.aborted) throw new FleetError("TASK_FENCED");
+          if (!session) throw new FleetError("OBSERVATION_OWNED_BY_ENGINE");
+          const result = await session.observe(query);
+          await this.tasks.check(claim);
+          assertDeadline((await this.tasks.get(claim.taskId)).deadline, result.environmentTime, this.tasks.store.now());
+          return result;
+        };
+        const observation: Observation = session
+          ? await observe({})
+          : {
+              schemaId: adapter.schemas.observations[0],
+              revision: "delegated",
+              observedAt: this.tasks.store.now().toISOString(),
+              environmentTime: { clockId: "unavailable", value: "unavailable" },
+              sourceRefs: [],
+              payload: {},
+              coverage: {
+                delegated: true,
+                detail:
+                  "Compatibility controller performs its original observation flow; this is not a world snapshot.",
+              },
+            };
+        await new Observability(this.tasks.store).record(
+          claim.turn,
+          "observing",
+          session ? "Task observation delivered" : "Task observation delegated to compatibility engine",
+          {
+            taskId: task.id,
+            bindingId: binding.id,
+            profile: claim.profile,
+            environment: binding.environment,
+            sourceRefs: task.sourceRefs,
+            sourceCount: task.sourceCount,
+            sourceRefsOmitted: task.sourceRefsOmitted,
+            observation,
+          },
+        );
+        await engine.run({
+          claim,
+          binding,
+          task,
+          observation,
+          model: this.model.guarded(async () => {
+            await observe({});
+          }),
+          commands: this.commands,
+          observe,
+          eventRefs: task.sourceRefs,
+          signal,
+        });
+      } finally {
+        await session?.close().catch(() => {});
+      }
+    });
+  }
+  async tick(worker: string) {
+    const claim = await this.tasks.claim(worker, this.tasks.store.now());
+    if (claim) await this.run(claim);
+    return claim;
+  }
+  stop(taskId?: string) {
+    return this.supervisor.stop(taskId);
+  }
+  drain() {
+    return this.supervisor.drain();
+  }
+}

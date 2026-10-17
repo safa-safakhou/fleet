@@ -121,17 +121,21 @@ export function createPactEnvironment(ports: {
           return tools;
         },
         async execute(intent) {
-          if (intent.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH");
-          if (intent.schemaId !== "pact.action.v1") throw new FleetError("UNSUPPORTED_SCHEMA");
-          if (intent.expectedVersion !== undefined) throw new FleetError("UNSUPPORTED_EXPECTED_VERSION");
-          if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(intent.commandId))
-            throw new FleetError("INVALID_COMMAND_ID");
-          validateTool(
-            { name: "pact.action.v1", inputSchema: pactAdapter.actionSchema(String(intent.payload.kind)) },
-            intent.payload,
-          );
-          await ports.bindings.agentFor(binding);
-          await game.open();
+          try {
+            if (intent.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH");
+            if (intent.schemaId !== "pact.action.v1") throw new FleetError("UNSUPPORTED_SCHEMA");
+            if (intent.expectedVersion !== undefined) throw new FleetError("UNSUPPORTED_EXPECTED_VERSION");
+            if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(intent.commandId))
+              throw new FleetError("INVALID_COMMAND_ID");
+            validateTool(
+              { name: "pact.action.v1", inputSchema: pactAdapter.actionSchema(String(intent.payload.kind)) },
+              intent.payload,
+            );
+            await ports.bindings.agentFor(binding);
+            await game.open();
+          } catch (error) {
+            throw new FleetError(safeCode(error), true);
+          }
           try {
             return receipt(intent.commandId, await game.submit(intent.commandId, intent.payload));
           } catch (error) {

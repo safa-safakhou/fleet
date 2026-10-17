@@ -2,7 +2,7 @@
 
 ## Multi-engine phase 1 — 17 October 2026
 
-Founder requested the next architecture phase: F2 then F3, with isolated local testing and server Fleet excluded. F2 is source-verified; read `docs/environment-bindings-20261017.md`. F3 is in progress; consult `docs/multi-engine-platform-status-20261017.json`. Preserve installed releases, accounts/history/allowances/anchors and existing recovery gates. No delegation, push, installation or new live run is implied.
+Founder requested the next architecture phase: F2 then F3, with isolated local testing and server Fleet excluded. F2 and F3 are source-verified; read `docs/environment-bindings-20261017.md`, `docs/platform-host-20261017.md` and `docs/multi-engine-platform-status-20261017.json`. All 431 tests pass; real routes remain serial and installed runtimes unchanged. F4/P1 event work remains unstarted. Preserve installed releases, accounts/history/allowances/anchors and existing recovery gates. No delegation, push, installation or new live run is implied.
 
 ## Multi-engine phase 0 — 17 October 2026
 

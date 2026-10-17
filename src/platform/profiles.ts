@@ -56,7 +56,7 @@ export function retainedLegacyExecution(value: unknown): LegacyExecution | undef
   return parsed.success ? parsed.data : undefined;
 }
 
-const execution = new AsyncLocalStorage<{ turnId: string; detail: LegacyExecution }>();
+const execution = new AsyncLocalStorage<{ turnId: string; detail: LegacyExecution; claim: Claim }>();
 
 function canonical(value: unknown): unknown {
   if (Array.isArray(value)) return value.map(canonical);
@@ -98,6 +98,7 @@ export function withLegacyExecution<T>(claim: Claim, integrationId: string, oper
   return execution.run(
     {
       turnId: claim.id,
+      claim,
       detail: {
         provenance: "recorded",
         profile: legacyProfileFor(claim.cohort.model),
@@ -132,4 +133,8 @@ export function inferredLegacyExecution() {
     coverage:
       "No retained consented engine manifest. Legacy family association only; exact historical version and configuration are unrecorded, expired or withheld.",
   };
+}
+
+export function currentLegacyClaim(): Claim | undefined {
+  return execution.getStore()?.claim;
 }

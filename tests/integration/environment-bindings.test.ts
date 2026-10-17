@@ -106,6 +106,15 @@ it("preserves legacy vault identity and pending receipt", async () => {
   expect(await session.resolve(command)).toMatchObject({ status: "unknown" });
   game.receiptValue = { commandId: command, code: "SLOT_BUSY" };
   expect(await session.resolve(command)).toMatchObject({ status: "rejected" });
+  await expect(
+    session.execute({
+      commandId: command,
+      bindingId: binding.id,
+      schemaId: "pact.action.v1",
+      payload: { kind: "invalid.kind" },
+    }),
+  ).rejects.toMatchObject({ notDispatched: true });
+  expect(game.opened).toBe(0);
   expect(game.submits).toHaveLength(0);
   await expect(legacy.agentFor({ ...binding, actorRef: "forged" })).rejects.toThrow("BINDING_MISMATCH");
   expect(Number((await f.store.cohort(cohort)).generation)).toBe(claim.generation);

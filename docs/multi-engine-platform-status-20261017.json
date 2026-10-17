@@ -2,7 +2,7 @@
   "assignment": "Phase1 of the approved Fleet/PACT architecture plan",
   "scope": "F2 and F3; local isolated testing; server Fleet excluded",
   "assignee": "Codex",
-  "status": "in_progress",
+  "status": "source_verified",
   "baselineRevision": "c212373ccca98d3e064d24ebd2a9398dd94e2a77",
   "plan": "docs/superpowers/plans/2026-10-17-multi-engine-platform.md",
   "packages": {
@@ -25,10 +25,16 @@
       "evidence": ["docs/environment-bindings-20261017.md", "399 tests /66 files passed; full checks passed"]
     },
     "F3": {
-      "status": "in_progress",
+      "status": "done",
+      "assignee": "Codex",
       "dependencies": ["F2"],
-      "evidence": [],
-      "assignee": "Codex"
+      "evidence": [
+        "docs/platform-host-20261017.md",
+        "431 deterministic tests /69 files passed",
+        "Type/style, build, boundaries and dependency audit passed",
+        "Compiled runtime resolves both compatibility profiles; disabled guard retained",
+        "22 installed local application tables matched exactly; runtime unchanged"
+      ]
     },
     "F4-F8": {
       "status": "unstarted",

@@ -15,17 +15,21 @@ let stop = false,
   failures = 0,
   inFlight: Promise<unknown> | undefined,
   recoveryInFlight: Promise<unknown> | undefined;
+const platformInFlight = new Set<Promise<unknown>>();
+let preferPlatform = true;
 r.pool.on("error", () => console.error("fleet database connection unavailable"));
 for (const signal of ["SIGTERM", "SIGINT"] as const)
   process.once(signal, () => {
     stop = true;
     r.engine.stop();
+    void r.host.stop().catch((error) => console.error("fleet stop deferred", safeCode(error)));
   });
 try {
   while (!stop) {
     try {
       await r.store.heartbeat(worker, r.settings.liveAllowed);
       await r.store.recoverExpired();
+      await r.tasks.recover();
       const running =
         r.settings.liveAllowed &&
         (await r.pool.query("SELECT 1 FROM cohorts WHERE state='running' LIMIT 1")).rowCount !== 0;
@@ -48,7 +52,12 @@ try {
           if (task) {
             let code = "RECEIPT_PENDING";
             try {
-              const receipt = await r.engine.reconcile(task.turn_id);
+              const isPlatform = (
+                await r.pool.query("SELECT 1 FROM platform_commands WHERE turn_id=$1", [task.turn_id])
+              ).rowCount;
+              const receipt = isPlatform
+                ? await r.commands.reconcile(task.turn_id)
+                : await r.engine.reconcile(task.turn_id);
               code = String(receipt.code);
             } catch (error) {
               code = safeCode(error);
@@ -61,16 +70,66 @@ try {
             recoveryInFlight = undefined;
           });
       }
-      if (r.settings.liveAllowed && disk && !inFlight) {
-        inFlight = r.engine
-          .tick(worker, r.settings.maxConcurrency)
-          .then(async (claim) => {
-            if (claim) await r.pool.query("UPDATE worker_health SET last_progress_at=now() WHERE id=$1", [worker]);
-          })
-          .catch((error) => console.error("fleet turn deferred", safeCode(error)))
-          .finally(() => {
-            inFlight = undefined;
-          });
+      const platformEnabled =
+        r.settings.liveAllowed &&
+        Boolean(
+          (
+            await r.pool.query(
+              "SELECT 1 FROM cohort_engine_profiles p JOIN cohorts c ON c.id=p.cohort_id WHERE c.state='running' LIMIT 1",
+            )
+          ).rowCount,
+        );
+      if (platformEnabled && disk) {
+        const progress = async () => {
+          await r.pool.query("UPDATE worker_health SET last_progress_at=now() WHERE id=$1", [worker]);
+        };
+        const legacy = async () => {
+          if (inFlight || platformInFlight.size >= r.settings.maxConcurrency) return;
+          const claim = await r.store.claim(worker, r.settings.maxConcurrency);
+          if (!claim) return;
+          inFlight = r.engine
+            .run(claim)
+            .then(progress)
+            .catch((error) => console.error("fleet turn deferred", safeCode(error)))
+            .finally(() => {
+              inFlight = undefined;
+            });
+        };
+        const platform = async () => {
+          if (platformInFlight.size + Number(Boolean(inFlight)) >= r.settings.maxConcurrency) return false;
+          const claim = await r.tasks.claim(worker, r.store.now());
+          if (!claim) return false;
+          const promise = r.host
+            .run(claim)
+            .then(progress)
+            .catch((error) => console.error("fleet task deferred", safeCode(error)))
+            .finally(() => {
+              platformInFlight.delete(promise);
+            });
+          platformInFlight.add(promise);
+          return true;
+        };
+        if (preferPlatform) {
+          await platform();
+          await legacy();
+        } else {
+          await legacy();
+          await platform();
+        }
+        preferPlatform = !preferPlatform;
+        while (platformInFlight.size + Number(Boolean(inFlight)) < r.settings.maxConcurrency && (await platform())) {}
+      } else {
+        if (r.settings.liveAllowed && disk && !inFlight) {
+          inFlight = r.engine
+            .tick(worker, r.settings.maxConcurrency)
+            .then(async (claim) => {
+              if (claim) await r.pool.query("UPDATE worker_health SET last_progress_at=now() WHERE id=$1", [worker]);
+            })
+            .catch((error) => console.error("fleet turn deferred", safeCode(error)))
+            .finally(() => {
+              inFlight = undefined;
+            });
+        }
       }
       if (Date.now() - lastPrune > 3600000) {
         await new Communications(r.store).prune();
@@ -93,6 +152,8 @@ try {
   }
 } finally {
   awake.close();
-  await Promise.allSettled([inFlight, recoveryInFlight]);
+  await r.host.stop();
+  await Promise.allSettled([inFlight, recoveryInFlight, ...platformInFlight]);
+  await r.host.drain();
   await r.pool.end();
 }

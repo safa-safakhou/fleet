@@ -180,15 +180,28 @@ export class Store {
           if (!liveAllowed) throw new FleetError("LIVE_EXECUTION_DISABLED");
           if (!row.model || !row.budget) throw new FleetError("MODEL_AND_BUDGET_REQUIRED");
           if (row.budget.deadlineAt && new Date(row.budget.deadlineAt) <= now) throw new FleetError("DEADLINE_PASSED");
-          const ready = (
+          let ready = (
             await c.query(
               "SELECT count(*)::int n FROM agents WHERE cohort_id=$1 AND account_id IS NOT NULL AND credential_state='ready'",
               [id],
             )
           ).rows[0].n;
-          const bound = (
+          let bound = (
             await c.query("SELECT count(*)::int n FROM agents WHERE cohort_id=$1 AND account_id IS NOT NULL", [id])
           ).rows[0].n;
+          if (
+            bound !== row.count &&
+            (await c.query("SELECT to_regclass('cohort_engine_profiles') AS relation")).rows[0].relation
+          ) {
+            const counts = (
+              await c.query(
+                "SELECT count(*)::int bound,count(*) FILTER(WHERE credential_state='ready')::int ready FROM agents WHERE cohort_id=$1 AND (account_id IS NOT NULL OR (EXISTS(SELECT 1 FROM cohort_engine_profiles p WHERE p.cohort_id=agents.cohort_id) AND EXISTS(SELECT 1 FROM environment_bindings b WHERE b.agent_id=agents.id AND b.state='active')))",
+                [id],
+              )
+            ).rows[0];
+            ready = counts.ready;
+            bound = counts.bound;
+          }
           if (bound !== row.count || (!row.anchor_at && ready !== row.count))
             throw new FleetError("ACCOUNTS_INCOMPLETE");
           const secrets = (
@@ -322,50 +335,53 @@ export class Store {
       if (total >= maxConcurrency) return null;
       const a = (
         await c.query<AgentRow>(
-          "SELECT a.* FROM agents a JOIN cohorts c ON c.id=a.cohort_id WHERE c.state='running' AND a.state='ready' AND a.credential_state='ready' AND a.next_due_at<=$1 AND NOT EXISTS(SELECT 1 FROM agent_blockers b WHERE b.agent_id=a.id) AND NOT EXISTS(SELECT 1 FROM turns t WHERE t.agent_id=a.id AND t.state IN('running','pending','needs_owner')) AND NOT EXISTS(SELECT 1 FROM maintenance_holds h WHERE h.cohort_id=c.id AND h.released_at IS NULL) AND (SELECT count(*) FROM turns x WHERE x.cohort_id=c.id AND x.state='running') < (c.budget->>'concurrency')::int ORDER BY a.next_due_at,a.ordinal FOR UPDATE OF a SKIP LOCKED LIMIT 1",
+          "SELECT a.* FROM agents a JOIN cohorts c ON c.id=a.cohort_id WHERE c.state='running' AND NOT EXISTS(SELECT 1 FROM cohort_engine_profiles p WHERE p.cohort_id=c.id) AND a.state='ready' AND a.credential_state='ready' AND a.next_due_at<=$1 AND NOT EXISTS(SELECT 1 FROM agent_blockers b WHERE b.agent_id=a.id) AND NOT EXISTS(SELECT 1 FROM turns t WHERE t.agent_id=a.id AND t.state IN('running','pending','needs_owner')) AND NOT EXISTS(SELECT 1 FROM maintenance_holds h WHERE h.cohort_id=c.id AND h.released_at IS NULL) AND (SELECT count(*) FROM turns x WHERE x.cohort_id=c.id AND x.state='running') < (c.budget->>'concurrency')::int ORDER BY a.next_due_at,a.ordinal FOR UPDATE OF a SKIP LOCKED LIMIT 1",
           [now],
         )
       ).rows[0];
       if (!a) return null;
-      const cohort = await this.cohort(a.cohort_id, c);
-      if (!cohort.budget || !cohort.model) throw new FleetError("CONFIG_MISSING");
-      const concurrent = (
-        await c.query("SELECT count(*)::int n FROM turns WHERE cohort_id=$1 AND state='running'", [cohort.id])
-      ).rows[0].n;
-      if (concurrent >= cohort.budget.concurrency) return null;
-      const fence = Number(a.fence) + 1,
-        deadline = new Date(
-          Math.min(now.getTime() + 120000, cohort.budget.deadlineAt ? Date.parse(cohort.budget.deadlineAt) : Infinity),
-        ),
-        id = randomUUID();
-      await c.query("UPDATE agents SET fence=$2 WHERE id=$1", [a.id, fence]);
-      await c.query(
-        "INSERT INTO turns(id,agent_id,cohort_id,generation,fence,worker,state,due_at,started_at,deadline_at) VALUES($1,$2,$3,$4,$5,$6,'running',$7,$8,$9)",
-        [id, a.id, cohort.id, cohort.generation, fence, worker, a.next_due_at, now, deadline],
-      );
-      await c.query(
-        "UPDATE recovery_operations SET status='complete',phase='retry_admitted',next_attempt_at=NULL,updated_at=$2 WHERE agent_id=$1 AND status='retry'",
-        [a.id, now],
-      );
-      await c.query("INSERT INTO recovery_operations(turn_id,agent_id,cohort_id,updated_at) VALUES($1,$2,$3,$4)", [
-        id,
-        a.id,
-        cohort.id,
-        now,
-      ]);
-      return {
-        id,
-        agentId: a.id,
-        cohortId: cohort.id,
-        generation: Number(cohort.generation),
-        fence,
-        worker,
-        deadline,
-        dueAt: a.next_due_at ?? now,
-        agent: a,
-        cohort,
-      };
+      return this.admitAgent(c, a, worker, now);
     });
+  }
+  async admitAgent(c: PoolClient, a: AgentRow, worker: string, now: Date, dueAt?: Date): Promise<Claim | null> {
+    const cohort = await this.cohort(a.cohort_id, c);
+    if (!cohort.budget || !cohort.model) throw new FleetError("CONFIG_MISSING");
+    const concurrent = (
+      await c.query("SELECT count(*)::int n FROM turns WHERE cohort_id=$1 AND state='running'", [cohort.id])
+    ).rows[0].n;
+    if (concurrent >= cohort.budget.concurrency) return null;
+    const fence = Number(a.fence) + 1,
+      deadline = new Date(
+        Math.min(now.getTime() + 120000, cohort.budget.deadlineAt ? Date.parse(cohort.budget.deadlineAt) : Infinity),
+      ),
+      id = randomUUID();
+    await c.query("UPDATE agents SET fence=$2 WHERE id=$1", [a.id, fence]);
+    await c.query(
+      "INSERT INTO turns(id,agent_id,cohort_id,generation,fence,worker,state,due_at,started_at,deadline_at) VALUES($1,$2,$3,$4,$5,$6,'running',$7,$8,$9)",
+      [id, a.id, cohort.id, cohort.generation, fence, worker, dueAt ?? a.next_due_at, now, deadline],
+    );
+    await c.query(
+      "UPDATE recovery_operations SET status='complete',phase='retry_admitted',next_attempt_at=NULL,updated_at=$2 WHERE agent_id=$1 AND status='retry'",
+      [a.id, now],
+    );
+    await c.query("INSERT INTO recovery_operations(turn_id,agent_id,cohort_id,updated_at) VALUES($1,$2,$3,$4)", [
+      id,
+      a.id,
+      cohort.id,
+      now,
+    ]);
+    return {
+      id,
+      agentId: a.id,
+      cohortId: cohort.id,
+      generation: Number(cohort.generation),
+      fence,
+      worker,
+      deadline,
+      dueAt: dueAt ?? a.next_due_at ?? now,
+      agent: a,
+      cohort,
+    };
   }
   async restoreEligibility(id: string, c: Pool | PoolClient = this.pool) {
     const a = await this.agent(id, c),
@@ -623,8 +639,8 @@ export class Store {
       }
     });
   }
-  async pending(claim: Claim, id: string, action: Data, tracked = false) {
-    await transaction(this.pool, async (c) => {
+  async pending(claim: Claim, id: string, action: Data, tracked = false, client?: PoolClient) {
+    const write = async (c: PoolClient) => {
       await this.check(c, claim);
       await c.query("UPDATE turns SET pending_command=$2,pending_action=$3 WHERE id=$1", [claim.id, id, action]);
       if (tracked)
@@ -633,7 +649,8 @@ export class Store {
           this.now(),
         ]);
       await new Observability(this).record(claim, "acting", "Submitting game action", { commandId: id, action }, c);
-    });
+    };
+    return client ? write(client) : transaction(this.pool, write);
   }
   private async archiveCommand(
     c: PoolClient,
@@ -681,8 +698,9 @@ export class Store {
     source: "receipt" | "explicit_rejection" = "receipt",
     evidence: Data = {},
     terminal = false,
+    client?: PoolClient,
   ) {
-    await transaction(this.pool, async (c) => {
+    const write = async (c: PoolClient) => {
       const row = (await c.query("SELECT * FROM turns WHERE id=$1 FOR UPDATE", [claim.id])).rows[0];
       if (!row?.pending_command || receipt.commandId !== row.pending_command) throw new FleetError("RECEIPT_MISMATCH");
       if (["RECEIPT_NOT_FOUND", "NOT_FOUND", "PENDING"].includes(String(receipt.code)))
@@ -724,13 +742,14 @@ export class Store {
         },
         c,
       );
-    });
+    };
+    return client ? write(client) : transaction(this.pool, write);
   }
-  async finish(claim: Claim, code: string, summary = "", notes?: string) {
+  async finish(claim: Claim, code: string, summary = "", notes?: string, onlyRunning = false) {
     const now = this.now();
     await transaction(this.pool, async (c) => {
       const t = (await c.query("SELECT * FROM turns WHERE id=$1 FOR UPDATE", [claim.id])).rows[0];
-      if (!t || !["running", "pending", "needs_owner"].includes(t.state)) return;
+      if (!t || !(onlyRunning ? ["running"] : ["running", "pending", "needs_owner"]).includes(t.state)) return;
       await this.settleUndispatched(c, t);
       const unknown = await c.query(
         "UPDATE compute_ledger SET status='unknown' WHERE turn_id=$1 AND status='reserved' RETURNING id",

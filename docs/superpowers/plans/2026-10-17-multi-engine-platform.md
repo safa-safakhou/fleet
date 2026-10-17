@@ -133,7 +133,7 @@ F2 acceptance: [contracts, bindings and migration proof](../../environment-bindi
 - `AgentEngine = { ref: EngineProfileRef; requiredCapabilities: CapabilityRequirements; run(context: EngineContext): Promise<void> }`. `EngineRegistry.resolve(ref: EngineProfileRef): AgentEngine`; unknown refs fail before dispatch. A reactive engine accepts either native or polled event delivery according to its explicit requirements.
 - `OperationSupervisor.run(claim, operation): Promise<void>` creates a per-operation abort controller and drains or fences independently on stop. `observe(query)` uses the selected session; `eventRefs` are retained source IDs, not raw unbounded bodies.
 
-- [ ] Write concurrency/crash tests: two different bindings can progress with a parallel fake route; the same binding cannot run twice; a serial route remains at one call; event-heavy actors cannot starve due scheduled actors; stopping one operation does not abort another; unknown usage/pending commands survive restart.
+- [x] Write concurrency/crash tests: two different bindings can progress with a parallel fake route; the same binding cannot run twice; a serial route remains at one call; event-heavy actors cannot starve due scheduled actors; stopping one operation does not abort another; unknown usage/pending commands survive restart.
 
   ```ts
   expect(serialProvider.maxInFlight).toBe(1);
@@ -144,10 +144,12 @@ F2 acceptance: [contracts, bindings and migration proof](../../environment-bindi
   expect(secondActor.signal.aborted).toBe(false);
   ```
 
-- [ ] Run the new focused integration suites to obtain meaningful red admission/recovery assertions.
-- [ ] Implement durable task claims and fair round-robin admission across ready cohorts, with owner priority/deadline ordering within each cohort. Provider capacity and per-cohort allowance remain separate constraints. Persist tasks/cursors/fences in PostgreSQL, not in a process-only promise array. Reuse the existing store/accounting and exact-receipt flow, extracting execution only behind F1 parity. Lease opening remains immediately before actual commitment, not around all reasoning. Keep Codex lock/concurrency rules unchanged.
-- [ ] Run host/recovery suites plus scheduler, worker-liveness, admission, Codex and release-preservation suites. Exercise crashes before reserve, after reserve/before provider result, before command submission, after server commit/before response and after task completion/before local acknowledgement. Require no duplicate debit/action and explicit next steps for unresolved cases.
-- [ ] Document fairness, stop/drain, compatibility-engine scheduling and route limitations. Run `npm run check`, all unit/integration tests, build and boundary checks; commit F3 with actual evidence.
+- [x] Run the new focused integration suites to obtain meaningful red admission/recovery assertions.
+- [x] Implement durable task claims and fair round-robin admission across ready cohorts, with owner priority/deadline ordering within each cohort. Provider capacity and per-cohort allowance remain separate constraints. Persist tasks/cursors/fences in PostgreSQL, not in a process-only promise array. Reuse the existing store/accounting and exact-receipt flow, extracting execution only behind F1 parity. Lease opening remains immediately before actual commitment, not around all reasoning. Keep Codex lock/concurrency rules unchanged.
+- [x] Run host/recovery suites plus scheduler, worker-liveness, admission, Codex and release-preservation suites. Exercise crashes before reserve, after reserve/before provider result, before command submission, after server commit/before response and after task completion/before local acknowledgement. Require no duplicate debit/action and explicit next steps for unresolved cases.
+- [x] Document fairness, stop/drain, compatibility-engine scheduling and route limitations. Run `npm run check`, all unit/integration tests, build and boundary checks; commit F3 with actual evidence.
+
+F3 acceptance: [durable host, compatibility and recovery proof](../../platform-host-20261017.md), with 431 passing tests. Phase1 is source-verified; installation and real-provider qualification remain separate.
 
 ## F4 — Add event-aware profiles alongside scheduled profiles (phase 2)
 
@@ -269,4 +271,4 @@ F2 acceptance: [contracts, bindings and migration proof](../../environment-bindi
 
 Coverage: F1 preserves baseline; F2 proves environment independence; F3 supplies reliable/fair execution; F4/P1 add events; F5/P2 connect grounded continuity and outlooks; F6 compares both worker choices; F7 keeps operation primary and comparisons optional; F8/P3 distinguish offline readiness from real acceptance. The five review-focus failures are assigned above.
 
-F1 is source-verified under the founder's first-phase assignment; see its linked acceptance report. F2 is also source-verified; F3 is assigned and in progress under the phase1 request. F4 onward remain unstarted. Execution stays native/sequential without delegation.
+F1 is source-verified under the founder's first-phase assignment; see its linked acceptance report. F2 is also source-verified; F3 is source-verified under the phase1 request. F4 onward remain unstarted. Execution stays native/sequential without delegation.

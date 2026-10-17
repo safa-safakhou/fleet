@@ -118,11 +118,38 @@ export class Observability {
       (event) =>
         event.stage === "observing" && event.label === "Reading current game state" && object(event.detail).engine,
     )?.detail?.engine;
+    const taskEngine = (
+      await this.store.pool.query(
+        "SELECT tc.profile_id,tc.profile_version,b.environment_id,b.environment_version,b.instance_id FROM platform_task_claims tc JOIN platform_tasks t ON t.id=tc.task_id JOIN environment_bindings b ON b.id=t.binding_id WHERE tc.turn_id=$1",
+        [turnId],
+      )
+    ).rows[0];
+    const retainedTask = page.turns[0]?.events.find(
+      (event) => event.label === "Task observation delivered" && object(event.detail).profile,
+    )?.detail;
+    const taskProfile = object(retainedTask?.profile);
+    const taskExecution = taskEngine
+      ? {
+          provenance:
+            taskProfile.id === taskEngine.profile_id && taskProfile.version === taskEngine.profile_version
+              ? ("recorded" as const)
+              : ("unavailable" as const),
+          profile:
+            taskProfile.id === taskEngine.profile_id && taskProfile.version === taskEngine.profile_version
+              ? { id: taskEngine.profile_id as string, version: taskEngine.profile_version as string }
+              : null,
+          baseline: null,
+          configurationDigest: null,
+          continuity: null,
+          coverage:
+            "Task engine reference is recorded independently of legacy manifests. Exact build provenance is not claimed; missing/withheld/expired observation detail remains unavailable.",
+        }
+      : undefined;
     return {
       turn: page.turns[0],
       agent: { id: agent.id, name: agent.name },
       executions,
-      engine: retainedLegacyExecution(engine) ?? inferredLegacyExecution(),
+      engine: retainedLegacyExecution(engine) ?? taskExecution ?? inferredLegacyExecution(),
       coverage: page.coverage,
     };
   }
