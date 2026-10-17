@@ -5,6 +5,7 @@ dist/
 !.env.example
 .state/
 .tmp/
+.worktrees/
 coverage/
 test-results/
 playwright-report/
