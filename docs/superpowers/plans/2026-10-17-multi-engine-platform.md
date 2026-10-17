@@ -1,6 +1,6 @@
 # Fleet Multi-engine Platform Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: use `superpowers:executing-plans` to implement authorized tasks sequentially. Repository instructions require ownership without delegation. All checkboxes below describe future work, not work completed by saving this plan.
+> **For agentic workers:** REQUIRED SUB-SKILL: use `superpowers:executing-plans` to implement authorized tasks sequentially. Repository instructions require ownership without delegation. Checked steps record verified acceptance linked below; unchecked steps remain future work.
 
 **Goal:** Preserve Fleet's current engines while adding selectable engines and reviewed environment adapters with reliable execution and optional comparisons.
 
@@ -52,7 +52,7 @@ Cross-repository order: F1 → F2 → F3 → PACT P1/F4 → PACT P2/F5 → F7 + 
 
 **Interfaces:** `EngineProfileRef = { id: string; version: string }`; `LegacyManifest = { sourceRevision: string; artifactDigest: string; configurationDigest: string; provenance: "recorded" | "inferred_legacy" }`; `LegacyEngineBridge.run(claim: Claim): Promise<void>` delegates to existing `Engine.run`. `legacyProfileFor(model: ModelSettings): EngineProfileRef` returns `legacy-loop@1` or `legacy-cognition@1`, preserving recall settings in the manifest.
 
-- [ ] Write red tests named `preserves legacy inputs and accounting`, `keeps legacy cognition and recall distinct`, `labels historical provenance without rewriting history`. Use fake game/model ports and injected clocks/IDs. Assert, for example:
+- [x] Write red tests named `preserves legacy inputs and accounting`, `keeps legacy cognition and recall distinct`, `labels historical provenance without rewriting history`. Use fake game/model ports and injected clocks/IDs. Assert, for example:
 
   ```ts
   expect(bridged.modelInputs).toEqual(pinned.modelInputs);
@@ -61,10 +61,12 @@ Cross-repository order: F1 → F2 → F3 → PACT P1/F4 → PACT P2/F5 → F7 + 
   expect(legacyProfileFor({ route: "ollama", model: "fixture" })).toEqual({ id: "legacy-loop", version: "1" });
   ```
 
-- [ ] Run `npx vitest run tests/integration/legacy-engine.test.ts --maxWorkers=1` in the isolated `fleet_test` setup. Expected red profile/bridge assertions, not a production connection or fixture failure.
-- [ ] Implement the bridge/profile resolver and a credential-free manifest from the pinned revision. Add additive run metadata without changing consumed configuration or historical ciphertext. Baseline fixtures contain synthetic inputs only.
-- [ ] Rerun the focused suite plus existing `tests/integration/engine.test.ts`, `cognition.test.ts`, `continuous.test.ts` and `recovery.test.ts`. Require identical decision-visible inputs, game commits and lifetime accounting; verify default composition still selects the legacy path.
-- [ ] Document the baseline contract and actual parity coverage; run `npm run check`, `npm run check:boundaries`, `git diff --check`; commit only F1 files and its report.
+- [x] Run `npx vitest run tests/integration/legacy-engine.test.ts --maxWorkers=1` in the isolated `fleet_test` setup. Expected red profile/bridge assertions, not a production connection or fixture failure.
+- [x] Implement the bridge/profile resolver and a credential-free manifest from the pinned revision. Add additive run metadata without changing consumed configuration or historical ciphertext. Baseline fixtures contain synthetic inputs only.
+- [x] Rerun the focused suite plus existing `tests/integration/engine.test.ts`, `cognition.test.ts`, `continuous.test.ts` and `recovery.test.ts`. Require identical decision-visible inputs, game commits and lifetime accounting; verify default composition still selects the legacy path.
+- [x] Document the baseline contract and actual parity coverage; run `npm run check`, `npm run check:boundaries`, `git diff --check`; commit only F1 files and its report.
+
+F1 acceptance: [source implementation and local verification](../../engine-baseline-20261017.md), with 389 passing tests. Installed runtimes remain unchanged.
 
 ## F2 — Register environments and generic bindings (phase 1)
 
@@ -265,4 +267,4 @@ interface EnvironmentAdapter {
 
 Coverage: F1 preserves baseline; F2 proves environment independence; F3 supplies reliable/fair execution; F4/P1 add events; F5/P2 connect grounded continuity and outlooks; F6 compares both worker choices; F7 keeps operation primary and comparisons optional; F8/P3 distinguish offline readiness from real acceptance. The five review-focus failures are assigned above.
 
-This is a phased implementation plan, not a claim that source work is assigned or tests above have run. The next source package is F1 under a covering implementation assignment. Execution stays native/sequential without delegation.
+F1 is source-verified under the founder's first-phase assignment; see its linked acceptance report. The next source package is F2 under a covering assignment. All later checkboxes remain unstarted. Execution stays native/sequential without delegation.

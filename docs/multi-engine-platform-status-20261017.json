@@ -1,0 +1,40 @@
+{
+  "assignment": "First phase of the approved Fleet/PACT architecture plan",
+  "scope": "F1 / phase 0 only; local machine testing; server Fleet excluded",
+  "assignee": "Codex",
+  "status": "source_verified",
+  "baselineRevision": "c212373ccca98d3e064d24ebd2a9398dd94e2a77",
+  "plan": "docs/superpowers/plans/2026-10-17-multi-engine-platform.md",
+  "packages": {
+    "F1": {
+      "status": "done",
+      "evidence": [
+        "docs/engine-baseline-20261017.md",
+        "389 deterministic local tests passed across 63 files",
+        "Type/style, build, boundary and dependency audit passed",
+        "22 installed local application tables matched exactly; runtime unchanged"
+      ]
+    },
+    "F2-F8": {
+      "status": "unstarted",
+      "reason": "Outside the first-phase assignment"
+    },
+    "PACT P1-P3": {
+      "status": "unstarted",
+      "reason": "No PACT game changes in phase 0"
+    }
+  },
+  "preserve": [
+    "identities",
+    "encrypted history",
+    "configuration",
+    "anchors",
+    "budgets",
+    "pending commands",
+    "unknown allocations",
+    "recovery gates"
+  ],
+  "serverFleetTouched": false,
+  "runtimeInstalled": false,
+  "liveProviderQualified": false
+}

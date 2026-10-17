@@ -2,7 +2,7 @@
 
 An independent server controller and private console for scheduled game agents. Scheduling, budgets, model execution, memory and command recovery use an injected game adapter. PACT is the first supported integration; additional games need their own authenticated adapter and acceptance tests. Fleet has its own database, processes, credentials and repository and never connects to a game's database.
 
-The proposed [multi-engine and environment architecture](docs/superpowers/specs/2026-10-17-multi-engine-platform-design.md) preserves the current controller while adding selectable engines, reviewed environment adapters and optional comparisons. Read the [phased Fleet implementation plan](docs/superpowers/plans/2026-10-17-multi-engine-platform.md) and its linked PACT counterpart. These are planning documents; new engines, migrations, deployments and runs are not activated by them.
+The proposed [multi-engine and environment architecture](docs/superpowers/specs/2026-10-17-multi-engine-platform-design.md) preserves the current controller while adding selectable engines, reviewed environment adapters and optional comparisons. Read the [phased Fleet implementation plan](docs/superpowers/plans/2026-10-17-multi-engine-platform.md) and its linked PACT counterpart. [Phase 0 / F1](docs/engine-baseline-20261017.md) now implements and tests the compatibility bridge and baseline metadata. Later engines and adapter registries remain planned. The installed runtimes are unchanged.
 
 The [focused PACT discovery source change](docs/discovery-20261013.md) replaces directory traversal with filtered, varied kingdom shortlists on compatible game releases. It is verified locally; rollout remains separate.
 

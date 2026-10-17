@@ -4,6 +4,7 @@ import { Cognition } from "./cognition.js";
 import { Continuation } from "./continuation.js";
 import { transaction } from "./db.js";
 import { type Data, FleetError, object } from "./domain.js";
+import { inferredLegacyExecution, legacyExecutionFor, retainedLegacyExecution } from "./platform/profiles.js";
 import { recoveryPlan } from "./recovery.js";
 import type { Claim, Store } from "./store.js";
 
@@ -82,6 +83,9 @@ export class Observability {
       id = randomUUID();
     const consent = (await db.query("SELECT observation_consent FROM cohorts WHERE id=$1 FOR SHARE", [claim.cohortId]))
       .rows[0]?.observation_consent;
+    const engine =
+      stage === "observing" && label === "Reading current game state" ? legacyExecutionFor(claim.id) : undefined;
+    const recordedDetail = engine ? { ...detail, engine } : detail;
     await db.query(
       "INSERT INTO turn_events(id,turn_id,agent_id,cohort_id,occurred_at,stage,label,detail_cipher) VALUES($1,$2,$3,$4,$5,$6,$7,$8)",
       [
@@ -92,7 +96,7 @@ export class Observability {
         this.store.now(),
         stage,
         label.slice(0, 200),
-        consent ? this.store.vault.encrypt(bounded(detail, detailLimit), `turn-event:${id}`) : null,
+        consent ? this.store.vault.encrypt(bounded(recordedDetail, detailLimit), `turn-event:${id}`) : null,
       ],
     );
   }
@@ -110,7 +114,17 @@ export class Observability {
         [turnId],
       )
     ).rows;
-    return { turn: page.turns[0], agent: { id: agent.id, name: agent.name }, executions, coverage: page.coverage };
+    const engine = page.turns[0]?.events.find(
+      (event) =>
+        event.stage === "observing" && event.label === "Reading current game state" && object(event.detail).engine,
+    )?.detail?.engine;
+    return {
+      turn: page.turns[0],
+      agent: { id: agent.id, name: agent.name },
+      executions,
+      engine: retainedLegacyExecution(engine) ?? inferredLegacyExecution(),
+      coverage: page.coverage,
+    };
   }
   async history(cohortId: string, agentId?: string, cursor: HistoryCursor = {}, turnId?: string) {
     await this.store.cohort(cohortId);

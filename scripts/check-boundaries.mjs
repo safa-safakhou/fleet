@@ -21,6 +21,8 @@ const core = [
   "codex",
   "vault",
   "db",
+  "platform/profiles",
+  "engines/legacy/bridge",
 ];
 for (const name of core) {
   const source = await readFile(`src/${name}.ts`, "utf8");

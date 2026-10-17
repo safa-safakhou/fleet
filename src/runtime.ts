@@ -2,7 +2,7 @@ import { CodexModel } from "./codex.js";
 import { Cognition } from "./cognition.js";
 import { config } from "./config.js";
 import { connect } from "./db.js";
-import { Engine } from "./engine.js";
+import { LegacyEngineBridge } from "./engines/legacy/bridge.js";
 import { pactAdapter } from "./games/pact/adapter.js";
 import { CredentialBroker } from "./games/pact/credentials.js";
 import { SyntheticOwner } from "./games/pact/owner.js";
@@ -18,7 +18,7 @@ export function runtime() {
     model = new RoutedModel(new HttpModel(settings.routes, settings.apiKey), new CodexModel(settings.codex)),
     owner = new SyntheticOwner(store, broker);
   const cognition = new Cognition(store, new LayaRecall(settings.layaEndpoint));
-  const engine = new Engine(
+  const engine = new LegacyEngineBridge(
     store,
     model,
     (id) => broker.game(id),

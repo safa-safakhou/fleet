@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Multi-engine phase 0 — 17 October 2026
+
+Founder authorized the first phase of the multi-engine plan, testing on this machine and excluding server Fleet. F1 adds a versioned legacy bridge and consented engine provenance while preserving the controller body. Read `docs/engine-baseline-20261017.md` and `docs/multi-engine-platform-status-20261017.json` for actual acceptance. This is isolated local source verification; no installed runtime, recovery gate, account, history, schedule or budget changes. F2–F8 and PACT P1–P3 remain unstarted. No delegation or push.
+
 ## Readable run steps, local-first — 16 October 2026
 
 Founder requested explanatory step outcomes with labeled inputs/outputs and retained raw JSON, deployed locally first for testing. Local console selects `7093cb8782e1b81df1ebddfd24a00eec9927b5b5`; read `docs/readable-run-steps-20261016.md` for tests, browser checks and actual local acceptance. Only web assets changed and the console restarted. Existing worker/helper processes and byte-identical backend/dependencies/migrations were retained;22 non-ephemeral table fingerprints matched. No server update, push, recovery review, replay, new inference or account/model/budget/schedule change was performed. Server remains on e1cad0e. Local existing recovery gates remain unchanged.
