@@ -18,6 +18,10 @@ flowchart TD
 
 The [authorized local rehearsal](local-release-rehearsal-20261018.md) passed encrypted target backup/restore, full file/table preservation, idempotent migration and inference-disabled old-source rollback on a network-isolated copy. The exact installed release remains unchanged. Original services/keepalive are restored with zero new turns or allocations; historical blocked agents/unknowns remain. `rollbackRehearsed:true` now records that scoped result. `workersFenced:false` remains: a new installation needs fresh fencing/quiescence and its own authorization. No server contact, provider qualification, run or push occurred.
 
+## Local disabled installation follow-up — 18 October
+
+The founder separately authorized and completed [local disabled installation](local-disabled-install-20261018.md) of Fleet953034e. Both process overrides and primary configuration keep execution off; original accounts/history and recovery gates remain. This supersedes the historical no-install selection below for this local disabled operation only. The generic live-profile proposal remains disarmed; no provider or new run was selected, no server contact or push occurred.
+
 ## Exact selection and boundaries
 
 | Item | Selected for this assignment |

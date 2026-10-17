@@ -1,8 +1,8 @@
 {
-  "assignment": "Founder local release rehearsal2026-10-18",
-  "scope": "Local target encrypted backup/restore, disabled source rollback and temporary maintenance fencing; server/new runs excluded",
+  "assignment": "Founder local execution-disabled release installation2026-10-18",
+  "scope": "Install verified Fleet953034e locally with execution disabled; preserve history/eligibility; server/new runs excluded",
   "assignee": "Codex",
-  "status": "source_verified",
+  "status": "locally_installed_execution_disabled",
   "baselineRevision": "c212373ccca98d3e064d24ebd2a9398dd94e2a77",
   "plan": "docs/superpowers/plans/2026-10-17-multi-engine-platform.md",
   "packages": {
@@ -172,7 +172,7 @@
     "recovery gates"
   ],
   "serverFleetTouched": false,
-  "runtimeInstalled": false,
+  "runtimeInstalled": true,
   "liveProviderQualified": false,
   "dependencyAuditPassed": true,
   "localReleaseRehearsal": {
@@ -184,5 +184,20 @@
     "installedBinaryChanged": false,
     "newRunsStarted": false,
     "checks": "185 unit+326 integration; type/style/build/boundaries/audit0; protected target proof and PACT backlog/diff passed"
+  },
+  "localInstallation": {
+    "status": "done",
+    "sourceRevision": "953034e24b5f93f82f0571eef55ecce9a61999d2",
+    "previousRevision": "7093cb8782e1b81df1ebddfd24a00eec9927b5b5",
+    "executionEnabled": false,
+    "serverFleetTouched": false,
+    "newRunsStarted": false,
+    "installedMigrationIdempotent": true,
+    "retainedOriginalTables": 22,
+    "newTablesEmpty": true,
+    "installedHttpChecks": 25,
+    "evidence": "docs/local-disabled-install-20261018.md",
+    "postInstallChecks": "185 unit+326 integration+12 paired acceptance; type/style/build/boundaries/provenance/installed graph/audit0;25 actual HTTP checks; protected preservation proof",
+    "addedEmptyTables": 16
   }
 }
