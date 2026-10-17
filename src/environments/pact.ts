@@ -1,5 +1,6 @@
 import { type Data, FleetError, type GamePort, object, safeCode } from "../domain.js";
 import { pactAdapter } from "../games/pact/adapter.js";
+import { pactEvents } from "../games/pact/events.js";
 import { RemoteRejection } from "../http.js";
 import type { Bindings } from "../platform/bindings.js";
 import type { ActionOutcome, BindingRef, EnvironmentAdapter } from "../platform/contracts.js";
@@ -60,6 +61,7 @@ export function createPactEnvironment(ports: {
   bindings: PactBindings;
   game: (agentId: string) => Promise<GamePort>;
   now: () => Date;
+  eventFeedVersion?: "pact.agent-events.v1";
 }): EnvironmentAdapter {
   return {
     ref: { id: "pact", version: "1" },
@@ -73,7 +75,7 @@ export function createPactEnvironment(ports: {
     enrollment: { attachExisting: (id) => ports.bindings.attach(id) },
     capabilities: {
       timing: "realtime",
-      events: "none",
+      events: ports.eventFeedVersion ? "poll" : "none",
       idempotency: "native",
       outcomeLookup: true,
       parallelReasoning: false,
@@ -111,10 +113,11 @@ export function createPactEnvironment(ports: {
             coverage: {
               authorizedView: true,
               environmentTimeAvailable: typeof time === "string",
-              detail: "Existing authenticated reads; no event feed or full-world guarantee.",
+              detail: "Existing authenticated reads; current snapshot with explicit coverage, no full-world guarantee.",
             },
           };
         },
+        ...(ports.eventFeedVersion ? { events: (cursor: string | null) => pactEvents(game, cursor, ports.now) } : {}),
         async catalog() {
           const tools = await game.tools();
           pactAdapter.validateCatalog?.(tools);

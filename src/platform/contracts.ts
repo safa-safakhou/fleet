@@ -35,7 +35,13 @@ export type EnvironmentEvent = {
   deadline?: DomainTime;
   metadata: Data;
 };
-export type EventPage = { events: EnvironmentEvent[]; nextCursor: string | null; resyncRequired: boolean };
+export type EventPage = {
+  events: EnvironmentEvent[];
+  nextCursor: string | null;
+  resyncRequired: boolean;
+  fromCursor?: string | null;
+  resumeFrom?: string;
+};
 export type Capabilities = {
   timing: "turn" | "realtime";
   events: "native" | "poll" | "none";

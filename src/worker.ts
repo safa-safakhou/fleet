@@ -14,7 +14,8 @@ let stop = false,
   lastPrune = 0,
   failures = 0,
   inFlight: Promise<unknown> | undefined,
-  recoveryInFlight: Promise<unknown> | undefined;
+  recoveryInFlight: Promise<unknown> | undefined,
+  intakeInFlight: Promise<unknown> | undefined;
 const platformInFlight = new Set<Promise<unknown>>();
 let preferPlatform = true;
 r.pool.on("error", () => console.error("fleet database connection unavailable"));
@@ -79,6 +80,14 @@ try {
             )
           ).rowCount,
         );
+      if (platformEnabled && disk && !intakeInFlight) {
+        intakeInFlight = r.intake
+          .tick((binding, code) => console.error("fleet events deferred", binding, code))
+          .catch((error) => console.error("fleet events deferred", safeCode(error)))
+          .finally(() => {
+            intakeInFlight = undefined;
+          });
+      }
       if (platformEnabled && disk) {
         const progress = async () => {
           await r.pool.query("UPDATE worker_health SET last_progress_at=now() WHERE id=$1", [worker]);
@@ -132,6 +141,12 @@ try {
         }
       }
       if (Date.now() - lastPrune > 3600000) {
+        await r.pool.query("DELETE FROM environment_event_receipts WHERE received_at<$1", [
+          new Date(r.store.now().getTime() - 30 * 86400000),
+        ]);
+        await r.pool.query("DELETE FROM environment_event_gaps WHERE observed_at<$1", [
+          new Date(r.store.now().getTime() - 30 * 86400000),
+        ]);
         await new Communications(r.store).prune();
         await new Cognition(r.store).prune();
         await new Continuation(r.store).prune();
@@ -153,7 +168,7 @@ try {
 } finally {
   awake.close();
   await r.host.stop();
-  await Promise.allSettled([inFlight, recoveryInFlight, ...platformInFlight]);
+  await Promise.allSettled([inFlight, recoveryInFlight, intakeInFlight, ...platformInFlight]);
   await r.host.drain();
   await r.pool.end();
 }

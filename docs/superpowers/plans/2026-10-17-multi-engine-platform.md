@@ -159,7 +159,7 @@ F3 acceptance: [durable host, compatibility and recovery proof](../../platform-h
 
 **Interfaces:** `EventIntake.ingest(binding, page: EventPage): Promise<{ inserted: number; cursor: string | null }>` atomically stores deduplicated sources/task effects and advances the cursor. `WakePolicy = { enabled: boolean; categories: string[]; periodicReviewMinutes: number; quietCategories: string[] }`. `ReactiveEngine.run(context)` uses F3 services; its profile IDs are `reactive-basic@1` and later `reactive-cognition@1` after F5.
 
-- [ ] Write tests `groups two completions for one goal`, `keeps separate conversations`, `does not infer on receipt without enrollment`, `deduplicates after restart`, `resyncs expired cursor without fabricated history`, `marks missed battle lock before model dispatch`.
+- [x] Write tests `groups two completions for one goal`, `keeps separate conversations`, `does not infer on receipt without enrollment`, `deduplicates after restart`, `resyncs expired cursor without fabricated history`, `marks missed battle lock before model dispatch`.
 
   ```ts
   expect(goalTasks).toHaveLength(1); // two related source events retained
@@ -170,10 +170,12 @@ F3 acceptance: [durable host, compatibility and recovery proof](../../platform-h
   expect(afterExpiredDeadline.code).toBe("DEADLINE_MISSED");
   ```
 
-- [ ] Run the focused suite to red; treat absent PACT feed capability as `UNSUPPORTED_CAPABILITY`, not as permission to open a human session stream.
-- [ ] Implement bounded polling intake, task coalescing and explicit event-wake enrollment on new cohorts. Native and polled delivery are labeled. Preserve timed reviews and conditional waits; apply mutes/categories in wake policy. Enforce model caps before every dispatch, even during a flood. On a cursor gap, persist gap evidence, obtain a fresh authorized snapshot and resume from the server resync token.
-- [ ] Run reactive, admission, scheduler, legacy parity and PACT-adapter tests. Verify 100 duplicate/flood events do not produce 100 model calls; each actual call still needs remaining allowance and provider admission. Verify out-of-order events do not regress current state.
-- [ ] Document the new profiles and actual PACT feed versions; commit only after boundary/build/type/behavior checks pass. Existing cohorts are not enrolled by migration.
+- [x] Run the focused suite to red; treat absent PACT feed capability as `UNSUPPORTED_CAPABILITY`, not as permission to open a human session stream.
+- [x] Implement bounded polling intake, task coalescing and explicit event-wake enrollment on new cohorts. Native and polled delivery are labeled. Preserve timed reviews and conditional waits; apply mutes/categories in wake policy. Enforce model caps before every dispatch, even during a flood. On a cursor gap, persist gap evidence, obtain a fresh authorized snapshot and resume from the server resync token.
+- [x] Run reactive, admission, scheduler, legacy parity and PACT-adapter tests. Verify 100 duplicate/flood events do not produce 100 model calls; each actual call still needs remaining allowance and provider admission. Verify out-of-order events do not regress current state.
+- [x] Document the new profiles and actual PACT feed versions; commit only after boundary/build/type/behavior checks pass. Existing cohorts are not enrolled by migration.
+
+F4 source acceptance: [reactive engine and event intake](../../reactive-engine-20261017.md),446 passing deterministic tests. PACT P1 is source-verified; no installation, provider qualification or current-cohort enrollment.
 
 ## F5 — Connect grounded continuity, self-models and relationships to tasks (phase 3)
 
@@ -271,4 +273,4 @@ F3 acceptance: [durable host, compatibility and recovery proof](../../platform-h
 
 Coverage: F1 preserves baseline; F2 proves environment independence; F3 supplies reliable/fair execution; F4/P1 add events; F5/P2 connect grounded continuity and outlooks; F6 compares both worker choices; F7 keeps operation primary and comparisons optional; F8/P3 distinguish offline readiness from real acceptance. The five review-focus failures are assigned above.
 
-F1 is source-verified under the founder's first-phase assignment; see its linked acceptance report. F2 is also source-verified; F3 is source-verified under the phase1 request. F4 onward remain unstarted. Execution stays native/sequential without delegation.
+F1 is source-verified under the founder's first-phase assignment; see its linked acceptance report. F2 is also source-verified; F3 is source-verified under the phase1 request. F4/P1 are source-verified under the phase2 request. F5 onward/P2 onward remain unstarted. Execution stays native/sequential without delegation.

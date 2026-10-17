@@ -4,6 +4,7 @@ import { config } from "./config.js";
 import { connect } from "./db.js";
 import { FleetError } from "./domain.js";
 import { LegacyEngineBridge } from "./engines/legacy/bridge.js";
+import { ReactiveEngine } from "./engines/reactive/engine.js";
 import { createPactEnvironment, PactBindings } from "./environments/pact.js";
 import { pactAdapter } from "./games/pact/adapter.js";
 import { CredentialBroker } from "./games/pact/credentials.js";
@@ -14,6 +15,7 @@ import { ModelAdmission, RouteCapacity } from "./platform/admission.js";
 import { Bindings } from "./platform/bindings.js";
 import { EngineRegistry } from "./platform/engine-registry.js";
 import { EnvironmentRegistry } from "./platform/environment-registry.js";
+import { EventIntake } from "./platform/event-intake.js";
 import { CommandExecutor } from "./platform/execution.js";
 import { currentLegacyClaim, legacyProfileFor } from "./platform/profiles.js";
 import { OperationSupervisor, PlatformHost } from "./platform/supervisor.js";
@@ -35,6 +37,7 @@ export function runtime() {
         bindings: new PactBindings(store, bindings),
         game: (id) => broker.game(id),
         now: store.now,
+        eventFeedVersion: settings.pactEventFeedVersion,
       }),
     ],
     settings.environment,
@@ -86,6 +89,22 @@ export function runtime() {
   const admission = new ModelAdmission(store, tasks, model, capacity),
     commands = new CommandExecutor(store, tasks, bindings, environments),
     supervisor = new OperationSupervisor(tasks);
+  engines.register(new ReactiveEngine());
+  const intake = new EventIntake(tasks, bindings, environments);
   const host = new PlatformHost(tasks, bindings, environments, engines, admission, commands, supervisor);
-  return { settings, pool, store, broker, engine, bindings, environments, tasks, engines, admission, commands, host };
+  return {
+    settings,
+    pool,
+    store,
+    broker,
+    engine,
+    bindings,
+    environments,
+    tasks,
+    engines,
+    admission,
+    commands,
+    host,
+    intake,
+  };
 }

@@ -1,4 +1,4 @@
-import { type Data, FleetError } from "../domain.js";
+import { type Data, FleetError, type Tool } from "../domain.js";
 import type { ModelAdmission } from "./admission.js";
 import type { BindingRef, CapabilityRequirements, Observation, SchemaRequirements } from "./contracts.js";
 import type { CommandExecutor } from "./execution.js";
@@ -14,6 +14,10 @@ export interface EngineContext {
   observe: (query: Data) => Promise<Observation>;
   eventRefs: string[];
   signal: AbortSignal;
+  goal?: string;
+  schemas?: { observations: string[]; actions: string[] };
+  catalog?: () => Promise<Tool[]>;
+  waitForEvent?: () => Promise<void>;
 }
 export interface AgentEngine {
   ref: EngineProfileRef;

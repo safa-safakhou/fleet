@@ -127,6 +127,20 @@ export class PlatformHost {
           observe,
           eventRefs: task.sourceRefs,
           signal,
+          schemas: adapter.schemas,
+          goal: adapter.presentation.defaultGoal,
+          catalog: async () => {
+            if (!session) throw new FleetError("OBSERVATION_OWNED_BY_ENGINE");
+            await this.tasks.check(claim);
+            return session.catalog();
+          },
+          waitForEvent: async () => {
+            await this.tasks.check(claim);
+            await this.tasks.store.pool.query(
+              "UPDATE platform_tasks SET wake=$2 WHERE id=$1 AND fence=$3 AND state='running'",
+              [claim.taskId, { kind: "event" }, claim.fence],
+            );
+          },
         });
       } finally {
         await session?.close().catch(() => {});

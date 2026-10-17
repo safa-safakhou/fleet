@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import type { Pool, PoolClient } from "pg";
 import { transaction } from "../db.js";
 import { FleetError } from "../domain.js";
 import type { Store } from "../store.js";
@@ -84,10 +85,9 @@ export class Bindings {
       throw error;
     }
   }
-  async get(id: string): Promise<BindingRef> {
-    const row = (
-      await this.store.pool.query<BindingRow>("SELECT * FROM environment_bindings WHERE id=$1 AND state='active'", [id])
-    ).rows[0];
+  async get(id: string, db: Pool | PoolClient = this.store.pool): Promise<BindingRef> {
+    const row = (await db.query<BindingRow>("SELECT * FROM environment_bindings WHERE id=$1 AND state='active'", [id]))
+      .rows[0];
     if (!row) throw new FleetError("BINDING_NOT_FOUND");
     const result = ref(row);
     if (!sameEnvironment(result.environment, this.selected)) throw new FleetError("ENVIRONMENT_NOT_SELECTED");
@@ -102,12 +102,10 @@ export class Bindings {
     ).rows[0];
     return row ? this.get(row.id) : null;
   }
-  async agentFor(binding: BindingRef): Promise<string> {
-    const actual = await this.get(binding.id);
+  async agentFor(binding: BindingRef, db: Pool | PoolClient = this.store.pool): Promise<string> {
+    const actual = await this.get(binding.id, db);
     if (!same(actual, binding)) throw new FleetError("BINDING_MISMATCH");
-    const row = (
-      await this.store.pool.query<BindingRow>("SELECT * FROM environment_bindings WHERE id=$1", [binding.id])
-    ).rows[0];
+    const row = (await db.query<BindingRow>("SELECT * FROM environment_bindings WHERE id=$1", [binding.id])).rows[0];
     return row.agent_id;
   }
 }

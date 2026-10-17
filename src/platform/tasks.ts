@@ -57,6 +57,7 @@ export class TaskStore {
       )
         throw new FleetError("CONSUMED_PROFILE_IMMUTABLE");
       if (!["draft", "paused"].includes(cohort.state)) throw new FleetError("COHORT_NOT_EDITABLE");
+      await db.query("DELETE FROM cohort_wake_policies WHERE cohort_id=$1", [cohortId]);
       await db.query(
         "INSERT INTO cohort_engine_profiles(cohort_id,profile_id,profile_version,timed_reviews,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT(cohort_id) DO UPDATE SET profile_id=excluded.profile_id,profile_version=excluded.profile_version,timed_reviews=excluded.timed_reviews",
         [cohortId, profile.id, profile.version, timedReviews, this.store.now()],
@@ -64,7 +65,12 @@ export class TaskStore {
     });
   }
   async upsertFromEvent(binding: BindingRef, event: EnvironmentEvent, key: string): Promise<TaskRecord> {
-    const agentId = await this.bindings.agentFor(binding);
+    const id = await transaction(this.store.pool, (db) => this.upsertWithin(db, binding, event, key));
+    return this.get(id);
+  }
+  /** Caller owns the transaction: source/task/cursor effects commit together. */
+  async upsertWithin(db: PoolClient, binding: BindingRef, event: EnvironmentEvent, key: string): Promise<string> {
+    const agentId = await this.bindings.agentFor(binding, db);
     if (
       !key ||
       key.length > 200 ||
@@ -74,59 +80,55 @@ export class TaskStore {
       event.sourceRef.length > 8000
     )
       throw new FleetError("INVALID_TASK_SOURCE");
-    const id = await transaction(this.store.pool, async (db) => {
-      await db.query("SELECT id FROM environment_bindings WHERE id=$1 FOR UPDATE", [binding.id]);
-      const prior = (
-        await db.query("SELECT task_id FROM platform_task_sources WHERE binding_id=$1 AND event_id=$2", [
-          binding.id,
-          event.id,
-        ])
-      ).rows[0];
-      if (prior) return prior.task_id;
-      const agent = await this.store.agent(agentId, db),
-        profile = (await db.query("SELECT * FROM cohort_engine_profiles WHERE cohort_id=$1", [agent.cohort_id]))
-          .rows[0];
-      if (!profile) throw new FleetError("ENGINE_ENROLLMENT_REQUIRED");
-      let task = (
+    await db.query("SELECT id FROM environment_bindings WHERE id=$1 FOR UPDATE", [binding.id]);
+    const prior = (
+      await db.query("SELECT task_id FROM platform_task_sources WHERE binding_id=$1 AND event_id=$2", [
+        binding.id,
+        event.id,
+      ])
+    ).rows[0];
+    if (prior) return prior.task_id;
+    const agent = await this.store.agent(agentId, db),
+      profile = (await db.query("SELECT * FROM cohort_engine_profiles WHERE cohort_id=$1", [agent.cohort_id])).rows[0];
+    if (!profile) throw new FleetError("ENGINE_ENROLLMENT_REQUIRED");
+    let task = (
+      await db.query(
+        "SELECT * FROM platform_tasks WHERE binding_id=$1 AND task_key=$2 AND state IN('ready','running','waiting','blocked') FOR UPDATE",
+        [binding.id, key],
+      )
+    ).rows[0];
+    if (!task) {
+      const id = randomUUID();
+      const deadlineAt = event.deadline?.clockId === "utc" ? new Date(event.deadline.value) : null;
+      if (deadlineAt && !Number.isFinite(deadlineAt.getTime())) throw new FleetError("INVALID_DEADLINE");
+      task = (
         await db.query(
-          "SELECT * FROM platform_tasks WHERE binding_id=$1 AND task_key=$2 AND state IN('ready','running','waiting','blocked') FOR UPDATE",
-          [binding.id, key],
+          "INSERT INTO platform_tasks(id,binding_id,cohort_id,profile_id,profile_version,task_key,due_at,deadline,deadline_at,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$7) RETURNING *",
+          [
+            id,
+            binding.id,
+            agent.cohort_id,
+            profile.profile_id,
+            profile.profile_version,
+            key,
+            this.store.now(),
+            event.deadline ?? null,
+            deadlineAt,
+          ],
         )
       ).rows[0];
-      if (!task) {
-        const id = randomUUID();
-        const deadlineAt = event.deadline?.clockId === "utc" ? new Date(event.deadline.value) : null;
-        if (deadlineAt && !Number.isFinite(deadlineAt.getTime())) throw new FleetError("INVALID_DEADLINE");
-        task = (
-          await db.query(
-            "INSERT INTO platform_tasks(id,binding_id,cohort_id,profile_id,profile_version,task_key,due_at,deadline,deadline_at,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$7) RETURNING *",
-            [
-              id,
-              binding.id,
-              agent.cohort_id,
-              profile.profile_id,
-              profile.profile_version,
-              key,
-              this.store.now(),
-              event.deadline ?? null,
-              deadlineAt,
-            ],
-          )
-        ).rows[0];
-      } else {
-        const deadline = earliestDeadline(task.deadline ?? undefined, event.deadline);
-        await db.query(
-          "UPDATE platform_tasks SET revision=revision+1,state=CASE WHEN state='waiting' THEN 'ready' ELSE state END,wake=NULL,deadline=$2,deadline_at=$3 WHERE id=$1",
-          [task.id, deadline ?? null, deadline?.clockId === "utc" ? new Date(deadline.value) : null],
-        );
-      }
+    } else {
+      const deadline = earliestDeadline(task.deadline ?? undefined, event.deadline);
       await db.query(
-        "INSERT INTO platform_task_sources(binding_id,event_id,task_id,source_ref,observed_at) VALUES($1,$2,$3,$4,$5)",
-        [binding.id, event.id, task.id, event.sourceRef, event.observedAt],
+        "UPDATE platform_tasks SET revision=revision+1,state=CASE WHEN state='waiting' THEN 'ready' ELSE state END,wake=NULL,deadline=$2,deadline_at=$3 WHERE id=$1",
+        [task.id, deadline ?? null, deadline?.clockId === "utc" ? new Date(deadline.value) : null],
       );
-      return task.id as string;
-    });
-    return this.get(id);
+    }
+    await db.query(
+      "INSERT INTO platform_task_sources(binding_id,event_id,task_id,source_ref,observed_at) VALUES($1,$2,$3,$4,$5)",
+      [binding.id, event.id, task.id, event.sourceRef, event.observedAt],
+    );
+    return task.id as string;
   }
   async get(id: string): Promise<TaskRecord> {
     const row = (await this.store.pool.query("SELECT * FROM platform_tasks WHERE id=$1", [id])).rows[0];
@@ -285,7 +287,10 @@ export class TaskStore {
         else if (row.pending_command || row.unknown_usage || row.turn_state === "needs_owner") state = "blocked";
         else if (Number(row.revision) > Number(row.claimed_revision) || row.turn_code === "WORKER_EXPIRED")
           state = "ready";
-        else if (!["WAIT", "COMMITTED", "ALREADY_COMMITTED", "DEADLINE_MISSED"].includes(row.turn_code)) {
+        else if (row.turn_code === "WAIT" && row.wake?.kind === "event") {
+          state = "waiting";
+          wake = row.wake;
+        } else if (!["WAIT", "COMMITTED", "ALREADY_COMMITTED", "DEADLINE_MISSED"].includes(row.turn_code)) {
           state = "waiting";
           wake = { kind: "retry", code: row.turn_code };
           due = row.next_due_at;

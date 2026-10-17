@@ -1,6 +1,6 @@
 {
-  "assignment": "Phase1 of the approved Fleet/PACT architecture plan",
-  "scope": "F2 and F3; local isolated testing; server Fleet excluded",
+  "assignment": "Phase2 of the approved Fleet/PACT architecture plan",
+  "scope": "PACT P1 then Fleet F4; isolated local testing; server Fleet excluded",
   "assignee": "Codex",
   "status": "source_verified",
   "baselineRevision": "c212373ccca98d3e064d24ebd2a9398dd94e2a77",
@@ -14,10 +14,6 @@
         "Type/style, build, boundary and dependency audit passed",
         "22 installed local application tables matched exactly; runtime unchanged"
       ]
-    },
-    "PACT P1-P3": {
-      "status": "unstarted",
-      "reason": "No PACT game changes in phase 0"
     },
     "F2": {
       "status": "done",
@@ -36,9 +32,33 @@
         "22 installed local application tables matched exactly; runtime unchanged"
       ]
     },
-    "F4-F8": {
+    "PACT P1": {
+      "status": "done",
+      "revision": "8688586e106adf3ac0f1eb751bf4291c6c0995f0",
+      "verificationRevision": "7f04bd5",
+      "evidence": [
+        "PACT docs/implementation/reports/agent-events-20261017.md",
+        "386 unit;447 integration passed,1 existing skip;build/type/lint/backlog passed"
+      ]
+    },
+    "F4": {
+      "status": "done",
+      "assignee": "Codex",
+      "dependencies": ["F3", "PACT P1"],
+      "evidence": [
+        "docs/reactive-engine-20261017.md",
+        "446 deterministic tests /71 files passed",
+        "Type/style, build, recursive boundaries and audit passed",
+        "22 installed local table fingerprints unchanged; server Fleet untouched"
+      ]
+    },
+    "F5-F8": {
       "status": "unstarted",
-      "reason": "Outside phase1 assignment"
+      "reason": "Outside phase2 assignment"
+    },
+    "PACT P2-P3": {
+      "status": "unstarted",
+      "reason": "Future phases"
     }
   },
   "preserve": [

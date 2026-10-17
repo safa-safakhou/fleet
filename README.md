@@ -103,3 +103,5 @@ Each turn observes one rotating contact from the delivered guide and its latest 
 Adapters support Ollama `/api/chat` with bounded output and immediate unload, an explicitly selected API-compatible `/chat/completions` endpoint with JSON output, and native Linux Codex CLI with ChatGPT subscription authentication. They do not silently switch models. The [Codex setup and accounting guide](docs/codex-provider.md) explains protected login, execution-based allowances and required live certification. Actual provider/account/scheduler certification remains a launch prerequisite. See [Ollama's chat API](https://docs.ollama.com/api/chat) and [OpenAI's Chat API](https://developers.openai.com/api/reference/resources/chat).
 
 The PACT integration's public action artifact in `vendor/` is explicitly exported and checked by digest; no PACT rules or database credentials are copied. Update it only after reviewing a PACT contract change. The game remains authoritative.
+
+Phase2 source implementation: [event intake and reactive-basic@1](docs/reactive-engine-20261017.md). Existing cohorts remain on their selected engines; installation is separate.

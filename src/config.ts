@@ -17,6 +17,7 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
     origin,
     gameBase,
     gameId: "pact",
+    pactEventFeedVersion: z.enum(["pact.agent-events.v1"]).optional().parse(env.FLEET_PACT_EVENT_FEED_VERSION),
     environment: {
       id: env.FLEET_ENVIRONMENT_ID ?? env.FLEET_GAME ?? "pact",
       version: env.FLEET_ENVIRONMENT_VERSION ?? "1",

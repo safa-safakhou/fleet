@@ -1,5 +1,10 @@
 # Fleet engineering
 
+## Multi-engine phase2 — 17 October 2026
+
+Founder requested PACT P1 then Fleet F4 with isolated local testing and server Fleet excluded. Read `docs/reactive-engine-20261017.md` and `docs/multi-engine-platform-status-20261017.json` for exact source acceptance. Existing engines and installed runtimes remain unchanged; no current cohort is event-enrolled. No delegation, push, installation, recovery review or new real-model run is implied. P2/F5 are the next architecture phase.
+
+
 ## Multi-engine phase 1 — 17 October 2026
 
 Founder requested the next architecture phase: F2 then F3, with isolated local testing and server Fleet excluded. F2 and F3 are source-verified; read `docs/environment-bindings-20261017.md`, `docs/platform-host-20261017.md` and `docs/multi-engine-platform-status-20261017.json`. All 431 tests pass; real routes remain serial and installed runtimes unchanged. F4/P1 event work remains unstarted. Preserve installed releases, accounts/history/allowances/anchors and existing recovery gates. No delegation, push, installation or new live run is implied.

@@ -24,3 +24,7 @@ Defaults retain PACT version1 and use the normalized game base URL as instance I
 [Phase1 host acceptance](platform-host-20261017.md) describes explicit fresh-cohort enrollment, static `AgentEngine` registration, durable task/source/turn fences, fair task-cohort admission, per-operation stop/drain and shared model/command services. Generic engines consume `EngineContext`; they do not receive a game database, credentials or a way to expand their own execution policy. Compatibility engines retain their own observation/accounting flow and use a capacity-only provider port. Real route capacity remains one pending separate qualification; the original Codex process lock remains.
 
 Commands retain their original internal UUID, encrypted intent and existing receipt archive. A known non-dispatch rejection can replan; unknown usage or action delivery retains its allocation/pending ID and concrete recovery gate. The cursor table is storage groundwork; current PACT still advertises no event feed. Feed polling, resync, enrollment and reactive profiles are later work. The phase1 source has not been installed into the existing runtimes.
+
+## Event-aware profiles
+
+See [F4 intake and reactive profile](reactive-engine-20261017.md) for explicit new-cohort wake enrollment, bounded polling/cursor resync and `pact.agent-events.v1`. Event metadata never grants model/action authority. Existing environments without a reviewed feed remain `events:none`; no human stream fallback.
