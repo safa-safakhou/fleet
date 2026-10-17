@@ -1,6 +1,6 @@
 {
-  "assignment": "Founder phase5 F7 and PACT P3 request2026-10-17",
-  "scope": "F7 + PACT P3 source/offline; local isolated tests; server Fleet and installed runtimes excluded",
+  "assignment": "Founder F8 qualification/release proposal request2026-10-17",
+  "scope": "F8 source/offline; local isolated tests; server Fleet and installed runtimes excluded",
   "assignee": "Codex",
   "status": "source_verified",
   "baselineRevision": "c212373ccca98d3e064d24ebd2a9398dd94e2a77",
@@ -102,7 +102,28 @@
       ]
     },
     "F8": {
-      "status": "unstarted"
+      "status": "done",
+      "assignee": "Codex",
+      "dependencies": ["F1", "F2", "F3", "F4", "F5", "F7", "PACT P1", "PACT P2", "PACT P3"],
+      "scope": "Qualification and disarmed release/run proposal; optional F6 only on compatible synthetic environment",
+      "qualification": "source_offline_only_release_blocked",
+      "sourceRevision": "8c83be5da23b7bae2cbcdfb8986b696ffcd2ec28",
+      "evidence": [
+        "docs/qualification-release-20261017.md",
+        "docs/multi-engine-release-proposal-20261017.md",
+        "docs/multi-engine-compatibility-20261017.md",
+        "185 unit +326 integration +12 actual-handler/profile acceptance passed; Fleet audit0",
+        "PACT389 unit +465 integration passed,1 existing optional real-provider skip; full build/type/lint/eval/backlog passed",
+        "PACT dependency audit23 (16 high/7 moderate) in unchanged Expo tree: release blocked",
+        "Pinned legacy controller unchanged; installed7093cb8 release and22 application table fingerprints unchanged"
+      ],
+      "limitations": [
+        "No actual provider qualification, exact live selection, installation, push or server contact",
+        "Actual target encrypted restore rehearsal and maintenance fencing not performed",
+        "PACT F6 coordination/parallel protocol unsupported",
+        "Artifact authenticity requires review; pure gates perform no operational action",
+        "Author review only under no-delegation instructions"
+      ]
     },
     "F7": {
       "status": "done",

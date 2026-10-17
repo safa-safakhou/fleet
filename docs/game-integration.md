@@ -32,3 +32,7 @@ See [F4 intake and reactive profile](reactive-engine-20261017.md) for explicit n
 ## Optional structured coordination — F6
 
 [Coordinator contract](specialist-coordinator-20261017.md) requires an environment-owned claim validator and atomic expected-revision enforcement. Parallel reasoning is separately negotiated. Existing PACT integration does not advertise this capability; no inferred game permissions, local economy arithmetic or real independent-submit broker is supplied.
+
+## Adapter/profile qualification
+
+[F8](profile-qualification.md) reviews exact profile, environment instance, adapter descriptor, source/configuration digests and separate fake/real evidence. See the [compatibility matrix](multi-engine-compatibility-20261017.md). A capability preview alone is insufficient; another adapter needs actual handler/permission/receipt and failure-path acceptance. No provider route or live profile is certified by synthetic tests.

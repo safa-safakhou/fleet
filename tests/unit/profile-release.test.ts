@@ -1,3 +1,4 @@
+import { readFile } from "node:fs/promises";
 import { expect, it } from "vitest";
 import { reviewProfileRelease } from "../../src/release-review.js";
 import { boardEnvironment } from "../fixtures/environments/board.js";
@@ -96,4 +97,24 @@ it("retains qualification, source, clock, route and duplicate-identity blockers"
   ).toBe(false);
   expect(reviewProfileRelease({ ...m, runs: [r, r] }).blockers).toContain("duplicate_run_identity");
   expect(() => reviewProfileRelease({ ...m, runs: [{ ...r, callLimit: 0 }] })).toThrow();
+});
+
+it("keeps the saved release proposal disarmed with no selected cohorts or providers", async () => {
+  const manifest = JSON.parse(await readFile("docs/multi-engine-release-manifest-20261017.json", "utf8"));
+  expect(manifest.runs).toEqual([]);
+  const review = reviewProfileRelease(manifest);
+  expect(review.executionEnabled).toBe(false);
+  expect(review.readyForAuthorizedDeployment).toBe(false);
+  expect(review.pushAuthorized).toBe(false);
+  expect(review.blockers).toEqual(
+    expect.arrayContaining([
+      "exact_run_proposal",
+      "run_authorization",
+      "dependency_audit",
+      "rollbackRehearsed",
+      "ownerAuthorityResolved",
+      "deploymentAuthorized",
+      "quiescence",
+    ]),
+  );
 });

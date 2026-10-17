@@ -88,3 +88,7 @@ Synthetic contact acceptance is an explicit setup choice: include socialDelegati
 ## Recovering local execution
 
 See [the local repair and recovery guide](local-repair-20261013.md). Opt-in macOS `FLEET_KEEP_AWAKE=1` holds sleep assertions only while the worker has a running authorized cohort. Pause before reviewing interrupted executions: inspect the recovery path in the agent inspector, retain ledger reservations, reconcile original receipts for pending commands, explicitly review non-command uncertainty, reconnect the same account if needed, then resume the existing cohort. Do not reset counters, replace identities, clear unknown ledger rows, extend terminal cohorts or replay uncertain commands. Known malformed outputs with reported usage replan within the unchanged decision budget and original schedule.
+
+## Multi-engine release preparation —17 October2026
+
+The [F8 proposal](multi-engine-release-proposal-20261017.md) supersedes no deployment or recovery authorization. It prepares source qualification only, with no selected run. Its additive-schema rollback retains the latest database and explicitly prevents older workers from claiming unsupported task profiles. Server Fleet is excluded.

@@ -1,0 +1,30 @@
+{
+  "schemaVersion": "fleet.profile-release.v1",
+  "release": {
+    "schemaVersion": "fleet.release-review.v1",
+    "source": {
+      "gameCommit": "177ad6cf48888131d86f4aef879b97ff64d47c33",
+      "fleetCommit": "8c83be5da23b7bae2cbcdfb8986b696ffcd2ec28",
+      "contractsDigest": "18613655b261cc48262592af325f9befcee93e297e8a7f1462a2fdab606e7b66"
+    },
+    "compatibleContracts": true,
+    "migrationRehearsed": true,
+    "preservationVerified": true,
+    "retentionReviewed": true,
+    "rollbackRehearsed": false,
+    "quiescence": {
+      "modelCalls": 0,
+      "pendingCommands": 0,
+      "credentialOperations": 0,
+      "callbacks": 0,
+      "workersFenced": false
+    },
+    "ownerAuthorityResolved": false,
+    "deploymentAuthorized": false,
+    "pushAuthorized": false
+  },
+  "reviewedAt": "2026-10-17T20:37:37.155Z",
+  "runAuthorized": false,
+  "dependencyAuditPassed": false,
+  "runs": []
+}

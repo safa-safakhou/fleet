@@ -117,3 +117,7 @@ The [readable step view](readable-run-steps-20261016.md) explains each event and
 ## Versioned engines and report downloads
 
 The [F7 workflow](profiles-and-reports-20261017.md) describes inactive profile drafts, capability previews, optional cohort links and private/shareable exports. This source change does not install or enroll a runtime; F8 owns later release qualification.
+
+## Qualification before installation or a new run
+
+[Profile qualification](profile-qualification.md) separates source/offline compatibility from actual route evidence. Read the [F8 proposal](multi-engine-release-proposal-20261017.md) before selecting any rollout. Its current run selection is empty and execution is disabled; preparing or reviewing it never enrolls accounts, clears recovery gates or starts a cohort.
