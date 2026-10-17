@@ -4,6 +4,7 @@ import { createPactEnvironment, PactBindings } from "../../src/environments/pact
 import { Bindings } from "../../src/platform/bindings.js";
 import { EnvironmentRegistry } from "../../src/platform/environment-registry.js";
 import { boardEnvironment, boardRef } from "../fixtures/environments/board.js";
+import sample from "../fixtures/environments/pact-outlook.json" with { type: "json" };
 import { FakeGame, fixture, ready } from "../helpers.js";
 
 let cleanup: (() => Promise<void>) | undefined;
@@ -118,4 +119,61 @@ it("preserves legacy vault identity and pending receipt", async () => {
   expect(game.submits).toHaveLength(0);
   await expect(legacy.agentFor({ ...binding, actorRef: "forged" })).rejects.toThrow("BINDING_MISMATCH");
   expect(Number((await f.store.cohort(cohort)).generation)).toBe(claim.generation);
+});
+
+it("negotiates the optional P2 outlook and scopes facts and peer statements through the PACT adapter", async () => {
+  const f = await setup();
+  await ready(f.store, 1);
+  const claim = await f.store.claim("outlook-fixture");
+  if (!claim) throw Error("NO_CLAIM");
+  const ref = { id: "pact", version: "1", instanceId: "fixture:outlook" },
+    bindings = new Bindings(f.store, ref),
+    legacy = new PactBindings(f.store, bindings),
+    binding = await legacy.attach(claim.agentId);
+  const game = new FakeGame(claim);
+  const tools = game.tools.bind(game),
+    read = game.read.bind(game);
+  game.tools = async () => [
+    ...(await tools()),
+    { name: "pact_agent_outlook_v1", inputSchema: { type: "object" }, annotations: { readOnlyHint: true } },
+  ];
+  game.read = async (tool, args) =>
+    tool === "pact_agent_outlook_v1" ? { ...sample, ownerRef: binding.entityRef } : read(tool, args);
+  const ports = { store: f.store, bindings: legacy, game: async () => game, now: f.now };
+  const disabled = new EnvironmentRegistry([createPactEnvironment(ports)], ref);
+  await expect(disabled.connect(binding, { continuity: true })).rejects.toThrow("UNSUPPORTED_CAPABILITY");
+  expect(game.reads).toHaveLength(0);
+  const registry = new EnvironmentRegistry(
+      [createPactEnvironment({ ...ports, outlookVersion: "pact.agent-outlook.v1" })],
+      ref,
+    ),
+    session = await registry.connect(binding, { continuity: true });
+  const snapshot = await session.observe({ continuity: true });
+  expect(snapshot.continuity?.self.capabilities).toContain("pact_agent_outlook_v1");
+  expect(snapshot.continuity?.facts.some((f) => f.kind === "outcome" && f.value === "lost")).toBe(true);
+  expect(snapshot.continuity?.facts.every((f) => snapshot.sourceRefs.includes(f.sourceRef))).toBe(true);
+  expect(snapshot.sourceRefs.every((s) => JSON.parse(s)[2] === "fixture:outlook")).toBe(true);
+  const peer = sample.commitments[0].counterpartyRef;
+  const conversation = await session.observe({
+    continuity: true,
+    tool: "pact_council_thread_v1",
+    args: { kingdomId: peer },
+  });
+  expect(conversation.continuity?.facts.some((f) => f.kind === "statement" && f.subject === peer)).toBe(true);
+  const shortRead = game.read.bind(game);
+  game.read = async (tool, args) => {
+    const result = await shortRead(tool, args);
+    if (tool === "pact_council_thread_v1")
+      result.messages = [{ id: "long-message", senderKingdomId: peer, body: "x".repeat(1000) }];
+    return result;
+  };
+  const bounded = await session.observe({
+    continuity: true,
+    tool: "pact_council_thread_v1",
+    args: { kingdomId: peer },
+  });
+  expect(bounded.continuity?.facts.find((f) => f.kind === "statement")?.value).toMatch(/^\[partial statement\]/);
+  expect(game.opened).toBe(0);
+  expect(game.submits).toHaveLength(0);
+  await session.close();
 });

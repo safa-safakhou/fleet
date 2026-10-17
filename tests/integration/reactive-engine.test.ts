@@ -280,3 +280,17 @@ it("reuses the transaction connection when the pool has one slot", async () => {
     await pool.end();
   }
 });
+
+it("allows explicit new cognition profile wake enrollment without changing a consumed profile", async () => {
+  const f = await platformFixture();
+  cleanup = () => f.pool.end();
+  await f.store.setState(f.group.id, "paused", true);
+  await f.tasks.enroll(f.group.id, { id: "reactive-cognition", version: "1" });
+  const intake = new EventIntake(f.tasks, f.bindings, f.environments);
+  await intake.enroll(f.group.id, policy);
+  expect((await f.pool.query("SELECT * FROM cohort_wake_policies")).rowCount).toBe(1);
+  await f.enqueue();
+  await expect(f.tasks.enroll(f.group.id, { id: "reactive-basic", version: "1" })).rejects.toThrow(
+    "CONSUMED_PROFILE_IMMUTABLE",
+  );
+});

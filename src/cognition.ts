@@ -638,6 +638,25 @@ export class Cognition {
       return id;
     });
   }
+  /** Retained account-owned originals; callers still enforce delivered refs and namespace. */
+  async retainedEvidence(
+    agentId: string,
+    ids: string[],
+    client: PoolClient | typeof this.store.pool = this.store.pool,
+  ) {
+    const rows = (
+      await client.query(
+        "SELECT id,kind,occurred_at,detail_cipher FROM cognitive_episodes WHERE agent_id=$1 AND id=ANY($2::uuid[]) AND occurred_at>$3 ORDER BY occurred_at DESC,sequence DESC",
+        [agentId, ids, new Date(this.store.now().getTime() - lifetime)],
+      )
+    ).rows;
+    return rows.map((row) => ({
+      id: String(row.id),
+      kind: String(row.kind),
+      at: row.occurred_at.toISOString(),
+      detail: this.store.vault.decrypt<Data>(row.detail_cipher, `episode:${agentId}:${row.id}`),
+    }));
+  }
   private async load(agentId: string) {
     const row = (await this.store.pool.query("SELECT * FROM cognitive_states WHERE agent_id=$1", [agentId])).rows[0];
     const state = row
@@ -1110,5 +1129,7 @@ export class Cognition {
     await this.store.pool.query("DELETE FROM cognitive_episodes WHERE occurred_at<$1", [before]);
     await this.store.pool.query("DELETE FROM cognitive_states WHERE updated_at<$1", [before]);
     await this.store.pool.query("DELETE FROM cognitive_updates WHERE recorded_at<$1", [before]);
+    await this.store.pool.query("DELETE FROM continuity_states WHERE updated_at<$1", [before]);
+    await this.store.pool.query("DELETE FROM continuity_updates WHERE recorded_at<$1", [before]);
   }
 }

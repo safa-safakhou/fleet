@@ -31,7 +31,7 @@ export function requireCapabilities(
     (required.eventDelivery && !required.eventDelivery.some((mode) => mode === c.events)) ||
     (required.timing && !required.timing.includes(c.timing)) ||
     (required.nativeIdempotency && c.idempotency !== "native") ||
-    (["outcomeLookup", "parallelReasoning", "social", "simulationControls"] as const).some(
+    (["outcomeLookup", "parallelReasoning", "social", "simulationControls", "continuity"] as const).some(
       (key) => required[key] && !c[key],
     )
   )
@@ -82,7 +82,21 @@ export class EnvironmentRegistry {
       observe: async (query) => {
         const result = await session.observe(query);
         if (!adapter.schemas.observations.includes(result.schemaId)) throw new FleetError("UNSUPPORTED_SCHEMA");
-        return { ...result, sourceRefs: result.sourceRefs.map((ref) => scopedSource(binding, ref)) };
+        return {
+          ...result,
+          sourceRefs: result.sourceRefs.map((ref) => scopedSource(binding, ref)),
+          ...(result.continuity
+            ? {
+                continuity: {
+                  ...result.continuity,
+                  facts: result.continuity.facts.map((fact) => {
+                    if (!result.sourceRefs.includes(fact.sourceRef)) throw new FleetError("UNSCOPED_EVIDENCE");
+                    return { ...fact, sourceRef: scopedSource(binding, fact.sourceRef) };
+                  }),
+                },
+              }
+            : {}),
+        };
       },
       catalog: () => session.catalog(),
       execute: async (intent) => {

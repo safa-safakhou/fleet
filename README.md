@@ -105,3 +105,5 @@ Adapters support Ollama `/api/chat` with bounded output and immediate unload, an
 The PACT integration's public action artifact in `vendor/` is explicitly exported and checked by digest; no PACT rules or database credentials are copied. Update it only after reviewing a PACT contract change. The game remains authoritative.
 
 Phase2 source implementation: [event intake and reactive-basic@1](docs/reactive-engine-20261017.md). Existing cohorts remain on their selected engines; installation is separate.
+
+Phase3 source architecture: [grounded continuity profile and PACT adapter](docs/continuity-engine-20261017.md), alongside preserved compatibility/basic engines. Activation and new runs remain explicit.

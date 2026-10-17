@@ -1,6 +1,6 @@
 {
-  "assignment": "Phase2 of the approved Fleet/PACT architecture plan",
-  "scope": "PACT P1 then Fleet F4; isolated local testing; server Fleet excluded",
+  "assignment": "Phase3 of the approved Fleet/PACT architecture plan",
+  "scope": "PACT P2 then Fleet F5; source/offline; installed runtimes/server Fleet excluded",
   "assignee": "Codex",
   "status": "source_verified",
   "baselineRevision": "c212373ccca98d3e064d24ebd2a9398dd94e2a77",
@@ -52,13 +52,30 @@
         "22 installed local table fingerprints unchanged; server Fleet untouched"
       ]
     },
-    "F5-F8": {
-      "status": "unstarted",
-      "reason": "Outside phase2 assignment"
+    "PACT P2": {
+      "status": "done",
+      "revision": "d4f0ea7",
+      "evidence": ["PACT docs/implementation/reports/agent-outlook-20261017.md"],
+      "featureRevision": "bae89b8"
     },
-    "PACT P2-P3": {
-      "status": "unstarted",
-      "reason": "Future phases"
+    "F5": {
+      "status": "done",
+      "assignee": "Codex",
+      "dependencies": ["F4", "PACT P2"],
+      "evidence": [
+        "docs/continuity-engine-20261017.md",
+        "168 unit +296 integration passed /74 files; final19 affected tests passed",
+        "Type/style, build, boundaries and full audit passed",
+        "Four compiled profiles resolved; exact F4 basic-input parity and byte-identical legacy controller",
+        "22 installed application table fingerprints unchanged; same7093cb8 release; server Fleet untouched"
+      ],
+      "qualification": "source_offline_only"
+    },
+    "F6-F8": {
+      "status": "unstarted"
+    },
+    "PACT P3": {
+      "status": "unstarted"
     }
   },
   "preserve": [

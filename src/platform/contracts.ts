@@ -17,6 +17,7 @@ export type Observation = {
   sourceRefs: string[];
   payload: Data;
   coverage: Data;
+  continuity?: ContinuityObservation;
 };
 export type ActionIntent = {
   commandId: string;
@@ -50,6 +51,7 @@ export type Capabilities = {
   parallelReasoning: boolean;
   social: boolean;
   simulationControls: boolean;
+  continuity?: boolean;
 };
 export type CapabilityRequirements = {
   eventDelivery?: ("native" | "poll")[];
@@ -59,6 +61,7 @@ export type CapabilityRequirements = {
   parallelReasoning?: boolean;
   social?: boolean;
   simulationControls?: boolean;
+  continuity?: boolean;
 };
 export type SchemaRequirements = { observations?: string[]; actions?: string[] };
 export interface EnvironmentSession {
@@ -77,3 +80,17 @@ export interface EnvironmentAdapter {
   capabilities: Capabilities;
   connect(binding: BindingRef): Promise<EnvironmentSession>;
 }
+
+export type ContinuityFact = {
+  sourceRef: string;
+  kind: "state" | "statement" | "commitment" | "outcome";
+  subject: string;
+  predicate: string;
+  value: string;
+  occurredAt?: DomainTime;
+};
+export type ContinuityObservation = {
+  schemaVersion: "fleet.continuity-observation.v1";
+  self: { capabilities: string[]; needs: Data; dependencies: Data; ownerValues: Data };
+  facts: ContinuityFact[];
+};

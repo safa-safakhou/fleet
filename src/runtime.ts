@@ -3,6 +3,8 @@ import { Cognition } from "./cognition.js";
 import { config } from "./config.js";
 import { connect } from "./db.js";
 import { FleetError } from "./domain.js";
+import { ContinuityEngine } from "./engines/continuity/engine.js";
+import { ContinuityModule } from "./engines/continuity/state.js";
 import { LegacyEngineBridge } from "./engines/legacy/bridge.js";
 import { ReactiveEngine } from "./engines/reactive/engine.js";
 import { createPactEnvironment, PactBindings } from "./environments/pact.js";
@@ -38,6 +40,7 @@ export function runtime() {
         game: (id) => broker.game(id),
         now: store.now,
         eventFeedVersion: settings.pactEventFeedVersion,
+        outlookVersion: settings.pactOutlookVersion,
       }),
     ],
     settings.environment,
@@ -90,10 +93,13 @@ export function runtime() {
     commands = new CommandExecutor(store, tasks, bindings, environments),
     supervisor = new OperationSupervisor(tasks);
   engines.register(new ReactiveEngine());
+  const continuity = new ContinuityModule(tasks, bindings, cognition);
+  engines.register(new ContinuityEngine(continuity));
   const intake = new EventIntake(tasks, bindings, environments);
   const host = new PlatformHost(tasks, bindings, environments, engines, admission, commands, supervisor);
   return {
     settings,
+    continuity,
     pool,
     store,
     broker,
