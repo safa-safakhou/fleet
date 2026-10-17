@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "fleet.qualification-planning.v1",
+  "status": "proposed_not_executable",
+  "date": "2026-10-18",
+  "installedFleetRevision": "953034e24b5f93f82f0571eef55ecce9a61999d2",
+  "authorizations": {
+    "providerCalls": false,
+    "newRuns": false,
+    "newAccounts": false,
+    "serverAccess": false,
+    "serverDeployment": false,
+    "worldReset": false,
+    "worldCutover": false,
+    "executionEnable": false,
+    "push": false
+  },
+  "selectedActors": [],
+  "startsAt": null,
+  "deadlineAt": null,
+  "perExecutionReservedTokens": 40000,
+  "maxOutputTokensSetting": 2000,
+  "inputByteLimit": 24000,
+  "maxCallsPerTurn": 2,
+  "maxActionsPerTurn": 2,
+  "routeConcurrency": 1,
+  "qualification": {
+    "localCalibrationExecutions": 8,
+    "localProfiles": 4,
+    "trialsPerProfile": 12,
+    "maxExecutionsPerTrial": 2,
+    "executionsPerProfile": 24,
+    "localEngineExecutions": 96,
+    "localTotalExecutions": 104,
+    "localReservedTokens": 4160000,
+    "localHelperCalls": 48,
+    "localCalibrationMaxMinutes": 15,
+    "localEngineMaxMinutes": 240,
+    "lunaRouteExecutions": 24,
+    "lunaRouteReservedTokens": 960000,
+    "lunaRouteMaxMinutes": 120
+  },
+  "newWorldShadow": {
+    "localExecutions": 48,
+    "lunaExecutions": 12,
+    "totalExecutions": 60,
+    "reservedTokens": 2400000,
+    "localHelperCalls": 24,
+    "maxMinutes": 120
+  },
+  "population": {
+    "windowHours": 24,
+    "scheduledReviewMinutes": 60,
+    "lunaActors": 100,
+    "lunaProfile": "legacy-loop@1",
+    "lunaExecutions": 4800,
+    "lunaReservedTokens": 192000000,
+    "localGroups": [
+      {
+        "profile": "legacy-loop@1",
+        "actors": 5,
+        "executions": 240,
+        "reservedTokens": 9600000
+      },
+      {
+        "profile": "legacy-cognition@1",
+        "actors": 5,
+        "executions": 240,
+        "reservedTokens": 9600000
+      },
+      {
+        "profile": "reactive-basic@1",
+        "actors": 5,
+        "executions": 240,
+        "reservedTokens": 9600000
+      },
+      {
+        "profile": "reactive-cognition@1",
+        "actors": 5,
+        "executions": 240,
+        "reservedTokens": 9600000
+      }
+    ],
+    "localActors": 20,
+    "localExecutions": 960,
+    "localReservedTokens": 38400000,
+    "localHelperCalls": 480,
+    "totalActors": 120,
+    "totalExecutions": 5760,
+    "totalReservedTokens": 230400000
+  },
+  "models": {
+    "local": {
+      "route": "ollama",
+      "model": "nemotron-3-nano:4b",
+      "digest": "6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197",
+      "thinking": true,
+      "digestRecheckRequired": true
+    },
+    "luna": {
+      "route": "codex-cli",
+      "model": "gpt-6-luna",
+      "reasoningEffort": "medium",
+      "accountAccessRecheckRequired": true,
+      "hardFinancialCapCertified": false
+    }
+  },
+  "prerequisites": [
+    "approved isolated qualification harness",
+    "immutable authoritative world identity and cross-host enrollment roster",
+    "verified fresh-world archive/cutover procedure",
+    "bounded renewable windows on stable identities",
+    "future PACT event/outlook route qualification",
+    "measured hourly capacity",
+    "exact later stage authority/start/roster/provider allowance"
+  ],
+  "runtimeManifest": "unchanged; runs remains empty",
+  "design": "docs/superpowers/specs/2026-10-18-provider-qualification-and-mixed-world-design.md"
+}
