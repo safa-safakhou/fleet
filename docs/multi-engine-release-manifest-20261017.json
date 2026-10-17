@@ -11,7 +11,7 @@
     "migrationRehearsed": true,
     "preservationVerified": true,
     "retentionReviewed": true,
-    "rollbackRehearsed": false,
+    "rollbackRehearsed": true,
     "quiescence": {
       "modelCalls": 0,
       "pendingCommands": 0,
@@ -23,7 +23,7 @@
     "deploymentAuthorized": false,
     "pushAuthorized": false
   },
-  "reviewedAt": "2026-10-17T21:13:41.429Z",
+  "reviewedAt": "2026-10-17T22:05:22.054Z",
   "runAuthorized": false,
   "dependencyAuditPassed": true,
   "runs": []

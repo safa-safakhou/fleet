@@ -1,6 +1,6 @@
 {
-  "assignment": "Founder F8 dependency fix and local requalification follow-up2026-10-17",
-  "scope": "PACT dependency repair + Fleet qualification refresh; source/offline only; installed runtimes/server/new runs excluded",
+  "assignment": "Founder local release rehearsal2026-10-18",
+  "scope": "Local target encrypted backup/restore, disabled source rollback and temporary maintenance fencing; server/new runs excluded",
   "assignee": "Codex",
   "status": "source_verified",
   "baselineRevision": "c212373ccca98d3e064d24ebd2a9398dd94e2a77",
@@ -116,11 +116,11 @@
         "PACT389 unit +465 integration passed,1 existing optional real-provider skip; full build/type/lint/eval/backlog passed",
         "PACT dependency audit23 (16 high/7 moderate) in unchanged Expo tree: release blocked",
         "Pinned legacy controller unchanged; installed7093cb8 release and22 application table fingerprints unchanged",
-        "Dependency follow-up: docs/dependency-qualification-20261017.md; only audit blocker cleared at PACT60ec57b98c825eb1756d63121aa53d1aaa3b3315"
+        "Dependency follow-up: docs/dependency-qualification-20261017.md; only audit blocker cleared at PACT60ec57b98c825eb1756d63121aa53d1aaa3b3315",
+        "docs/local-release-rehearsal-20261018.md: authenticated encrypted target restore, all25 tables,28266 file entries, idempotent migration and disabled source rollback; current quiescence gate remains false after original services restored"
       ],
       "limitations": [
         "No actual provider qualification, exact live selection, installation, push or server contact",
-        "Actual target encrypted restore rehearsal and maintenance fencing not performed",
         "PACT F6 coordination/parallel protocol unsupported",
         "Artifact authenticity requires review; pure gates perform no operational action",
         "Author review only under no-delegation instructions"
@@ -174,5 +174,15 @@
   "serverFleetTouched": false,
   "runtimeInstalled": false,
   "liveProviderQualified": false,
-  "dependencyAuditPassed": true
+  "dependencyAuditPassed": true,
+  "localReleaseRehearsal": {
+    "status": "done",
+    "qualification": "local_target_disabled_source_rollback_only",
+    "evidence": "docs/local-release-rehearsal-20261018.md",
+    "rollbackRehearsed": true,
+    "currentWorkersFenced": false,
+    "installedBinaryChanged": false,
+    "newRunsStarted": false,
+    "checks": "185 unit+326 integration; type/style/build/boundaries/audit0; protected target proof and PACT backlog/diff passed"
+  }
 }

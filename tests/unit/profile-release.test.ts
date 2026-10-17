@@ -108,12 +108,16 @@ it("keeps the saved release proposal disarmed with no selected cohorts or provid
   expect(review.readyForAuthorizedDeployment).toBe(false);
   expect(review.pushAuthorized).toBe(false);
   expect(review.blockers).not.toContain("dependency_audit");
+  expect(manifest.release.rollbackRehearsed).toBe(true);
+  expect(review.blockers).not.toContain("rollbackRehearsed");
+  expect(
+    reviewProfileRelease({ ...manifest, release: { ...manifest.release, rollbackRehearsed: false } }).blockers,
+  ).toContain("rollbackRehearsed");
   expect(reviewProfileRelease({ ...manifest, dependencyAuditPassed: false }).blockers).toContain("dependency_audit");
   expect(review.blockers).toEqual(
     expect.arrayContaining([
       "exact_run_proposal",
       "run_authorization",
-      "rollbackRehearsed",
       "ownerAuthorityResolved",
       "deploymentAuthorized",
       "quiescence",
