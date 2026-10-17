@@ -103,7 +103,7 @@ interface EnvironmentAdapter {
 
 `EnvironmentRegistry.resolve(ref)` returns a statically registered adapter or `UNSUPPORTED_ENVIRONMENT`. Credentials are resolved through an integration-owned binding repository and never included in `BindingRef`. Required capabilities/schema versions are validated before dispatch. `resolve` returns `unknown` when reliable lookup is unavailable; this must not authorize replay.
 
-- [ ] Write tests `binds opaque actor IDs`, `preserves legacy vault identity and pending receipt`, `rejects duplicate controlling binding`, `refuses missing capabilities before model dispatch`. Assert:
+- [x] Write tests `binds opaque actor IDs`, `preserves legacy vault identity and pending receipt`, `rejects duplicate controlling binding`, `refuses missing capabilities before model dispatch`. Assert:
 
   ```ts
   expect(binding.actorRef).toBe("seat:red");
@@ -113,10 +113,12 @@ interface EnvironmentAdapter {
   expect(await session.resolve("lost-command")).toMatchObject({ status: "unknown" });
   ```
 
-- [ ] Run both new suites; expect unsupported/new registry/binding assertions to fail. Keep the existing `game-adapter.test.ts` fixture passing as the initial baseline.
-- [ ] Implement generic bindings and reviewed registry composition, using a PACT compatibility adapter around existing `GameAdapter`/`GamePort`. Keep one selected environment per deployment. Retain legacy columns, IDs, ciphertext bindings and terminal-state uniqueness. Provide environment-specific labels/default goals/enrollment hooks; optional social capabilities must not force contacts onto a board-game fixture.
-- [ ] Run new and existing game-adapter/enrollment/release-preservation suites. Verify a full second-environment action/receipt cycle with non-UUID external IDs, without PACT nouns, credentials or database imports. Extend the boundary scan to all new core/engine directories and include a forbidden-import fixture.
-- [ ] Record the compatibility/migration proof; run relevant full Fleet checks; commit F2 and update `docs/game-integration.md`. This certifies the fixture boundary, not a new real game.
+- [x] Run both new suites; expect unsupported/new registry/binding assertions to fail. Keep the existing `game-adapter.test.ts` fixture passing as the initial baseline.
+- [x] Implement generic bindings and reviewed registry composition, using a PACT compatibility adapter around existing `GameAdapter`/`GamePort`. Keep one selected environment per deployment. Retain legacy columns, IDs, ciphertext bindings and terminal-state uniqueness. Provide environment-specific labels/default goals/enrollment hooks; optional social capabilities must not force contacts onto a board-game fixture.
+- [x] Run new and existing game-adapter/enrollment/release-preservation suites. Verify a full second-environment action/receipt cycle with non-UUID external IDs, without PACT nouns, credentials or database imports. Extend the boundary scan to all new core/engine directories and include a forbidden-import fixture.
+- [x] Record the compatibility/migration proof; run relevant full Fleet checks; commit F2 and update `docs/game-integration.md`. This certifies the fixture boundary, not a new real game.
+
+F2 acceptance: [contracts, bindings and migration proof](../../environment-bindings-20261017.md), with399 passing tests. F3 remains the next dependency-ordered package in the phase1 assignment.
 
 ## F3 — Build durable admission, actor lanes and shared execution (phase 1)
 
@@ -267,4 +269,4 @@ interface EnvironmentAdapter {
 
 Coverage: F1 preserves baseline; F2 proves environment independence; F3 supplies reliable/fair execution; F4/P1 add events; F5/P2 connect grounded continuity and outlooks; F6 compares both worker choices; F7 keeps operation primary and comparisons optional; F8/P3 distinguish offline readiness from real acceptance. The five review-focus failures are assigned above.
 
-F1 is source-verified under the founder's first-phase assignment; see its linked acceptance report. The next source package is F2 under a covering assignment. All later checkboxes remain unstarted. Execution stays native/sequential without delegation.
+F1 is source-verified under the founder's first-phase assignment; see its linked acceptance report. F2 is also source-verified; F3 is assigned and in progress under the phase1 request. F4 onward remain unstarted. Execution stays native/sequential without delegation.

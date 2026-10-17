@@ -17,6 +17,11 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
     origin,
     gameBase,
     gameId: "pact",
+    environment: {
+      id: env.FLEET_ENVIRONMENT_ID ?? env.FLEET_GAME ?? "pact",
+      version: env.FLEET_ENVIRONMENT_VERSION ?? "1",
+      instanceId: env.FLEET_ENVIRONMENT_INSTANCE ?? gameBase,
+    },
     liveAllowed: env.FLEET_LIVE_ENABLED === "1",
     keepAwake: env.FLEET_KEEP_AWAKE === "1",
     port: z.coerce

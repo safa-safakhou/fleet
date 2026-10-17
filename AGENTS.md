@@ -1,5 +1,9 @@
 # Fleet engineering
 
+## Multi-engine phase 1 — 17 October 2026
+
+Founder requested the next architecture phase: F2 then F3, with isolated local testing and server Fleet excluded. F2 is source-verified; read `docs/environment-bindings-20261017.md`. F3 is in progress; consult `docs/multi-engine-platform-status-20261017.json`. Preserve installed releases, accounts/history/allowances/anchors and existing recovery gates. No delegation, push, installation or new live run is implied.
+
 ## Multi-engine phase 0 — 17 October 2026
 
 Founder authorized the first phase of the multi-engine plan, testing on this machine and excluding server Fleet. F1 adds a versioned legacy bridge and consented engine provenance while preserving the controller body. Read `docs/engine-baseline-20261017.md` and `docs/multi-engine-platform-status-20261017.json` for actual acceptance. This is isolated local source verification; no installed runtime, recovery gate, account, history, schedule or budget changes. F2–F8 and PACT P1–P3 remain unstarted. No delegation or push.
