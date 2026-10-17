@@ -4,6 +4,7 @@ import { Cognition } from "./cognition.js";
 import { Continuation } from "./continuation.js";
 import { transaction } from "./db.js";
 import { type Data, FleetError, object } from "./domain.js";
+import { evidenceChain } from "./platform/evidence.js";
 import { inferredLegacyExecution, legacyExecutionFor, retainedLegacyExecution } from "./platform/profiles.js";
 import { recoveryPlan } from "./recovery.js";
 import type { Claim, Store } from "./store.js";
@@ -120,7 +121,7 @@ export class Observability {
     )?.detail?.engine;
     const taskEngine = (
       await this.store.pool.query(
-        "SELECT tc.profile_id,tc.profile_version,b.environment_id,b.environment_version,b.instance_id FROM platform_task_claims tc JOIN platform_tasks t ON t.id=tc.task_id JOIN environment_bindings b ON b.id=t.binding_id WHERE tc.turn_id=$1",
+        "SELECT tc.task_id,tc.profile_id,tc.profile_version,t.task_key,t.revision,t.deadline,b.id binding_id,b.environment_id,b.environment_version,b.instance_id FROM platform_task_claims tc JOIN platform_tasks t ON t.id=tc.task_id JOIN environment_bindings b ON b.id=t.binding_id WHERE tc.turn_id=$1",
         [turnId],
       )
     ).rows[0];
@@ -150,6 +151,28 @@ export class Observability {
       agent: { id: agent.id, name: agent.name },
       executions,
       engine: retainedLegacyExecution(engine) ?? taskExecution ?? inferredLegacyExecution(),
+      platform: taskEngine
+        ? {
+            taskId: taskEngine.task_id,
+            bindingId: taskEngine.binding_id,
+            profile: { id: taskEngine.profile_id, version: taskEngine.profile_version },
+            environment: {
+              id: taskEngine.environment_id,
+              version: taskEngine.environment_version,
+              instanceId: taskEngine.instance_id,
+            },
+            trigger: retainedTask
+              ? {
+                  sourceRefs: retainedTask.sourceRefs,
+                  sourceCount: retainedTask.sourceCount,
+                  sourceRefsOmitted: retainedTask.sourceRefsOmitted,
+                }
+              : null,
+            coverage:
+              "Claim identifiers retained; source triggers require consented detail. Task current state is not a historical observation.",
+          }
+        : null,
+      evidence: evidenceChain(page.turns[0]?.events ?? []),
       coverage: page.coverage,
     };
   }
@@ -191,12 +214,13 @@ export class Observability {
             at: r.resolved_at,
             code: r.code,
             source: r.source,
-            action: consent
-              ? bounded(
-                  this.store.vault.decrypt<Data>(r.action_cipher, `command-resolution:${r.command_id}`),
-                  turnId ? 262144 : 8192,
-                )
-              : null,
+            action:
+              consent && new Date(r.resolved_at).getTime() >= this.store.now().getTime() - 30 * 86400000
+                ? bounded(
+                    this.store.vault.decrypt<Data>(r.action_cipher, `command-resolution:${r.command_id}`),
+                    turnId ? 262144 : 8192,
+                  )
+                : null,
           })),
         events: events
           .filter((e) => e.turn_id === t.id)
@@ -207,7 +231,9 @@ export class Observability {
             stage: e.stage,
             label: e.label,
             detail:
-              e.observation_consent && e.detail_cipher
+              e.observation_consent &&
+              new Date(e.occurred_at).getTime() >= this.store.now().getTime() - 30 * 86400000 &&
+              e.detail_cipher
                 ? this.store.vault.decrypt<Data>(e.detail_cipher, `turn-event:${e.id}`)
                 : null,
           })),

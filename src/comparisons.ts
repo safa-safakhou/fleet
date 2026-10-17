@@ -197,7 +197,7 @@ export class Comparisons {
         if (cognition) {
           const events = (
             await c.query(
-              "SELECT id,label,detail_cipher FROM turn_events WHERE cohort_id=$1 AND detail_cipher IS NOT NULL AND label=ANY($2::text[])",
+              "SELECT id,label,detail_cipher FROM turn_events WHERE cohort_id=$1 AND detail_cipher IS NOT NULL AND label=ANY($2::text[]) AND occurred_at>=$3",
               [
                 cohortId,
                 [
@@ -205,6 +205,7 @@ export class Comparisons {
                   "LLM revised memory, plan or social hypotheses",
                   "LLM reviewed continuity without a revision",
                 ],
+                new Date(this.store.now().getTime() - 30 * 86400000),
               ],
             )
           ).rows;

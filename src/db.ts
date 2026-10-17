@@ -50,5 +50,6 @@ export async function migrate(pool: Pool) {
     await c.query(await readFile(resolve("migrations/016_continuity.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/017_specialist_continuity.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/018_sibling_model_leases.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/019_profile_comparisons.sql"), "utf8"));
   });
 }

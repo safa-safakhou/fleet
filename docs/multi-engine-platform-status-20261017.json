@@ -1,6 +1,6 @@
 {
-  "assignment": "Phase4 F6 focused workers and shared coordinator",
-  "scope": "F6 source/offline; local isolated tests; server Fleet and installed runtimes excluded",
+  "assignment": "Founder phase5 F7 and PACT P3 request2026-10-17",
+  "scope": "F7 + PACT P3 source/offline; local isolated tests; server Fleet and installed runtimes excluded",
   "assignee": "Codex",
   "status": "source_verified",
   "baselineRevision": "c212373ccca98d3e064d24ebd2a9398dd94e2a77",
@@ -72,7 +72,14 @@
       "qualification": "source_offline_only"
     },
     "PACT P3": {
-      "status": "unstarted"
+      "status": "done",
+      "revision": "177ad6c",
+      "qualification": "source_offline_only",
+      "evidence": [
+        "PACT docs/implementation/reports/agent-engine-scenarios-20261017.md",
+        "389 unit +465 integration passed,1 pre-existing optional skip; complete integration rerun with maxWorkers=2",
+        "Build/type/lint/contracts/boundaries/eval/backlog passed"
+      ]
     },
     "F6": {
       "status": "done",
@@ -94,8 +101,28 @@
         "Hard-crash outstanding F6 reservations remain unknown for exact review"
       ]
     },
-    "F7-F8": {
+    "F8": {
       "status": "unstarted"
+    },
+    "F7": {
+      "status": "done",
+      "assignee": "Codex",
+      "scope": "source/offline only; installed runtimes and server Fleet excluded",
+      "dependencies": ["F5", "PACT P3"],
+      "qualification": "source_offline_only",
+      "evidence": [
+        "docs/profiles-and-reports-20261017.md",
+        "178 unit /41 files +325 integration /38 files passed (503 total)",
+        "Type/style/build/boundaries and dependency audit passed;0 vulnerabilities",
+        "Synthetic desktop/390px browser checks; report responses/privacy/auth and zero remote read/inference checks",
+        "Pinned legacy controller unchanged; same7093cb8 release and22 installed application-table fingerprints unchanged"
+      ],
+      "limitations": [
+        "PACT F6 coordination/parallel protocol still unsupported; compatibility preview is not real-provider qualification",
+        "Operational reports mark material outcomes unmeasured; no intelligence ranking",
+        "Browser saved-file download not certified after automation download-event wait reset; HTTP export paths verified",
+        "Author review only under no-delegation instructions; no hosted CI or rollout"
+      ]
     }
   },
   "preserve": [

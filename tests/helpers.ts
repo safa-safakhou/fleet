@@ -35,7 +35,7 @@ export async function fixture() {
   const pool = connect(testUrl);
   await migrate(pool);
   await pool.query(
-    "TRUNCATE cohorts,agents,turns,turn_events,command_resolutions,communications,compute_ledger,operator_sessions,owner_decisions,oauth_attempts,audit_events,worker_heartbeats,worker_health CASCADE",
+    "TRUNCATE platform_comparisons,cohorts,agents,turns,turn_events,command_resolutions,communications,compute_ledger,operator_sessions,owner_decisions,oauth_attempts,audit_events,worker_heartbeats,worker_health CASCADE",
   );
   let time = new Date("2026-10-11T12:00:00.000Z");
   const store = new Store(pool, new Vault(key), () => time);

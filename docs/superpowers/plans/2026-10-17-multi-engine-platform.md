@@ -230,7 +230,7 @@ F4 source acceptance: [reactive engine and event intake](../../reactive-engine-2
 
 **Interfaces:** `createProfileDraft(input): Promise<{ cohortId: string; profile: EngineProfileRef }>` creates only inactive controller records. `compareCohorts(ids: string[]): Promise<Data>` links two or more existing permitted cohorts without reassigning accounts. `exportReport(scope: "private" | "shareable", ids): Promise<Data>` uses versioned schemas, consent filtering and explicit missing-data coverage.
 
-- [ ] Write tests for normal operation without a study, a four-cohort comparison, immutable consumed profiles, configuration drift, revoked/expired detail and sanitized export.
+- [x] Write tests for normal operation without a study, a four-cohort comparison, immutable consumed profiles, configuration drift, revoked/expired detail and sanitized export.
 
   ```ts
   expect(ordinaryAgent.studyId).toBeNull();
@@ -241,10 +241,12 @@ F4 source acceptance: [reactive engine and event intake](../../reactive-engine-2
   expect(report.unknownAllocatedTokens).toBe(originalUnknownAllocation);
   ```
 
-- [ ] Run the new focused suites to red; use existing fake console fixtures, never real operator/game accounts.
-- [ ] Implement profile selection/compatibility preview, normal cohort operation and optional multi-cohort comparison. Extend Runs with engine/environment/task/trigger refs and links from expectation through actual outcome. Preserve readable input/output/raw JSON and existing capture bounds. Separate private report downloads from shareable aggregates and give exports an explicit version/coverage section.
-- [ ] Run existing console/comparisons/observability/rendering suites and the new profile suites. Inspect synthetic desktop and 390-pixel views: baseline selection, incompatible adapter feedback, a four-profile comparison and missing historical evidence. Verify viewing/exporting does not call models or acknowledge game messages.
-- [ ] Document the workflow and definitions; run full relevant checks/build/boundaries; commit F7. Do not declare a universal intelligence winner or silently choose a run budget.
+- [x] Run the new focused suites to red; use existing fake console fixtures, never real operator/game accounts.
+- [x] Implement profile selection/compatibility preview, normal cohort operation and optional multi-cohort comparison. Extend Runs with engine/environment/task/trigger refs and links from expectation through actual outcome. Preserve readable input/output/raw JSON and existing capture bounds. Separate private report downloads from shareable aggregates and give exports an explicit version/coverage section.
+- [x] Run existing console/comparisons/observability/rendering suites and the new profile suites. Inspect synthetic desktop and 390-pixel views: baseline selection, incompatible adapter feedback, a four-profile comparison and missing historical evidence. Verify viewing/exporting does not call models or acknowledge game messages.
+- [x] Document the workflow and definitions; run full relevant checks/build/boundaries; commit F7. Do not declare a universal intelligence winner or silently choose a run budget.
+
+F7 source/offline acceptance: [report](../../profiles-and-reports-20261017.md). Browser saved-file download remains uncertified after an automation timeout; authenticated export payload/privacy checks passed.
 
 ## F8 — Qualify and prepare a concrete release/run proposal (phase 5)
 
@@ -273,4 +275,4 @@ F4 source acceptance: [reactive engine and event intake](../../reactive-engine-2
 
 Coverage: F1 preserves baseline; F2 proves environment independence; F3 supplies reliable/fair execution; F4/P1 add events; F5/P2 connect grounded continuity and outlooks; F6 compares both worker choices; F7 keeps operation primary and comparisons optional; F8/P3 distinguish offline readiness from real acceptance. The five review-focus failures are assigned above.
 
-F1 is source-verified under the founder's first-phase assignment; see its linked acceptance report. F2 is also source-verified; F3 is source-verified under the phase1 request. F4/P1 are source-verified under the phase2 request. F5 onward/P2 onward remain unstarted. Execution stays native/sequential without delegation.
+F1–F7 and PACT P1–P3 are source/offline verified in their linked phase reports/status registers. F6 remains synthetic-environment-only and unsupported on PACT. F8 is the next unstarted qualification/release-proposal package. No runtime, provider run, rollout or new allowance was selected. Execution stays native/sequential without delegation.

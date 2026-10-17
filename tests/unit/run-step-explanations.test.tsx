@@ -73,3 +73,13 @@ describe("plain-language run steps", () => {
     expect(html).toContain("All recorded fields · raw JSON");
   });
 });
+
+it("links concurrent focused workers by allocation rather than their shared execution number", () => {
+  const events = [
+    step("Debug: Model request", { execution: 1, allocationId: "A" }),
+    step("Debug: Model request", { execution: 1, allocationId: "B" }),
+    step("Debug: Model response", { execution: 1, allocationId: "B", decision: { kind: "wait" } }),
+    step("Debug: Model response", { execution: 1, allocationId: "A", decision: { kind: "wait" } }),
+  ];
+  expect(explainStep(events[0], events, 0).relatedStep).toBe(3);
+});

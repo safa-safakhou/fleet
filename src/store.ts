@@ -55,6 +55,7 @@ export interface CohortRow {
   observation_consent: boolean;
   synthetic_owner_policy: Data | null;
   owner_guidance: "strategy" | "account_autonomy";
+  engine_profile?: { id: string; version: string; environment: unknown } | null;
 }
 export interface Claim {
   id: string;
@@ -85,10 +86,10 @@ export class Store {
     if (!r.rows[0]) throw new FleetError("NOT_FOUND");
     return r.rows[0];
   }
-  async create(input: unknown) {
+  async create(input: unknown, client?: PoolClient) {
     const d = Draft.parse(input),
       id = randomUUID();
-    return transaction(this.pool, async (c) => {
+    const write = async (c: PoolClient) => {
       await c.query("INSERT INTO cohorts(id,name,count,interval_minutes,seed) VALUES($1,$2,$3,$4,$5)", [
         id,
         d.name,
@@ -106,9 +107,10 @@ export class Store {
         ]);
       await this.audit(c, id, "cohort.created", { count: d.count });
       return { id };
-    });
+    };
+    return client ? write(client) : transaction(this.pool, write);
   }
-  async configure(id: string, input: unknown) {
+  async configure(id: string, input: unknown, client?: PoolClient) {
     const v = object(input),
       model = ModelConfig.parse(v.model),
       budget = Budget.parse(v.budget);
@@ -117,15 +119,37 @@ export class Store {
       throw new FleetError("CODEX_EXECUTION_BUDGET_REQUIRED");
     if (model.decisionPolicy && budget.concurrency !== 1) throw new FleetError("DECISION_SERIAL_REQUIRED");
     if (budget.deadlineAt && new Date(budget.deadlineAt) <= this.now()) throw new FleetError("DEADLINE_PASSED");
-    await transaction(this.pool, async (c) => {
+    const write = async (c: PoolClient) => {
       const row = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];
       if (!row) throw new FleetError("NOT_FOUND");
       if (!["draft", "paused"].includes(row.state)) throw new FleetError("COHORT_NOT_EDITABLE");
-      if ((await c.query("SELECT 1 FROM compute_ledger WHERE cohort_id=$1 LIMIT 1", [id])).rowCount)
+      if (
+        (
+          await c.query(
+            "SELECT 1 FROM compute_ledger WHERE cohort_id=$1 UNION ALL SELECT 1 FROM turns WHERE cohort_id=$1 LIMIT 1",
+            [id],
+          )
+        ).rowCount
+      )
         throw new FleetError("CONSUMED_CONFIG_IMMUTABLE");
+      const hasProfiles = (await c.query("SELECT to_regclass('cohort_engine_profiles') AS relation")).rows[0].relation;
+      const selected = hasProfiles
+        ? (await c.query("SELECT profile_id,profile_version FROM cohort_engine_profiles WHERE cohort_id=$1", [id]))
+            .rows[0]
+        : undefined;
+      if (
+        selected &&
+        (selected.profile_version !== "1" ||
+          (selected.profile_id === "legacy-loop" && model.cognition) ||
+          (selected.profile_id === "legacy-cognition" && !model.cognition) ||
+          (!["legacy-loop", "legacy-cognition"].includes(selected.profile_id) &&
+            (model.cognition || model.recallAssist)))
+      )
+        throw new FleetError("PROFILE_CONFIGURATION_MISMATCH");
       await c.query("UPDATE cohorts SET model=$2,budget=$3,generation=generation+1 WHERE id=$1", [id, model, budget]);
       await this.audit(c, id, "cohort.configured", { route: model.route, model: model.model });
-    });
+    };
+    return client ? write(client) : transaction(this.pool, write);
   }
   async consent(id: string, enabled: boolean) {
     await transaction(this.pool, async (c) => {
@@ -287,7 +311,11 @@ export class Store {
     ).rows;
   }
   async publicState() {
-    const cohorts = (await this.pool.query<CohortRow>("SELECT * FROM cohorts ORDER BY created_at DESC,id")).rows;
+    const cohorts = (
+      await this.pool.query<CohortRow>(
+        "SELECT c.*,CASE WHEN p.cohort_id IS NULL THEN NULL ELSE json_build_object('id',p.profile_id,'version',p.profile_version,'environment',p.environment_ref) END engine_profile FROM cohorts c LEFT JOIN cohort_engine_profiles p ON p.cohort_id=c.id ORDER BY c.created_at DESC,c.id",
+      )
+    ).rows;
     const agents = await this.agentOverview();
     const usage = (
       await this.pool.query(

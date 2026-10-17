@@ -42,6 +42,9 @@ export class EngineRegistry {
     if (this.engines.has(key)) throw new FleetError("DUPLICATE_ENGINE");
     this.engines.set(key, engine);
   }
+  list() {
+    return [...this.engines.values()];
+  }
   resolve(ref: EngineProfileRef): AgentEngine {
     const engine = this.engines.get(JSON.stringify([ref.id, ref.version]));
     if (!engine) throw new FleetError("UNSUPPORTED_ENGINE");

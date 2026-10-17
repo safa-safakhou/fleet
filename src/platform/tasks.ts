@@ -35,9 +35,9 @@ export class TaskStore {
     readonly bindings: Bindings,
     readonly maxConcurrency = 1,
   ) {}
-  async enroll(cohortId: string, profile: EngineProfileRef, timedReviews = false) {
+  async enroll(cohortId: string, profile: EngineProfileRef, timedReviews = false, client?: PoolClient) {
     if (!profile.id || !profile.version) throw new FleetError("INVALID_ENGINE_PROFILE");
-    await transaction(this.store.pool, async (db) => {
+    const write = async (db: PoolClient) => {
       const cohort = (await db.query("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [cohortId])).rows[0];
       if (!cohort) throw new FleetError("NOT_FOUND");
       const old = (await db.query("SELECT * FROM cohort_engine_profiles WHERE cohort_id=$1", [cohortId])).rows[0];
@@ -62,7 +62,8 @@ export class TaskStore {
         "INSERT INTO cohort_engine_profiles(cohort_id,profile_id,profile_version,timed_reviews,created_at) VALUES($1,$2,$3,$4,$5) ON CONFLICT(cohort_id) DO UPDATE SET profile_id=excluded.profile_id,profile_version=excluded.profile_version,timed_reviews=excluded.timed_reviews",
         [cohortId, profile.id, profile.version, timedReviews, this.store.now()],
       );
-    });
+    };
+    return client ? write(client) : transaction(this.store.pool, write);
   }
   async upsertFromEvent(binding: BindingRef, event: EnvironmentEvent, key: string): Promise<TaskRecord> {
     const id = await transaction(this.store.pool, (db) => this.upsertWithin(db, binding, event, key));

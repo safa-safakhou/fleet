@@ -113,3 +113,7 @@ PACT discovery returns a varied public sample across the game with contact-route
 Use **Runs / debugging** in the sidebar, expand a run, then choose **Open full run debugging**. The same link is available in an agent inspector. Inspect titled, precisely timed input/output events, filter steps, and download the run JSON. Search/status filters apply to loaded history; load older pages to extend the search. [Capture, privacy, retention and historical limitations](run-debugging-20261016.md) explain what each release actually retained.
 
 The [readable step view](readable-run-steps-20261016.md) explains each event and separates its recorded outcome, Inputs and Outputs. Expand nested records for detail or raw JSON for the original fields. A missing result is shown as unavailable, not treated as success. A response button moves to the matching recorded response within the same run.
+
+## Versioned engines and report downloads
+
+The [F7 workflow](profiles-and-reports-20261017.md) describes inactive profile drafts, capability previews, optional cohort links and private/shareable exports. This source change does not install or enroll a runtime; F8 owns later release qualification.

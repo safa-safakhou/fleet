@@ -12,6 +12,7 @@ import {
   Status,
   TurnHistory,
 } from "./observe.js";
+import { ProfileWorkspace } from "./profiles.js";
 import { RunDetails } from "./runs.js";
 
 type Obj = Record<string, unknown>;
@@ -30,6 +31,7 @@ type Agent = {
   strategy: { profile: string; objective: string; riskTolerance: number; patience: number; horizon: string };
 } & ObservedAgent;
 type Cohort = {
+  engine_profile?: { id: string; version: string } | null;
   owner_guidance?: "strategy" | "account_autonomy";
   id: string;
   name: string;
@@ -321,6 +323,7 @@ function App() {
             ["agents", "◈", "Agents"],
             ["activity", "↗", "Runs / debugging"],
             ["comparisons", "⇄", "Comparisons"],
+            ["profiles", "◇", "Engines & reports"],
             ["settings", "⚙", "Fleet settings"],
           ].map(([key, icon, label]) => (
             <button
@@ -366,17 +369,19 @@ function App() {
           <div>
             <p className="eyebrow">YOUR PERSISTENT WORLD</p>
             <h1>
-              {tab === "comparisons"
-                ? "Comparisons"
-                : tab === "overview"
-                  ? "Fleet overview"
-                  : tab === "society"
-                    ? "The society"
-                    : tab === "agents"
-                      ? "Your agents"
-                      : tab === "activity"
-                        ? "Runs / debugging"
-                        : "Fleet settings"}
+              {tab === "profiles"
+                ? "Engines & reports"
+                : tab === "comparisons"
+                  ? "Comparisons"
+                  : tab === "overview"
+                    ? "Fleet overview"
+                    : tab === "society"
+                      ? "The society"
+                      : tab === "agents"
+                        ? "Your agents"
+                        : tab === "activity"
+                          ? "Runs / debugging"
+                          : "Fleet settings"}
             </h1>
           </div>
           <div className="header-actions">
@@ -457,7 +462,7 @@ function App() {
             </details>
           </section>
         )}
-        {tab !== "comparisons" && (
+        {!["comparisons", "profiles"].includes(tab) && (
           <section className="stats" aria-label="Fleet summary">
             <div>
               <span>AGENTS</span>
@@ -483,7 +488,7 @@ function App() {
             </div>
           </section>
         )}
-        {tab === "comparisons" ? null : !cohort ? (
+        {["comparisons", "profiles"].includes(tab) ? null : !cohort ? (
           <div className="empty">
             <span>◈</span>
             <h2>Your first society starts here.</h2>
@@ -847,11 +852,13 @@ function App() {
                 <div>
                   <dt>Decision mode</dt>
                   <dd>
-                    {cohort.model?.cognition
-                      ? "LLM with memory, reflection and plans"
-                      : cohort.model?.decisionPolicy
-                        ? "Legacy VW selection · unused"
-                        : "LLM only"}
+                    {cohort.engine_profile
+                      ? `${cohort.engine_profile.id}@${cohort.engine_profile.version}`
+                      : cohort.model?.cognition
+                        ? "LLM with memory, reflection and plans"
+                        : cohort.model?.decisionPolicy
+                          ? "Legacy VW selection · unused"
+                          : "LLM only"}
                   </dd>
                 </div>
                 {cohort.model?.reasoningEffort && (
@@ -979,6 +986,21 @@ function App() {
               </p>
             </article>
           </section>
+        )}
+        {tab === "profiles" && (
+          <ProfileWorkspace
+            api={api}
+            cohorts={state?.cohorts ?? []}
+            open={(id) => {
+              setCohortId(id);
+              setTab("agents");
+            }}
+            created={async (id) => {
+              await refresh();
+              setCohortId(id);
+              setTab("settings");
+            }}
+          />
         )}
         {tab === "comparisons" && (
           <ComparisonWorkspace
