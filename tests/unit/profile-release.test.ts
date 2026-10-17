@@ -102,15 +102,17 @@ it("retains qualification, source, clock, route and duplicate-identity blockers"
 it("keeps the saved release proposal disarmed with no selected cohorts or providers", async () => {
   const manifest = JSON.parse(await readFile("docs/multi-engine-release-manifest-20261017.json", "utf8"));
   expect(manifest.runs).toEqual([]);
+  expect(manifest.dependencyAuditPassed).toBe(true);
   const review = reviewProfileRelease(manifest);
   expect(review.executionEnabled).toBe(false);
   expect(review.readyForAuthorizedDeployment).toBe(false);
   expect(review.pushAuthorized).toBe(false);
+  expect(review.blockers).not.toContain("dependency_audit");
+  expect(reviewProfileRelease({ ...manifest, dependencyAuditPassed: false }).blockers).toContain("dependency_audit");
   expect(review.blockers).toEqual(
     expect.arrayContaining([
       "exact_run_proposal",
       "run_authorization",
-      "dependency_audit",
       "rollbackRehearsed",
       "ownerAuthorityResolved",
       "deploymentAuthorized",

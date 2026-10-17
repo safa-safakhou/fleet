@@ -1,3 +1,5 @@
+> Dependency follow-up: the original audit blocker below was resolved by PACT `60ec57b98c825eb1756d63121aa53d1aaa3b3315`. [Current dependency qualification](dependency-qualification-20261017.md) records zero findings, reviewed private backports and fresh local checks. The saved proposal clears only the dependency gate; all run/deployment/target-recovery gates remain closed. The original F8 evidence below is retained as history.
+
 # F8 qualification and release proposal — 17 October 2026
 
 F8 completes source/offline qualification and a disarmed release proposal. It does not install a release or qualify a real provider. Implementation pin: `8c83be5da23b7bae2cbcdfb8986b696ffcd2ec28`; PACT counterpart: `177ad6cf48888131d86f4aef879b97ff64d47c33`. The following documentation commit packages this report/manifest and an additional saved-proposal regression; implementation source matches the pin. No PACT source change was needed.

@@ -1,0 +1,33 @@
+{
+  "schemaVersion": "fleet.dependency-qualification.v1",
+  "pactCommit": "60ec57b98c825eb1756d63121aa53d1aaa3b3315",
+  "fleetImplementationCommit": "8c83be5da23b7bae2cbcdfb8986b696ffcd2ec28",
+  "pactLockDigest": "8659e2dcd474b29414bf61be1df6efceeda0438a60b44dab9b06c670861346d9",
+  "backportProvenanceDigest": "4121c1b58f39b84576cbb0731c0093db636fd874d1eb49f4d2833256cc7e2c74",
+  "registryAuditFindings": {
+    "before": 23,
+    "after": 0,
+    "prunedRuntimeAfter": 0
+  },
+  "verification": {
+    "pactUnit": 405,
+    "pactIntegration": 466,
+    "existingOptionalSkip": 1,
+    "directDependencyChecks": 16,
+    "fleetUnit": 185,
+    "fleetIntegration": 326,
+    "crossRepositoryAcceptance": 12,
+    "originalFilesVerified": 62,
+    "installedApplicationTablesUnchanged": 22
+  },
+  "liveProviderQualified": false,
+  "installedRuntimeChanged": false,
+  "serverFleetContacted": false,
+  "newRunsStarted": false,
+  "releaseExecutionEnabled": false,
+  "sourceRefs": ["docs/dependency-qualification-20261017.md", "docs/multi-engine-release-manifest-20261017.json"],
+  "limitations": [
+    "Registry audit does not independently certify private backports; original-version advisory review remains required",
+    "Author review only; no independent/hosted/provider/device certification"
+  ]
+}

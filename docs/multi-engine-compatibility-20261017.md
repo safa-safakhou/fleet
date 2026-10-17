@@ -1,6 +1,6 @@
 # Multi-engine compatibility — 17 October 2026
 
-Source/offline acceptance only. No row certifies a deployed adapter, current credentials, a real provider, model quality or a live run. Fleet source candidate: 8c83be5da23b7bae2cbcdfb8986b696ffcd2ec28. PACT source: 177ad6c (P1–P3 included). The installed local Fleet remains 7093cb8.
+Source/offline acceptance only. No row certifies a deployed adapter, current credentials, a real provider, model quality or a live run. Fleet source candidate: 8c83be5da23b7bae2cbcdfb8986b696ffcd2ec28. PACT source: 60ec57b98c825eb1756d63121aa53d1aaa3b3315 (P1–P3 included). The installed local Fleet remains 7093cb8.
 
 | Profile/version | PACT base v1 | PACT + events.v1 | PACT + events.v1 + outlook.v1 | Synthetic coordination board | Real route qualified |
 | --- | --- | --- | --- | --- | --- |
@@ -24,4 +24,4 @@ PACT flags remain opt-in on both sides: `PACT_AGENT_EVENTS_ENABLED`, `PACT_AGENT
 | PACT P3 actual rules/handler scenarios | Authoritative threat/help/recall/food/wait outcomes and retained playback | Registered 672 replicas are a design, not672 completed model runs |
 | Installed local read-only fingerprint | Same22 application tables, release and retained identities/history/uncertainty | Snapshot comparison excludes ephemeral operator sessions/worker health/heartbeats |
 
-The current PACT lockfile audit reports 23 findings (16 high, 7 moderate) in the existing Expo dependency tree. Its manifests/lockfile were not changed by F8; dependency triage remains a release blocker. Fleet audit reports 0. [Release proposal and gates](multi-engine-release-proposal-20261017.md).
+The dependency follow-up resolves the original23 PACT findings at `60ec57b98c825eb1756d63121aa53d1aaa3b3315`: local and pruned-runtime-image audits now report0. Reviewed local braces/node-forge backports retain source provenance and direct regressions; UUID uses published11.1.1. Registry audit alone does not certify these private backports. Fleet audit also reports0. [Qualification evidence](dependency-qualification-20261017.md) and [release proposal/remaining gates](multi-engine-release-proposal-20261017.md).

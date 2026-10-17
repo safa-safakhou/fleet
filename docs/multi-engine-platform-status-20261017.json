@@ -1,6 +1,6 @@
 {
-  "assignment": "Founder F8 qualification/release proposal request2026-10-17",
-  "scope": "F8 source/offline; local isolated tests; server Fleet and installed runtimes excluded",
+  "assignment": "Founder F8 dependency fix and local requalification follow-up2026-10-17",
+  "scope": "PACT dependency repair + Fleet qualification refresh; source/offline only; installed runtimes/server/new runs excluded",
   "assignee": "Codex",
   "status": "source_verified",
   "baselineRevision": "c212373ccca98d3e064d24ebd2a9398dd94e2a77",
@@ -115,7 +115,8 @@
         "185 unit +326 integration +12 actual-handler/profile acceptance passed; Fleet audit0",
         "PACT389 unit +465 integration passed,1 existing optional real-provider skip; full build/type/lint/eval/backlog passed",
         "PACT dependency audit23 (16 high/7 moderate) in unchanged Expo tree: release blocked",
-        "Pinned legacy controller unchanged; installed7093cb8 release and22 application table fingerprints unchanged"
+        "Pinned legacy controller unchanged; installed7093cb8 release and22 application table fingerprints unchanged",
+        "Dependency follow-up: docs/dependency-qualification-20261017.md; only audit blocker cleared at PACT60ec57b98c825eb1756d63121aa53d1aaa3b3315"
       ],
       "limitations": [
         "No actual provider qualification, exact live selection, installation, push or server contact",
@@ -144,6 +145,20 @@
         "Browser saved-file download not certified after automation download-event wait reset; HTTP export paths verified",
         "Author review only under no-delegation instructions; no hosted CI or rollout"
       ]
+    },
+    "PACT dependency follow-up": {
+      "status": "done",
+      "revision": "60ec57b98c825eb1756d63121aa53d1aaa3b3315",
+      "evidence": [
+        "PACT docs/implementation/reports/dependency-qualification-20261017.md",
+        "405 unit +466 integration passed,1 existing optional skip;16 direct dependency/security checks",
+        "Local/pruned image audit0; clean-install/provenance/actual-consumer checks and Docker final-stage guard passed",
+        "Native Android export733 modules; original Expo/React/React Native versions retained"
+      ],
+      "limitations": [
+        "Private backports require original-version advisory review",
+        "No actual provider qualification, deployment, new run or recovery review"
+      ]
     }
   },
   "preserve": [
@@ -158,5 +173,6 @@
   ],
   "serverFleetTouched": false,
   "runtimeInstalled": false,
-  "liveProviderQualified": false
+  "liveProviderQualified": false,
+  "dependencyAuditPassed": true
 }
