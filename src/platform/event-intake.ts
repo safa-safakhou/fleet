@@ -37,7 +37,10 @@ export class EventIntake {
         throw new FleetError("CONSUMED_PROFILE_IMMUTABLE");
       if (!["draft", "paused"].includes(c.state)) throw new FleetError("COHORT_NOT_EDITABLE");
       const profile = (await db.query("SELECT * FROM cohort_engine_profiles WHERE cohort_id=$1", [cohortId])).rows[0];
-      if (!["reactive-basic", "reactive-cognition"].includes(profile?.profile_id) || profile.profile_version !== "1")
+      if (
+        !["reactive-basic", "reactive-cognition", "specialist-coordinator"].includes(profile?.profile_id) ||
+        profile.profile_version !== "1"
+      )
         throw new FleetError("UNSUPPORTED_ENGINE");
       await db.query(
         "INSERT INTO cohort_wake_policies(cohort_id,policy,created_at) VALUES($1,$2,$3) ON CONFLICT(cohort_id) DO UPDATE SET policy=excluded.policy",

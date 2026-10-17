@@ -1,6 +1,6 @@
 {
-  "assignment": "Phase3 of the approved Fleet/PACT architecture plan",
-  "scope": "PACT P2 then Fleet F5; source/offline; installed runtimes/server Fleet excluded",
+  "assignment": "Phase4 F6 focused workers and shared coordinator",
+  "scope": "F6 source/offline; local isolated tests; server Fleet and installed runtimes excluded",
   "assignee": "Codex",
   "status": "source_verified",
   "baselineRevision": "c212373ccca98d3e064d24ebd2a9398dd94e2a77",
@@ -71,10 +71,30 @@
       ],
       "qualification": "source_offline_only"
     },
-    "F6-F8": {
+    "PACT P3": {
       "status": "unstarted"
     },
-    "PACT P3": {
+    "F6": {
+      "status": "done",
+      "assignee": "Codex",
+      "dependencies": ["F5"],
+      "qualification": "source_offline_synthetic_environment_only",
+      "evidence": [
+        "docs/specialist-coordinator-20261017.md",
+        "docs/specialist-coordination-comparison-20261017.json",
+        "174 unit/39 files +318 integration/37 files passed (492 total)",
+        "Build, type/style, boundaries and full dependency audit passed;0 vulnerabilities",
+        "Five compiled profiles resolve; PACT F6 capability rejection verified before inference",
+        "Pinned legacy controller byte-identical;22 installed application tables and7093cb8 release unchanged"
+      ],
+      "limitations": [
+        "PACT coordination protocol and parallel exception remain unimplemented/unqualified",
+        "Independent-submit candidate is fake-only, absent from runtime",
+        "At most2 workers+1 coordinator and1 next command per task; no budgets raised",
+        "Hard-crash outstanding F6 reservations remain unknown for exact review"
+      ]
+    },
+    "F7-F8": {
       "status": "unstarted"
     }
   },

@@ -107,3 +107,5 @@ The PACT integration's public action artifact in `vendor/` is explicitly exporte
 Phase2 source implementation: [event intake and reactive-basic@1](docs/reactive-engine-20261017.md). Existing cohorts remain on their selected engines; installation is separate.
 
 Phase3 source architecture: [grounded continuity profile and PACT adapter](docs/continuity-engine-20261017.md), alongside preserved compatibility/basic engines. Activation and new runs remain explicit.
+
+Phase4 source architecture: [focused workers and shared coordinator](docs/specialist-coordinator-20261017.md), with a fake-only independent-submit comparison and explicit environment/provider gates.

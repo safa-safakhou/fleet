@@ -91,8 +91,7 @@ type State = {
   reflections: Saved<z.infer<typeof note>>[];
 };
 const empty = (): State => ({ beliefs: [], predictions: [], plan: null, memories: [], reflections: [] });
-const lifetime = 30 * 86400000,
-  namespace = "reactive-cognition@1";
+const lifetime = 30 * 86400000;
 const later = (a: DomainTime, b: DomainTime) =>
   a.clockId === b.clockId &&
   (a.clockId === "utc"
@@ -107,18 +106,30 @@ export class ContinuityModule {
     private tasks: TaskStore,
     private bindings: Bindings,
     private cognition: Cognition,
+    private profile: { id: "reactive-cognition" | "specialist-coordinator"; version: "1" } = {
+      id: "reactive-cognition",
+      version: "1",
+    },
   ) {}
+  private get namespace() {
+    return `${this.profile.id}@${this.profile.version}`;
+  }
   private key(task: TaskClaim) {
     return `${task.turn.id}:${task.fence}`;
   }
   private async authorized(binding: BindingRef, task: TaskClaim) {
-    if (binding.id !== task.bindingId || task.profile.id !== "reactive-cognition" || task.profile.version !== "1")
+    if (
+      binding.id !== task.bindingId ||
+      task.profile.id !== this.profile.id ||
+      task.profile.version !== this.profile.version
+    )
       throw new FleetError("CONTINUITY_BINDING_MISMATCH");
     if ((await this.bindings.agentFor(binding)) !== task.turn.agentId)
       throw new FleetError("CONTINUITY_BINDING_MISMATCH");
     await this.tasks.check(task);
   }
   async context(binding: BindingRef, task: TaskClaim, observation: Observation): Promise<Data> {
+    const namespace = this.namespace;
     await this.authorized(binding, task);
     const parsed = ContinuityObservationSchema.safeParse(observation.continuity);
     if (!parsed.success || Buffer.byteLength(JSON.stringify(parsed.data)) > 100000)
@@ -148,6 +159,7 @@ export class ContinuityModule {
       );
     const db = this.tasks.store.pool;
     const row = (await db.query("SELECT * FROM continuity_states WHERE binding_id=$1", [binding.id])).rows[0];
+    if (row && row.namespace !== namespace) throw new FleetError("CONTINUITY_NAMESPACE_MISMATCH");
     const state: State = row
       ? this.tasks.store.vault.decrypt<State>(row.detail_cipher, `${namespace}:${binding.id}`)
       : empty();
@@ -288,6 +300,7 @@ export class ContinuityModule {
     expectedVersion: number,
     raw: unknown,
   ): Promise<{ accepted: boolean; version: number; code: string }> {
+    const namespace = this.namespace;
     await this.authorized(binding, task);
     const reject = (code: string, version = expectedVersion) => ({ accepted: false, version, code });
     if (!Number.isSafeInteger(expectedVersion) || expectedVersion < 0) return reject("INVALID_VERSION", 0);
@@ -439,6 +452,7 @@ export class ContinuityModule {
     task: TaskClaim,
     result: import("../../platform/contracts.js").ActionOutcome,
   ) {
+    const namespace = this.namespace;
     await this.authorized(binding, task);
     const delivery = this.delivered.get(this.key(task));
     if (!delivery) return;
@@ -465,6 +479,7 @@ export class ContinuityModule {
     );
   }
   async inspect(binding: BindingRef) {
+    const namespace = this.namespace;
     const agent = await this.tasks.store.agent(await this.bindings.agentFor(binding)),
       cohort = await this.tasks.store.cohort(agent.cohort_id);
     if (!cohort.observation_consent) return { available: false, code: "OBSERVATION_CONSENT_REQUIRED" };

@@ -1,3 +1,7 @@
+# Fleet focused-worker phase4 — 17 October 2026
+
+Founder explicitly requested F6 with local testing and server Fleet untouched. `specialist-coordinator@1` is source/offline verified on a synthetic coordination environment:492 tests pass; build/type/style/boundaries/audit pass. Read `docs/specialist-coordinator-20261017.md`, its measured synthetic comparison and the phase status register. The independent-submit broker is fake-only. PACT lacks the required coordination/atomic-revision protocol and still has no parallel-reasoning exception; F6 is rejected there before inference. Existing profiles, installed7093cb8 release and22 application table fingerprints remain unchanged. No cohort was resumed/enrolled, no unknown allocation reviewed, and no deployment, push or real-model run occurred. No delegation. F7/P3 and F8 remain future work.
+
 # Fleet multi-engine phase3 — 17 October 2026
 
 Founder requested PACT P2 then Fleet F5 with isolated local testing and server Fleet excluded. Read `docs/continuity-engine-20261017.md` and the phase status register. `reactive-cognition@1` is source/offline verified alongside all existing engines:464 tests pass; final bounded-statement correction has19 affected passing checks. Existing installed7093cb8 release and22 application table fingerprints remain unchanged. No current cohort was enrolled or resumed. No delegation, push, installation, recovery review, budget/model/schedule change or new real-model run is implied. F6 focused proposals/coordinator is next and unstarted.

@@ -120,15 +120,26 @@ export class PlatformHost {
           binding,
           task,
           observation,
-          model: this.model.guarded(async () => {
-            await observe({});
-          }),
+          model: this.model.guarded(
+            async () => {
+              await observe({});
+            },
+            adapter.capabilities.parallelReasoning &&
+              claim.profile.id === "specialist-coordinator" &&
+              claim.profile.version === "1",
+          ),
           commands: this.commands,
           observe,
           eventRefs: task.sourceRefs,
           signal,
           schemas: adapter.schemas,
           goal: adapter.presentation.defaultGoal,
+          trace: async (stage, label, detail) => {
+            await this.tasks.check(claim);
+            await new Observability(this.tasks.store).record(claim.turn, stage, label, detail);
+          },
+          capabilities: adapter.capabilities,
+          validateProposal: session?.validateProposal,
           catalog: async () => {
             if (!session) throw new FleetError("OBSERVATION_OWNED_BY_ENGINE");
             await this.tasks.check(claim);

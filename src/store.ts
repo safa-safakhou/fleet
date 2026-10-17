@@ -469,8 +469,17 @@ export class Store {
           ),
         );
         await this.settleUndispatched(c, t);
-        const operation = (await c.query("SELECT phase FROM recovery_operations WHERE turn_id=$1", [t.id])).rows[0];
-        if (["model_preparing_tracked", "model_reserved_tracked"].includes(operation?.phase))
+        const operation = (
+          await c.query(
+            "SELECT o.phase,p.profile_id FROM recovery_operations o LEFT JOIN platform_task_claims p ON p.turn_id=o.turn_id WHERE o.turn_id=$1",
+            [t.id],
+          )
+        ).rows[0];
+        // A parent phase cannot prove that every sibling was never dispatched.
+        if (
+          operation?.profile_id !== "specialist-coordinator" &&
+          ["model_preparing_tracked", "model_reserved_tracked"].includes(operation?.phase)
+        )
           await c.query("UPDATE compute_ledger SET status='not_dispatched' WHERE turn_id=$1 AND status='reserved'", [
             t.id,
           ]);

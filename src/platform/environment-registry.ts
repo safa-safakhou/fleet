@@ -31,9 +31,9 @@ export function requireCapabilities(
     (required.eventDelivery && !required.eventDelivery.some((mode) => mode === c.events)) ||
     (required.timing && !required.timing.includes(c.timing)) ||
     (required.nativeIdempotency && c.idempotency !== "native") ||
-    (["outcomeLookup", "parallelReasoning", "social", "simulationControls", "continuity"] as const).some(
-      (key) => required[key] && !c[key],
-    )
+    (
+      ["outcomeLookup", "parallelReasoning", "social", "simulationControls", "continuity", "coordination"] as const
+    ).some((key) => required[key] && !c[key])
   )
     throw new FleetError("UNSUPPORTED_CAPABILITY");
   if (
@@ -73,6 +73,10 @@ export class EnvironmentRegistry {
       await session.close();
       throw new FleetError("UNSUPPORTED_CAPABILITY");
     }
+    if (adapter.capabilities.coordination && !session.validateProposal) {
+      await session.close();
+      throw new FleetError("COORDINATION_PROTOCOL_REQUIRED");
+    }
     const outcome = (result: ActionOutcome, id: string): ActionOutcome => {
       if (result.commandId !== id || !["confirmed", "rejected", "pending", "unknown"].includes(result.status))
         throw new FleetError("OUTCOME_MISMATCH");
@@ -85,6 +89,20 @@ export class EnvironmentRegistry {
         return {
           ...result,
           sourceRefs: result.sourceRefs.map((ref) => scopedSource(binding, ref)),
+          ...(result.coordination
+            ? {
+                coordination: {
+                  ...result.coordination,
+                  focuses: result.coordination.focuses.map((focus) => ({
+                    ...focus,
+                    sourceRefs: focus.sourceRefs.map((ref) => {
+                      if (!result.sourceRefs.includes(ref)) throw new FleetError("UNSCOPED_EVIDENCE");
+                      return scopedSource(binding, ref);
+                    }),
+                  })),
+                },
+              }
+            : {}),
           ...(result.continuity
             ? {
                 continuity: {
@@ -99,6 +117,7 @@ export class EnvironmentRegistry {
         };
       },
       catalog: () => session.catalog(),
+      ...(session.validateProposal ? { validateProposal: session.validateProposal.bind(session) } : {}),
       execute: async (intent) => {
         if (intent.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH");
         if (!adapter.schemas.actions.includes(intent.schemaId)) throw new FleetError("UNSUPPORTED_SCHEMA");

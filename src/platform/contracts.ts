@@ -18,6 +18,7 @@ export type Observation = {
   payload: Data;
   coverage: Data;
   continuity?: ContinuityObservation;
+  coordination?: CoordinationFrame;
 };
 export type ActionIntent = {
   commandId: string;
@@ -52,6 +53,7 @@ export type Capabilities = {
   social: boolean;
   simulationControls: boolean;
   continuity?: boolean;
+  coordination?: boolean;
 };
 export type CapabilityRequirements = {
   eventDelivery?: ("native" | "poll")[];
@@ -62,6 +64,7 @@ export type CapabilityRequirements = {
   social?: boolean;
   simulationControls?: boolean;
   continuity?: boolean;
+  coordination?: boolean;
 };
 export type SchemaRequirements = { observations?: string[]; actions?: string[] };
 export interface EnvironmentSession {
@@ -70,6 +73,7 @@ export interface EnvironmentSession {
   execute(intent: ActionIntent): Promise<ActionOutcome>;
   resolve(commandId: string): Promise<ActionOutcome>;
   events?(cursor: string | null): Promise<EventPage>;
+  validateProposal?(proposal: Proposal, observation: Observation): Promise<{ valid: boolean; code: string }>;
   close(): Promise<void>;
 }
 export interface EnvironmentAdapter {
@@ -93,4 +97,28 @@ export type ContinuityObservation = {
   schemaVersion: "fleet.continuity-observation.v1";
   self: { capabilities: string[]; needs: Data; dependencies: Data; ownerValues: Data };
   facts: ContinuityFact[];
+};
+
+export type StructuredClaim = { schemaId: string; key: string } & (
+  | { kind: "resource" | "authority"; units: string }
+  | { kind: "promise"; value: string }
+);
+export type Proposal = {
+  taskId: string;
+  intent: ActionIntent;
+  evidenceRefs: string[];
+  expectedOutcome: Data;
+  claims: StructuredClaim[];
+  conflicts: string[];
+  validUntil?: DomainTime;
+};
+export type CoordinationFrame = {
+  schemaVersion: "fleet.coordination.v1";
+  atomicExpectedVersion: true;
+  claimSchemas: { id: string; kind: "resource" | "authority" | "promise" }[];
+  capacities: { schemaId: string; key: string; remainingUnits: string }[];
+  promises: { schemaId: string; key: string; value: string }[];
+  focuses: { id: string; sourceRefs: string[]; observation: Data }[];
+  ownerPriorities: Data;
+  coverage: Data;
 };

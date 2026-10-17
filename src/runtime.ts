@@ -7,6 +7,7 @@ import { ContinuityEngine } from "./engines/continuity/engine.js";
 import { ContinuityModule } from "./engines/continuity/state.js";
 import { LegacyEngineBridge } from "./engines/legacy/bridge.js";
 import { ReactiveEngine } from "./engines/reactive/engine.js";
+import { SpecialistCoordinatorEngine } from "./engines/specialists/coordinator.js";
 import { createPactEnvironment, PactBindings } from "./environments/pact.js";
 import { pactAdapter } from "./games/pact/adapter.js";
 import { CredentialBroker } from "./games/pact/credentials.js";
@@ -95,11 +96,17 @@ export function runtime() {
   engines.register(new ReactiveEngine());
   const continuity = new ContinuityModule(tasks, bindings, cognition);
   engines.register(new ContinuityEngine(continuity));
+  const specialistContinuity = new ContinuityModule(tasks, bindings, cognition, {
+    id: "specialist-coordinator",
+    version: "1",
+  });
+  engines.register(new SpecialistCoordinatorEngine(specialistContinuity));
   const intake = new EventIntake(tasks, bindings, environments);
   const host = new PlatformHost(tasks, bindings, environments, engines, admission, commands, supervisor);
   return {
     settings,
     continuity,
+    specialistContinuity,
     pool,
     store,
     broker,

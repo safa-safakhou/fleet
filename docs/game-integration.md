@@ -28,3 +28,7 @@ Commands retain their original internal UUID, encrypted intent and existing rece
 ## Event-aware profiles
 
 See [F4 intake and reactive profile](reactive-engine-20261017.md) for explicit new-cohort wake enrollment, bounded polling/cursor resync and `pact.agent-events.v1`. Event metadata never grants model/action authority. Existing environments without a reviewed feed remain `events:none`; no human stream fallback.
+
+## Optional structured coordination — F6
+
+[Coordinator contract](specialist-coordinator-20261017.md) requires an environment-owned claim validator and atomic expected-revision enforcement. Parallel reasoning is separately negotiated. Existing PACT integration does not advertise this capability; no inferred game permissions, local economy arithmetic or real independent-submit broker is supplied.
