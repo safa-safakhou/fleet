@@ -59,6 +59,21 @@ const Plan = z
     helperLimit: z.literal(48),
   })
   .strict();
+export const OutputDiagnostic = z
+  .object({
+    schemaVersion: z.literal("fleet.output-diagnostic.v1"),
+    id: z.uuid(),
+    authorizationRef: z.string().min(5).max(200),
+    approved: z.literal(true),
+    parentDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    sourceCommit: z.string().regex(/^[a-f0-9]{40}$/),
+    startsAt: z.iso.datetime(),
+    deadlineAt: z.iso.datetime(),
+    scope: z.literal("local_model_output_only"),
+    executionLimit: z.literal(8),
+    tokenLimit: z.literal(320000),
+  })
+  .strict();
 export type PreparedQualification = ReturnType<typeof prepareQualification>;
 export function prepareQualification(raw: unknown) {
   const plan = Plan.parse(raw);
@@ -95,6 +110,7 @@ export class QualificationLedger {
       await pool.query(`CREATE TABLE IF NOT EXISTS qualification_runs(id uuid PRIMARY KEY,authorization_ref text UNIQUE NOT NULL,digest text NOT NULL,plan jsonb NOT NULL,state text NOT NULL DEFAULT 'prepared',stage_started_at timestamptz,stage_deadline timestamptz,code text,created_at timestamptz NOT NULL DEFAULT now());
       CREATE TABLE IF NOT EXISTS qualification_calls(id uuid PRIMARY KEY,run_id uuid NOT NULL REFERENCES qualification_runs(id),profile text NOT NULL,trial text NOT NULL,state text NOT NULL,tokens bigint NOT NULL DEFAULT 40000,input_tokens bigint,output_tokens bigint,valid boolean,code text,detail_cipher text,created_at timestamptz NOT NULL DEFAULT now(),finished_at timestamptz);
       CREATE TABLE IF NOT EXISTS qualification_helpers(id uuid PRIMARY KEY,run_id uuid NOT NULL REFERENCES qualification_runs(id),profile text NOT NULL,trial text NOT NULL,state text NOT NULL,detail_cipher text,created_at timestamptz NOT NULL DEFAULT now());
+      CREATE TABLE IF NOT EXISTS qualification_diagnostics(id uuid PRIMARY KEY,run_id uuid NOT NULL REFERENCES qualification_runs(id),authorization_ref text UNIQUE NOT NULL,digest text NOT NULL,plan jsonb NOT NULL,state text NOT NULL DEFAULT 'active',code text,created_at timestamptz NOT NULL DEFAULT now());
       CREATE TABLE IF NOT EXISTS qualification_trials(run_id uuid NOT NULL REFERENCES qualification_runs(id),profile text NOT NULL,trial text NOT NULL,result jsonb NOT NULL,PRIMARY KEY(run_id,profile,trial));`);
       return new QualificationLedger(pool, new Vault(key));
     } catch (e) {
@@ -139,7 +155,56 @@ export class QualificationLedger {
       code,
     ]);
   }
-  async reserve(p: PreparedQualification, profile: string, trial: string) {
+  async createDiagnostic(p: PreparedQualification, raw: unknown) {
+    const plan = OutputDiagnostic.parse(raw),
+      digest = createHash("sha256").update(JSON.stringify(plan)).digest("hex");
+    if (
+      plan.parentDigest !== p.digest ||
+      Date.parse(plan.deadlineAt) - Date.parse(plan.startsAt) > 15 * 60000 ||
+      Date.parse(plan.deadlineAt) <= Date.parse(plan.startsAt) ||
+      Date.parse(plan.deadlineAt) > Date.parse(p.plan.deadlineAt)
+    )
+      throw new FleetError("DIAGNOSTIC_SCOPE");
+    await transaction(this.pool, async (c) => {
+      const parent = (
+        await c.query(
+          "SELECT *,now()>=$2::timestamptz AND now()<$3::timestamptz timely FROM qualification_runs WHERE id=$1 FOR UPDATE",
+          [p.plan.id, plan.startsAt, plan.deadlineAt],
+        )
+      ).rows[0];
+      if (
+        parent?.digest !== p.digest ||
+        parent.state !== "blocked" ||
+        parent.code !== "QUALIFICATION_CALIBRATION_FAILED" ||
+        !parent.timely
+      )
+        throw new FleetError("DIAGNOSTIC_PARENT_NOT_READY");
+      try {
+        await c.query(
+          "INSERT INTO qualification_diagnostics(id,run_id,authorization_ref,digest,plan) VALUES($1,$2,$3,$4,$5) ON CONFLICT(id) DO NOTHING",
+          [plan.id, p.plan.id, plan.authorizationRef, digest, plan],
+        );
+      } catch (e) {
+        if ((e as { code?: string }).code === "23505") throw new FleetError("DIAGNOSTIC_AUTHORIZATION_REUSED");
+        throw e;
+      }
+      const row = (await c.query("SELECT digest,run_id FROM qualification_diagnostics WHERE id=$1", [plan.id])).rows[0];
+      if (row.digest !== digest || row.run_id !== p.plan.id) throw new FleetError("DIAGNOSTIC_PLAN_CHANGED");
+    });
+    return plan.id;
+  }
+  async finishDiagnostic(id: string) {
+    await this.pool.query("UPDATE qualification_diagnostics SET state='done' WHERE id=$1 AND state='active'", [id]);
+  }
+  private async blockModel(p: PreparedQualification, diagnosticId: string | undefined, code: string) {
+    if (diagnosticId)
+      await this.pool.query("UPDATE qualification_diagnostics SET state='blocked',code=$2 WHERE id=$1", [
+        diagnosticId,
+        code,
+      ]);
+    else await this.fail(p, code);
+  }
+  async reserve(p: PreparedQualification, profile: string, trial: string, diagnosticId?: string) {
     return transaction(this.pool, async (c) => {
       const row = (
         await c.query(
@@ -148,7 +213,25 @@ export class QualificationLedger {
         )
       ).rows[0];
       if (row?.digest !== p.digest) throw new FleetError("QUALIFICATION_PLAN_CHANGED");
-      if (!["Q1", "Q2"].includes(row.state) || !row.timely) throw new FleetError("QUALIFICATION_NOT_ACTIVE");
+      let deadline = new Date(row.stage_deadline);
+      if (diagnosticId) {
+        const grant = (
+          await c.query(
+            "SELECT *,now()>=(plan->>'startsAt')::timestamptz AND now()<(plan->>'deadlineAt')::timestamptz timely FROM qualification_diagnostics WHERE id=$1 AND run_id=$2 FOR UPDATE",
+            [diagnosticId, p.plan.id],
+          )
+        ).rows[0];
+        if (
+          grant?.state !== "active" ||
+          !grant.timely ||
+          grant.plan.parentDigest !== p.digest ||
+          row.state !== "blocked" ||
+          row.code !== "QUALIFICATION_CALIBRATION_FAILED" ||
+          profile !== "output-diagnostic"
+        )
+          throw new FleetError("DIAGNOSTIC_NOT_ACTIVE");
+        deadline = new Date(grant.plan.deadlineAt);
+      } else if (!["Q1", "Q2"].includes(row.state) || !row.timely) throw new FleetError("QUALIFICATION_NOT_ACTIVE");
       if (
         (
           await c.query(
@@ -161,9 +244,11 @@ export class QualificationLedger {
       if (
         !trial ||
         trial.length > 200 ||
-        (row.state === "Q1"
-          ? profile !== "calibration"
-          : !qualificationProfiles.includes(profile as (typeof qualificationProfiles)[number]))
+        (diagnosticId
+          ? profile !== "output-diagnostic"
+          : row.state === "Q1"
+            ? profile !== "calibration"
+            : !qualificationProfiles.includes(profile as (typeof qualificationProfiles)[number]))
       )
         throw new FleetError("QUALIFICATION_SCOPE");
       const used = (
@@ -175,8 +260,8 @@ export class QualificationLedger {
       if (
         used.n >= 104 ||
         used.tokens + 40000 > 4160000 ||
-        used.profile_count >= (profile === "calibration" ? 8 : 24) ||
-        used.trial_count >= (profile === "calibration" ? 1 : 2)
+        used.profile_count >= (profile === "calibration" || diagnosticId ? 8 : 24) ||
+        used.trial_count >= (profile === "calibration" || diagnosticId ? 1 : 2)
       )
         throw new FleetError("QUALIFICATION_BUDGET");
       const id = randomUUID();
@@ -186,10 +271,16 @@ export class QualificationLedger {
         profile,
         trial,
       ]);
-      return { id, deadline: new Date(row.stage_deadline) };
+      return { id, deadline };
     });
   }
-  model(p: PreparedQualification, provider: ModelPort, profile: string, trial: string): ModelPort {
+  model(
+    p: PreparedQualification,
+    provider: ModelPort,
+    profile: string,
+    trial: string,
+    diagnosticId?: string,
+  ): ModelPort {
     return {
       tracksDispatch: true,
       decide: async (input) => {
@@ -218,7 +309,7 @@ export class QualificationLedger {
         try {
           locked = (await client.query("SELECT pg_try_advisory_lock(19281471) locked")).rows[0].locked;
           if (!locked) throw new FleetError("QUALIFICATION_ROUTE_BUSY", true);
-          const reservation = await this.reserve(p, profile, trial);
+          const reservation = await this.reserve(p, profile, trial, diagnosticId);
           id = reservation.id;
           const started = performance.now();
           const onDispatch = async () => {
@@ -265,7 +356,7 @@ export class QualificationLedger {
           );
           if (!known || tokens > 40000) {
             const code = known ? "QUALIFICATION_USAGE_OVERRUN" : "QUALIFICATION_UNKNOWN_USAGE";
-            await this.fail(p, code);
+            await this.blockModel(p, diagnosticId, code);
             throw new FleetError(code);
           }
           return result;
@@ -276,7 +367,11 @@ export class QualificationLedger {
               [id, dispatched ? "unknown" : "not_dispatched"],
             );
             if (changed.rowCount)
-              await this.fail(p, dispatched ? "QUALIFICATION_UNKNOWN_USAGE" : "QUALIFICATION_PROVIDER_FAILED");
+              await this.blockModel(
+                p,
+                diagnosticId,
+                dispatched ? "QUALIFICATION_UNKNOWN_USAGE" : "QUALIFICATION_PROVIDER_FAILED",
+              );
           }
           throw error;
         } finally {

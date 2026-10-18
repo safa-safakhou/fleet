@@ -262,3 +262,121 @@ it("halts the one-shot runner on unknown calibration usage before any fixture tr
     passed: false,
   });
 });
+
+it("appends at most eight diagnostic calls without rewriting failed Q1 or its original usage", async () => {
+  const { l, p } = await setup(),
+    raw = new FakeModel();
+  await l.model(p, raw, "calibration", "original-one").decide(request(p));
+  await l.model(p, raw, "calibration", "original-two").decide(request(p));
+  await l.fail(p, "QUALIFICATION_CALIBRATION_FAILED");
+  const before = (await l.pool.query("SELECT to_jsonb(t) body FROM qualification_runs t WHERE id=$1", [p.plan.id]))
+    .rows[0].body;
+  const original = (
+    await l.pool.query("SELECT to_jsonb(t) body FROM qualification_calls t WHERE run_id=$1 ORDER BY id", [p.plan.id])
+  ).rows.map((r) => r.body);
+  const diagnostic = await l.createDiagnostic(p, {
+    schemaVersion: "fleet.output-diagnostic.v1",
+    id: randomUUID(),
+    authorizationRef: randomUUID(),
+    approved: true,
+    parentDigest: p.digest,
+    sourceCommit: "b".repeat(40),
+    startsAt: new Date(Date.now() - 1000).toISOString(),
+    deadlineAt: new Date(Date.now() + 14 * 60000).toISOString(),
+    scope: "local_model_output_only",
+    executionLimit: 8,
+    tokenLimit: 320000,
+  });
+  for (let i = 0; i < 8; i++)
+    await l.model(p, raw, "output-diagnostic", `diagnostic:${i}`, diagnostic).decide(request(p));
+  await expect(l.model(p, raw, "output-diagnostic", "extra", diagnostic).decide(request(p))).rejects.toThrow(
+    "QUALIFICATION_BUDGET",
+  );
+  expect((await l.summary(p)).reservedTokens).toBe(400000);
+  expect(raw.inputs).toHaveLength(10);
+  expect(
+    (await l.pool.query("SELECT to_jsonb(t) body FROM qualification_runs t WHERE id=$1", [p.plan.id])).rows[0].body,
+  ).toEqual(before);
+  expect(
+    (
+      await l.pool.query(
+        "SELECT to_jsonb(t) body FROM qualification_calls t WHERE run_id=$1 AND profile='calibration' ORDER BY id",
+        [p.plan.id],
+      )
+    ).rows.map((r) => r.body),
+  ).toEqual(original);
+  await expect(l.startStage(p, "Q2")).rejects.toThrow("QUALIFICATION_STAGE_NOT_READY");
+});
+
+async function diagnosticFixture() {
+  const { l, p } = await setup();
+  await l.fail(p, "QUALIFICATION_CALIBRATION_FAILED");
+  const raw = {
+    schemaVersion: "fleet.output-diagnostic.v1",
+    id: randomUUID(),
+    authorizationRef: randomUUID(),
+    approved: true,
+    parentDigest: p.digest,
+    sourceCommit: "b".repeat(40),
+    startsAt: new Date(Date.now() - 1000).toISOString(),
+    deadlineAt: new Date(Date.now() + 14 * 60000).toISOString(),
+    scope: "local_model_output_only",
+    executionLimit: 8,
+    tokenLimit: 320000,
+  };
+  const id = await l.createDiagnostic(p, raw);
+  return { l, p, raw, id };
+}
+it("retains unknown diagnostic usage while preserving the original Q1 failure", async () => {
+  const { l, p, id } = await diagnosticFixture();
+  const broken = { decide: async () => ({ decision: null, inputTokens: null, outputTokens: null }) };
+  await expect(l.model(p, broken, "output-diagnostic", "unknown", id).decide(request(p))).rejects.toThrow(
+    "QUALIFICATION_UNKNOWN_USAGE",
+  );
+  expect(await l.summary(p)).toMatchObject({
+    state: "blocked",
+    code: "QUALIFICATION_CALIBRATION_FAILED",
+    executions: 1,
+    reservedTokens: 40000,
+    unknown: 1,
+  });
+  const good = new FakeModel();
+  await expect(l.model(p, good, "output-diagnostic", "later", id).decide(request(p))).rejects.toThrow(
+    "DIAGNOSTIC_NOT_ACTIVE",
+  );
+  expect(good.inputs).toHaveLength(0);
+});
+it("cannot replace diagnostic approval or exceed the parent lifetime and aggregate cap", async () => {
+  const { l, p, raw, id } = await diagnosticFixture();
+  await expect(l.createDiagnostic(p, { ...raw, id: randomUUID() })).rejects.toThrow("DIAGNOSTIC_AUTHORIZATION_REUSED");
+  await expect(l.createDiagnostic(p, { ...raw, sourceCommit: "c".repeat(40) })).rejects.toThrow(
+    "DIAGNOSTIC_PLAN_CHANGED",
+  );
+  await expect(
+    l.createDiagnostic(p, { ...raw, deadlineAt: new Date(Date.now() + 16 * 60000).toISOString() }),
+  ).rejects.toThrow("DIAGNOSTIC_SCOPE");
+  const good = new FakeModel();
+  await l.pool.query(
+    "UPDATE qualification_diagnostics SET plan=jsonb_set(plan,'{deadlineAt}',to_jsonb((now()-interval '1 second')::text)) WHERE id=$1",
+    [id],
+  );
+  await expect(l.model(p, good, "output-diagnostic", "expired", id).decide(request(p))).rejects.toThrow(
+    "DIAGNOSTIC_NOT_ACTIVE",
+  );
+  expect(good.inputs).toHaveLength(0);
+});
+
+it("diagnostics share the original104 execution ceiling rather than creating an extra allowance", async () => {
+  const { l, p, id } = await diagnosticFixture();
+  await l.pool.query(
+    "INSERT INTO qualification_calls(id,run_id,profile,trial,state,tokens,input_tokens,output_tokens,valid) SELECT gen_random_uuid(),$1,'retained-fixture','retained-'||n,'reported',40000,10,5,true FROM generate_series(1,102)n",
+    [p.plan.id],
+  );
+  const raw = new FakeModel();
+  for (let i = 0; i < 2; i++) await l.model(p, raw, "output-diagnostic", `last:${i}`, id).decide(request(p));
+  await expect(l.model(p, raw, "output-diagnostic", "overflow", id).decide(request(p))).rejects.toThrow(
+    "QUALIFICATION_BUDGET",
+  );
+  expect(raw.inputs).toHaveLength(2);
+  expect(await l.summary(p)).toMatchObject({ executions: 104, reservedTokens: 4160000 });
+});
