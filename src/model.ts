@@ -1,5 +1,6 @@
 import { FleetError, type ModelPort, object } from "./domain.js";
 import { jsonRequest } from "./http.js";
+import { compileGenerationSchema } from "./model-schema.js";
 export class HttpModel implements ModelPort {
   readonly tracksDispatch = true;
   constructor(
@@ -7,6 +8,7 @@ export class HttpModel implements ModelPort {
     private apiKey: string | undefined,
   ) {}
   async decide(input: Parameters<ModelPort["decide"]>[0]) {
+    compileGenerationSchema(input.schema);
     if (input.model.route === "codex-cli") throw new FleetError("CODEX_CONFIGURATION_REQUIRED", true);
     const base = this.routes[input.model.route];
     if (!base) throw new FleetError("MODEL_ENDPOINT_REQUIRED", true);

@@ -24,7 +24,7 @@ import type {
 import { Store } from "../../store.js";
 import { pactAdapter } from "./adapter.js";
 import { actionContract } from "./contracts.js";
-import { pactProposalGuide, validatePactProposal } from "./proposals.js";
+import { pactActionContracts, pactProposalGuide, validatePactProposal } from "./proposals.js";
 
 const peer = "22222222-2222-4222-8222-222222222222";
 export const qualificationScenarios = [
@@ -308,6 +308,7 @@ export class PactQualificationFixtures implements QualificationFixtures {
             catalog: async () => structuredClone(tools),
             validateProposal: async (proposal, observed) =>
               validatePactProposal(proposal.intent.payload, observed.payload),
+            actionContracts: async (observed) => pactActionContracts(observed.payload),
             execute: async (intent) => capture(intent.commandId, intent.payload) as ActionOutcome,
             resolve: async (commandId) =>
               (receipts.get(commandId) ?? {

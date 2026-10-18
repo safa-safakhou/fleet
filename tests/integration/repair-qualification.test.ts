@@ -187,52 +187,63 @@ it("retains the completed18-call retest and enforces the remaining19 across both
   ).toEqual(before);
 });
 
-it.each(["reactive-basic", "reactive-cognition"] as const)(
-  "validates %s payloads and recovers before any command preparation",
-  async (profile) => {
-    const f = await setup();
-    let calls = 0;
-    const { PactQualificationFixtures } = await import("../../src/games/pact/qualification.js");
-    const fixtures = await PactQualificationFixtures.create(f.ledger, f.parent, true);
-    const provider = {
-      decide: async () => {
-        calls++;
-        const decision =
-          calls === 1
-            ? {
-                kind: "action",
-                schemaId: "pact.action.v1",
-                payload: { commandId: "invented", action: { fix: true } },
-                summary: "Repair",
-              }
-            : { kind: "wait", summary: "Wait" };
-        return {
-          decision: profile === "reactive-cognition" ? { decision } : decision,
-          inputTokens: 500,
-          outputTokens: 30,
-        };
+it.each([
+  ["reactive-basic", "generation"],
+  ["reactive-cognition", "generation"],
+  ["reactive-basic", "prerequisite"],
+  ["reactive-cognition", "prerequisite"],
+] as const)("validates %s payloads at %s and recovers before any command preparation", async (profile, layer) => {
+  const f = await setup();
+  let calls = 0;
+  const { PactQualificationFixtures } = await import("../../src/games/pact/qualification.js");
+  const fixtures = await PactQualificationFixtures.create(f.ledger, f.parent, true);
+  const provider = {
+    decide: async () => {
+      calls++;
+      const decision =
+        calls === 1
+          ? {
+              kind: "action",
+              schemaId: "pact.action.v1",
+              payload:
+                layer === "generation"
+                  ? { commandId: "invented", action: { fix: true } }
+                  : {
+                      kind: "game.building.queue",
+                      building: "hall",
+                      targetLevel: 6,
+                      slot: 1,
+                    },
+              summary: "Repair",
+            }
+          : { kind: "wait", summary: "Wait" };
+      return {
+        decision: profile === "reactive-cognition" ? { decision } : decision,
+        inputTokens: 500,
+        outputTokens: 30,
+      };
+    },
+  };
+  const result = await fixtures.run(
+    profile,
+    "stale-receipt:proposal-regression",
+    f.recovery.model(provider, true, profile, "stale-receipt:proposal-regression"),
+    {
+      choose: async () => {
+        throw Error("NO_HELPER");
       },
-    };
-    const result = await fixtures.run(
-      profile,
-      "stale-receipt:proposal-regression",
-      f.recovery.model(provider, true, profile, "stale-receipt:proposal-regression"),
-      {
-        choose: async () => {
-          throw Error("NO_HELPER");
-        },
-      },
-    );
-    expect(result).toMatchObject({
-      code: "WAIT",
-      calls: 2,
-      withheld: 0,
-      invalidActions: 0,
-      proposalRejections: 1,
-      pending: false,
-    });
-    expect(
-      (await f.ledger.pool.query("SELECT * FROM platform_commands WHERE turn_id=$1", [result.turnId])).rowCount,
-    ).toBe(0);
-  },
-);
+    },
+  );
+  expect(result).toMatchObject({
+    code: "WAIT",
+    calls: 2,
+    withheld: 0,
+    invalidActions: 0,
+    proposalRejections: layer === "prerequisite" ? 1 : 0,
+    pending: false,
+  });
+  expect((await f.ledger.summary(f.parent)).invalid).toBe(layer === "generation" ? 1 : 0);
+  expect(
+    (await f.ledger.pool.query("SELECT * FROM platform_commands WHERE turn_id=$1", [result.turnId])).rowCount,
+  ).toBe(0);
+});

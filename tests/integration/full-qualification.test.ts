@@ -5,6 +5,8 @@ import {
   prepareFullQualification,
   runFullQualification,
 } from "../../src/full-qualification.js";
+import { PactQualificationFixtures } from "../../src/games/pact/qualification.js";
+import { qualifyOutput } from "../../src/qualification.js";
 import { prepareQualification, QualificationLedger, qualificationProfiles } from "../../src/qualification-run.js";
 
 const closes: (() => Promise<void>)[] = [];
@@ -80,6 +82,201 @@ const request = (p: ReturnType<typeof prepareQualification>, profile: string) =>
 const provider = {
   decide: async () => ({ decision: { kind: "wait", summary: "Wait" }, inputTokens: 20, outputTokens: 5 }),
 };
+async function continuationFixture() {
+  const f = await setup();
+  await createFullQualification(f.ledger, f.prepared);
+  const unknown = randomUUID();
+  for (const [index, plan] of f.prepared.plans.entries()) {
+    for (let n = 0; n < (index ? 29 : 67); n++)
+      await f.ledger.pool.query(
+        "INSERT INTO qualification_calls(id,run_id,profile,trial,state,input_tokens,output_tokens,valid) VALUES($1,$2,'calibration',$3,$4,$5,$6,$7)",
+        [
+          index && n === 28 ? unknown : randomUUID(),
+          plan.plan.id,
+          String(n),
+          index && n === 28 ? "unknown" : "reported",
+          index && n === 28 ? null : 20,
+          index && n === 28 ? null : 5,
+          index && n === 28 ? null : true,
+        ],
+      );
+    await f.ledger.pool.query("UPDATE qualification_runs SET state=$2,code=$3 WHERE id=$1", [
+      plan.plan.id,
+      index ? "blocked" : "Q2_done",
+      index ? "QUALIFICATION_UNKNOWN_USAGE" : null,
+    ]);
+  }
+  await f.ledger.pool.query(
+    "UPDATE qualification_batches SET state='blocked',code='QUALIFICATION_UNKNOWN_USAGE' WHERE id=$1",
+    [f.prepared.approval.id],
+  );
+  const raw = {
+    ...f.raw,
+    schemaVersion: "fleet.full-local-qualification.v2",
+    id: randomUUID(),
+    authorizationRef: randomUUID(),
+    thinkingPlanId: randomUUID(),
+    nonThinkingPlanId: randomUUID(),
+    historyRunId: f.prepared.plans[1].plan.id,
+    historyDigest: f.prepared.plans[1].digest,
+    predecessorBatchId: f.prepared.approval.id,
+    predecessorDigest: f.prepared.digest,
+    reviewedExecutionId: unknown,
+    reviewEvidenceDigest: "e".repeat(64),
+    executionLimit: 112,
+    tokenLimit: 4480000,
+    helperLimit: 73,
+  };
+  return { ...f, raw, unknown };
+}
+
+it("reviews only the exact uncertain execution additively and meters112 remaining calls without rewriting the prior96", async () => {
+  const f = await continuationFixture(),
+    p = prepareFullQualification(f.raw);
+  const before = (
+    await f.ledger.pool.query(
+      "SELECT to_jsonb(c) body FROM qualification_calls c JOIN qualification_batch_runs x ON x.run_id=c.run_id WHERE x.batch_id=$1 ORDER BY c.id",
+      [f.prepared.approval.id],
+    )
+  ).rows;
+  await expect(
+    createFullQualification(f.ledger, prepareFullQualification({ ...f.raw, reviewedExecutionId: randomUUID() })),
+  ).rejects.toThrow("QUALIFICATION_EXACT_REVIEW_REQUIRED");
+  await f.ledger.pool.query(
+    "UPDATE qualification_batches SET plan=jsonb_set(plan,'{schemaVersion}','\"fleet.full-local-qualification.v2\"') WHERE id=$1",
+    [f.prepared.approval.id],
+  );
+  await expect(createFullQualification(f.ledger, p)).rejects.toThrow("QUALIFICATION_BATCH_HISTORY");
+  await f.ledger.pool.query(
+    "UPDATE qualification_batches SET plan=jsonb_set(plan,'{schemaVersion}','\"fleet.full-local-qualification.v1\"') WHERE id=$1",
+    [f.prepared.approval.id],
+  );
+  await createFullQualification(f.ledger, p);
+  expect(
+    (
+      await f.ledger.pool.query(
+        "SELECT call_id,reserved_tokens FROM qualification_execution_reviews WHERE call_id=$1",
+        [f.unknown],
+      )
+    ).rows[0],
+  ).toEqual({ call_id: f.unknown, reserved_tokens: "40000" });
+  for (const [index, plan] of p.plans.entries()) {
+    await f.ledger.startStage(plan, "Q1");
+    for (let n = 0; n < 8; n++)
+      await f.ledger.model(plan, provider, "calibration", `probe:${n >> 1}`).decide(request(plan, "calibration"));
+    await f.ledger.finishStage(plan, "Q1");
+    await f.ledger.startStage(plan, "Q2");
+    if (!index)
+      for (const profile of qualificationProfiles)
+        for (let n = 0; n < 24; n++)
+          await f.ledger.model(plan, provider, profile, `trial:${n >> 1}`).decide(request(plan, profile));
+  }
+  await expect(
+    f.ledger.model(p.plans[1], provider, "reactive-basic", "excess").decide(request(p.plans[1], "reactive-basic")),
+  ).rejects.toThrow("QUALIFICATION_BATCH_BUDGET");
+  expect((await Promise.all(p.plans.map((p) => f.ledger.summary(p)))).reduce((n, s) => n + s.executions, 0)).toBe(112);
+  expect(
+    (
+      await f.ledger.pool.query(
+        "SELECT to_jsonb(c) body FROM qualification_calls c JOIN qualification_batch_runs x ON x.run_id=c.run_id WHERE x.batch_id=$1 ORDER BY c.id",
+        [f.prepared.approval.id],
+      )
+    ).rows,
+  ).toEqual(before);
+  await expect(createFullQualification(f.ledger, p)).rejects.toThrow();
+});
+
+it("rejects a malformed model contract before reserving any qualification allocation", async () => {
+  const f = await setup();
+  await createFullQualification(f.ledger, f.prepared);
+  const p = f.prepared.plans[0];
+  await f.ledger.startStage(p, "Q1");
+  await expect(
+    f.ledger
+      .model(p, provider, "calibration", "invalid")
+      .decide({ ...request(p, "calibration"), schema: { enum: ["duplicate", "duplicate"] } }),
+  ).rejects.toMatchObject({ code: "INVALID_GENERATION_SCHEMA", notDispatched: true });
+  expect((await f.ledger.summary(p)).executions).toBe(0);
+});
+
+it("settles both cognitive executions when a requested read redelivers recalled evidence", async () => {
+  const f = await setup();
+  const p = prepareQualification({
+    ...f.history.plan,
+    id: randomUUID(),
+    authorizationRef: randomUUID(),
+    schemaVersion: "fleet.local-qualification.v2",
+  });
+  await f.ledger.create(p);
+  await f.ledger.startStage(p, "Q1");
+  await f.ledger.finishStage(p, "Q1");
+  await f.ledger.startStage(p, "Q2");
+  let calls = 0;
+  const model = {
+    decide: async (input: Parameters<import("../../src/domain.js").ModelPort["decide"]>[0]) => {
+      const version = JSON.parse(input.messages[1].content).cognition.version;
+      const result = {
+        cognition: { expectedVersion: version, analysis: { type: "none", reason: "Retain observed evidence" } },
+        decision:
+          ++calls === 1
+            ? { kind: "read", tool: "pact_world_read_v1", args: {}, summary: "Refresh facts" }
+            : { kind: "wait", summary: "Wait" },
+      };
+      expect(qualifyOutput(input.schema, input.messages, result).valid).toBe(true);
+      return { decision: result, inputTokens: 500, outputTokens: 50 };
+    },
+  };
+  const fixtures = await PactQualificationFixtures.create(f.ledger, p);
+  const result = await fixtures.run(
+    "legacy-cognition",
+    "multiple-events:1",
+    f.ledger.model(p, model, "legacy-cognition", "multiple-events:1"),
+    f.ledger.recall(
+      p,
+      {
+        choose: async () => {
+          throw Error("LAYA_ABSTAINED");
+        },
+      },
+      "legacy-cognition",
+      "multiple-events:1",
+    ),
+  );
+  expect(result).toMatchObject({ calls: 2, code: "WAIT", pending: false });
+  expect(await f.ledger.summary(p)).toMatchObject({
+    executions: 2,
+    unknown: 0,
+    invalid: 0,
+    reportedInputTokens: 1000,
+    reportedOutputTokens: 100,
+  });
+});
+
+it("stops a reviewed continuation on a new unknown and records a bounded error cause without leaking messages", async () => {
+  const f = await continuationFixture(),
+    p = prepareFullQualification(f.raw);
+  await createFullQualification(f.ledger, p);
+  for (const plan of p.plans) await f.ledger.startStage(plan, "Q1");
+  const bad = {
+    decide: async () => {
+      throw new TypeError("private endpoint must never be logged", { cause: { code: "ECONNRESET" } });
+    },
+  };
+  await expect(
+    f.ledger.model(p.plans[0], bad, "calibration", "uncertain").decide(request(p.plans[0], "calibration")),
+  ).rejects.toThrow();
+  await expect(
+    f.ledger.model(p.plans[1], provider, "calibration", "next").decide(request(p.plans[1], "calibration")),
+  ).rejects.toThrow("QUALIFICATION_BATCH_NOT_ACTIVE");
+  const row = (await f.ledger.pool.query("SELECT * FROM qualification_calls WHERE run_id=$1", [p.plans[0].plan.id]))
+    .rows[0];
+  expect(row.state).toBe("unknown");
+  expect(row.tokens).toBe("40000");
+  const detail = f.ledger.vault.decrypt(row.detail_cipher, `qualification-call:${row.id}`);
+  expect(detail).toMatchObject({ dispatched: true, failure: { causeCode: "ECONNRESET" } });
+  expect(JSON.stringify(detail)).not.toContain("private endpoint");
+  expect((await f.ledger.summary(p.plans[1])).executions).toBe(0);
+});
 it("enforces exactly two104-call mode allocations and208 combined without changing historical96 rows", async () => {
   const f = await setup();
   const before = (
@@ -161,6 +358,17 @@ it("completes the full96 actual engine trials with injected first-output failure
       attempts.set(key, n + 1);
       const cognitive = !!(input.schema.properties as Record<string, unknown> | undefined)?.cognition,
         envelope = !!(input.schema.properties as Record<string, unknown> | undefined)?.decision;
+      if (!calibration && !cognitive && input.messages[0].content.startsWith("Use the authorized")) {
+        const decision = {
+          kind: "action",
+          schemaId: "pact.action.v1",
+          payload: { kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 1 },
+          summary: "Consider action",
+        };
+        expect(qualifyOutput(input.schema, input.messages, envelope ? { decision } : decision).valid).toBe(true);
+        const bad = { ...decision, payload: { action: decision.payload } };
+        expect(qualifyOutput(input.schema, input.messages, envelope ? { decision: bad } : bad).valid).toBe(false);
+      }
       // Calibration recovery plus wait outputs exercise all actual engines without game traffic.
       if (calibration && n === 0)
         return { decision: null, decisionError: "INVALID_MODEL_OUTPUT", inputTokens: 20, outputTokens: 5 };

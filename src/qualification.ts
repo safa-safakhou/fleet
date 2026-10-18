@@ -1,8 +1,8 @@
 import { createHash } from "node:crypto";
-import { Ajv } from "ajv";
 import { z } from "zod";
 import type { Data } from "./domain.js";
 import { safeCode } from "./domain.js";
+import { compileGenerationSchema } from "./model-schema.js";
 import type {
   CapabilityRequirements,
   EnvironmentAdapter,
@@ -23,7 +23,7 @@ export function qualifyOutput(schema: Data, messages: unknown[], output: unknown
       stage: "delivery",
       diagnostics: [{ schemaId, fieldPath: "/", code: "CONTEXT_LIMIT" }],
     };
-  const validate = new Ajv({ strict: false, validateFormats: false, allErrors: true }).compile(schema),
+  const validate = compileGenerationSchema(schema),
     valid = validate(output);
   return {
     schemaId,

@@ -118,6 +118,16 @@ export class EnvironmentRegistry {
       },
       catalog: () => session.catalog(),
       ...(session.validateProposal ? { validateProposal: session.validateProposal.bind(session) } : {}),
+      ...(session.actionContracts
+        ? {
+            actionContracts: async (observation: import("./contracts.js").Observation) => {
+              const contracts = (await session.actionContracts?.(observation)) ?? [];
+              if (contracts.some((c) => !adapter.schemas.actions.includes(c.schemaId)))
+                throw new FleetError("UNSUPPORTED_SCHEMA", true);
+              return contracts;
+            },
+          }
+        : {}),
       execute: async (intent) => {
         if (intent.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH");
         if (!adapter.schemas.actions.includes(intent.schemaId)) throw new FleetError("UNSUPPORTED_SCHEMA");

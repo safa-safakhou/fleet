@@ -3,6 +3,42 @@ import { expect, it } from "vitest";
 import { ReactiveEngine } from "../../src/engines/reactive/engine.js";
 import { reactiveProbe } from "../reactive-probe-context.js";
 
+it("binds trusted bare payload contracts on every fresh observation without removing wait/read", async () => {
+  let calls = 0;
+  const ctx = reactiveProbe(async (_claim, input) => {
+    const version = ++calls;
+    const check = new Ajv({ strict: false, validateFormats: false }).compile(input.schema);
+    const action = { kind: "action", schemaId: "board.move.v1", payload: { kind: "move", version }, summary: "Act" };
+    expect(check(action)).toBe(true);
+    expect(check({ ...action, payload: { action: action.payload } })).toBe(false);
+    expect(check({ ...action, payload: { ...action.payload, version: version + 1 } })).toBe(false);
+    expect(check({ kind: "wait", summary: "Wait" })).toBe(true);
+    expect(check({ kind: "read", query: {}, summary: "Read" })).toBe(true);
+    return {
+      decision: version === 1 ? { kind: "read", query: {}, summary: "Refresh" } : { kind: "wait", summary: "Wait" },
+      inputTokens: 10,
+      outputTokens: 2,
+    };
+  });
+  ctx.observation.payload = { version: 1 };
+  ctx.observe = async () => ({ ...ctx.observation, payload: { version: 2 } });
+  Object.assign(ctx, {
+    actionContracts: async (observation: typeof ctx.observation) => [
+      {
+        schemaId: "board.move.v1",
+        payloadSchema: {
+          type: "object",
+          properties: { kind: { const: "move" }, version: { const: observation.payload.version } },
+          required: ["kind", "version"],
+          additionalProperties: false,
+        },
+      },
+    ],
+  });
+  await new ReactiveEngine().run(ctx);
+  expect(calls).toBe(2);
+});
+
 it("constrains action schema IDs to the current environment before admission", async () => {
   await new ReactiveEngine().run(
     reactiveProbe(async (_claim, input) => {

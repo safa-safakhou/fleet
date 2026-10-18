@@ -2,8 +2,9 @@ import { createHash, randomUUID } from "node:crypto";
 import { z } from "zod";
 import type { RecallPort } from "./cognition.js";
 import { connect, type Pool, transaction } from "./db.js";
-import { FleetError, type ModelPort, type ModelSettings } from "./domain.js";
+import { FleetError, type ModelPort, type ModelSettings, object, safeCode } from "./domain.js";
 import { recoverModelOutput } from "./model-recovery.js";
+import { compileGenerationSchema } from "./model-schema.js";
 import { qualifyOutput } from "./qualification.js";
 import { qualificationScenarioIds, qualificationVerdict } from "./qualification-policy.js";
 import { Vault } from "./vault.js";
@@ -124,6 +125,8 @@ export class QualificationLedger {
       CREATE TABLE IF NOT EXISTS qualification_trials(run_id uuid NOT NULL REFERENCES qualification_runs(id),profile text NOT NULL,trial text NOT NULL,result jsonb NOT NULL,PRIMARY KEY(run_id,profile,trial));`);
       await pool.query(`CREATE TABLE IF NOT EXISTS qualification_batches(id uuid PRIMARY KEY,authorization_ref text UNIQUE NOT NULL,history_run_id uuid UNIQUE NOT NULL REFERENCES qualification_runs(id),digest text NOT NULL,plan jsonb NOT NULL,state text NOT NULL DEFAULT 'active',code text,created_at timestamptz NOT NULL DEFAULT now());
        CREATE TABLE IF NOT EXISTS qualification_batch_runs(batch_id uuid NOT NULL REFERENCES qualification_batches(id),run_id uuid UNIQUE NOT NULL REFERENCES qualification_runs(id),thinking boolean NOT NULL,PRIMARY KEY(batch_id,thinking));`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS qualification_execution_reviews(call_id uuid PRIMARY KEY REFERENCES qualification_calls(id),reserved_tokens bigint NOT NULL CHECK(reserved_tokens=40000),authorization_ref text UNIQUE NOT NULL,review jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
+      CREATE UNIQUE INDEX IF NOT EXISTS qualification_one_continuation ON qualification_batches((plan->>'predecessorBatchId')) WHERE plan->>'predecessorBatchId' IS NOT NULL;`);
       return new QualificationLedger(pool, new Vault(key));
     } catch (e) {
       await pool.end();
@@ -327,7 +330,26 @@ export class QualificationLedger {
       )
     ).rows[0];
     if (used.unresolved) throw new FleetError("QUALIFICATION_BATCH_UNRESOLVED", true);
-    if (!helper && (used.n >= 208 || used.tokens + 40000 > 8320000))
+    let priorHelpers = 0;
+    if (batch.plan.schemaVersion === "fleet.full-local-qualification.v2") {
+      const prior = (
+        await db.query(
+          "SELECT count(*)::int n,coalesce(sum(c.tokens),0)::int tokens,count(*) FILTER(WHERE c.state IN('prepared','dispatched') OR (c.state='unknown' AND r.call_id IS NULL))::int unresolved FROM qualification_calls c JOIN qualification_batch_runs x ON x.run_id=c.run_id LEFT JOIN qualification_execution_reviews r ON r.call_id=c.id AND r.reserved_tokens=c.tokens WHERE x.batch_id=$1",
+          [batch.plan.predecessorBatchId],
+        )
+      ).rows[0];
+      if (prior.n !== 96 || prior.tokens !== 3840000 || prior.unresolved)
+        throw new FleetError("QUALIFICATION_BATCH_HISTORY", true);
+      if (!helper && (prior.n + used.n >= 208 || prior.tokens + used.tokens + 40000 > 8320000))
+        throw new FleetError("QUALIFICATION_BATCH_BUDGET", true);
+      priorHelpers = (
+        await db.query(
+          "SELECT count(*)::int n FROM qualification_helpers h JOIN qualification_batch_runs x ON x.run_id=h.run_id WHERE x.batch_id=$1",
+          [batch.plan.predecessorBatchId],
+        )
+      ).rows[0].n;
+    }
+    if (!helper && (used.n >= batch.plan.executionLimit || used.tokens + 40000 > batch.plan.tokenLimit))
       throw new FleetError("QUALIFICATION_BATCH_BUDGET", true);
     if (
       helper &&
@@ -336,7 +358,7 @@ export class QualificationLedger {
           "SELECT count(*)::int n FROM qualification_helpers h JOIN qualification_batch_runs x ON x.run_id=h.run_id WHERE x.batch_id=$1",
           [batch.id],
         )
-      ).rows[0].n >= 96
+      ).rows[0].n >= Math.min(batch.plan.helperLimit, 96 - priorHelpers)
     )
       throw new FleetError("QUALIFICATION_HELPER_BUDGET", true);
   }
@@ -351,6 +373,7 @@ export class QualificationLedger {
     return {
       tracksDispatch: true,
       decide: async (input) => {
+        compileGenerationSchema(input.schema);
         if (scope && diagnosticId) throw new FleetError("QUALIFICATION_SCOPE", true);
         const block = (code: string) => (scope ? scope.block(code) : this.blockModel(p, diagnosticId, code));
         const actual: ModelSettings = { ...input.model };
@@ -432,10 +455,18 @@ export class QualificationLedger {
           }
           return result;
         } catch (error) {
+          if (!id && safeCode(error) === "QUALIFICATION_BATCH_BUDGET") await block("QUALIFICATION_BATCH_BUDGET");
           if (id) {
             const changed = await this.pool.query(
-              "UPDATE qualification_calls SET state=$2,code='PROVIDER_INTERRUPTED',finished_at=now() WHERE id=$1 AND state IN('prepared','dispatched')",
-              [id, dispatched ? "unknown" : "not_dispatched"],
+              "UPDATE qualification_calls SET state=$2,code='PROVIDER_INTERRUPTED',detail_cipher=$3,finished_at=now() WHERE id=$1 AND state IN('prepared','dispatched')",
+              [
+                id,
+                dispatched ? "unknown" : "not_dispatched",
+                this.vault.encrypt(
+                  { failure: { code: safeCode(error), causeCode: safeCode(object(error).cause) }, dispatched },
+                  `qualification-call:${id}`,
+                ),
+              ],
             );
             if (changed.rowCount)
               await block(dispatched ? "QUALIFICATION_UNKNOWN_USAGE" : "QUALIFICATION_PROVIDER_FAILED");

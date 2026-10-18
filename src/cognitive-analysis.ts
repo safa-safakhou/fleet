@@ -207,9 +207,13 @@ export function analysisSchemaForVersion(
     target: "draft-7",
     reused: "ref",
   });
-  const ids = (Array.isArray(delivered.evidence) ? delivered.evidence.map(object) : [])
-    .filter((e) => e.kind !== "interpretation" && z.uuid().safeParse(e.id).success)
-    .map((e) => e.id);
+  const ids = [
+    ...new Set(
+      (Array.isArray(delivered.evidence) ? delivered.evidence.map(object) : [])
+        .filter((e) => e.kind !== "interpretation" && z.uuid().safeParse(e.id).success)
+        .map((e) => e.id),
+    ),
+  ];
   const constrain = (v: unknown) => {
     if (!v || typeof v !== "object") return;
     if (object(v).format === "uuid") {

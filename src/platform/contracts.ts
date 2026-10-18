@@ -67,6 +67,7 @@ export type CapabilityRequirements = {
   coordination?: boolean;
 };
 export type SchemaRequirements = { observations?: string[]; actions?: string[] };
+export type ActionContract = { schemaId: string; payloadSchema: Data };
 export interface EnvironmentSession {
   observe(query: Data): Promise<Observation>;
   catalog(): Promise<Tool[]>;
@@ -74,6 +75,7 @@ export interface EnvironmentSession {
   resolve(commandId: string): Promise<ActionOutcome>;
   events?(cursor: string | null): Promise<EventPage>;
   validateProposal?(proposal: Proposal, observation: Observation): Promise<{ valid: boolean; code: string }>;
+  actionContracts?(observation: Observation): Promise<ActionContract[]>;
   close(): Promise<void>;
 }
 export interface EnvironmentAdapter {

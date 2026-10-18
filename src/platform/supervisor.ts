@@ -140,6 +140,7 @@ export class PlatformHost {
           },
           capabilities: adapter.capabilities,
           validateProposal: session?.validateProposal,
+          actionContracts: session?.actionContracts,
           catalog: async () => {
             if (!session) throw new FleetError("OBSERVATION_OWNED_BY_ENGINE");
             await this.tasks.check(claim);
