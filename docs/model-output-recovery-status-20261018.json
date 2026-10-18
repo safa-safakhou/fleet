@@ -1,0 +1,53 @@
+{
+  "schemaVersion": "fleet.model-recovery-status.v1",
+  "owner": "Codex; no delegation",
+  "status": "source_verified_recovery_provider_qualification_blocked",
+  "baseCommit": "21ef9ad",
+  "report": "model-output-recovery-20261018.md",
+  "implementation": {
+    "maxAttemptsPerDecision": 2,
+    "separateAllocationPerAttempt": true,
+    "sameModelAndThinkingMode": true,
+    "existingBudgetsAndDeadlines": true,
+    "workerCoordinatorCapacityProtected": true,
+    "unknownUsageRetry": false,
+    "gameCommandReplay": false,
+    "legacyEngineUnchanged": true
+  },
+  "qualification": {
+    "v1Unchanged": true,
+    "v2RealPlanCreated": false,
+    "strictRawValidityGateRetained": true,
+    "parentRun": "f8facc31-f95a-40cc-a40d-4bb526efbb6a",
+    "executions": 18,
+    "reservedTokens": 720000,
+    "reportedTokens": 3288,
+    "unknown": 0,
+    "q2Trials": 0,
+    "newRealCalls": 0,
+    "passed": false
+  },
+  "preservation": {
+    "installedRelease": "953034e24b5f93f82f0571eef55ecce9a61999d2",
+    "retainedTablesMatched": 38,
+    "executionDisabled": true,
+    "serverContacted": false,
+    "gameReset": false,
+    "populationStarted": false,
+    "deployed": false,
+    "pushed": false,
+    "ownedFixturesStopped": true,
+    "ollamaRemainedStopped": true
+  },
+  "offline": {
+    "unitPassed": 201,
+    "integrationPassed": 357,
+    "pairedAcceptancePassed": 12,
+    "typeStyleBuildBoundariesPassed": true,
+    "fullAuditFindings": 0,
+    "existingStyleWarnings": 24,
+    "authorReviewOnly": true,
+    "discardedFixtureOverlapRun": true,
+    "finalIntegrationStandalone": true
+  }
+}

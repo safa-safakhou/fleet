@@ -105,5 +105,12 @@
       "passed": false,
       "helperCalls": 0
     }
+  },
+  "followupModelRecovery": {
+    "report": "model-output-recovery-20261018.md",
+    "statusRegister": "model-output-recovery-status-20261018.json",
+    "originalQ1Unchanged": true,
+    "newRealCalls": 0,
+    "fullQualificationPassed": false
   }
 }

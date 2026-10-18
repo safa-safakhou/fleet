@@ -62,3 +62,8 @@ Task1 is complete; Task2 is blocked by the actual Q1 provider result. Renewable 
 ## Subsequent authorized output fix
 
 The founder subsequently authorized local diagnosis/fix and explicitly selected both thinking modes qualified separately. [Output investigation/fix](nemotron-empty-output-fix-20261018.md) preserves the original Q1 plan/two calls byte-for-byte while appending8 thinking-on and8 thinking-off diagnostic calls under the same104/4160000 parent. Controls:6/8 versus8/8 valid final outputs. Aggregate now18 executions/720000 reserved/3288 reported tokens,0 unknown; unused86/3440000. This report's original Q1 result remains historical and unchanged; Q2 is still unstarted and no full qualification/deployment gate clears. Installed Fleet/server/game/populations unchanged.
+
+
+## Recovery policy follow-up — 18 October 2026
+
+The [output-recovery repair](model-output-recovery-20261018.md) adds an explicit, inert v2 harness policy: four paired-observation Q1 cases with at most two attempts each, then the unchanged Q2 workload, within the same 104/4160000 ceiling. Raw validity and recovered completion are separate. Existing v1 approval/results and closed diagnostics remain unchanged; no new plan, parent allowance or provider run is created.

@@ -12,12 +12,16 @@ let cleanup: (() => Promise<void>) | undefined;
 afterEach(async () => {
   await cleanup?.();
 });
-async function setup(parallel = false, capacity = 1) {
+async function setup(parallel = false, capacity = 1, maxCalls = 3) {
   const f = await platformFixture(capacity);
   cleanup = () => f.pool.end();
   await f.store.setState(f.group.id, "paused", true);
   await f.tasks.enroll(f.group.id, { id: "specialist-coordinator", version: "1" });
   const board = new CoordinationBoard(f.board.adapter, f.now, parallel);
+  await f.pool.query("UPDATE cohorts SET budget=jsonb_set(budget,'{maxCallsPerTurn}',$2::jsonb) WHERE id=$1", [
+    f.group.id,
+    String(maxCalls),
+  ]);
   await f.store.setState(f.group.id, "running", true);
   await f.enqueue();
   const claim = await f.claim();
@@ -559,4 +563,75 @@ it("an uncertain command survives restart and resolves through its original rece
   expect(f.board.debits).toBe(40);
   expect(f.board.outcomes).toBe(1);
   expect((await f.pool.query("SELECT * FROM platform_commands")).rowCount).toBe(1);
+});
+
+it.each([false, true])(
+  "isolates an exhausted worker while retaining coordinator capacity (parallel=%s)",
+  async (parallel) => {
+    const f = await setup(parallel, 2),
+      inputs: unknown[] = [],
+      base = modelFor(inputs);
+    let failedFocus: string | undefined;
+    const h = f.host({
+      decide: async (input) => {
+        const p = JSON.parse(input.messages[1].content);
+        if (p.stage === "worker" && (!failedFocus || p.focus.id === failedFocus)) {
+          failedFocus = p.focus.id;
+          inputs.push(p);
+          return { decision: null, decisionError: "MODEL_THINKING_WITHOUT_FINAL", inputTokens: 70, outputTokens: 40 };
+        }
+        return base.decide(input);
+      },
+    });
+    h.engines.register(new SpecialistCoordinatorEngine(f.module));
+    await h.host.run(f.claim);
+    expect(inputs).toHaveLength(3);
+    expect((inputs[2] as { stage: string }).stage).toBe("coordinator");
+    expect(f.board.debits).toBeGreaterThan(0);
+    expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual(
+      Array.from({ length: 3 }, () => ({ status: "reported" })),
+    );
+  },
+);
+
+it("retries the task later when every focused worker fails with known usage", async () => {
+  const f = await setup();
+  let calls = 0;
+  const h = f.host({
+    decide: async () => {
+      calls++;
+      return { decision: null, decisionError: "MODEL_THINKING_WITHOUT_FINAL", inputTokens: 70, outputTokens: 44 };
+    },
+  });
+  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  await expect(h.host.run(f.claim)).rejects.toThrow("MODEL_OUTPUT_RETRY_EXHAUSTED");
+  expect(calls).toBe(2);
+  expect((await f.tasks.get(f.claim.taskId)).state).toBe("waiting");
+  expect(f.board.debits).toBe(0);
+});
+
+it("corrects a worker output when an existing fourth slot is available and still coordinates once", async () => {
+  const f = await setup(false, 1, 4),
+    inputs: unknown[] = [],
+    base = modelFor(inputs);
+  let failed = false;
+  const h = f.host({
+    decide: async (input) => {
+      const p = JSON.parse(input.messages[1].content);
+      if (!failed && p.stage === "worker") {
+        failed = true;
+        inputs.push(p);
+        return { decision: null, decisionError: "MODEL_THINKING_WITHOUT_FINAL", inputTokens: 70, outputTokens: 44 };
+      }
+      return base.decide(input);
+    },
+  });
+  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  await h.host.run(f.claim);
+  expect(inputs).toHaveLength(4);
+  expect((inputs[3] as { stage: string }).stage).toBe("coordinator");
+  expect(f.board.outcomes).toBe(1);
+  expect((await f.pool.query("SELECT status FROM compute_ledger")).rows.every((r) => r.status === "reported")).toBe(
+    true,
+  );
 });

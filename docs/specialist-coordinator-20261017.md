@@ -70,3 +70,8 @@ Tests cover shared call accounting, coordinator overhead, resource/authority/pro
 Read-only preservation at17:50UTC found the same installed7093cb8 release and exact22/22 application table fingerprints. Existing20 agents remain needs_owner,40 unknown allocations/1,600,000 retained tokens and10,121 historical turns are intact; zero running turns. No cohort was resumed or reconfigured. Server Fleet and PACT source/runtime remain untouched.
 
 Before any future installation: drain original work under normal receipt rules, retain encrypted rollback, migrate with preservation checks and qualify the exact new profile/adapter/provider. Source acceptance alone is no rollout or new-run authorization. Next architecture phase is F7 operation/reporting plus PACT P3 scenarios, followed by F8 qualification.
+
+
+## Known-output recovery follow-up — 18 October 2026
+
+Generic admission now offers one metered corrective attempt, preserving call slots for the admitted sibling and coordinator atomically. A known failed worker may abstain without cancelling healthy siblings. If failed outputs leave no proposal, the task waits for its next scheduled retry. Unknown dispatch/usage still cancels coordination under the existing recovery gate. See [verification](model-output-recovery-20261018.md).

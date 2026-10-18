@@ -3,6 +3,7 @@ import { setTimeout as delay } from "node:timers/promises";
 import { isDeepStrictEqual } from "node:util";
 import { transaction } from "../db.js";
 import { FleetError, type ModelPort, type ModelSettings, safeCode } from "../domain.js";
+import { recoverModelOutput } from "../model-recovery.js";
 import { Observability } from "../observability.js";
 import type { Claim, Store } from "../store.js";
 import type { TaskClaim, TaskStore } from "./tasks.js";
@@ -124,7 +125,7 @@ export class RouteCapacity {
     };
   }
 }
-export type ModelStage = { kind: "worker" | "coordinator"; focusId?: string };
+export type ModelStage = { kind: "worker" | "coordinator"; focusId?: string; retryReserveCalls?: number };
 export class ModelAdmission {
   constructor(
     private store: Store,
@@ -172,6 +173,27 @@ export class ModelAdmission {
     request: Parameters<ModelPort["decide"]>[0],
     stage?: ModelStage,
   ): Promise<ModelResult> {
+    const cohort = await this.store.cohort(claim.turn.cohortId);
+    const floor = stage?.kind === "worker" ? (stage.retryReserveCalls ?? 1) : 0;
+    return recoverModelOutput(request, {
+      inputByteLimit: cohort.budget?.inputByteLimit ?? 0,
+      attempt: (input, attempt) => this.decideOnce(claim, input, stage, attempt > 1 ? floor : 0),
+      canRetry: async () => (await this.remainingCalls(claim)) > floor,
+      onRetry: async (detail) => {
+        await new Observability(this.store).recordDebug(claim.turn, "thinking", "Model output retry", {
+          ...detail,
+          ...(stage ? { stage } : {}),
+          policy: "One corrective attempt within existing allowance; no command replay or mode change.",
+        });
+      },
+    });
+  }
+  private async decideOnce(
+    claim: TaskClaim,
+    request: Parameters<ModelPort["decide"]>[0],
+    stage?: ModelStage,
+    reserveCalls = 0,
+  ): Promise<ModelResult> {
     await this.tasks.check(claim);
     const cohort = await this.store.cohort(claim.turn.cohortId);
     const turn = { ...claim.turn, cohort };
@@ -193,7 +215,7 @@ export class ModelAdmission {
         await this.guard?.(claim);
         await this.tasks.check(claim);
         if (this.provider.tracksDispatch) await this.store.phase(turn, "model_preparing_tracked");
-        const allocation = await this.store.reserveCall(turn);
+        const allocation = await this.store.reserveCall(turn, reserveCalls);
         let dispatched = false,
           invoked = false,
           execution = 0,
@@ -240,6 +262,7 @@ export class ModelAdmission {
             outputText: result.outputText ?? null,
             inputTokens: result.inputTokens,
             outputTokens: result.outputTokens,
+            providerMetadata: result.providerMetadata ?? null,
             coverage: "Provider final answer only; provider internal reasoning is not captured.",
           });
           if (result.inputTokens === null || result.outputTokens === null) throw new FleetError("USAGE_UNKNOWN");

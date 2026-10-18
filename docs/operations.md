@@ -92,3 +92,8 @@ See [the local repair and recovery guide](local-repair-20261013.md). Opt-in macO
 ## Multi-engine release preparation —17 October2026
 
 The [F8 proposal](multi-engine-release-proposal-20261017.md) supersedes no deployment or recovery authorization. It prepares source qualification only, with no selected run. Its additive-schema rollback retains the latest database and explicitly prevents older workers from claiming unsupported task profiles. Server Fleet is excluded.
+
+
+## Accounted output recovery — 18 October 2026
+
+Generic engine admission permits one corrective model attempt for known, completed unusable outputs, within the existing allowance and stop/deadline fences. Each execution is separately metered. Persistent known failures wait for their original scheduled retry; unknown usage and uncertain commands retain their recovery gates. See [repair/evidence](model-output-recovery-20261018.md). This source capability is not installed or enabled by its documentation.

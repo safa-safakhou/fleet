@@ -58,3 +58,8 @@ Owned Windows Ollama was started hidden with its retained process-only host/Vulk
 All new request/final-response/validation/metadata/latency evidence is row-bound AES-GCM encrypted with the original qualification vault key. Original encrypted archive/key remain unchanged. A separate authenticated post-diagnosis archive preserves both diagnostic stages/mappings:14032801 bytes, SHA256 `b83ecde47ed94201ff4bab83fd778b470d6a945b028ad913d9ba12a842d2c339`,268 readable PostgreSQL TOC entries. This is encrypted archive authentication/readability, not a new full restore rehearsal. No plaintext dump or provider reasoning text was retained. Separate existing key stays outside artifacts. Private evidence: `/home/mnim/.local/share/fleet-phase0-validation-20261017/nemotron-empty-fix-20261018/`; original run under its sibling `local-qualification-20261018/`.
 
 Next provider work requires a concrete plan for the remaining aggregate ceiling and separately labelled mode/source evidence; no provider/deployment/release eligibility gate is cleared here.
+
+
+## Subsequent resilience repair
+
+Founder subsequently requested correcting fail-fast handling. [The recovery report](model-output-recovery-20261018.md) records exact upstream grammar evidence and bounded separately metered retries. This follow-up does not rewrite the controls above, alter installed settings or turn either mode into a fully qualified provider.

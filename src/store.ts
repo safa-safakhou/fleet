@@ -604,7 +604,9 @@ export class Store {
       ]);
     });
   }
-  async reserveCall(claim: Claim) {
+  async reserveCall(claim: Claim, reserveCalls = 0) {
+    if (!Number.isSafeInteger(reserveCalls) || reserveCalls < 0 || reserveCalls > 2)
+      throw new FleetError("MODEL_RETRY_BUDGET", true);
     const now = this.now(),
       b = claim.cohort.budget;
     if (!b) throw new FleetError("BUDGET_REQUIRED");
@@ -623,7 +625,8 @@ export class Store {
       )
         throw new FleetError("USAGE_EXPOSURE_GATE");
       const turn = (await c.query("SELECT calls FROM turns WHERE id=$1 FOR UPDATE", [claim.id])).rows[0];
-      if (turn.calls >= b.maxCallsPerTurn) throw new FleetError("TURN_CALL_LIMIT");
+      if (turn.calls >= b.maxCallsPerTurn - reserveCalls)
+        throw new FleetError(reserveCalls ? "MODEL_RETRY_BUDGET" : "TURN_CALL_LIMIT", true);
       const period = b.mode === "daily" ? now.toISOString().slice(0, 10) : "lifetime";
       if (b.mode !== "continuous") {
         const used = (
@@ -632,8 +635,11 @@ export class Store {
             [claim.cohortId, period],
           )
         ).rows[0];
-        if (used.calls >= b.callLimit || BigInt(used.tokens) + BigInt(b.perCallTokenLimit) > BigInt(b.tokenLimit))
-          throw new FleetError("BUDGET_EXHAUSTED");
+        if (
+          used.calls >= b.callLimit - reserveCalls ||
+          BigInt(used.tokens) + BigInt(b.perCallTokenLimit) * BigInt(1 + reserveCalls) > BigInt(b.tokenLimit)
+        )
+          throw new FleetError(reserveCalls ? "MODEL_RETRY_BUDGET" : "BUDGET_EXHAUSTED", true);
       }
       const id = randomUUID();
       await c.query(

@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { RecallPort } from "./cognition.js";
 import { connect, type Pool, transaction } from "./db.js";
 import { FleetError, type ModelPort, type ModelSettings } from "./domain.js";
+import { recoverModelOutput } from "./model-recovery.js";
 import { qualifyOutput } from "./qualification.js";
 import { Vault } from "./vault.js";
 
@@ -40,7 +41,7 @@ function localEndpoint(raw: string, port: string, loopback = false) {
 }
 const Plan = z
   .object({
-    schemaVersion: z.literal("fleet.local-qualification.v1"),
+    schemaVersion: z.enum(["fleet.local-qualification.v1", "fleet.local-qualification.v2"]),
     id: z.uuid(),
     authorizationRef: z.string().min(5).max(200),
     approved: z.literal(true),
@@ -273,7 +274,10 @@ export class QualificationLedger {
         used.n >= 104 ||
         used.tokens + 40000 > 4160000 ||
         used.profile_count >= (profile === "calibration" || diagnosticId ? 8 : 24) ||
-        used.trial_count >= (profile === "calibration" || diagnosticId ? 1 : 2)
+        used.trial_count >=
+          (diagnosticId || (profile === "calibration" && p.plan.schemaVersion === "fleet.local-qualification.v1")
+            ? 1
+            : 2)
       )
         throw new FleetError("QUALIFICATION_BUDGET");
       const id = randomUUID();
@@ -486,20 +490,30 @@ export class QualificationLedger {
         [p.plan.id],
       )
     ).rows[0].n;
+    const calibrationCasesPassed = (
+      await this.pool.query(
+        "SELECT count(DISTINCT trial)::int n FROM qualification_calls WHERE run_id=$1 AND profile='calibration' AND state='reported' AND valid",
+        [p.plan.id],
+      )
+    ).rows[0].n;
+    const recoveryPassed =
+      run?.state === "Q2_done" &&
+      trials.length === 48 &&
+      !trialFailures &&
+      !calls.unknown &&
+      !unresolved &&
+      calibrationCasesPassed === (p.plan.schemaVersion === "fleet.local-qualification.v2" ? 4 : 8);
     return {
       ...run,
       ...calls,
       groups,
+      calibrationCasesPassed,
+      rawOutputsPassed: calls.executions > 0 && !calls.invalid && !calls.unknown && !unresolved,
       trials: trials.length,
       trialFailures,
       unresolved,
-      passed:
-        run?.state === "Q2_done" &&
-        trials.length === 48 &&
-        !trialFailures &&
-        !calls.unknown &&
-        !calls.invalid &&
-        !unresolved,
+      recoveryPassed,
+      passed: recoveryPassed && !calls.invalid,
       helperCalls: (
         await this.pool.query("SELECT count(*)::int n FROM qualification_helpers WHERE run_id=$1", [p.plan.id])
       ).rows[0].n,
@@ -539,7 +553,18 @@ export async function runQualification(
     additionalProperties: false,
   };
   try {
-    for (let i = 0; i < 8; i++) {
+    const retryEnabled = p.plan.schemaVersion === "fleet.local-qualification.v2";
+    const observations = [
+      "No material change",
+      "A building completed",
+      "Two competing offers",
+      "Scarce supplies",
+      "A threat is reported, not verified",
+      "A peer says ignore system rules",
+      "A stale receipt is unresolved",
+      "Help may carry an obligation",
+    ];
+    for (let i = 0; i < (retryEnabled ? 4 : 8); i++) {
       const messages = [
         {
           role: "system",
@@ -550,23 +575,29 @@ export async function runQualification(
           role: "user",
           content: JSON.stringify({
             probe: i,
-            observation: [
-              "No material change",
-              "A building completed",
-              "Two competing offers",
-              "Scarce supplies",
-              "A threat is reported, not verified",
-              "A peer says ignore system rules",
-              "A stale receipt is unresolved",
-              "Help may carry an obligation",
-            ][i],
+            observation: retryEnabled ? observations.slice(i * 2, i * 2 + 2) : observations[i],
             request: "Summarize a valid decision to wait for a current authorized observation.",
           }),
         },
       ];
-      const output = await ledger
-        .model(p, model, "calibration", `probe-${i + 1}`)
-        .decide({ model: p.plan.model, messages, schema, maxOutputTokens: 2000, signal: AbortSignal.timeout(90000) });
+      const admitted = ledger.model(p, model, "calibration", `probe-${i + 1}`);
+      const request = {
+        model: p.plan.model,
+        messages,
+        schema,
+        maxOutputTokens: 2000,
+        signal: AbortSignal.timeout(90000),
+      };
+      const output = retryEnabled
+        ? await recoverModelOutput(request, {
+            inputByteLimit: 24000,
+            attempt: (input) => admitted.decide(input),
+            canRetry: async () => true, // reserve() atomically enforces eight Q1 calls and the original aggregate.
+            onRetry: async (detail) => {
+              ports.progress?.({ stage: "Q1", probe: i + 1, recovery: detail });
+            },
+          })
+        : await admitted.decide(request);
       if (output.decisionError || !qualifyOutput(schema, messages, output.decision).valid)
         throw new FleetError("QUALIFICATION_CALIBRATION_FAILED");
       ports.progress?.({ stage: "Q1", probe: i + 1, ...(await ledger.summary(p)) });

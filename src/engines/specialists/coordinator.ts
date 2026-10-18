@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { type Data, FleetError, object } from "../../domain.js";
+import { recoverableOutput } from "../../model-recovery.js";
 import type { ActionIntent, Observation, Proposal } from "../../platform/contracts.js";
 import type { AgentEngine, EngineContext } from "../../platform/engine-registry.js";
 import { type ContinuityModule, ContinuityUpdateSchema } from "../continuity/state.js";
@@ -204,6 +205,7 @@ export class SpecialistCoordinatorEngine implements AgentEngine {
       signal = AbortSignal.any([ctx.signal, controller.signal]),
       catalog = (await ctx.catalog?.()) ?? [],
       schema = z.toJSONSchema(WorkerResultSchema, { target: "draft-7" });
+    let failedOutputs = 0;
     const worker = async (focus: (typeof focuses)[number]): Promise<Proposal | null> => {
       if (signal.aborted) throw new FleetError("TASK_FENCED", true);
       const payload: Data = {
@@ -231,8 +233,18 @@ export class SpecialistCoordinatorEngine implements AgentEngine {
         result = await ctx.model.decide(
           ctx.claim,
           { model, messages: fitted.messages, schema, maxOutputTokens: budget.maxOutputTokens, signal },
-          { kind: "worker", focusId: focus.id },
+          { kind: "worker", focusId: focus.id, retryReserveCalls: reserveCoordinator ? count : Math.max(0, count - 1) },
         );
+      if (recoverableOutput(result.decisionError)) {
+        failedOutputs++;
+        await ctx.trace?.("thinking", "Focused worker output exhausted", {
+          focusId: focus.id,
+          code: result.decisionError,
+          outcome: "abstained",
+          commandSubmitted: false,
+        });
+        return null;
+      }
       if (result.decisionError) throw new FleetError(result.decisionError);
       const parsed = WorkerResultSchema.safeParse(result.decision);
       if (!parsed.success) throw new FleetError("INVALID_WORKER_OUTPUT", true);
@@ -274,6 +286,7 @@ export class SpecialistCoordinatorEngine implements AgentEngine {
         if (p) proposals.push(p);
       }
     if (signal.aborted) throw new FleetError("TASK_FENCED", true);
+    if (!proposals.length && failedOutputs) throw new FleetError("MODEL_OUTPUT_RETRY_EXHAUSTED");
     return { proposals, state };
   }
 }

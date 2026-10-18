@@ -207,61 +207,64 @@ it("rejects expired stages, aborted inputs, wrong settings and the third trial c
   expect(raw.inputs).toHaveLength(2);
 });
 
-it("halts the one-shot runner on unknown calibration usage before any fixture trial", async () => {
-  const l = await QualificationLedger.open(url, randomBytes(32).toString("base64"));
-  closes.push(() => l.close());
-  const p = prepareQualification({
-    schemaVersion: "fleet.local-qualification.v1",
-    id: randomUUID(),
-    authorizationRef: randomUUID(),
-    approved: true,
-    fleetCommit: "a".repeat(40),
-    modelDigest: "6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197",
-    model: { route: "ollama", model: "nemotron-3-nano:4b", thinking: true },
-    endpoint: "http://127.0.0.1:11434",
-    helperEndpoint: "http://127.0.0.1:8832",
-    startsAt: new Date(Date.now() - 1000).toISOString(),
-    deadlineAt: new Date(Date.now() + 254 * 60000).toISOString(),
-    scope: "synthetic_fixtures_only",
-    executionLimit: 104,
-    tokenLimit: 4160000,
-    helperLimit: 48,
-  });
-  let calls = 0,
-    trials = 0;
-  await expect(
-    runQualification(p, {
-      ledger: l,
-      model: {
-        decide: async () => {
-          calls++;
-          return { decision: { kind: "wait", summary: "Wait" }, inputTokens: null, outputTokens: null };
+it.each(["fleet.local-qualification.v1", "fleet.local-qualification.v2"])(
+  "halts %s on unknown calibration usage before any fixture trial",
+  async (schemaVersion) => {
+    const l = await QualificationLedger.open(url, randomBytes(32).toString("base64"));
+    closes.push(() => l.close());
+    const p = prepareQualification({
+      schemaVersion,
+      id: randomUUID(),
+      authorizationRef: randomUUID(),
+      approved: true,
+      fleetCommit: "a".repeat(40),
+      modelDigest: "6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197",
+      model: { route: "ollama", model: "nemotron-3-nano:4b", thinking: true },
+      endpoint: "http://127.0.0.1:11434",
+      helperEndpoint: "http://127.0.0.1:8832",
+      startsAt: new Date(Date.now() - 1000).toISOString(),
+      deadlineAt: new Date(Date.now() + 254 * 60000).toISOString(),
+      scope: "synthetic_fixtures_only",
+      executionLimit: 104,
+      tokenLimit: 4160000,
+      helperLimit: 48,
+    });
+    let calls = 0,
+      trials = 0;
+    await expect(
+      runQualification(p, {
+        ledger: l,
+        model: {
+          decide: async () => {
+            calls++;
+            return { decision: { kind: "wait", summary: "Wait" }, inputTokens: null, outputTokens: null };
+          },
         },
-      },
-      recall: {
-        choose: async () => {
-          throw Error("UNEXPECTED_HELPER");
+        recall: {
+          choose: async () => {
+            throw Error("UNEXPECTED_HELPER");
+          },
         },
-      },
-      fixtures: {
-        scenarios: ["a", "b", "c", "d", "e", "f"],
-        run: async () => {
-          trials++;
-          return {};
+        fixtures: {
+          scenarios: ["a", "b", "c", "d", "e", "f"],
+          run: async () => {
+            trials++;
+            return {};
+          },
         },
-      },
-    }),
-  ).rejects.toThrow("QUALIFICATION_UNKNOWN_USAGE");
-  expect(calls).toBe(1);
-  expect(trials).toBe(0);
-  expect(await l.summary(p)).toMatchObject({
-    state: "blocked",
-    executions: 1,
-    reservedTokens: 40000,
-    unknown: 1,
-    passed: false,
-  });
-});
+      }),
+    ).rejects.toThrow("QUALIFICATION_UNKNOWN_USAGE");
+    expect(calls).toBe(1);
+    expect(trials).toBe(0);
+    expect(await l.summary(p)).toMatchObject({
+      state: "blocked",
+      executions: 1,
+      reservedTokens: 40000,
+      unknown: 1,
+      passed: false,
+    });
+  },
+);
 
 it("appends at most eight diagnostic calls without rewriting failed Q1 or its original usage", async () => {
   const { l, p } = await setup(),
@@ -423,4 +426,39 @@ it("qualifies the explicit non-thinking mode separately without changing the par
       .decide({ ...request(p), model: { ...p.plan.model, thinking: false } }),
   ).rejects.toThrow("QUALIFICATION_BUDGET");
   expect(model.inputs).toHaveLength(16);
+});
+
+it("rejects exhausted v2 calibration after one corrective attempt", async () => {
+  const { l, p: old } = await setup();
+  const p = prepareQualification({
+    ...old.plan,
+    schemaVersion: "fleet.local-qualification.v2",
+    id: randomUUID(),
+    authorizationRef: `retry-failure:${randomUUID()}`,
+  });
+  let calls = 0;
+  await expect(
+    runQualification(p, {
+      ledger: l,
+      model: {
+        decide: async () => {
+          calls++;
+          return { decision: null, decisionError: "MODEL_THINKING_WITHOUT_FINAL", inputTokens: 20, outputTokens: 5 };
+        },
+      },
+      recall: {
+        choose: async () => {
+          throw Error("NO_HELPER");
+        },
+      },
+      fixtures: {
+        scenarios: ["a", "b", "c", "d", "e", "f"],
+        run: async () => {
+          throw Error("NO_Q2");
+        },
+      },
+    }),
+  ).rejects.toThrow("QUALIFICATION_CALIBRATION_FAILED");
+  expect(calls).toBe(2);
+  expect(await l.summary(p)).toMatchObject({ state: "blocked", invalid: 2, executions: 2, passed: false });
 });
