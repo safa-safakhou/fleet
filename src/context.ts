@@ -582,8 +582,7 @@ function fitAcceptedMessages(
         Object.entries(object(v)).filter(([key]) => key !== "notice"),
       ),
     ),
-    interpretation:
-      "Subjective; omissions unknown, not cleared. Cite delivered IDs. Recall advisory; current authority prevails.",
+    interpretation: undefined, // The final schemaCoverage notice states this boundary once.
   };
   const zeroCounts = Object.entries(coverage)
     .filter(([, value]) => value === 0)
@@ -617,7 +616,17 @@ function fitAcceptedMessages(
   findTools(schemaForContext ? schemaForContext(candidate) : schema);
   candidate = {
     ...candidate,
-    schemaCoverage: "Shapes paged: lookup/section enums. Requested/correction kept. sameTextAs=delivered text.",
+    privateNotes: undefined,
+    lastIntent: undefined,
+    omissions: ["Prior notes/intent/dated cache paged; unknown."],
+    decisionFeedback: (Array.isArray(candidate.decisionFeedback) ? candidate.decisionFeedback.map(object) : []).map(
+      (feedback) => ({
+        ...feedback,
+        guidance: undefined, // Whole stored feedback remains; exact diagnostics and schema are delivered.
+      }),
+    ),
+    schemaCoverage:
+      "Schemas paged; lookup enums; requested/correction kept. sameTextAs=delivered text. Plans/beliefs/recall advisory; cite delivered IDs. Current facts/authority prevail; WAIT/queue!=completion.",
     permissionCoverage: undefined, // The system instructions and whole authority already state the admission boundary.
     ...(Array.isArray(candidate.humanOnlyActionKinds) && candidate.humanOnlyActionKinds.length === 0
       ? { humanOnlyCoverage: undefined }
@@ -636,13 +645,13 @@ function fitAcceptedMessages(
       ? {
           ownerValues: {
             ...guidance,
-            instruction: "No invented persona/goals; notes/plans are revisable history, not facts.",
+            instruction: "No invented persona/goals.",
           },
         }
       : {}),
     continuation: {
       ...state,
-      coverage: "Bookkeeping, not authority. Missing history unknown; WAIT/queue!=completion. Lookup full plan.",
+      coverage: undefined, // Shared schemaCoverage notice; all outcome fields remain whole.
       outcomes: factTable(priorOutcomes),
       outcomeEncoding:
         typeof object(candidate.environment).factEncoding === "string"
@@ -651,11 +660,12 @@ function fitAcceptedMessages(
     },
     cognition: {
       ...cognitiveFacts,
+      recall: { ...object(cognitiveFacts.recall), role: undefined },
       coverage,
       knownPeerIds: neededPeers,
       peerCoverage: {
         omittedHistoricalPeerIds: peerIds.length - neededPeers.length,
-        meaning: "Delivered evidence index; other history unknown.",
+        meaning: undefined, // Omission count is exact; shared omissions notice says unknown.
       },
     },
   };

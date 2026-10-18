@@ -78,10 +78,16 @@ export class PactQualificationFixtures implements QualificationFixtures {
     private ledger: QualificationLedger,
     private plan: PreparedQualification,
     private thinking = plan.plan.model.thinking,
+    private deadlineAt = plan.plan.deadlineAt,
   ) {}
-  static async create(ledger: QualificationLedger, plan: PreparedQualification, thinking = plan.plan.model.thinking) {
+  static async create(
+    ledger: QualificationLedger,
+    plan: PreparedQualification,
+    thinking = plan.plan.model.thinking,
+    deadlineAt = plan.plan.deadlineAt,
+  ) {
     await migrate(ledger.pool);
-    return new PactQualificationFixtures(ledger, plan, thinking);
+    return new PactQualificationFixtures(ledger, plan, thinking, deadlineAt);
   }
   async run(profile: (typeof qualificationProfiles)[number], trial: string, model: ModelPort, recall: RecallPort) {
     const scenario = trial.split(":")[0];
@@ -107,7 +113,7 @@ export class PactQualificationFixtures implements QualificationFixtures {
         mode: "finite",
         callLimit: 2,
         tokenLimit: 80000,
-        deadlineAt: this.plan.plan.deadlineAt,
+        deadlineAt: this.deadlineAt,
         perCallTokenLimit: 40000,
         maxOutputTokens: 2000,
         inputByteLimit: 24000,

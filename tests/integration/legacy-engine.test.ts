@@ -6,7 +6,7 @@ import { pactAdapter } from "../../src/games/pact/adapter.js";
 import { Observability } from "../../src/observability.js";
 import { legacyManifestFor, legacyProfileFor } from "../../src/platform/profiles.js";
 import type { Claim } from "../../src/store.js";
-import golden from "../fixtures/legacy-baseline.json" with { type: "json" };
+import golden from "../fixtures/legacy-contract-correction-20261018.json" with { type: "json" };
 import { FakeGame, FakeModel, fixture, ready } from "../helpers.js";
 import { modelInputDigest, normalizedModelInputs } from "../legacy-parity.js";
 

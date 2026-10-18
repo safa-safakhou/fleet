@@ -109,3 +109,22 @@ it("separates ordinary placeholder/absent receipt lookups from actual transport 
     pactAdapter.readRejection?.(new RemoteRejection("RECEIPT_NOT_FOUND", 502), "pact_receipt_read_v1", {}),
   ).toBeUndefined();
 });
+
+it("advertises no answer action without an observed answerable request and retains eligible requests", () => {
+  const allowed = pactAdapter.availableActions?.(facts, null);
+  expect(JSON.stringify(allowed?.schemas)).toContain("game.contact.answer");
+  const absent = pactAdapter.availableActions?.({ ...facts, guide: { ...facts.guide, contactRequests: [] } }, null);
+  expect(JSON.stringify(absent?.schemas)).not.toContain("game.contact.answer");
+  expect(absent?.kinds).toContain("game.contact.answer"); // Conditional authority remains unchanged.
+  for (const request of [
+    { ...facts.guide.contactRequests[0], direction: "outgoing" },
+    { ...facts.guide.contactRequests[0], expiresGameTimeMs: "999" },
+  ]) {
+    expect(
+      JSON.stringify(
+        pactAdapter.availableActions?.({ ...facts, guide: { ...facts.guide, contactRequests: [request] } }, null)
+          ?.schemas,
+      ),
+    ).not.toContain("game.contact.answer");
+  }
+});

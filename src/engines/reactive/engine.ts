@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { type Data, FleetError, type Tool } from "../../domain.js";
+import { type Data, FleetError, object, type Tool } from "../../domain.js";
 import type { AgentEngine, EngineContext } from "../../platform/engine-registry.js";
 
 export const ReactiveDecision = z.discriminatedUnion("kind", [
@@ -44,6 +44,21 @@ export class ReactiveEngine implements AgentEngine {
     if (!budget || !model) throw new FleetError("MODEL_CONFIGURATION_REQUIRED");
     if (model.cognition || model.decisionPolicy || model.recallAssist)
       throw new FleetError("PROFILE_CONFIGURATION_MISMATCH");
+    // Constrain the environment-neutral envelope to this binding's advertised action IDs.
+    const decisionSchema = structuredClone(this.decisionSchema);
+    const inner = object(object(decisionSchema.properties).decision);
+    const root = Object.keys(inner).length ? inner : decisionSchema;
+    for (const branch of (root.oneOf ?? root.anyOf ?? []) as Data[]) {
+      const properties = object(branch.properties);
+      if (object(properties.kind).const === "action")
+        properties.schemaId = { type: "string", maxLength: 100, enum: ctx.schemas?.actions ?? [] };
+    }
+    if (!ctx.schemas?.actions.length)
+      for (const key of ["oneOf", "anyOf"])
+        if (Array.isArray(root[key]))
+          root[key] = (root[key] as Data[]).filter(
+            (branch) => object(object(branch.properties).kind).const !== "action",
+          );
     let observation = ctx.observation;
     const catalog = (await ctx.catalog?.()) ?? [];
     for (let call = 0; call < budget.maxCallsPerTurn; call++) {
@@ -70,7 +85,7 @@ export class ReactiveEngine implements AgentEngine {
         { role: "user", content: JSON.stringify(payload) },
       ];
       const fits = () =>
-        Buffer.byteLength(JSON.stringify(messages())) + Buffer.byteLength(JSON.stringify(this.decisionSchema)) <=
+        Buffer.byteLength(JSON.stringify(messages())) + Buffer.byteLength(JSON.stringify(decisionSchema)) <=
         budget.inputByteLimit;
       if (!fits()) this.fitExtension(payload);
       if (!fits()) {
@@ -95,7 +110,7 @@ export class ReactiveEngine implements AgentEngine {
       const result = await ctx.model.decide(ctx.claim, {
         model,
         messages: messages(),
-        schema: this.decisionSchema,
+        schema: decisionSchema,
         maxOutputTokens: budget.maxOutputTokens,
         signal: ctx.signal,
       });
