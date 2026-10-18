@@ -36,8 +36,10 @@ Existing18/720000 allocations retained; new≤86/3440000, mode≤43/1720000; com
 **Files:** Private approval/evidence outside Git; docs/retry-mode-qualification-20261018.md/status; paired PACT report and AGENTS handoffs.
 **Interfaces:** Consumes Task1 clean committed CLI; produces immutable actual provider evidence and preservation report.
 
-- [ ] Snapshot/read-only hash installed state and all original qualification rows; reuse original vault key without copying it into evidence/Git.
-- [ ] Create one explicit child approval referencing the original parent/source/deadline and86/3440000 cap. Start only owned local provider/fixture DB, verify pins, execute CLI once.
-- [ ] Read each mode's complete results, preserve exhausted/unknown outcomes honestly, and stop at cap/deadline without replacement calls.
-- [ ] Encrypt/authenticate final evidence export with separate retained key; verify old row hashes/allocations and all38 installed tables, live0 and services.
-- [ ] Restore owned provider/fixtures to stopped state. Record limitations and actual counts; local commits, no push/deployment.
+- [x] Snapshot/read-only hash installed state and all original qualification rows; reuse original vault key without copying it into evidence/Git.
+- [x] Create one explicit child approval referencing the original parent/source/deadline and86/3440000 cap. Start only owned local provider/fixture DB, verify pins, execute CLI once.
+- [x] Read each mode's complete results, preserve exhausted/unknown outcomes honestly, and stop at cap/deadline without replacement calls.
+- [x] Encrypt/authenticate final evidence export with separate retained key; verify old row hashes/allocations and all38 installed tables, live0 and services.
+- [x] Restore owned provider/fixtures to stopped state. Record limitations and actual counts; local commits, no push/deployment.
+
+Completion: one approved continuation finished49 new executions within86/3440000, all44 planned cases complete,0 unknown. Both mode qualification verdicts fail overall; history, remaining37/1480000 and closed controls retained. No new generation after the planned run. See `../../retry-mode-qualification-20261018.md`.

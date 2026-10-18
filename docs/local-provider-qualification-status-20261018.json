@@ -48,8 +48,8 @@
     "helperCalls": 48
   },
   "remainingUnused": {
-    "executions": 86,
-    "reservedTokens": 3440000,
+    "executions": 37,
+    "reservedTokens": 1480000,
     "restartAuthorized": false
   },
   "installed": {
@@ -112,5 +112,19 @@
     "originalQ1Unchanged": true,
     "newRealCalls": 0,
     "fullQualificationPassed": false
+  },
+  "followupRetryQualification": {
+    "report": "retry-mode-qualification-20261018.md",
+    "statusRegister": "retry-mode-qualification-status-20261018.json",
+    "newExecutions": 49,
+    "aggregateExecutions": 67,
+    "aggregateReservedTokens": 2680000,
+    "originalQ1Preserved": true,
+    "fullQualificationPassed": false
+  },
+  "remainingBeforeRetryQualification": {
+    "executions": 86,
+    "reservedTokens": 3440000,
+    "restartAuthorized": false
   }
 }

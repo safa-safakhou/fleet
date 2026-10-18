@@ -49,5 +49,13 @@
     "authorReviewOnly": true,
     "discardedFixtureOverlapRun": true,
     "finalIntegrationStandalone": true
+  },
+  "realProviderQualification": {
+    "report": "retry-mode-qualification-20261018.md",
+    "sourceCommit": "9ce3f558bbcfb03207856061ad66121642267369",
+    "newCalls": 49,
+    "thinkingPassed": false,
+    "nonthinkingPassed": false,
+    "originalQ1Preserved": true
   }
 }
