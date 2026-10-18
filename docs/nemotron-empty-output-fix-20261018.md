@@ -31,3 +31,30 @@ Founder then explicitly selected supporting both thinking modes, qualified separ
 The pinned Nemotron renderer also scans inline /think and /no_think strings inside user/system messages, even when an explicit mode is supplied. HttpModel now fails such a conflict before dispatch when Nemotron mode is explicit; peer data cannot silently toggle the selected mode. It reports MODEL_PROMPT_MODE_CONFLICT without copying peer text. This is a refused incompatible prompt, not permission to alter or strip evidence. A red/green regression proves no request is dispatched. It does not change other model families or implicit-thinking callers.
 
 Final pre-control source verification:192 unit/340 integration passed, type/style/build/boundary checks passed;12 paired PACT checks and audit0 retained from this investigation. Relevant red/green mode/toggle regressions passed; no legacy engine/baseline, installed files or PACT application source changed.
+
+## Verified correction and limitations
+
+Non-thinking approvalf46e4d45-d411-40a0-9836-e8f247139fbe ran source `5beccbd2cf52dc8b726ba5de1eadb614be8a913a` in its original10:20:39.351–10:34:39.351UTC window, with thinking=false explicitly selected. Same model digest/route, temperature1/top_p1 defaults,32768 context,2000 output setting and keep_alive0; only the approved mode differed. All8/8 final outputs were schema-valid, done=true/stop, with0 thinking characters and0 unknown usage. Both original and schema-grounded prompts passed4/4. Usage720 input+230 output=950 reported tokens,320000 reserved. No sampling, model-weight or installed setting change.
+
+| Evidence set | Calls | Valid final JSON | Unknown | Reserved tokens |
+| --- | --- | --- | --- | --- |
+| Preserved original Q1 |2 |1 |0 |80000 |
+| Explicit thinking=true diagnostic |8 |6 |0 |320000 |
+| Explicit thinking=false diagnostic |8 |8 |0 |320000 |
+| Aggregate parent ceiling usage |18/104 |15/18 |0 |720000/4160000 |
+
+Aggregate measured usage1576 input+1712 output=3288 tokens. Both diagnostic grants are closed; no additional call/retry/probe was made. Remaining86 executions/3440000 reservations are unused, not an automatic grant to restart qualification. Original Q1 remains blocked with QUALIFICATION_CALIBRATION_FAILED, its original plan and two call rows/ciphertexts match exactly; Q2 trials0, helper calls0. The new mode succeeds in this bounded provider control; **full Q1/Q2/four-engine qualification has not passed**. Eight same-probe controls cannot establish long-term reliability, game strategy or performance of either mode. Thinking=true remains visibly unreliable for final JSON in this evidence and is not relabelled passed.
+
+The fix supports a workable explicit non-thinking structured-output path while retaining the thinking path as a separately configured, separately evaluated option. It does not manufacture a final answer from reasoning, silently toggle modes, retry inside HttpModel, relax schemas, increase model/output limits, or overwrite a failed qualification. Hypothesis testing rejected the schema-only fix, so no blanket prompt/schema injection was added to production requests.
+
+## Final verification/preservation
+
+Final source checks:192 unit/340 integration tests;12 PACT handler/profile acceptance checks during this investigation; type/style/build/boundaries passed; audit0 findings and diff checks passed. Unit suite was repeated after the final pre-dispatch toggle guard; the latest full340 integration run preceded only that adapter guard, whose separate red/green unit coverage verifies the new branch. Existing non-failing style warnings remain. Author review only, no delegation or hosted CI claim. The legacy engine and baseline files are unchanged.
+
+All38 retained installed-table fingerprints match the preflight and prior handoff: same953034e release,20 needs_owner agents/ready credentials,10121 turns,40 historical unknown40000 allocations/1600000 conservative tokens, zero new pending/running turns or commands. Primary live0 and persistent console/worker Env0 retained; loopback health200/liveEnabled=false, readiness503/LIVE_DISABLED. Installed files/configuration/services/helper/account identities/history/mandates/budgets/anchors and all recovery gates were untouched. Server Fleet/game host were never contacted, no game reset/account enrollment/population started. No push or installation.
+
+Owned Windows Ollama was started hidden with its retained process-only host/Vulkan settings solely for the two metered local controls. Verified no loaded model, then stopped only owned PID46256, restoring its original absent state. No autostart/registry/power/provider upgrade/download change. Owned5436 database is stopped with its volume retained;5438 acceptance fixture is stopped. Temporary test ledgers are distinct from the actual parent ID and never change its allocations.
+
+All new request/final-response/validation/metadata/latency evidence is row-bound AES-GCM encrypted with the original qualification vault key. Original encrypted archive/key remain unchanged. A separate authenticated post-diagnosis archive preserves both diagnostic stages/mappings:14032801 bytes, SHA256 `b83ecde47ed94201ff4bab83fd778b470d6a945b028ad913d9ba12a842d2c339`,268 readable PostgreSQL TOC entries. This is encrypted archive authentication/readability, not a new full restore rehearsal. No plaintext dump or provider reasoning text was retained. Separate existing key stays outside artifacts. Private evidence: `/home/mnim/.local/share/fleet-phase0-validation-20261017/nemotron-empty-fix-20261018/`; original run under its sibling `local-qualification-20261018/`.
+
+Next provider work requires a concrete plan for the remaining aggregate ceiling and separately labelled mode/source evidence; no provider/deployment/release eligibility gate is cleared here.

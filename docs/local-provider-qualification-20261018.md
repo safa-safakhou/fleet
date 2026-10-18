@@ -58,3 +58,7 @@ Raw requests/responses/validation/latency and engine evidence remain encrypted. 
 Private result/plan/preflight/encrypted artifacts are in `local-qualification-20261018/run-f8facc31-f95a-40cc-a40d-4bb526efbb6a/` beneath the evidence root above; separate keys in its sibling `keys/`. Preserve them and the stopped owned database. No new provider calls were made during diagnosis, backup or verification.
 
 Task1 is complete; Task2 is blocked by the actual Q1 provider result. Renewable windows/world identity/enrollment/Luna qualification/shadow/population Tasks3–6 remain unimplemented/unapproved. The next useful step is an offline provider-output investigation and a narrowly budgeted correction proposal, not population launch.
+
+## Subsequent authorized output fix
+
+The founder subsequently authorized local diagnosis/fix and explicitly selected both thinking modes qualified separately. [Output investigation/fix](nemotron-empty-output-fix-20261018.md) preserves the original Q1 plan/two calls byte-for-byte while appending8 thinking-on and8 thinking-off diagnostic calls under the same104/4160000 parent. Controls:6/8 versus8/8 valid final outputs. Aggregate now18 executions/720000 reserved/3288 reported tokens,0 unknown; unused86/3440000. This report's original Q1 result remains historical and unchanged; Q2 is still unstarted and no full qualification/deployment gate clears. Installed Fleet/server/game/populations unchanged.

@@ -48,8 +48,8 @@
     "helperCalls": 48
   },
   "remainingUnused": {
-    "executions": 102,
-    "reservedTokens": 4080000,
+    "executions": 86,
+    "reservedTokens": 3440000,
     "restartAuthorized": false
   },
   "installed": {
@@ -67,5 +67,43 @@
   "realGameAccountsCreated": 0,
   "pushPerformed": false,
   "nextTasksAuthorized": false,
-  "report": "local-provider-qualification-20261018.md"
+  "report": "local-provider-qualification-20261018.md",
+  "followupOutputDiagnosis": {
+    "report": "nemotron-empty-output-fix-20261018.md",
+    "originalQ1SnapshotUnchanged": true,
+    "thinkingOnCalls": 8,
+    "thinkingOnValid": 6,
+    "thinkingOffCalls": 8,
+    "thinkingOffValid": 8,
+    "aggregate": {
+      "state": "blocked",
+      "code": "QUALIFICATION_CALIBRATION_FAILED",
+      "executions": 18,
+      "accountedTokens": 720000,
+      "reservedTokens": 720000,
+      "unknown": 0,
+      "invalid": 3,
+      "reportedInputTokens": 1576,
+      "reportedOutputTokens": 1712,
+      "groups": [
+        {
+          "profile": "calibration",
+          "executions": 2,
+          "valid": 1,
+          "unknown": 0
+        },
+        {
+          "profile": "output-diagnostic",
+          "executions": 16,
+          "valid": 14,
+          "unknown": 0
+        }
+      ],
+      "trials": 0,
+      "trialFailures": 0,
+      "unresolved": 0,
+      "passed": false,
+      "helperCalls": 0
+    }
+  }
 }
