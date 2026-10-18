@@ -370,6 +370,24 @@ export class PactQualificationFixtures implements QualificationFixtures {
       code: errorCode ?? turn?.code ?? "NO_TURN",
       calls: turn?.calls ?? 0,
       withheld,
+      semanticRejections: turnId
+        ? (
+            await store.pool.query(
+              "SELECT count(*)::int n FROM turn_events WHERE turn_id=$1 AND label=ANY($2::text[])",
+              [
+                turnId,
+                [
+                  "Proposal rejected before command preparation",
+                  "Proposed action deferred before submission",
+                  "Action shape rejected before submission",
+                  "Read tool rejected before submission",
+                  "Read arguments rejected before submission",
+                  "Read reference rejected before submission",
+                ],
+              ],
+            )
+          ).rows[0].n
+        : 0,
       proposalRejections: turnId
         ? (
             await store.pool.query(

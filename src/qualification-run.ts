@@ -5,6 +5,7 @@ import { connect, type Pool, transaction } from "./db.js";
 import { FleetError, type ModelPort, type ModelSettings } from "./domain.js";
 import { recoverModelOutput } from "./model-recovery.js";
 import { qualifyOutput } from "./qualification.js";
+import { qualificationScenarioIds, qualificationVerdict } from "./qualification-policy.js";
 import { Vault } from "./vault.js";
 
 export const qualificationProfiles = [
@@ -41,7 +42,11 @@ function localEndpoint(raw: string, port: string, loopback = false) {
 }
 const Plan = z
   .object({
-    schemaVersion: z.enum(["fleet.local-qualification.v1", "fleet.local-qualification.v2"]),
+    schemaVersion: z.enum([
+      "fleet.local-qualification.v1",
+      "fleet.local-qualification.v2",
+      "fleet.local-qualification.v3",
+    ]),
     id: z.uuid(),
     authorizationRef: z.string().min(5).max(200),
     approved: z.literal(true),
@@ -82,7 +87,8 @@ export function prepareQualification(raw: unknown) {
   plan.endpoint = localEndpoint(plan.endpoint, "11434");
   plan.helperEndpoint = localEndpoint(plan.helperEndpoint, "8832", true);
   const span = Date.parse(plan.deadlineAt) - Date.parse(plan.startsAt);
-  if (span <= 0 || span > 255 * 60000) throw new FleetError("QUALIFICATION_TIME_WINDOW");
+  if (span <= 0 || span > (plan.schemaVersion === "fleet.local-qualification.v3" ? 510 : 255) * 60000)
+    throw new FleetError("QUALIFICATION_TIME_WINDOW");
   const digest = createHash("sha256").update(JSON.stringify(plan)).digest("hex");
   return { plan, digest };
 }
@@ -116,6 +122,8 @@ export class QualificationLedger {
       CREATE TABLE IF NOT EXISTS qualification_diagnostic_calls(diagnostic_id uuid NOT NULL REFERENCES qualification_diagnostics(id),call_id uuid PRIMARY KEY REFERENCES qualification_calls(id));
       INSERT INTO qualification_diagnostic_calls(diagnostic_id,call_id) SELECT d.id,c.id FROM qualification_diagnostics d JOIN qualification_calls c ON c.run_id=d.run_id AND c.profile='output-diagnostic' AND left(c.trial,length(d.id::text)+1)=d.id::text||':' ON CONFLICT DO NOTHING;
       CREATE TABLE IF NOT EXISTS qualification_trials(run_id uuid NOT NULL REFERENCES qualification_runs(id),profile text NOT NULL,trial text NOT NULL,result jsonb NOT NULL,PRIMARY KEY(run_id,profile,trial));`);
+      await pool.query(`CREATE TABLE IF NOT EXISTS qualification_batches(id uuid PRIMARY KEY,authorization_ref text UNIQUE NOT NULL,history_run_id uuid UNIQUE NOT NULL REFERENCES qualification_runs(id),digest text NOT NULL,plan jsonb NOT NULL,state text NOT NULL DEFAULT 'active',code text,created_at timestamptz NOT NULL DEFAULT now());
+       CREATE TABLE IF NOT EXISTS qualification_batch_runs(batch_id uuid NOT NULL REFERENCES qualification_batches(id),run_id uuid UNIQUE NOT NULL REFERENCES qualification_runs(id),thinking boolean NOT NULL,PRIMARY KEY(batch_id,thinking));`);
       return new QualificationLedger(pool, new Vault(key));
     } catch (e) {
       await pool.end();
@@ -125,9 +133,10 @@ export class QualificationLedger {
   close() {
     return this.pool.end();
   }
-  async create(p: PreparedQualification) {
+  async create(p: PreparedQualification, client?: import("pg").PoolClient) {
+    const db = client ?? this.pool;
     try {
-      await this.pool.query(
+      await db.query(
         "INSERT INTO qualification_runs(id,authorization_ref,digest,plan) VALUES($1,$2,$3,$4) ON CONFLICT(id) DO NOTHING",
         [p.plan.id, p.plan.authorizationRef, p.digest, p.plan],
       );
@@ -135,7 +144,7 @@ export class QualificationLedger {
       if ((e as { code?: string }).code === "23505") throw new FleetError("QUALIFICATION_AUTHORIZATION_REUSED");
       throw e;
     }
-    const row = (await this.pool.query("SELECT digest FROM qualification_runs WHERE id=$1", [p.plan.id])).rows[0];
+    const row = (await db.query("SELECT digest FROM qualification_runs WHERE id=$1", [p.plan.id])).rows[0];
     if (row?.digest !== p.digest) throw new FleetError("QUALIFICATION_PLAN_CHANGED");
   }
   async startStage(p: PreparedQualification, stage: "Q1" | "Q2") {
@@ -206,7 +215,14 @@ export class QualificationLedger {
         diagnosticId,
         code,
       ]);
-    else await this.fail(p, code);
+    else {
+      await this.fail(p, code);
+      if (p.plan.schemaVersion === "fleet.local-qualification.v3")
+        await this.pool.query(
+          "UPDATE qualification_batches b SET state='blocked',code=$2 FROM qualification_batch_runs x WHERE x.run_id=$1 AND b.id=x.batch_id",
+          [p.plan.id, code],
+        );
+    }
   }
   async reserve(p: PreparedQualification, profile: string, trial: string, diagnosticId?: string, thinking?: boolean) {
     return transaction(this.pool, async (c) => {
@@ -217,6 +233,7 @@ export class QualificationLedger {
         )
       ).rows[0];
       if (row?.digest !== p.digest) throw new FleetError("QUALIFICATION_PLAN_CHANGED");
+      if (p.plan.schemaVersion === "fleet.local-qualification.v3") await this.checkBatch(c, p, false);
       let deadline = new Date(row.stage_deadline);
       if (diagnosticId) {
         const grant = (
@@ -294,6 +311,34 @@ export class QualificationLedger {
         ]);
       return { id, deadline };
     });
+  }
+  private async checkBatch(db: import("pg").PoolClient, p: PreparedQualification, helper: boolean) {
+    const batch = (
+      await db.query(
+        "SELECT b.*,now()>=(b.plan->>'startsAt')::timestamptz AND now()<(b.plan->>'deadlineAt')::timestamptz timely FROM qualification_batches b JOIN qualification_batch_runs x ON x.batch_id=b.id WHERE x.run_id=$1 FOR UPDATE OF b",
+        [p.plan.id],
+      )
+    ).rows[0];
+    if (batch?.state !== "active" || !batch.timely) throw new FleetError("QUALIFICATION_BATCH_NOT_ACTIVE", true);
+    const used = (
+      await db.query(
+        "SELECT count(*)::int n,coalesce(sum(c.tokens),0)::int tokens,count(*) FILTER(WHERE c.state IN('prepared','dispatched','unknown') OR c.tokens>40000)::int unresolved FROM qualification_calls c JOIN qualification_batch_runs x ON x.run_id=c.run_id WHERE x.batch_id=$1",
+        [batch.id],
+      )
+    ).rows[0];
+    if (used.unresolved) throw new FleetError("QUALIFICATION_BATCH_UNRESOLVED", true);
+    if (!helper && (used.n >= 208 || used.tokens + 40000 > 8320000))
+      throw new FleetError("QUALIFICATION_BATCH_BUDGET", true);
+    if (
+      helper &&
+      (
+        await db.query(
+          "SELECT count(*)::int n FROM qualification_helpers h JOIN qualification_batch_runs x ON x.run_id=h.run_id WHERE x.batch_id=$1",
+          [batch.id],
+        )
+      ).rows[0].n >= 96
+    )
+      throw new FleetError("QUALIFICATION_HELPER_BUDGET", true);
   }
   model(
     p: PreparedQualification,
@@ -433,6 +478,7 @@ export class QualificationLedger {
                   .rows[0].n >= 48
               )
                 throw new FleetError("QUALIFICATION_HELPER_BUDGET");
+              if (p.plan.schemaVersion === "fleet.local-qualification.v3") await this.checkBatch(c, p, true);
               const id = randomUUID();
               await c.query(
                 "INSERT INTO qualification_helpers(id,run_id,profile,trial,state) VALUES($1,$2,$3,$4,'prepared')",
@@ -512,7 +558,7 @@ export class QualificationLedger {
       !trialFailures &&
       !calls.unknown &&
       !unresolved &&
-      calibrationCasesPassed === (p.plan.schemaVersion === "fleet.local-qualification.v2" ? 4 : 8);
+      calibrationCasesPassed === (p.plan.schemaVersion === "fleet.local-qualification.v1" ? 8 : 4);
     return {
       ...run,
       ...calls,
@@ -524,6 +570,9 @@ export class QualificationLedger {
       unresolved,
       recoveryPassed,
       passed: recoveryPassed && !calls.invalid,
+      ...(p.plan.schemaVersion === "fleet.local-qualification.v3"
+        ? qualificationVerdict({ state: run?.state, ...calls, unresolved, calibrationCasesPassed, trials })
+        : {}),
       helperCalls: (
         await this.pool.query("SELECT count(*)::int n FROM qualification_helpers WHERE run_id=$1", [p.plan.id])
       ).rows[0].n,
@@ -554,6 +603,11 @@ export async function runQualification(
   const { ledger, model, recall, fixtures } = ports;
   if (fixtures.scenarios.length !== 6 || new Set(fixtures.scenarios).size !== 6)
     throw new FleetError("QUALIFICATION_FIXTURE_COVERAGE");
+  if (
+    p.plan.schemaVersion === "fleet.local-qualification.v3" &&
+    !qualificationScenarioIds.every((s) => fixtures.scenarios.includes(s))
+  )
+    throw new FleetError("QUALIFICATION_FIXTURE_COVERAGE");
   await ledger.create(p);
   await ledger.startStage(p, "Q1");
   const schema = {
@@ -563,7 +617,7 @@ export async function runQualification(
     additionalProperties: false,
   };
   try {
-    const retryEnabled = p.plan.schemaVersion === "fleet.local-qualification.v2";
+    const retryEnabled = p.plan.schemaVersion !== "fleet.local-qualification.v1";
     const observations = [
       "No material change",
       "A building completed",
@@ -636,7 +690,12 @@ export async function runQualification(
           );
           const summary = await ledger.summary(p);
           ports.progress?.({ stage: "Q2", profile, trial, result, ...summary });
-          if (summary.state !== "Q2" || summary.unknown || result.scopeViolation)
+          if (
+            summary.state !== "Q2" ||
+            summary.unknown ||
+            result.scopeViolation ||
+            (p.plan.schemaVersion === "fleet.local-qualification.v3" && result.pending)
+          )
             throw new FleetError("QUALIFICATION_STOPPED");
         }
     await ledger.finishStage(p, "Q2");
