@@ -57,5 +57,14 @@
     "thinkingPassed": false,
     "nonthinkingPassed": false,
     "originalQ1Preserved": true
+  },
+  "followupContractAndProposalQualification": {
+    "statusRegister": "qualification-repair-status-20261018.json",
+    "source": "7b94a6607f765fa9d65dbed0bee4b405a5d7be71",
+    "newExecutions": 29,
+    "aggregateExecutions": 96,
+    "targetedRecoveryPassedBothModes": true,
+    "fullQualificationPassed": false,
+    "installedExecutionDisabled": true
   }
 }

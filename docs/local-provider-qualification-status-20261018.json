@@ -48,8 +48,8 @@
     "helperCalls": 48
   },
   "remainingUnused": {
-    "executions": 37,
-    "reservedTokens": 1480000,
+    "executions": 8,
+    "reservedTokens": 320000,
     "restartAuthorized": false
   },
   "installed": {
@@ -126,5 +126,21 @@
     "executions": 86,
     "reservedTokens": 3440000,
     "restartAuthorized": false
+  },
+  "remainingBeforeRemainingFailureRepairs": {
+    "executions": 37,
+    "reservedTokens": 1480000,
+    "restartAuthorized": false
+  },
+  "followupRemainingFailureRepairs": {
+    "report": "qualification-repair-20261018.md",
+    "statusRegister": "qualification-repair-status-20261018.json",
+    "newExecutions": 29,
+    "aggregateExecutions": 96,
+    "aggregateReservedTokens": 3840000,
+    "targetedRecoveryPassedBothModes": true,
+    "thinkingRawPassed": false,
+    "fullQualificationPassed": false,
+    "originalQ1Preserved": true
   }
 }
