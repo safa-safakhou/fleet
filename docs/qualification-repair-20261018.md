@@ -25,3 +25,14 @@ CLI: `npx tsx scripts/qualify-repairs.ts <immutable-parent-plan> <private-approv
 ## Verification and results
 
 Offline acceptance:206 unit,365 integration and12 paired actual-handler/profile checks passed. Type/style/build/boundaries and full dependency audit passed (zero findings;24 pre-existing nonfatal style warnings). Regression tests failed before source corrections. Direct and bridged legacy packets still match each other under the explicitly labelled corrected generation contract; controller source and archived baseline hashes remain unchanged. Provider retest pending this source commit.
+
+
+## Payload follow-up from the first retest
+
+The first committed-source retest used18 calls/720000 reservations, all18 schema-valid and0 unknown. Non-thinking9/9 cases accepted; thinking7/9. The two thinking failures used malformed nested payloads (`commandId` plus `action` without a PACT kind); both are retained as failed evidence, not reclassified as successes. This is a distinct payload-validation gap exposed after schema-name correction.
+
+Reactive/basic and continuity now use the existing optional environment `validateProposal` port before preparing any command. PACT shares the same pure action-shape/reference validator between its adapter and fixtures, and supplies a bare-payload guide with exact conditional upfront schemas. Known rejection produces metered correction feedback within the existing turn budget, without creating a pending command or fictitious receipt. Uncertain submitted outcomes are never retried. JSON validity, proposal rejection and eventual recovery are counted separately. This does not enable PACT specialist coordination.
+
+An immutable v2 recheck journal references the terminal18-call result. Baseline85/3400000, at most19/760000 further calls, mode10/9, at most8 helpers. Its deadline cannot exceed the first repair window; the combined request remains≤37/1480000 and original lifetime≤104/4160000. Protocol: single-call canary plus reactive-basic/stale-receipt, reactive-cognition/scarcity-trade, legacy-loop/threat-help and legacy-cognition/scarcity-trade in each explicit mode (18 planned maximum). The first retest remains failed for thinking; the final recheck is separately reported.
+
+Payload follow-up offline acceptance:209 unit,368 integration and12 paired acceptance checks passed; type/style/build/boundaries/audit pass. The original49-call retry protocol and legacy controller body remain unchanged. No new model execution occurred during these source/offline checks.

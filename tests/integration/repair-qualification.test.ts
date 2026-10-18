@@ -149,3 +149,90 @@ it("runs both actual engine modes through bounded corrections under the new wind
   expect(result.aggregate.unknown).toBe(0);
   expect(result.modes.every((m) => m.failures === 0)).toBe(true);
 }, 60000);
+
+it("retains the completed18-call retest and enforces the remaining19 across both explicit modes", async () => {
+  const f = await setup();
+  for (const thinking of [true, false])
+    for (let i = 0; i < 9; i++)
+      await f.recovery.model(raw, thinking, "recovery-calibration", `prior:${i}`).decide(request(thinking));
+  await f.recovery.finish();
+  const before = (
+    await f.ledger.pool.query("SELECT to_jsonb(r) body FROM qualification_repairs r WHERE id=$1", [f.approval.id])
+  ).rows[0].body;
+  const approval = {
+    ...f.approval,
+    schemaVersion: "fleet.repair-qualification.v2",
+    id: randomUUID(),
+    authorizationRef: randomUUID(),
+    predecessor: f.approval.id,
+    executionLimit: 19,
+    tokenLimit: 760000,
+    thinkingExecutionLimit: 10,
+    nonThinkingExecutionLimit: 9,
+    helperLimit: 8,
+    baselineExecutions: 85,
+    baselineReservedTokens: 3400000,
+  };
+  const next = await RepairQualification.create(f.ledger, f.parent, approval);
+  for (const thinking of [true, false])
+    for (let i = 0; i < (thinking ? 10 : 9); i++)
+      await next.model(raw, thinking, "recovery-calibration", `last:${i}`).decide(request(thinking));
+  await expect(next.model(raw, false, "recovery-calibration", "excess").decide(request(false))).rejects.toThrow(
+    "REPAIR_BUDGET",
+  );
+  expect((await f.ledger.summary(f.parent)).executions).toBe(104);
+  expect(
+    (await f.ledger.pool.query("SELECT to_jsonb(r) body FROM qualification_repairs r WHERE id=$1", [f.approval.id]))
+      .rows[0].body,
+  ).toEqual(before);
+});
+
+it.each(["reactive-basic", "reactive-cognition"] as const)(
+  "validates %s payloads and recovers before any command preparation",
+  async (profile) => {
+    const f = await setup();
+    let calls = 0;
+    const { PactQualificationFixtures } = await import("../../src/games/pact/qualification.js");
+    const fixtures = await PactQualificationFixtures.create(f.ledger, f.parent, true);
+    const provider = {
+      decide: async () => {
+        calls++;
+        const decision =
+          calls === 1
+            ? {
+                kind: "action",
+                schemaId: "pact.action.v1",
+                payload: { commandId: "invented", action: { fix: true } },
+                summary: "Repair",
+              }
+            : { kind: "wait", summary: "Wait" };
+        return {
+          decision: profile === "reactive-cognition" ? { decision } : decision,
+          inputTokens: 500,
+          outputTokens: 30,
+        };
+      },
+    };
+    const result = await fixtures.run(
+      profile,
+      "stale-receipt:proposal-regression",
+      f.recovery.model(provider, true, profile, "stale-receipt:proposal-regression"),
+      {
+        choose: async () => {
+          throw Error("NO_HELPER");
+        },
+      },
+    );
+    expect(result).toMatchObject({
+      code: "WAIT",
+      calls: 2,
+      withheld: 0,
+      invalidActions: 0,
+      proposalRejections: 1,
+      pending: false,
+    });
+    expect(
+      (await f.ledger.pool.query("SELECT * FROM platform_commands WHERE turn_id=$1", [result.turnId])).rowCount,
+    ).toBe(0);
+  },
+);

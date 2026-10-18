@@ -24,6 +24,7 @@ import type {
 import { Store } from "../../store.js";
 import { pactAdapter } from "./adapter.js";
 import { actionContract } from "./contracts.js";
+import { pactProposalGuide, validatePactProposal } from "./proposals.js";
 
 const peer = "22222222-2222-4222-8222-222222222222";
 export const qualificationScenarios = [
@@ -256,7 +257,13 @@ export class PactQualificationFixtures implements QualificationFixtures {
           observedAt: store.now().toISOString(),
           environmentTime: { clockId: "qualification.tick", value: "1" },
           sourceRefs: [`fixture:${scenario}`],
-          payload: { world, guide, story: stories[scenario], peerId: peer },
+          payload: {
+            world,
+            guide,
+            story: stories[scenario],
+            peerId: peer,
+            actionGuide: pactProposalGuide({ world, guide }),
+          },
           coverage: { scope: "synthetic_fixtures_only", commands: "withheld" },
           continuity: {
             schemaVersion: "fleet.continuity-observation.v1",
@@ -299,6 +306,8 @@ export class PactQualificationFixtures implements QualificationFixtures {
           connect: async () => ({
             observe: async () => structuredClone(observation),
             catalog: async () => structuredClone(tools),
+            validateProposal: async (proposal, observed) =>
+              validatePactProposal(proposal.intent.payload, observed.payload),
             execute: async (intent) => capture(intent.commandId, intent.payload) as ActionOutcome,
             resolve: async (commandId) =>
               (receipts.get(commandId) ?? {
@@ -361,6 +370,14 @@ export class PactQualificationFixtures implements QualificationFixtures {
       code: errorCode ?? turn?.code ?? "NO_TURN",
       calls: turn?.calls ?? 0,
       withheld,
+      proposalRejections: turnId
+        ? (
+            await store.pool.query(
+              "SELECT count(*)::int n FROM turn_events WHERE turn_id=$1 AND label='Proposal rejected before command preparation'",
+              [turnId],
+            )
+          ).rows[0].n
+        : 0,
       invalidActions,
       scopeViolation,
       pending: !!turn?.pending_command,

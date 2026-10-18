@@ -2,6 +2,7 @@ import { type Data, FleetError, type GamePort, object, safeCode } from "../domai
 import { pactAdapter } from "../games/pact/adapter.js";
 import { pactEvents } from "../games/pact/events.js";
 import { pactContinuity } from "../games/pact/outlook.js";
+import { pactProposalGuide, validatePactProposal } from "../games/pact/proposals.js";
 import { RemoteRejection } from "../http.js";
 import type { Bindings } from "../platform/bindings.js";
 import type { ActionOutcome, BindingRef, EnvironmentAdapter } from "../platform/contracts.js";
@@ -173,7 +174,7 @@ export function createPactEnvironment(ports: {
             observedAt: ports.now().toISOString(),
             environmentTime: { clockId: "pact.game-time-ms", value: typeof time === "string" ? time : "unavailable" },
             sourceRefs: [`authorized-read:${String(query.tool ?? "initial")}:${String(time ?? "unavailable")}`],
-            payload,
+            payload: { ...payload, actionGuide: pactProposalGuide(payload) },
             coverage: {
               authorizedView: true,
               environmentTimeAvailable: typeof time === "string",
@@ -187,6 +188,8 @@ export function createPactEnvironment(ports: {
           pactAdapter.validateCatalog?.(tools);
           return tools;
         },
+        validateProposal: async (proposal, observation) =>
+          validatePactProposal(proposal.intent.payload, observation.payload),
         async execute(intent) {
           try {
             if (intent.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH");
