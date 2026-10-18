@@ -301,10 +301,13 @@ export class QualificationLedger {
     profile: string,
     trial: string,
     diagnosticId?: string,
+    scope?: { reserve(thinking: boolean): Promise<{ id: string; deadline: Date }>; block(code: string): Promise<void> },
   ): ModelPort {
     return {
       tracksDispatch: true,
       decide: async (input) => {
+        if (scope && diagnosticId) throw new FleetError("QUALIFICATION_SCOPE", true);
+        const block = (code: string) => (scope ? scope.block(code) : this.blockModel(p, diagnosticId, code));
         const actual: ModelSettings = { ...input.model };
         if (profile === "legacy-cognition") {
           if (actual.cognition !== "llm-centered-v1" || actual.recallAssist !== "laya-recall-v1")
@@ -318,7 +321,7 @@ export class QualificationLedger {
           !parsedModel.success ||
           parsedModel.data.route !== p.plan.model.route ||
           parsedModel.data.model !== p.plan.model.model ||
-          (!diagnosticId && parsedModel.data.thinking !== p.plan.model.thinking) ||
+          (!diagnosticId && !scope && parsedModel.data.thinking !== p.plan.model.thinking) ||
           input.maxOutputTokens !== 2000 ||
           Buffer.byteLength(JSON.stringify(input.messages)) + Buffer.byteLength(JSON.stringify(input.schema)) > 24000
         )
@@ -330,7 +333,9 @@ export class QualificationLedger {
         try {
           locked = (await client.query("SELECT pg_try_advisory_lock(19281471) locked")).rows[0].locked;
           if (!locked) throw new FleetError("QUALIFICATION_ROUTE_BUSY", true);
-          const reservation = await this.reserve(p, profile, trial, diagnosticId, parsedModel.data.thinking);
+          const reservation = scope
+            ? await scope.reserve(parsedModel.data.thinking)
+            : await this.reserve(p, profile, trial, diagnosticId, parsedModel.data.thinking);
           id = reservation.id;
           const started = performance.now();
           const onDispatch = async () => {
@@ -377,7 +382,7 @@ export class QualificationLedger {
           );
           if (!known || tokens > 40000) {
             const code = known ? "QUALIFICATION_USAGE_OVERRUN" : "QUALIFICATION_UNKNOWN_USAGE";
-            await this.blockModel(p, diagnosticId, code);
+            await block(code);
             throw new FleetError(code);
           }
           return result;
@@ -388,11 +393,7 @@ export class QualificationLedger {
               [id, dispatched ? "unknown" : "not_dispatched"],
             );
             if (changed.rowCount)
-              await this.blockModel(
-                p,
-                diagnosticId,
-                dispatched ? "QUALIFICATION_UNKNOWN_USAGE" : "QUALIFICATION_PROVIDER_FAILED",
-              );
+              await block(dispatched ? "QUALIFICATION_UNKNOWN_USAGE" : "QUALIFICATION_PROVIDER_FAILED");
           }
           throw error;
         } finally {
@@ -402,34 +403,43 @@ export class QualificationLedger {
       },
     };
   }
-  recall(p: PreparedQualification, helper: RecallPort, profile: string, trial: string): RecallPort {
+  recall(
+    p: PreparedQualification,
+    helper: RecallPort,
+    profile: string,
+    trial: string,
+    reserve?: () => Promise<string>,
+  ): RecallPort {
     return {
       choose: async (query, candidates, signal) => {
-        const id = await transaction(this.pool, async (c) => {
-          const row = (
-            await c.query("SELECT *,now()<stage_deadline timely FROM qualification_runs WHERE id=$1 FOR UPDATE", [
-              p.plan.id,
-            ])
-          ).rows[0];
-          if (
-            row?.digest !== p.digest ||
-            row.state !== "Q2" ||
-            !row.timely ||
-            !["legacy-cognition", "reactive-cognition"].includes(profile)
-          )
-            throw new FleetError("QUALIFICATION_HELPER_SCOPE");
-          if (
-            (await c.query("SELECT count(*)::int n FROM qualification_helpers WHERE run_id=$1", [p.plan.id])).rows[0]
-              .n >= 48
-          )
-            throw new FleetError("QUALIFICATION_HELPER_BUDGET");
-          const id = randomUUID();
-          await c.query(
-            "INSERT INTO qualification_helpers(id,run_id,profile,trial,state) VALUES($1,$2,$3,$4,'prepared')",
-            [id, p.plan.id, profile, trial],
-          );
-          return id;
-        });
+        signal.throwIfAborted();
+        const id = reserve
+          ? await reserve()
+          : await transaction(this.pool, async (c) => {
+              const row = (
+                await c.query("SELECT *,now()<stage_deadline timely FROM qualification_runs WHERE id=$1 FOR UPDATE", [
+                  p.plan.id,
+                ])
+              ).rows[0];
+              if (
+                row?.digest !== p.digest ||
+                row.state !== "Q2" ||
+                !row.timely ||
+                !["legacy-cognition", "reactive-cognition"].includes(profile)
+              )
+                throw new FleetError("QUALIFICATION_HELPER_SCOPE");
+              if (
+                (await c.query("SELECT count(*)::int n FROM qualification_helpers WHERE run_id=$1", [p.plan.id]))
+                  .rows[0].n >= 48
+              )
+                throw new FleetError("QUALIFICATION_HELPER_BUDGET");
+              const id = randomUUID();
+              await c.query(
+                "INSERT INTO qualification_helpers(id,run_id,profile,trial,state) VALUES($1,$2,$3,$4,'prepared')",
+                [id, p.plan.id, profile, trial],
+              );
+              return id;
+            });
         try {
           const result = await helper.choose(query, candidates, AbortSignal.any([signal, AbortSignal.timeout(3000)]));
           await this.pool.query("UPDATE qualification_helpers SET state='reported',detail_cipher=$2 WHERE id=$1", [

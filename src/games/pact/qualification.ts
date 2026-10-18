@@ -77,10 +77,11 @@ export class PactQualificationFixtures implements QualificationFixtures {
   private constructor(
     private ledger: QualificationLedger,
     private plan: PreparedQualification,
+    private thinking = plan.plan.model.thinking,
   ) {}
-  static async create(ledger: QualificationLedger, plan: PreparedQualification) {
+  static async create(ledger: QualificationLedger, plan: PreparedQualification, thinking = plan.plan.model.thinking) {
     await migrate(ledger.pool);
-    return new PactQualificationFixtures(ledger, plan);
+    return new PactQualificationFixtures(ledger, plan, thinking);
   }
   async run(profile: (typeof qualificationProfiles)[number], trial: string, model: ModelPort, recall: RecallPort) {
     const scenario = trial.split(":")[0];
@@ -99,6 +100,7 @@ export class PactQualificationFixtures implements QualificationFixtures {
     await store.configure(id, {
       model: {
         ...this.plan.plan.model,
+        thinking: this.thinking,
         ...(cognitive ? { cognition: "llm-centered-v1", recallAssist: "laya-recall-v1" } : {}),
       },
       budget: {

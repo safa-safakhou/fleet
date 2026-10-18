@@ -1,0 +1,11 @@
+# Local retry qualification in both modes
+
+Founder explicitly authorizes qualification within the remaining86 executions/3440000 reserved tokens. Preserve the original18 allocations/720000 reservation, failed Q1, completed diagnostics, original accounts and disabled installed release. No server/game contact, resets, population, installation, push or delegation. This supersedes the prior no-new-provider-controls restriction only for this bounded qualification.
+
+Attach one immutable recovery approval to the original parent, with an aggregate86/3440000 ceiling and disjoint43/1720000 per explicit thinking mode. Reserve every attempt in the original qualification_calls ledger under the original parent104/4160000 ceiling. No refunds or new parent run. Original parent deadline2026-10-18T13:52:17.814Z remains the outer deadline. Preserve all original rows/ciphertexts byte-for-byte; new mapping tables own mode/recovery/trial evidence. Unknown usage or overrun stops both modes, without rewriting the original failure.
+
+Per mode: one single-attempt canary, one retry-capable JSON probe (two maximum), then five scenarios ×four shipped engines ×one repeat ×two model calls maximum =43. Scenarios: threat/help, multiple events, scarcity/trade, untrusted peer, stale receipt. Every actual game command is withheld by in-memory fixtures. Prerequisites and the original second repeat are outside this bounded retry qualification; results are not full original Q1/Q2 or world certification. Interleave modes and profiles to reduce order effects. Known output failures stay visible and do not suppress the other mode's evidence. No deliberate real-provider fault injection; offline fixtures force failures and cancellation.
+
+Keep exact model digest/Ollama0.35.1/context32768/output2000/keep_alive0/default sampling. Helper cap20 from original48; no authority. Validate and report raw validity, successful recovered decisions, known exhausted failures, engine/semantic outcomes, latency and exact allocations independently. Strict raw validity is not relabelled passed by recovery. Install/live switches remain disabled.
+
+Recovered output means a known invalid schema/output followed by a later schema-valid final output in the same logical case. A valid read followed by an invalid final output is not recovery; semantic/engine trial outcomes are evaluated separately.

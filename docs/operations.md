@@ -97,3 +97,8 @@ The [F8 proposal](multi-engine-release-proposal-20261017.md) supersedes no deplo
 ## Accounted output recovery — 18 October 2026
 
 Generic engine admission permits one corrective model attempt for known, completed unusable outputs, within the existing allowance and stop/deadline fences. Each execution is separately metered. Persistent known failures wait for their original scheduled retry; unknown usage and uncertain commands retain their recovery gates. See [repair/evidence](model-output-recovery-20261018.md). This source capability is not installed or enabled by its documentation.
+
+
+## Bounded mode qualification —18 October2026
+
+The explicitly approved continuation uses `scripts/qualify-retries.ts` (review-only by default), one immutable recovery grant attached to the original qualification ledger, and43 executions per mode within the remaining86/3440000 ceiling. Original failed Q1 and closed diagnostics are not reopened. All game ports are synthetic command sinks, original provider pins/deadline remain, and installed execution stays disabled. See [protocol and evidence](retry-mode-qualification-20261018.md). Approval is specific to this one bounded continuation; it is not deployment, population or permission to replay unknown work.

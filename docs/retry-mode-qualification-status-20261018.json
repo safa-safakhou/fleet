@@ -1,0 +1,25 @@
+{
+  "schemaVersion": "fleet.retry-mode-qualification-status.v1",
+  "owner": "Codex; no delegation",
+  "status": "offline_verified_approved_execution_pending",
+  "parent": "f8facc31-f95a-40cc-a40d-4bb526efbb6a",
+  "priorExecutions": 18,
+  "priorReservedTokens": 720000,
+  "newExecutionCeiling": 86,
+  "newTokenCeiling": 3440000,
+  "perModeExecutionCeiling": 43,
+  "newCallsMade": 0,
+  "installedRelease": "953034e24b5f93f82f0571eef55ecce9a61999d2",
+  "executionDisabled": true,
+  "serverContacted": false,
+  "gameReset": false,
+  "populationStarted": false,
+  "report": "retry-mode-qualification-20261018.md",
+  "offline": {
+    "unitPassed": 201,
+    "integrationPassed": 362,
+    "pairedAcceptancePassed": 12,
+    "auditFindings": 0,
+    "typeStyleBuildBoundariesPassed": true
+  }
+}
