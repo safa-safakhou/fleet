@@ -10,6 +10,10 @@
 
 **Spec:** `../specs/2026-10-18-provider-qualification-and-mixed-world-design.md`; inert numeric proposal `../../provider-qualification-proposal-20261018.json`.
 
+## Covering Task1/Task2 authorization —18 October2026
+
+Founder subsequently authorizes building/testing the harness and local Q1+Q2 only within104 executions/4160000 reserved tokens. Server Fleet remains untouched, no game reset and no population runs. This supersedes earlier planning-only text solely for Tasks1–2; Tasks3–6 remain unapproved. Current evidence: `../../local-provider-qualification-20261018.md`. Source implementations preserve the installed953034e disabled runtime. No delegation or push.
+
 ## Global constraints
 
 - Planning only now:0 new executions/accounts, no reset, server access, runtime/configuration change, deployment or push. No delegation; local documentation commits authorized.
@@ -43,10 +47,10 @@ These are proposed new files/interfaces, not claims of existing reset, global-wa
 
 **Interface:** `prepareQualification(plan: QualificationPlan): PreparedQualification` validates approved stage/caps/absolute scope and produces an immutable digest; `runQualification(prepared, ports): Promise<QualificationResult>` accepts an injected metered ModelPort and fixture-only observation/command-sink ports. Default CLI is review-only; real dispatch requires explicit execution switch plus matching stage authorization/source/settings digest. No installed worker config is loaded/re-enabled.
 
-- [ ] Write `qualification-run.test.ts` with wrong/absent approval causing0 dispatch, changed model/world/settings causing0 dispatch, exhausted aggregate/per-profile/helper/retry caps causing0 further dispatch, unknown usage retained, all proposed commands captured with0 real submissions.
-- [ ] Run that test red before creating implementation; implement only these interfaces with persistent isolated ledger and atomic pre-dispatch reservations; test reads/observations cannot supply arbitrary URL or authority.
-- [ ] Add integration tests using fake provider responses and throw-on-write game ports for both legacy and reactive engines. Six scenarios×two trials×max2 decisions/profile fit24/profile. Evidence is scope-labelled and all raw consumed outputs validated, including failures.
-- [ ] Run `npm run check`, `npm test`, `npm run test:integration`, `npm run check:boundaries`, `npm run build`, `npm audit`; expected all pass, no inference/network game writes. Commit source/evidence before requesting any real-model stage.
+- [x] Write `qualification-run.test.ts` with wrong/absent approval causing0 dispatch, changed model/world/settings causing0 dispatch, exhausted aggregate/per-profile/helper/retry caps causing0 further dispatch, unknown usage retained, all proposed commands captured with0 real submissions.
+- [x] Run that test red before creating implementation; implement only these interfaces with persistent isolated ledger and atomic pre-dispatch reservations; test reads/observations cannot supply arbitrary URL or authority.
+- [x] Add integration tests using fake provider responses and throw-on-write game ports for both legacy and reactive engines. Six scenarios×two trials×max2 decisions/profile fit24/profile. Evidence is scope-labelled and all raw consumed outputs validated, including failures.
+- [x] Run `npm run check`, `npm test`, `npm run test:integration`, `npm run check:boundaries`, `npm run build`, `npm audit`; expected all pass, no inference/network game writes. Commit source/evidence before requesting any real-model stage.
 
 ### Task2 — separately approved Q1/Q2 local qualification
 

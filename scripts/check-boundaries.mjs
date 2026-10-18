@@ -5,6 +5,7 @@ import { pathToFileURL } from "node:url";
 const core = [
   "engine",
   "generation",
+  "qualification-run",
   "feedback",
   "continuation",
   "owner-guidance",
