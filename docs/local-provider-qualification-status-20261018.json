@@ -142,5 +142,21 @@
     "thinkingRawPassed": false,
     "fullQualificationPassed": false,
     "originalQ1Preserved": true
+  },
+  "followupFullLocalQualification": {
+    "report": "full-local-qualification-20261018.md",
+    "statusRegister": "full-local-qualification-status-20261018.json",
+    "sourceCommit": "dc4a4bdc49ef78ac9a57132c380e4f2d92e3a7ac",
+    "newExecutions": 96,
+    "newReservedTokens": 3840000,
+    "thinkingAcceptable": 41,
+    "thinkingAttempted": 48,
+    "nonThinkingAcceptable": 21,
+    "nonThinkingAttempted": 22,
+    "nonThinkingUnrun": 26,
+    "newUnknownExecutions": 1,
+    "fullQualificationPassed": false,
+    "originalHistoryPreserved": true,
+    "executionDisabled": true
   }
 }
