@@ -56,10 +56,12 @@ These are proposed new files/interfaces, not claims of existing reset, global-wa
 
 **Consumes:** Task1 verified harness; exact selected source/contracts, pinned model digest, staged synthetic environment, operator-selected UTC start/deadline displayed in Europe/Berlin, immutable caps and a named monitor.
 
-- [ ] Read-only preflight actual local model/helper pins and versions, power/disk availability and installed Fleet livefalse/Env0; do not download, substitute or change existing20.
-- [ ] After stage-specific execution approval, Q1≤8 executions/320000 tokens/15min, then review before Q2≤96/3840000/4h and≤48 helper calls. Ordinary installed worker remains disabled throughout.
+- [x] Read-only preflight actual local model/helper pins and versions, power/disk availability and installed Fleet livefalse/Env0; do not download, substitute or change existing20.
+- [x] After stage-specific execution approval, Q1≤8 executions/320000 tokens/15min, then review before Q2≤96/3840000/4h and≤48 helper calls. Ordinary installed worker remains disabled throughout.
 - [ ] Require all48 Q2 trials complete with valid delivered schemas, known usage and preserved authority/caps; allow legitimate wait/refusal. Expose latency and failure coverage; no action/communication-count target.
-- [ ] Stop on first unknown/uncertain submission/authority or scope violation, budget or deadline. Retain allocation/history; no silent retry/extension. Save encrypted detailed evidence, public aggregates and model/settings/source digests. This proves the fixture scope only.
+- [x] Stop on first unknown/uncertain submission/authority or scope violation, budget or deadline. Retain allocation/history; no silent retry/extension. Save encrypted detailed evidence, public aggregates and model/settings/source digests. This proves the fixture scope only.
+
+**Actual outcome:** Q1 failed on the second empty final output:2 executions/80000 reservation,402 reported tokens,0 unknown. Q2/48 trials were not started. No restart or extra calls; see the local qualification report/status. Task2 is blocked, not completed or certified.
 
 ### Task3 — renewable bounded windows before long-lived enrollment
 

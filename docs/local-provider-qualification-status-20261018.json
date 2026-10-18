@@ -1,0 +1,71 @@
+{
+  "schemaVersion": "fleet.local-qualification-status.v1",
+  "assignment": "founder-local-qualification-20261018",
+  "owner": "Codex; no delegation",
+  "scope": "synthetic_fixtures_only",
+  "status": "blocked_provider_qualification",
+  "harnessCommit": "d0b49b0e628eaaca8bf357077687dab8a5e0cde7",
+  "runId": "f8facc31-f95a-40cc-a40d-4bb526efbb6a",
+  "planDigest": "4bde77b32eb1a87fab0ba93bf1ce0782fac8824e3ee9cb978797abd91db2db62",
+  "offline": {
+    "unitPassed": 187,
+    "integrationPassed": 335,
+    "pairedAcceptancePassed": 12,
+    "typeStyleBuildBoundariesPassed": true,
+    "auditFindings": 0,
+    "authorReviewOnly": true
+  },
+  "task1": "verified",
+  "task2": "Q1_failed_Q2_not_started",
+  "q1": {
+    "error": "QUALIFICATION_CALIBRATION_FAILED",
+    "state": "blocked",
+    "code": "QUALIFICATION_CALIBRATION_FAILED",
+    "executions": 2,
+    "accountedTokens": 80000,
+    "reservedTokens": 80000,
+    "unknown": 0,
+    "invalid": 1,
+    "reportedInputTokens": 136,
+    "reportedOutputTokens": 266,
+    "groups": [
+      {
+        "profile": "calibration",
+        "executions": 2,
+        "valid": 1,
+        "unknown": 0
+      }
+    ],
+    "trials": 0,
+    "trialFailures": 0,
+    "unresolved": 0,
+    "passed": false,
+    "helperCalls": 0
+  },
+  "caps": {
+    "executions": 104,
+    "reservedTokens": 4160000,
+    "helperCalls": 48
+  },
+  "remainingUnused": {
+    "executions": 102,
+    "reservedTokens": 4080000,
+    "restartAuthorized": false
+  },
+  "installed": {
+    "release": "953034e24b5f93f82f0571eef55ecce9a61999d2",
+    "liveEnabled": false,
+    "retainedTablesMatched": 38,
+    "agents": 20,
+    "turns": 10121,
+    "historicalUnknownCalls": 40,
+    "historicalUnknownTokens": 1600000
+  },
+  "serverContacted": false,
+  "gameReset": false,
+  "populationStarted": false,
+  "realGameAccountsCreated": 0,
+  "pushPerformed": false,
+  "nextTasksAuthorized": false,
+  "report": "local-provider-qualification-20261018.md"
+}
