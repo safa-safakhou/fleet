@@ -12,6 +12,18 @@ export class HttpModel implements ModelPort {
     if (!base) throw new FleetError("MODEL_ENDPOINT_REQUIRED", true);
     const ollama = input.model.route === "ollama";
     if (!ollama && !this.apiKey) throw new FleetError("MODEL_CREDENTIAL_REQUIRED", true);
+    // Nemotron's renderer reads inline mode toggles even from untrusted message data.
+    // Refuse the conflict rather than silently changing the caller's explicit mode.
+    if (
+      ollama &&
+      input.model.model.split(":")[0] === "nemotron-3-nano" &&
+      input.model.thinking !== undefined &&
+      input.messages.some((m) => {
+        const text = m.content.replaceAll("</think>", "");
+        return (m.role === "user" || m.role === "system") && (text.includes("/think") || text.includes("/no_think"));
+      })
+    )
+      throw new FleetError("MODEL_PROMPT_MODE_CONFLICT", true);
     const body = ollama
       ? {
           model: input.model.model,

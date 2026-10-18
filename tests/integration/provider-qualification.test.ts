@@ -380,3 +380,47 @@ it("diagnostics share the original104 execution ceiling rather than creating an 
   expect(raw.inputs).toHaveLength(2);
   expect(await l.summary(p)).toMatchObject({ executions: 104, reservedTokens: 4160000 });
 });
+
+it("qualifies the explicit non-thinking mode separately without changing the parent model or old calls", async () => {
+  const { l, p, raw, id } = await diagnosticFixture();
+  const model = new FakeModel();
+  await expect(
+    l
+      .model(p, model, "output-diagnostic", "wrong-mode", id)
+      .decide({ ...request(p), model: { ...p.plan.model, thinking: false } }),
+  ).rejects.toThrow("DIAGNOSTIC_MODEL_MISMATCH");
+  expect(model.inputs).toHaveLength(0);
+  const other = await l.createDiagnostic(p, {
+    ...raw,
+    id: randomUUID(),
+    authorizationRef: randomUUID(),
+    thinking: false,
+  });
+  for (let i = 0; i < 8; i++) await l.model(p, model, "output-diagnostic", `on:${i}`, id).decide(request(p));
+  for (let i = 0; i < 8; i++)
+    await l
+      .model(p, model, "output-diagnostic", `off:${i}`, other)
+      .decide({ ...request(p), model: { ...p.plan.model, thinking: false } });
+  expect(await l.summary(p)).toMatchObject({ state: "blocked", executions: 16, reservedTokens: 640000 });
+  expect(
+    (await l.pool.query("SELECT plan->'model'->>'thinking' thinking FROM qualification_runs WHERE id=$1", [p.plan.id]))
+      .rows[0].thinking,
+  ).toBe("true");
+  await expect(
+    l
+      .model(p, model, "output-diagnostic", "off-extra", other)
+      .decide({ ...request(p), model: { ...p.plan.model, thinking: false } }),
+  ).rejects.toThrow("QUALIFICATION_BUDGET");
+  const replacement = await l.createDiagnostic(p, {
+    ...raw,
+    id: randomUUID(),
+    authorizationRef: randomUUID(),
+    thinking: false,
+  });
+  await expect(
+    l
+      .model(p, model, "output-diagnostic", "off-replacement", replacement)
+      .decide({ ...request(p), model: { ...p.plan.model, thinking: false } }),
+  ).rejects.toThrow("QUALIFICATION_BUDGET");
+  expect(model.inputs).toHaveLength(16);
+});

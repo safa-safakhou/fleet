@@ -45,3 +45,11 @@ it("cannot point qualification SQL at installed or shared test data", () => {
   expect(() => qualificationDatabase("postgres://u:p@example.com:5436/fleet_qualification")).toThrow();
   expect(qualificationDatabase("postgres://u:p@127.0.0.1:5436/fleet_qualification")).toContain("5436");
 });
+
+it("pins thinking and non-thinking qualification as distinct explicit configurations", () => {
+  const on = prepareQualification(plan()),
+    off = prepareQualification({ ...plan(), model: { route: "ollama", model: "nemotron-3-nano:4b", thinking: false } });
+  expect(off.plan.model.thinking).toBe(false);
+  expect(off.digest).not.toBe(on.digest);
+  expect(() => prepareQualification({ ...plan(), model: { route: "ollama", model: "nemotron-3-nano:4b" } })).toThrow();
+});

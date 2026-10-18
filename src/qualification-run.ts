@@ -47,7 +47,7 @@ const Plan = z
     fleetCommit: z.string().regex(/^[a-f0-9]{40}$/),
     modelDigest: z.literal(qualificationModelDigest),
     model: z
-      .object({ route: z.literal("ollama"), model: z.literal("nemotron-3-nano:4b"), thinking: z.literal(true) })
+      .object({ route: z.literal("ollama"), model: z.literal("nemotron-3-nano:4b"), thinking: z.boolean() })
       .strict(),
     endpoint: z.string(),
     helperEndpoint: z.string(),
@@ -62,6 +62,7 @@ const Plan = z
 export const OutputDiagnostic = z
   .object({
     schemaVersion: z.literal("fleet.output-diagnostic.v1"),
+    thinking: z.boolean().optional(),
     id: z.uuid(),
     authorizationRef: z.string().min(5).max(200),
     approved: z.literal(true),
@@ -111,6 +112,8 @@ export class QualificationLedger {
       CREATE TABLE IF NOT EXISTS qualification_calls(id uuid PRIMARY KEY,run_id uuid NOT NULL REFERENCES qualification_runs(id),profile text NOT NULL,trial text NOT NULL,state text NOT NULL,tokens bigint NOT NULL DEFAULT 40000,input_tokens bigint,output_tokens bigint,valid boolean,code text,detail_cipher text,created_at timestamptz NOT NULL DEFAULT now(),finished_at timestamptz);
       CREATE TABLE IF NOT EXISTS qualification_helpers(id uuid PRIMARY KEY,run_id uuid NOT NULL REFERENCES qualification_runs(id),profile text NOT NULL,trial text NOT NULL,state text NOT NULL,detail_cipher text,created_at timestamptz NOT NULL DEFAULT now());
       CREATE TABLE IF NOT EXISTS qualification_diagnostics(id uuid PRIMARY KEY,run_id uuid NOT NULL REFERENCES qualification_runs(id),authorization_ref text UNIQUE NOT NULL,digest text NOT NULL,plan jsonb NOT NULL,state text NOT NULL DEFAULT 'active',code text,created_at timestamptz NOT NULL DEFAULT now());
+      CREATE TABLE IF NOT EXISTS qualification_diagnostic_calls(diagnostic_id uuid NOT NULL REFERENCES qualification_diagnostics(id),call_id uuid PRIMARY KEY REFERENCES qualification_calls(id));
+      INSERT INTO qualification_diagnostic_calls(diagnostic_id,call_id) SELECT d.id,c.id FROM qualification_diagnostics d JOIN qualification_calls c ON c.run_id=d.run_id AND c.profile='output-diagnostic' AND left(c.trial,length(d.id::text)+1)=d.id::text||':' ON CONFLICT DO NOTHING;
       CREATE TABLE IF NOT EXISTS qualification_trials(run_id uuid NOT NULL REFERENCES qualification_runs(id),profile text NOT NULL,trial text NOT NULL,result jsonb NOT NULL,PRIMARY KEY(run_id,profile,trial));`);
       return new QualificationLedger(pool, new Vault(key));
     } catch (e) {
@@ -204,7 +207,7 @@ export class QualificationLedger {
       ]);
     else await this.fail(p, code);
   }
-  async reserve(p: PreparedQualification, profile: string, trial: string, diagnosticId?: string) {
+  async reserve(p: PreparedQualification, profile: string, trial: string, diagnosticId?: string, thinking?: boolean) {
     return transaction(this.pool, async (c) => {
       const row = (
         await c.query(
@@ -230,6 +233,8 @@ export class QualificationLedger {
           profile !== "output-diagnostic"
         )
           throw new FleetError("DIAGNOSTIC_NOT_ACTIVE");
+        if (thinking !== (grant.plan.thinking ?? p.plan.model.thinking))
+          throw new FleetError("DIAGNOSTIC_MODEL_MISMATCH");
         deadline = new Date(grant.plan.deadlineAt);
       } else if (!["Q1", "Q2"].includes(row.state) || !row.timely) throw new FleetError("QUALIFICATION_NOT_ACTIVE");
       if (
@@ -257,6 +262,13 @@ export class QualificationLedger {
           [p.plan.id, profile, trial],
         )
       ).rows[0];
+      if (diagnosticId)
+        used.profile_count = (
+          await c.query(
+            "SELECT count(*)::int n FROM qualification_diagnostic_calls x JOIN qualification_diagnostics d ON d.id=x.diagnostic_id WHERE d.run_id=$1 AND coalesce((d.plan->>'thinking')::boolean,$2::boolean)=$3::boolean",
+            [p.plan.id, p.plan.model.thinking, thinking],
+          )
+        ).rows[0].n;
       if (
         used.n >= 104 ||
         used.tokens + 40000 > 4160000 ||
@@ -271,6 +283,11 @@ export class QualificationLedger {
         profile,
         trial,
       ]);
+      if (diagnosticId)
+        await c.query("INSERT INTO qualification_diagnostic_calls(diagnostic_id,call_id) VALUES($1,$2)", [
+          diagnosticId,
+          id,
+        ]);
       return { id, deadline };
     });
   }
@@ -297,7 +314,7 @@ export class QualificationLedger {
           !parsedModel.success ||
           parsedModel.data.route !== p.plan.model.route ||
           parsedModel.data.model !== p.plan.model.model ||
-          parsedModel.data.thinking !== p.plan.model.thinking ||
+          (!diagnosticId && parsedModel.data.thinking !== p.plan.model.thinking) ||
           input.maxOutputTokens !== 2000 ||
           Buffer.byteLength(JSON.stringify(input.messages)) + Buffer.byteLength(JSON.stringify(input.schema)) > 24000
         )
@@ -309,7 +326,7 @@ export class QualificationLedger {
         try {
           locked = (await client.query("SELECT pg_try_advisory_lock(19281471) locked")).rows[0].locked;
           if (!locked) throw new FleetError("QUALIFICATION_ROUTE_BUSY", true);
-          const reservation = await this.reserve(p, profile, trial, diagnosticId);
+          const reservation = await this.reserve(p, profile, trial, diagnosticId, parsedModel.data.thinking);
           id = reservation.id;
           const started = performance.now();
           const onDispatch = async () => {

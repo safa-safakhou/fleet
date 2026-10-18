@@ -72,7 +72,7 @@ if (args.includes("--execute-approved")) {
             diagnostic,
           )
           .decide({
-            model: p.plan.model,
+            model: { ...p.plan.model, thinking: approval.thinking ?? p.plan.model.thinking },
             messages,
             schema: detail.request.schema,
             maxOutputTokens: 2000,
@@ -80,6 +80,7 @@ if (args.includes("--execute-approved")) {
           });
         const result = {
           mode,
+          thinking: approval.thinking ?? p.plan.model.thinking,
           repeat: i,
           decisionError: output.decisionError ?? null,
           schemaValid: !output.decisionError && qualifyOutput(detail.request.schema, messages, output.decision).valid,
