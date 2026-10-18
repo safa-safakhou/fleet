@@ -48,9 +48,21 @@ export const FullQualificationApproval = z.discriminatedUnion("schemaVersion", [
     tokenLimit: z.literal(4480000),
     helperLimit: z.literal(73),
   }).strict(),
+  InitialFullQualificationApproval.extend({
+    schemaVersion: z.literal("fleet.full-local-qualification.v3"),
+    predecessorBatchId: z.uuid(),
+    predecessorDigest: z.string().regex(/^[a-f0-9]{64}$/),
+    baselineExecutions: z.literal(110),
+    baselineReservedTokens: z.literal(4400000),
+  }).strict(),
 ]);
 export function prepareFullQualification(raw: unknown) {
   const approval = FullQualificationApproval.parse(raw);
+  if (
+    approval.schemaVersion === "fleet.full-local-qualification.v3" &&
+    Date.parse(approval.deadlineAt) - Date.parse(approval.startsAt) > 360 * 60000
+  )
+    throw new FleetError("QUALIFICATION_TIME_WINDOW");
   if (new Set([approval.id, approval.thinkingPlanId, approval.nonThinkingPlanId, approval.historyRunId]).size !== 4)
     throw new FleetError("QUALIFICATION_BATCH_SCOPE");
   const plans = [true, false].map((thinking) =>
@@ -79,14 +91,49 @@ export function prepareFullQualification(raw: unknown) {
 export type FullQualification = ReturnType<typeof prepareFullQualification>;
 export async function createFullQualification(ledger: QualificationLedger, p: FullQualification) {
   await transaction(ledger.pool, async (db) => {
+    const fresh = p.approval.schemaVersion === "fleet.full-local-qualification.v3";
     const old = (
       await db.query(
         "SELECT *,now()>=$2::timestamptz AND now()<$3::timestamptz timely FROM qualification_runs WHERE id=$1 FOR UPDATE",
         [p.approval.historyRunId, p.approval.startsAt, p.approval.deadlineAt],
       )
     ).rows[0];
-    if (old?.digest !== p.approval.historyDigest || old.state !== "blocked" || !old.timely)
+    if (old?.digest !== p.approval.historyDigest || old.state !== (fresh ? "Q2_done" : "blocked") || !old.timely)
       throw new FleetError("QUALIFICATION_BATCH_HISTORY");
+    if (p.approval.schemaVersion === "fleet.full-local-qualification.v3") {
+      const a = p.approval;
+      const prior = (
+        await db.query("SELECT * FROM qualification_batches WHERE id=$1 AND digest=$2 FOR UPDATE", [
+          a.predecessorBatchId,
+          a.predecessorDigest,
+        ])
+      ).rows[0];
+      const children = (
+        await db.query(
+          "SELECT r.id,r.state FROM qualification_batch_runs x JOIN qualification_runs r ON r.id=x.run_id WHERE x.batch_id=$1 FOR UPDATE OF r",
+          [a.predecessorBatchId],
+        )
+      ).rows;
+      if (
+        prior?.state !== "done" ||
+        prior.code !== null ||
+        prior.plan.schemaVersion !== "fleet.full-local-qualification.v2" ||
+        prior.plan.executionLimit !== 112 ||
+        prior.plan.tokenLimit !== 4480000 ||
+        children.length !== 2 ||
+        children.some((r) => r.state !== "Q2_done") ||
+        !children.some((r) => r.id === a.historyRunId)
+      )
+        throw new FleetError("QUALIFICATION_BATCH_HISTORY");
+      if (
+        (
+          await db.query("SELECT 1 FROM qualification_batches WHERE plan->>'predecessorBatchId'=$1", [
+            a.predecessorBatchId,
+          ])
+        ).rowCount
+      )
+        throw new FleetError("QUALIFICATION_BATCH_AUTHORIZATION_REUSED");
+    }
     const continuation = p.approval.schemaVersion === "fleet.full-local-qualification.v2";
     if (continuation) {
       const a = p.approval as Extract<
@@ -139,13 +186,21 @@ export async function createFullQualification(ledger: QualificationLedger, p: Fu
     }
     const usage = (
       await db.query(
-        continuation
-          ? "SELECT count(*)::int n,coalesce(sum(c.tokens),0)::int tokens,count(*) FILTER(WHERE c.state IN('prepared','dispatched'))::int unresolved FROM qualification_calls c JOIN qualification_batch_runs x ON x.run_id=c.run_id WHERE x.batch_id=$1"
+        continuation || fresh
+          ? `SELECT count(*)::int n,coalesce(sum(c.tokens),0)::int tokens,count(*) FILTER(WHERE c.state IN('prepared','dispatched'${fresh ? ",'unknown'" : ""}))::int unresolved FROM qualification_calls c JOIN qualification_batch_runs x ON x.run_id=c.run_id WHERE x.batch_id=$1`
           : "SELECT count(*)::int n,coalesce(sum(tokens),0)::int tokens,count(*) FILTER(WHERE state IN('prepared','dispatched','unknown'))::int unresolved FROM qualification_calls WHERE run_id=$1",
-        [continuation ? (p.approval as { predecessorBatchId: string }).predecessorBatchId : p.approval.historyRunId],
+        [
+          p.approval.schemaVersion === "fleet.full-local-qualification.v1"
+            ? p.approval.historyRunId
+            : p.approval.predecessorBatchId,
+        ],
       )
     ).rows[0];
-    if (usage.n !== 96 || usage.tokens !== 3840000 || usage.unresolved)
+    if (
+      usage.n !== p.approval.baselineExecutions ||
+      usage.tokens !== p.approval.baselineReservedTokens ||
+      usage.unresolved
+    )
       throw new FleetError("QUALIFICATION_BATCH_HISTORY");
     if (
       (

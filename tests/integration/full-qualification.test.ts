@@ -130,6 +130,158 @@ async function continuationFixture() {
   return { ...f, raw, unknown };
 }
 
+async function completedContinuation() {
+  const f = await continuationFixture(),
+    prior = prepareFullQualification(f.raw);
+  await createFullQualification(f.ledger, prior);
+  for (const [index, plan] of prior.plans.entries()) {
+    for (let n = 0; n < (index ? 56 : 54); n++)
+      await f.ledger.pool.query(
+        "INSERT INTO qualification_calls(id,run_id,profile,trial,state,input_tokens,output_tokens,valid) VALUES($1,$2,'calibration',$3,'reported',20,5,true)",
+        [randomUUID(), plan.plan.id, String(n)],
+      );
+    await f.ledger.pool.query("UPDATE qualification_runs SET state='Q2_done' WHERE id=$1", [plan.plan.id]);
+  }
+  await f.ledger.pool.query("UPDATE qualification_batches SET state='done' WHERE id=$1", [prior.approval.id]);
+  const raw: Record<string, unknown> = {
+    ...f.raw,
+    schemaVersion: "fleet.full-local-qualification.v3",
+    id: randomUUID(),
+    authorizationRef: randomUUID(),
+    sourceCommit: "c".repeat(40),
+    historyRunId: prior.plans[1].plan.id,
+    historyDigest: prior.plans[1].digest,
+    predecessorBatchId: prior.approval.id,
+    predecessorDigest: prior.digest,
+    baselineExecutions: 110,
+    baselineReservedTokens: 4400000,
+    executionLimit: 208,
+    tokenLimit: 8320000,
+    helperLimit: 96,
+    startsAt: new Date(Date.now() - 500).toISOString(),
+    deadlineAt: new Date(Date.now() + 359 * 60000).toISOString(),
+    thinkingPlanId: randomUUID(),
+    nonThinkingPlanId: randomUUID(),
+  };
+  delete raw.reviewedExecutionId;
+  delete raw.reviewEvidenceDigest;
+  return { ...f, prior, next: raw };
+}
+
+it("registers a fresh208-call qualification after completed110 without reopening grants or rewriting allocations/reviews", async () => {
+  const f = await completedContinuation(),
+    p = prepareFullQualification(f.next);
+  const snapshot = async () =>
+    (
+      await f.ledger.pool.query(
+        "SELECT to_jsonb(c) body FROM qualification_calls c JOIN qualification_batch_runs x ON x.run_id=c.run_id WHERE x.batch_id=$1 ORDER BY c.id",
+        [f.prior.approval.id],
+      )
+    ).rows;
+  const before = await snapshot();
+  const reviews = (
+    await f.ledger.pool.query("SELECT to_jsonb(r) body FROM qualification_execution_reviews r WHERE call_id=$1", [
+      f.unknown,
+    ])
+  ).rows;
+  await createFullQualification(f.ledger, p);
+  for (const plan of p.plans) {
+    await f.ledger.startStage(plan, "Q1");
+    for (let n = 0; n < 8; n++)
+      await f.ledger.model(plan, provider, "calibration", `probe:${n >> 1}`).decide(request(plan, "calibration"));
+    await f.ledger.finishStage(plan, "Q1");
+    await f.ledger.startStage(plan, "Q2");
+    for (const profile of qualificationProfiles)
+      for (let n = 0; n < 24; n++)
+        await f.ledger.model(plan, provider, profile, `trial:${n >> 1}`).decide(request(plan, profile));
+  }
+  await expect(
+    f.ledger.model(p.plans[1], provider, "reactive-basic", "excess").decide(request(p.plans[1], "reactive-basic")),
+  ).rejects.toThrow();
+  expect(
+    (await Promise.all(p.plans.map((plan) => f.ledger.summary(plan)))).map((s) => ({
+      calls: s.executions,
+      tokens: s.reservedTokens,
+    })),
+  ).toEqual([
+    { calls: 104, tokens: 4160000 },
+    { calls: 104, tokens: 4160000 },
+  ]);
+  expect(await snapshot()).toEqual(before);
+  expect(
+    (await f.ledger.pool.query("SELECT state,code FROM qualification_batches WHERE id=$1", [f.prior.approval.id]))
+      .rows[0],
+  ).toEqual({ state: "done", code: null });
+  expect(
+    (
+      await f.ledger.pool.query("SELECT to_jsonb(r) body FROM qualification_execution_reviews r WHERE call_id=$1", [
+        f.unknown,
+      ])
+    ).rows,
+  ).toEqual(reviews);
+  await expect(
+    createFullQualification(
+      f.ledger,
+      prepareFullQualification({
+        ...f.next,
+        id: randomUUID(),
+        authorizationRef: randomUUID(),
+        thinkingPlanId: randomUUID(),
+        nonThinkingPlanId: randomUUID(),
+      }),
+    ),
+  ).rejects.toThrow("QUALIFICATION_BATCH_AUTHORIZATION_REUSED");
+});
+
+it.each(["active", "child-blocked", "unknown", "wrong-count", "wrong-digest"])(
+  "refuses a fresh grant with invalid completed lineage: %s",
+  async (mode) => {
+    const f = await completedContinuation();
+    if (mode === "active")
+      await f.ledger.pool.query("UPDATE qualification_batches SET state='active' WHERE id=$1", [f.prior.approval.id]);
+    if (mode === "child-blocked")
+      await f.ledger.pool.query("UPDATE qualification_runs SET state='blocked' WHERE id=$1", [
+        f.prior.plans[0].plan.id,
+      ]);
+    if (mode === "unknown")
+      await f.ledger.pool.query(
+        "UPDATE qualification_calls SET state='unknown' WHERE id=(SELECT id FROM qualification_calls WHERE run_id=$1 LIMIT 1)",
+        [f.prior.plans[0].plan.id],
+      );
+    if (mode === "wrong-count")
+      await f.ledger.pool.query(
+        "DELETE FROM qualification_calls WHERE id=(SELECT id FROM qualification_calls WHERE run_id=$1 LIMIT 1)",
+        [f.prior.plans[0].plan.id],
+      );
+    if (mode === "wrong-digest") f.next.predecessorDigest = "e".repeat(64);
+    await expect(createFullQualification(f.ledger, prepareFullQualification(f.next))).rejects.toThrow(
+      "QUALIFICATION_BATCH_HISTORY",
+    );
+  },
+);
+
+it("stops both fresh qualification modes on new uncertainty without reusing the historical review", async () => {
+  const f = await completedContinuation(),
+    p = prepareFullQualification(f.next);
+  await createFullQualification(f.ledger, p);
+  for (const plan of p.plans) await f.ledger.startStage(plan, "Q1");
+  await expect(
+    f.ledger
+      .model(
+        p.plans[0],
+        { decide: async () => ({ decision: null, inputTokens: null, outputTokens: null }) },
+        "calibration",
+        "unknown",
+      )
+      .decide(request(p.plans[0], "calibration")),
+  ).rejects.toThrow();
+  await expect(
+    f.ledger.model(p.plans[1], provider, "calibration", "later").decide(request(p.plans[1], "calibration")),
+  ).rejects.toThrow("QUALIFICATION_BATCH_NOT_ACTIVE");
+  expect((await f.ledger.summary(p.plans[0])).reservedTokens).toBe(40000);
+  expect((await f.ledger.summary(p.plans[1])).executions).toBe(0);
+});
+
 it("reviews only the exact uncertain execution additively and meters112 remaining calls without rewriting the prior96", async () => {
   const f = await continuationFixture(),
     p = prepareFullQualification(f.raw);
