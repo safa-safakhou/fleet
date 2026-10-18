@@ -82,5 +82,23 @@
     "fullQualificationPassed": false,
     "originalHistoryPreserved": true,
     "executionDisabled": true
+  },
+  "followupQualificationContinuation": {
+    "report": "qualification-continuation-20261018.md",
+    "statusRegister": "qualification-continuation-status-20261018.json",
+    "sourceCommit": "787dba78213318d3c03859a8fe7932afe7ececac",
+    "newExecutions": 110,
+    "newReservedTokens": 4400000,
+    "thinkingPassed": true,
+    "thinkingAcceptable": 48,
+    "nonThinkingPassed": false,
+    "nonThinkingAcceptable": 47,
+    "trialsPerMode": 48,
+    "newUnknownUsage": 0,
+    "priorUnknownReviewedWithAllocationRetained": true,
+    "fullQualificationPassed": false,
+    "remainingExecutions": 2,
+    "remainingReservedTokens": 80000,
+    "executionDisabled": true
   }
 }

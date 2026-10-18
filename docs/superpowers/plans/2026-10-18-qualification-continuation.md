@@ -16,6 +16,6 @@ Constraints: same pinned model, explicit thinking modes, serial route,24000 inpu
 - [x] Red/green: trusted action payload contracts close common action shapes and mandate values. Bind against fresh observations; keep wait/read, other adapters and conditional long-tail action kinds. PACT owns schemas, engine owns envelopes.
 - [x] Red/green: exact additive unknown review, immutable predecessor, one continuation,112 shared/208 combined enforcement, new uncertainty stops both modes.
 - [x] Full unit/integration/paired checks, type/style/build/boundaries/audit; original history and installed-state proof; commit source.
-- [ ] Private source-pinned approval, owned provider startup, metered both-mode retest; no extra probes. Preserve outcomes honestly, authenticated encrypted archive/TOC, owned-service cleanup and local results commit.
+- [x] Private source-pinned approval, owned provider startup, metered both-mode retest; no extra probes. Preserve outcomes honestly, authenticated encrypted archive/TOC, owned-service cleanup and local results commit.
 
 Review focus: duplicate IDs after recall, stale mandate, nested payload, action contracts after reads, unsupported adapter contract, invalid schema before dispatch, known usage after local validation failure, missing review/changed predecessor/new uncertainty, cap/regrant/deadline boundaries. Tests cover these inputs rather than source text.
