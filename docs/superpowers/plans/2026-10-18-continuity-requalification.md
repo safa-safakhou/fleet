@@ -31,10 +31,10 @@ Files: `src/full-qualification.ts`, `tests/integration/full-qualification.test.t
 ### Task2: Approved local execution and closeout
 
 Private artifacts under a new owned local evidence directory; source report/status committed after actual results.
-- [ ] Capture installed38-table proof and all historical qualification rows; preserve original encryption key and encrypted archives.
-- [ ] Write exact private approval pinned to the verified source commit and a single≤6-hour window. Review-only CLI must show208 cap, both explicit modes and fixture scope.
-- [ ] Start only owned local fixture/provider, verify exact model/helper pins. Execute approved CLI once, continuously meter all attempts and stop on uncertainty. No canary outside ledger.
-- [ ] Analyze all calibration/matrix results including raw failures versus recovery, helper coverage and withheld commands; do not change pass rules to obtain a pass.
-- [ ] Verify history/allocations/review and installed table equality, authenticate a separately keyed encrypted archive, leave new fixture cohorts paused and owned provider/databases stopped. Record actual results, remaining blockers/budget and commit report. No release activation.
+- [x] Capture installed38-table proof and all historical qualification rows; preserve original encryption key and encrypted archives.
+- [x] Write exact private approval pinned to the verified source commit and a single≤6-hour window. Review-only CLI must show208 cap, both explicit modes and fixture scope.
+- [x] Start only owned local fixture/provider, verify exact model/helper pins. Execute approved CLI once, continuously meter all attempts and stop on uncertainty. No canary outside ledger.
+- [x] Analyze all calibration/matrix results including raw failures versus recovery, helper coverage and withheld commands; do not change pass rules to obtain a pass.
+- [x] Verify history/allocations/review and installed table equality, authenticate a separately keyed encrypted archive, leave new fixture cohorts paused and owned provider/databases stopped. Record actual results, remaining blockers/budget and commit report. No release activation.
 
 Pre-flight: Task1 produces the strict v3 approval consumed by Task2 CLI; source commit is pinned only after offline verification. Ruling: the new approval is a fresh authorized budget, not a continuation of the earlier208 allowance; historical2 calls are not rolled over. Author self-review replaces delegated review because AGENTS prohibits delegation.

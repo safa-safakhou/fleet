@@ -16,6 +16,8 @@ Qualification semanticRejections now includes the new rejected-update trace labe
 
 ## Proposed next qualification — not started
 
+Subsequent explicit founder approval and actual results are recorded in [the both-mode requalification report](continuity-requalification-20261018.md). The proposal and source/offline status below remain the historical record of this earlier assignment.
+
 Use a fresh, explicitly approved source-pinned two-mode window, with unchanged model/settings and full v3 matrix. This proposal does not reopen or replace a closed grant. The current harness's v1/v2 batch lineage is specific to the earlier grant; a new preserving authorization/journal registration must be implemented and verified before execution. No new registration was made here.
 
 | Work | Minimum per mode | Maximum per mode | Maximum both modes |
