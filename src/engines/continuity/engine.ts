@@ -1,7 +1,7 @@
 import { z } from "zod";
-import { type Data, FleetError, object } from "../../domain.js";
+import { type Data, object } from "../../domain.js";
 import type { EngineContext } from "../../platform/engine-registry.js";
-import { ReactiveDecision, ReactiveEngine } from "../reactive/engine.js";
+import { ReactiveDecision, ReactiveEngine, RejectedDecision } from "../reactive/engine.js";
 import { type ContinuityModule, ContinuityUpdateSchema } from "./state.js";
 
 const Envelope = z.object({ decision: ReactiveDecision, continuity: ContinuityUpdateSchema.optional() }).strict();
@@ -61,6 +61,34 @@ export class ContinuityEngine extends ReactiveEngine {
   protected beforeRequest(ctx: EngineContext, payload: Data) {
     this.continuity.restrict(ctx.claim, object(payload.continuity));
   }
+  protected generationSchema(payload: Data, base: Data): Data {
+    const schema = structuredClone(base);
+    const continuity = object(object(schema.properties).continuity);
+    const evidence = object(payload.continuity).evidence;
+    const ids = [...new Set((Array.isArray(evidence) ? evidence : []).map((e) => object(e).id))].filter(
+      (id): id is string => typeof id === "string",
+    );
+    if (!ids.length) {
+      // No empty enums or impossible reference arrays: keep optional abstention and empty updates valid.
+      const properties = object(continuity.properties);
+      for (const key of ["beliefs", "predictions", "memories", "reflections"])
+        properties[key] = { ...object(properties[key]), maxItems: 0 };
+      properties.plan = { type: "null" };
+    } else {
+      const bind = (node: unknown): void => {
+        if (!node || typeof node !== "object") return;
+        const properties = object(object(node).properties);
+        if (properties.evidenceRefs)
+          properties.evidenceRefs = {
+            ...object(properties.evidenceRefs),
+            items: { type: "string", enum: ids },
+          };
+        for (const value of Object.values(node)) bind(value);
+      };
+      bind(continuity);
+    }
+    return schema;
+  }
   protected async afterCommand(ctx: EngineContext, result: import("../../platform/contracts.js").ActionOutcome) {
     await this.continuity.recordCommand(ctx.binding, ctx.claim, result);
   }
@@ -74,7 +102,11 @@ export class ContinuityEngine extends ReactiveEngine {
         Number(object(payload.continuity).version),
         envelope.data.continuity,
       );
-      if (!result.accepted) throw new FleetError(`CONTINUITY_${result.code}`, true);
+      if (!result.accepted)
+        throw new RejectedDecision(
+          `CONTINUITY_${result.code}`,
+          "The continuity update was rejected without saving it or preparing its command. Reconsider from the fresh continuity version and delivered evidence IDs. You may correct or omit the optional update, read, act or wait. Never invent evidence, claim fulfilment or replay uncertain commands.",
+        );
     }
     return ReactiveDecision.safeParse(envelope.data.decision);
   }

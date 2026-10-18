@@ -379,6 +379,7 @@ export class PactQualificationFixtures implements QualificationFixtures {
                 turnId,
                 [
                   "Proposal rejected before command preparation",
+                  "Decision update rejected before command preparation",
                   "Proposed action deferred before submission",
                   "Action shape rejected before submission",
                   "Read tool rejected before submission",

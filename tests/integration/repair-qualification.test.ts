@@ -247,3 +247,45 @@ it.each([
     (await f.ledger.pool.query("SELECT * FROM platform_commands WHERE turn_id=$1", [result.turnId])).rowCount,
   ).toBe(0);
 });
+
+it("retains recovered continuity semantic rejections in qualification telemetry", async () => {
+  const f = await setup();
+  const { PactQualificationFixtures } = await import("../../src/games/pact/qualification.js");
+  const fixtures = await PactQualificationFixtures.create(f.ledger, f.parent, false);
+  let calls = 0;
+  const provider = {
+    decide: async (input: Parameters<import("../../src/domain.js").ModelPort["decide"]>[0]) => {
+      calls++;
+      const c = JSON.parse(input.messages[1].content).continuity;
+      const belief = {
+        id: "same",
+        subject: "self",
+        hypothesis: "May act",
+        alternative: "May wait",
+        confidence: "low",
+        evidenceRefs: [c.evidence[0].id],
+      };
+      return {
+        decision: {
+          decision: { kind: "wait", summary: "Wait" },
+          ...(calls === 1 ? { continuity: { beliefs: [belief, belief] } } : {}),
+        },
+        inputTokens: 500,
+        outputTokens: 30,
+      };
+    },
+  };
+  const result = await fixtures.run("reactive-cognition", "threat-help:continuity-regression", provider, {
+    choose: async () => {
+      throw Error("NO_HELPER");
+    },
+  });
+  expect(result).toMatchObject({
+    code: "WAIT",
+    calls: 2,
+    semanticRejections: 1,
+    withheld: 0,
+    invalidActions: 0,
+    pending: false,
+  });
+});

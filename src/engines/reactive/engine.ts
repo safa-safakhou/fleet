@@ -18,6 +18,15 @@ export const ReactiveDecision = z.discriminatedUnion("kind", [
     .strict(),
 ]);
 const schema = z.toJSONSchema(ReactiveDecision, { target: "draft-7" });
+/** Only an explicit pre-commit rejection may request a corrective decision. Thrown execution errors are not safe. */
+export class RejectedDecision extends Error {
+  constructor(
+    readonly code: string,
+    readonly guidance: string,
+  ) {
+    super(code);
+  }
+}
 /** Selectable basic controller: task sources are triggers; current authorized observations are state. */
 export class ReactiveEngine implements AgentEngine {
   protected decisionSchema: Data = schema;
@@ -28,6 +37,9 @@ export class ReactiveEngine implements AgentEngine {
     return {};
   }
   protected fitExtension(_payload: Data): void {}
+  protected generationSchema(_payload: Data, base: Data): Data {
+    return base;
+  }
   protected beforeRequest(_ctx: EngineContext, _payload: Data): void {}
   protected async decode(_ctx: EngineContext, raw: unknown, _payload: Data) {
     return ReactiveDecision.safeParse(raw);
@@ -47,8 +59,10 @@ export class ReactiveEngine implements AgentEngine {
     let observation = ctx.observation;
     const catalog = (await ctx.catalog?.()) ?? [];
     let previousProposal: Data | undefined;
+    let previousDecision: Data | undefined;
+    let correctedDecision = false;
     for (let call = 0; call < budget.maxCallsPerTurn; call++) {
-      const decisionSchema = bindActionContracts(
+      const baseSchema = bindActionContracts(
         this.decisionSchema,
         ctx.schemas?.actions ?? [],
         await ctx.actionContracts?.(observation),
@@ -68,6 +82,7 @@ export class ReactiveEngine implements AgentEngine {
         actionSchemas: ctx.schemas?.actions ?? [],
         catalog,
         ...(previousProposal ? { previousProposal } : {}),
+        ...(previousDecision ? { previousDecision } : {}),
         ...(await this.extension(ctx, observation)),
         coverage: { delivery: "event_or_periodic_review", omitted: [] as string[] },
       };
@@ -77,7 +92,8 @@ export class ReactiveEngine implements AgentEngine {
         { role: "user", content: JSON.stringify(payload) },
       ];
       const fits = () =>
-        Buffer.byteLength(JSON.stringify(messages())) + Buffer.byteLength(JSON.stringify(decisionSchema)) <=
+        Buffer.byteLength(JSON.stringify(messages())) +
+          Buffer.byteLength(JSON.stringify(this.generationSchema(payload, baseSchema))) <=
         budget.inputByteLimit;
       if (!fits()) this.fitExtension(payload);
       if (!fits()) {
@@ -98,6 +114,7 @@ export class ReactiveEngine implements AgentEngine {
         }
       }
       if (!fits()) throw new FleetError("MODEL_REQUEST_NOT_ADMITTED", true);
+      const decisionSchema = this.generationSchema(payload, baseSchema);
       this.beforeRequest(ctx, payload);
       const result = await ctx.model.decide(ctx.claim, {
         model,
@@ -107,7 +124,23 @@ export class ReactiveEngine implements AgentEngine {
         signal: ctx.signal,
       });
       if (result.decisionError) throw new FleetError(result.decisionError);
-      const parsed = await this.decode(ctx, result.decision, payload);
+      let parsed: ReturnType<typeof ReactiveDecision.safeParse>;
+      try {
+        parsed = await this.decode(ctx, result.decision, payload);
+      } catch (error) {
+        if (!(error instanceof RejectedDecision)) throw error;
+        previousDecision = {
+          code: error.code,
+          submitted: false,
+          committed: false,
+          guidance: error.guidance,
+        };
+        await ctx.trace?.("deciding", "Decision update rejected before command preparation", previousDecision);
+        if (correctedDecision || call + 1 >= budget.maxCallsPerTurn || (await ctx.model.remainingCalls(ctx.claim)) < 1)
+          throw new FleetError(error.code, true);
+        correctedDecision = true;
+        continue;
+      }
       if (!parsed.success) throw new FleetError("INVALID_MODEL_OUTPUT");
       const d = parsed.data;
       if (d.kind === "wait") {

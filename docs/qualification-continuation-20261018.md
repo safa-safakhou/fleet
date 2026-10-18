@@ -42,6 +42,8 @@ The29 new Laya calls all abstained; no positive-selection claim is made. The fix
 
 ## Remaining blocker: continuity reference binding and recovery
 
+Follow-up source/offline correction: [continuity citation and replanning report](continuity-citation-recovery-20261018.md). The historical result below remains unchanged; no additional provider run was made for that correction.
+
 Non-thinking reactive-cognition/threat-help:1, call `7371072a-a200-42fb-a1c5-b427b91ac2e8`, produced a validly shaped continuity update citing a UUID absent from its delivered evidence. It received one evidence ID, then fabricated a different ID with the same prefix. Existing ContinuityModule.apply rejected it as EVIDENCE_NOT_DELIVERED before memory persistence/command preparation. ContinuityEngine.decode then terminated after1 call instead of replanning within the remaining turn allowance. Usage is known:2776 input+259 output=3035, with the full40000 reservation retained. This is a separate known noncommitting semantic/recovery gap, not a new uncertain provider execution or a recurrence of duplicate UUID enum generation.
 
 Next correction: bind continuity evidence-reference generation to the final delivered IDs and feed known rejected-update diagnostics back into a bounded corrective decision, while retaining authority/state-version validation and failed-update evidence. That source change needs appropriate both-mode continuity qualification. Only2 calls/80000 reservations remain in the current allowance; no additional call or automatic grant was started to make this report green. Overall release qualification remains false.

@@ -29,6 +29,8 @@ Structured plans reuse `ContinuationUpdate` step/wait schemas, dependency valida
 
 ## Operator composition and rollback
 
+18 October source follow-up: [citation binding and bounded replanning](continuity-citation-recovery-20261018.md) binds continuity citations to final fitted evidence IDs and allows one corrective decision after an explicit noncommitting update rejection, within existing allowance. Exceptions/unknown outcomes remain stops. New qualification telemetry retains recovered semantic failures. Historical F5 verification below is unchanged; the follow-up status records current offline checks and pending provider qualification.
+
 All selection is explicit through trusted operator composition on a new unconsumed inactive cohort: `tasks.enroll(id,{id:"reactive-cognition",version:"1"})`, then the existing optional `intake.enroll(id,policy)`. These calls do not create game accounts, start cohorts or invoke models. Consumed profiles/policies remain immutable. Profile selection UI/comparisons are F7, and release/new-run qualification is F8.
 
 The adapter must advertise `continuity:true` plus native/poll event delivery and return `fleet.continuity-observation.v1` facts. Non-social environments work without a peer graph. Every fact source must be present in the authorized observation and is scoped by environment/version/instance/actor/entity. No PACT economy or unit types enter the engine/platform packages.

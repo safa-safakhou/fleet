@@ -422,7 +422,7 @@ it("does not refresh old peer statements from a new snapshot or retrofit predict
   ).toBe(f.now().getTime() - 1000);
 });
 
-it("records known model usage but blocks a command when its accompanying cognition cites fabricated evidence", async () => {
+it("meters a fabricated citation and corrects it before any command preparation", async () => {
   const f = await setup(),
     connect = f.board.adapter.connect;
   f.board.adapter.connect = async (b) => ({ ...(await connect(b)), observe: async () => observation(f, [fact("a2")]) });
@@ -431,14 +431,98 @@ it("records known model usage but blocks a command when its accompanying cogniti
         decision: { kind: "action", schemaId: "board.move.v1", payload: { to: "a4" }, summary: "Move" },
         continuity: { memories: [{ text: "Unobserved", evidenceRefs: ["00000000-0000-4000-8000-000000000000"] }] },
       },
+      { decision: { kind: "wait", summary: "No grounded update" } },
     ]),
     h = f.host(model);
   h.engines.register(new ContinuityEngine(f.module));
-  await expect(h.host.run(f.claim)).rejects.toThrow("CONTINUITY_EVIDENCE_NOT_DELIVERED");
+  await h.host.run(f.claim);
+  expect(model.inputs).toHaveLength(2);
   expect(f.board.executions).toBe(0);
-  expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([{ status: "reported" }]);
+  expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([
+    { status: "reported" },
+    { status: "reported" },
+  ]);
   expect((await f.pool.query("SELECT * FROM continuity_states")).rowCount).toBe(0);
 });
+
+it.each(["correct", "exhaust"])(
+  "replans a known semantic continuity rejection within shared accounting: %s",
+  async (mode) => {
+    const f = await setup(),
+      connect = f.board.adapter.connect;
+    f.board.adapter.connect = async (b) => ({
+      ...(await connect(b)),
+      observe: async () => observation(f, [fact("a2")]),
+    });
+    const inputs: { messages: { content: string }[] }[] = [];
+    const model = {
+      decide: async (input: { messages: { content: string }[] }) => {
+        inputs.push(input);
+        const payload = JSON.parse(input.messages[1].content);
+        if (inputs.length === 2) {
+          expect(payload.previousDecision).toMatchObject({
+            code: "CONTINUITY_CONFIDENCE_NEEDS_CORROBORATION",
+            submitted: false,
+            committed: false,
+          });
+          expect(payload.continuity.version).toBe(0);
+          expect(f.board.executions).toBe(0);
+          expect((await f.pool.query("SELECT * FROM continuity_states")).rowCount).toBe(0);
+        }
+        return {
+          decision: {
+            decision: { kind: "action", schemaId: "board.move.v1", payload: { to: "a4" }, summary: "Move" },
+            continuity: {
+              beliefs: [
+                {
+                  id: "position",
+                  subject: "self",
+                  hypothesis: "May move",
+                  alternative: "May wait",
+                  confidence: mode === "correct" && inputs.length === 2 ? "low" : "medium",
+                  evidenceRefs: [payload.continuity.evidence[0].id],
+                },
+              ],
+            },
+          },
+          inputTokens: 500,
+          outputTokens: 50,
+        };
+      },
+    };
+    const h = f.host(model);
+    h.engines.register(new ContinuityEngine(f.module));
+    const run = h.host.run(f.claim);
+    if (mode === "correct") await run;
+    else await expect(run).rejects.toThrow("CONTINUITY_CONFIDENCE_NEEDS_CORROBORATION");
+    expect(inputs).toHaveLength(2);
+    expect(f.board.executions).toBe(mode === "correct" ? 1 : 0);
+    expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([
+      { status: "reported" },
+      { status: "reported" },
+    ]);
+    expect((await f.pool.query("SELECT version FROM continuity_states")).rows).toEqual(
+      mode === "correct" ? [{ version: 1 }] : [],
+    );
+    expect((await f.pool.query("SELECT sum(tokens)::text reserved FROM compute_ledger")).rows[0].reserved).toBe(
+      "80000",
+    );
+    if (mode === "exhaust")
+      expect(
+        (await f.pool.query("SELECT state,wake FROM platform_tasks WHERE id=$1", [f.claim.taskId])).rows[0],
+      ).toMatchObject({
+        state: "waiting",
+        wake: { kind: "retry", code: "CONTINUITY_CONFIDENCE_NEEDS_CORROBORATION" },
+      });
+    expect(
+      (
+        await f.pool.query(
+          "SELECT * FROM turn_events WHERE label='Decision update rejected before command preparation'",
+        )
+      ).rowCount,
+    ).toBe(mode === "correct" ? 1 : 2);
+  },
+);
 
 it("uses existing continuation validation for invalid dependencies and rejects ambiguous update identities", async () => {
   const f = await setup(),
