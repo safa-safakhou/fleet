@@ -70,7 +70,14 @@
     ]
   },
   "coverageLimits": {
-    "positiveProviderCitationWritingDemonstrated": false,
+    "positiveProviderCitationWritingDemonstrated": true,
+    "citationWritingScope": "legacy-cognition thinking only;3 persisted source-linked memory interpretations, no semantic-quality claim",
+    "modernProviderCitationWritingDemonstrated": false,
+    "continuityCountersProfile": "reactive-cognition",
+    "coverageCorrectionReport": "docs/cognition-recall-investigation-20261019.md",
+    "legacyPersistedMemories": { "thinking": 3, "nonThinking": 0 },
+    "legacyFinalBeliefs": { "thinking": 10, "nonThinking": 7 },
+    "legacyFinalPlans": { "thinking": 2, "nonThinking": 1 },
     "realProviderSemanticRecoveryObserved": false,
     "deterministicCitationAndReplanningRegressionsPassed": true,
     "helperAbstentions": 28,

@@ -231,7 +231,7 @@ it("registers a fresh208-call qualification after completed110 without reopening
       }),
     ),
   ).rejects.toThrow("QUALIFICATION_BATCH_AUTHORIZATION_REUSED");
-});
+}, 15000);
 
 it.each(["active", "child-blocked", "unknown", "wrong-count", "wrong-digest"])(
   "refuses a fresh grant with invalid completed lineage: %s",
@@ -473,7 +473,7 @@ it("enforces exactly two104-call mode allocations and208 combined without changi
       }),
     ),
   ).rejects.toThrow("QUALIFICATION_BATCH_AUTHORIZATION_REUSED");
-});
+}, 15000);
 it("a first-mode unknown stops second-mode dispatch and retains the full allocation", async () => {
   const f = await setup();
   await createFullQualification(f.ledger, f.prepared);

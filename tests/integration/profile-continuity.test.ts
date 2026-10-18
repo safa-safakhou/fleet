@@ -57,6 +57,70 @@ const fact = (value: string, kind = "state", subject = "self", predicate = "posi
   predicate,
   value,
 });
+it("delivers an optional source-linked memory to a later engine turn of the same binding", async () => {
+  const f = await setup(),
+    connect = f.board.adapter.connect;
+  let round = 0,
+    savedRef = "",
+    calls = 0;
+  f.board.adapter.connect = async (b) => ({
+    ...(await connect(b)),
+    observe: async () => observation(f, [fact(round ? "a4" : "a2")], String(round)),
+  });
+  const model = {
+    decide: async (input: { messages: { content: string }[] }) => {
+      calls++;
+      const context = JSON.parse(input.messages[1].content).continuity;
+      if (calls === 1) {
+        savedRef = context.evidence[0].id;
+        return {
+          decision: {
+            decision: { kind: "wait", summary: "Remember the earlier position" },
+            continuity: { memories: [{ text: "Previously observed a2", evidenceRefs: [savedRef] }] },
+          },
+          inputTokens: 500,
+          outputTokens: 50,
+        };
+      }
+      expect(context.version).toBe(1);
+      expect(context.memories).toMatchObject([{ text: "Previously observed a2", evidenceRefs: [savedRef] }]);
+      expect(context.evidence.some((e: { id: string }) => e.id === savedRef)).toBe(true);
+      expect(context.evidence.some((e: { fact: { value: string } }) => e.fact.value === "a4")).toBe(true);
+      return {
+        decision: { decision: { kind: "wait", summary: "Current position differs from remembered position" } },
+        inputTokens: 500,
+        outputTokens: 50,
+      };
+    },
+  };
+  const h = f.host(model);
+  h.engines.register(new ContinuityEngine(f.module));
+  await h.host.run(f.claim);
+  round = 1;
+  f.advance(16 * 60000);
+  await f.tasks.upsertFromEvent(
+    f.binding,
+    {
+      id: "later-position",
+      type: "changed",
+      sourceRef: "board:current",
+      observedAt: f.now().toISOString(),
+      environmentTime: { clockId: "board.ply", value: "1" },
+      metadata: {},
+    },
+    "later-position",
+  );
+  const next = await f.tasks.claim("memory-followup", f.now());
+  if (!next) throw Error("FOLLOWUP_CLAIM_REQUIRED");
+  expect(next.bindingId).toBe(f.binding.id);
+  await h.host.run(next);
+  expect(calls).toBe(2);
+  expect(f.board.executions).toBe(0);
+  expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([
+    { status: "reported" },
+    { status: "reported" },
+  ]);
+});
 it("persists a prediction before a future fact and keeps absent evidence unresolved", async () => {
   const f = await setup(),
     c = await f.module.context(f.binding, f.claim, observation(f, [fact("a2")]));

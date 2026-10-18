@@ -38,9 +38,11 @@ Median/p95 provider-call duration was7.84/12.88seconds for thinking and4.23/7.24
 
 ### Citation and helper coverage limits
 
+19 October coverage correction: the24-response continuity audit below covers only reactive-cognition. A later read-only audit also inspected legacy-cognition's different envelope and actual persistence: thinking saved3 source-linked memory interpretations/10 beliefs/2 plans; non-thinking saved0 memories/7 beliefs/1 plan. The earlier generalized zero-memory summary was too broad. See [the investigation](cognition-recall-investigation-20261019.md). Model-linked sources do not establish semantic truth or long-term utility; qualification verdicts and all original allocations/results remain unchanged.
+
 The originally failing non-thinking reactive-cognition/threat-help:1 case passed with a wait and empty beliefs/predictions lists. Across12 reactive-cognition calls/mode, thinking omitted continuity11 times and emitted one empty structure; non-thinking omitted it7 times and emitted5 empty structures. Neither mode generated an evidence-bearing continuity update. This run therefore proves the route completes the agreed matrix with the new schema, not positive provider citation-writing or memory quality. Fabricated/evicted citation rejection, safe bounded replanning, refreshed versions, exhaustion/scheduled retry and unsafe-stop behavior are covered by deterministic local regressions. Real-provider corrective-replan success was not observed because no semantic rejection occurred. Do not turn optional omissions into positive feature coverage or force updates to manufacture it.
 
-All28 Laya calls (12 thinking/16 non-thinking) abstained within the existing helper protocol. No positive recall selection or retrieval-quality claim is made. This is functional synthetic provider qualification for the four named profiles on this exact model/route/settings; live game strategy, survival behavior and positive cognition/recall capability remain unproved. Installation, execution activation and shadow/population runs remain outside this assignment.
+All28 Laya calls (12 thinking/16 non-thinking) abstained within the existing helper protocol. No positive recall selection or retrieval-quality claim is made. This is functional synthetic provider qualification for the four named profiles on this exact model/route/settings; live game strategy, survival behavior and cognition/recall quality remain unproved. Installation, execution activation and shadow/population runs remain outside this assignment.
 
 ## Preservation and shutdown
 
