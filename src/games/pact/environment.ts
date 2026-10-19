@@ -8,6 +8,7 @@ const core = [
   "profile",
   "ambition",
   "ownerIntentStatus",
+  "agentBriefing",
   "asOfGameTimeMs",
   "balances",
   "buildings",

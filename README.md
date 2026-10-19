@@ -6,6 +6,8 @@ Start with the [PACT and Fleet project handbook](docs/project/README.md) for the
 
 The [19 October local operability repair](docs/local-world-operability-20261019.md) records MCP session isolation, whole context delivery and one successful real turn per architecture on the isolated Mac world. Seven model calls were fully reported, with two zero-call legacy failures retained before repair; no new game command committed. That world is paused with its scheduler stopped. This does not change other installations or certify strategic effectiveness.
 
+The [autonomous-work investigation](docs/autonomous-work-repair-20261019.md) explains the subsequent waits: goals/permissions were present, but modern controller instructions were dropped and scoped reads could discard owner context. It records the corrected standing-objective/lease briefing and separately measured useful-work verification.
+
 The original [architecture design](docs/superpowers/specs/2026-10-17-multi-engine-platform-design.md) and [phased plan](docs/superpowers/plans/2026-10-17-multi-engine-platform.md) retain their dated intent. The handbook links each phase's actual acceptance and later corrections. Notes below include historical operations and should not be read as continuous monitoring.
 
 The [focused PACT discovery source change](docs/discovery-20261013.md) replaces directory traversal with filtered, varied kingdom shortlists on compatible game releases. It is verified locally; rollout remains separate.

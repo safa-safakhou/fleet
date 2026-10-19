@@ -6,7 +6,8 @@ import { pactAdapter } from "../../src/games/pact/adapter.js";
 import { Observability } from "../../src/observability.js";
 import { legacyManifestFor, legacyProfileFor } from "../../src/platform/profiles.js";
 import type { Claim } from "../../src/store.js";
-import golden from "../fixtures/legacy-contract-correction-20261018.json" with { type: "json" };
+import golden from "../fixtures/legacy-autonomy-guidance-20261019.json" with { type: "json" };
+import priorGolden from "../fixtures/legacy-contract-correction-20261018.json" with { type: "json" };
 import { FakeGame, FakeModel, fixture, ready } from "../helpers.js";
 import { modelInputDigest, normalizedModelInputs } from "../legacy-parity.js";
 
@@ -75,7 +76,12 @@ describe("versioned compatibility execution", () => {
     await new Engine(f.store, directModel, async () => f.game, true, pactAdapter).run(f.claim);
     const direct = await outcomes(f);
     const directInput = normalizedModelInputs(directModel, f.claim);
-    if (!action) expect(modelInputDigest(directModel, f.claim)).toBe(golden.cases[cognition ? 1 : 0].modelInputDigest);
+    if (!action) {
+      expect(golden.cases[cognition ? 1 : 0].priorModelInputDigest).toBe(
+        priorGolden.cases[cognition ? 1 : 0].modelInputDigest,
+      );
+      expect(modelInputDigest(directModel, f.claim)).toBe(golden.cases[cognition ? 1 : 0].modelInputDigest);
+    }
     const directReport = await new Observability(f.store).run(f.claim.id);
     expect(directReport.engine.provenance).toBe("inferred_legacy");
 

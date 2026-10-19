@@ -134,6 +134,7 @@ export class PlatformHost {
           signal,
           schemas: adapter.schemas,
           goal: adapter.presentation.defaultGoal,
+          instructions: adapter.instructions,
           trace: async (stage, label, detail) => {
             await this.tasks.check(claim);
             await new Observability(this.tasks.store).record(claim.turn, stage, label, detail);

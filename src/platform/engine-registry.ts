@@ -15,6 +15,7 @@ export interface EngineContext {
   eventRefs: string[];
   signal: AbortSignal;
   goal?: string;
+  instructions?: string;
   trace?: (stage: "thinking" | "deciding", label: string, detail: Data) => Promise<void>;
   capabilities?: import("./contracts.js").Capabilities;
   validateProposal?: (

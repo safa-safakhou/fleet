@@ -80,6 +80,7 @@ export interface EnvironmentSession {
   close(): Promise<void>;
 }
 export interface EnvironmentAdapter {
+  instructions?: string;
   ref: { id: string; version: string };
   schemas: { observations: string[]; actions: string[] };
   presentation: { accountLabel: string; actorLabel: string; entityLabel: string; defaultGoal: string };

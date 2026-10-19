@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "fleet.legacy-autonomy-guidance.v1",
+  "reason": "Explicit founder repair: current owner objectives are standing guidance; Fleet owns lease/receipt lifecycle; whole factual agentBriefing includes observed construction options. Intentional prompt change; controller source snapshot and prior golden hashes retained.",
+  "archivedGolden": "legacy-contract-correction-20261018.json",
+  "cases": [
+    {
+      "priorModelInputDigest": "367147b4d131c9a4b4a66ad1c9ebf1e009119a406aca5fa08a3493ef601b31f9",
+      "modelInputDigest": "320519f47ae4b280275ee4b7919fbd322c4adbb8210ae092aef2b49373084592"
+    },
+    {
+      "priorModelInputDigest": "e2c629bbb9b7ee002bf8c6749ad293449e1ec4de9b70e86be99a90a09fa454a1",
+      "modelInputDigest": "307930f00d0f304123f7584604af8959324497c8a35773cceb18557135e0d672"
+    }
+  ]
+}

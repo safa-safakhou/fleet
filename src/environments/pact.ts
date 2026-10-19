@@ -1,5 +1,6 @@
 import { type Data, FleetError, type GamePort, object, safeCode } from "../domain.js";
 import { pactAdapter } from "../games/pact/adapter.js";
+import { pactAgentBriefing } from "../games/pact/briefing.js";
 import { pactEvents } from "../games/pact/events.js";
 import { pactContinuity } from "../games/pact/outlook.js";
 import { packPactObservation } from "../games/pact/packing.js";
@@ -69,6 +70,7 @@ export function createPactEnvironment(ports: {
 }): EnvironmentAdapter {
   return {
     ref: { id: "pact", version: "1" },
+    instructions: pactAdapter.instructions,
     schemas: { observations: ["pact.observation.v1"], actions: ["pact.action.v1"] },
     presentation: {
       accountLabel: "Account",
@@ -144,13 +146,14 @@ export function createPactEnvironment(ports: {
                 mapped.continuity.facts = mapped.continuity.facts.slice(0, 40);
               }
             }
+            const current = await pactAdapter.initial(game, binding.entityRef);
             return {
               schemaId: "pact.observation.v1",
               revision: mapped.revision,
               observedAt: ports.now().toISOString(),
               environmentTime: { clockId: "pact.game-time-ms", value: mapped.time },
               sourceRefs: mapped.sourceRefs,
-              payload: { ...(await pactAdapter.initial(game, binding.entityRef)), ...extra },
+              payload: { agentBriefing: pactAgentBriefing(current), ...current, ...extra },
               coverage: {
                 authorizedView: true,
                 completeWorld: false,
@@ -159,14 +162,22 @@ export function createPactEnvironment(ports: {
               continuity: mapped.continuity,
             };
           }
-          let payload: Data;
+          const payload: Data = await pactAdapter.initial(game, binding.entityRef);
           if (typeof query.tool === "string") {
             const tool = (await game.tools()).find((tool) => tool.name === query.tool);
             if (!tool || !pactAdapter.isRead(tool) || tool.annotations?.readOnlyHint !== true)
               throw new FleetError("READ_TOOL_FORBIDDEN");
             validateTool(tool, object(query.args));
-            payload = await game.read(tool.name, object(query.args));
-          } else payload = await pactAdapter.initial(game, binding.entityRef);
+            payload.requestedRead = await game.read(tool.name, object(query.args));
+            payload.requestedReadTool = tool.name;
+            pactAdapter.applyRead?.(
+              payload,
+              tool.name,
+              object(query.args),
+              object(payload.requestedRead),
+              binding.entityRef,
+            );
+          }
           const world = object(payload.world),
             rawTime = world.asOfGameTimeMs ?? payload.asOfGameTimeMs,
             time =
@@ -181,9 +192,10 @@ export function createPactEnvironment(ports: {
             observedAt: ports.now().toISOString(),
             environmentTime: { clockId: "pact.game-time-ms", value: typeof time === "string" ? time : "unavailable" },
             sourceRefs: [`authorized-read:${String(query.tool ?? "initial")}:${String(time ?? "unavailable")}`],
-            payload: { ...payload, actionGuide: pactProposalGuide(payload) },
+            payload: { agentBriefing: pactAgentBriefing(payload), ...payload, actionGuide: pactProposalGuide(payload) },
             coverage: {
               authorizedView: true,
+              requestedReadSeparateSnapshot: typeof query.tool === "string",
               environmentTimeAvailable: typeof time === "string",
               detail: "Existing authenticated reads; current snapshot with explicit coverage, no full-world guarantee.",
             },

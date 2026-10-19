@@ -1,3 +1,7 @@
+# Autonomous-work investigation and repair — 19 October 2026
+
+Founder requests investigating why all four types wait, verifying current goals/context/permissions, and fixing barriers to useful autonomous work. Inline source fixes, fixture verification, local installation and a bounded one-turn-per-original-profile verification are within this repair; no background schedule, original-hour reopening, new account, permission/provider/budget change, server deployment, push or delegation. Preserve all prior attempts/allocations/receipts. Read `docs/superpowers/plans/2026-10-19-autonomous-work-repair.md` and record actual results separately.
+
 19 October local operability repair completed under the founder's explicit fix-and-one-turn assignment. Read `docs/local-world-operability-20261019.md`: connection-isolated MCP sessions, whole context delivery, audited local input-only amendment and four successful original-actor turns, with two zero-model-call legacy failures preserved before repair. All12 identities/lifetime history and original closed hour remain; isolated world/cohorts paused and worker stopped. No server/provider migration, old population restart or further inference is implied.
 
 # Operability repair and single-pass check authorized — 19 October 2026
