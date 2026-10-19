@@ -4,6 +4,17 @@ import { constructionRecovery } from "./construction.js";
 import { actionSchema } from "./contracts.js";
 
 const rows = (v: unknown): Data[] => (Array.isArray(v) ? v.map(object) : []);
+/** An unfinished owned batch occupies PACT's single training queue. Missing pages stay unknown. */
+export function observedTrainingBusy(facts: Data): boolean {
+  return rows(object(facts.world).training).some(
+    (b) =>
+      typeof b.batchId === "string" &&
+      Number.isSafeInteger(b.requestedCount) &&
+      Number.isSafeInteger(b.completedCount) &&
+      Number(b.completedCount) >= 0 &&
+      Number(b.requestedCount) > Number(b.completedCount),
+  );
+}
 export function observedHall(facts: Data): number | undefined {
   const level = rows(object(facts.world).buildings).find((b) => b.kind === "hall")?.level;
   return Number.isSafeInteger(level) && Number(level) >= 1 ? Number(level) : undefined;
@@ -81,6 +92,7 @@ export function observedActionSchema(kind: string, facts: Data): Data | undefine
     properties = object(shape.properties);
   const guide = object(facts.guide),
     world = object(facts.world);
+  if (kind === "game.training.queue" && observedTrainingBusy(facts)) return;
   const version = object(guide.mandate).version;
   if (properties.mandateVersion) {
     if (Number.isSafeInteger(version) && Number(version) >= 0) properties.mandateVersion = { const: version };

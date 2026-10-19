@@ -1,5 +1,11 @@
 import { type Data, object } from "../../domain.js";
-import { observedHall, observedJoinableRaids, observedOrdinaryHomeUnitCount, requiredHall } from "./choices.js";
+import {
+  observedHall,
+  observedJoinableRaids,
+  observedOrdinaryHomeUnitCount,
+  observedTrainingBusy,
+  requiredHall,
+} from "./choices.js";
 
 const nil = new Set(["00000000-0000-0000-0000-000000000000", "ffffffff-ffff-ffff-ffff-ffffffffffff"]);
 const records = (value: unknown) => (Array.isArray(value) ? value.map(object) : []);
@@ -16,6 +22,14 @@ function refused(code: string, field: string, id: unknown, reason: string): Data
 export function referencePreflight(action: Data, facts: Data): Data | undefined {
   const guide = object(facts.guide),
     world = object(facts.world);
+  if (action.kind === "game.training.queue" && observedTrainingBusy(facts))
+    return {
+      code: "OBSERVED_TRAINING_BUSY",
+      submitted: false,
+      committed: false,
+      guidance:
+        "An observed unfinished batch occupies the single training queue. Read fresh training/world facts or choose other goal-relevant work. Troops do not satisfy building prerequisites. No command was submitted.",
+    };
   const self = object(world.profile).kingdomId;
   const targetField = (
     {

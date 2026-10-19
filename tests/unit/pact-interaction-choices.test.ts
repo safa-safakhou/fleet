@@ -233,3 +233,21 @@ it("shares only an observed completed scout operation", () => {
   expect(compile(completed)(share)).toBe(true);
   expect(validatePactProposal(share, completed).valid).toBe(true);
 });
+
+it("excludes another training batch when observed owned training is occupied, without removing empty or unknown queues", () => {
+  const action = { kind: "game.training.queue", type: "spearman", count: 1 };
+  const busy = {
+    ...facts,
+    world: { ...facts.world, training: [{ batchId: peer, type: "spearman", requestedCount: 1, completedCount: 0 }] },
+  };
+  expect(compile(busy)(action)).toBe(false);
+  expect(validatePactProposal(action, busy)).toEqual({ valid: false, code: "OBSERVED_TRAINING_BUSY" });
+  expect(compile({ ...facts, world: { ...facts.world, training: [] } })(action)).toBe(true);
+  expect(compile(facts)(action)).toBe(true);
+  expect(validatePactProposal(action, facts).valid).toBe(true);
+  expect(
+    compile({ ...busy, world: { ...busy.world, training: [{ batchId: peer, requestedCount: 1, completedCount: 1 }] } })(
+      action,
+    ),
+  ).toBe(true);
+});

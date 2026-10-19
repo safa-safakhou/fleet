@@ -9,3 +9,9 @@ The retained C0 decision called Spearman training a missing Hall prerequisite. C
 3. Verify focused regressions and full required Node24/PG17 unit/integration/paired checks, types/build/boundaries/audit; preserve legacy baseline/golden history. Read-only actual-context packet checks use fake providers only.
 4. Commit verified source and install only the owned local Fleet. Freeze settings/history and create a new single-pass gate for exactly C0, preserving all closed windows. Run one native turn, with its unchanged per-turn bounds.
 5. Verify actual decision reasoning against fresh facts and command receipts. A legal unrelated training action is not Hall acceptance. Preserve any failure honestly, park cohorts/clock, verify settings/history and encrypted restore, document and locally commit results. Do not run additional live turns to seek a better result.
+
+## Retained single-turn failure and bounded follow-up
+
+The one live C0 turn on eb8ea3e received the explicit stock-shortage phase and active training, but again selected Spearman training with an unsupported construction-benefit claim. Server returned INVALID_COMMAND;0 actions committed,1 reported response, no unknown/pending state. The world was parked immediately. Do not run another turn under this one-turn assignment or reinterpret terminal WAIT as success.
+
+Close the concrete occupied-training generation/preflight gap with a red-to-green test and replay that exact retained action offline. Reverify/commit/install that guard locally, preserving the known rejected command and all144 turns/192 executions. This guard does not prove goal reasoning. Record actual semantic failure separately from operational health, verify encrypted restore, and state the unresolved acceptance in the handoff. No extra prompt-only live attempts, forced trade/introduction or model/goal/permission changes.
