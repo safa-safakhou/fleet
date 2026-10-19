@@ -68,3 +68,7 @@ The separately authorized [local repair and four-profile single-turn check](../l
 ## 20 October: isolated local-world repair
 
 The separate12-actor local world now has the [planning/interaction repair record](../interaction-planning-repair-20261020.md):694 checks pass, four initial profile turns plus one targeted C correction produced two building orders and one Spearman batch. Final143 turns/191 reported executions, groups/clock paused and no worker/unknown/pending blocker. C's training reason still falsely describes a Hall prerequisite; goal reasoning and live social competence remain unqualified. Other installations/populations in this historical checkpoint remain separate and unchanged.
+
+## 20 October: reactive-basic goal/stock checkpoint
+
+[Goal/stock repair](../reactive-goal-stock-20261020.md) delivers explicit completed prerequisites, queued stock shortage and active training. Final guard release da0277a passes699 tests and prevents the retained occupied-training proposal offline. The single actual C0 turn on eb8ea3e still invented a construction benefit for Spearman training and received INVALID_COMMAND,0 new commitments. Goal reasoning remains unaccepted. Final144 turns/192 reported executions,12 ready original actors, all cohorts/clock paused tick139, no worker/unknown/pending/blockers, encrypted restore verified. Additional-turn choice pending; no further inference is implied. Other installations/populations remain unchanged.
