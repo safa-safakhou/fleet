@@ -137,6 +137,38 @@ export class Store {
       });
     });
   }
+  /** Explicit operator repair: more final-answer room within the same execution reservation. */
+  async increaseOutputAllowance(id: string, maxOutputTokens: number, reason: string) {
+    if (reason.trim().length < 20 || reason.length > 1000) throw new FleetError("REVIEW_NOTE_REQUIRED");
+    await transaction(this.pool, async (c) => {
+      await c.query("SELECT pg_advisory_xact_lock(19281462)");
+      const row = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];
+      if (!row) throw new FleetError("NOT_FOUND");
+      if (
+        row.state !== "paused" ||
+        !row.budget ||
+        (row.budget.deadlineAt && Date.parse(row.budget.deadlineAt) <= this.now().getTime())
+      )
+        throw new FleetError("COHORT_NOT_EDITABLE");
+      const budget = Budget.parse({ ...row.budget, maxOutputTokens });
+      if (maxOutputTokens <= row.budget.maxOutputTokens) throw new FleetError("OUTPUT_INCREASE_REQUIRED");
+      if (
+        (
+          await c.query(
+            "SELECT 1 FROM turns WHERE cohort_id=$1 AND (state IN('running','pending','needs_owner') OR pending_command IS NOT NULL) UNION ALL SELECT 1 FROM compute_ledger WHERE cohort_id=$1 AND status IN('reserved','unknown') LIMIT 1",
+            [id],
+          )
+        ).rowCount
+      )
+        throw new FleetError("UNRESOLVED_EXECUTION");
+      await c.query("UPDATE cohorts SET budget=$2,generation=generation+1 WHERE id=$1", [id, budget]);
+      await this.audit(c, id, "cohort.output_allowance_increased", {
+        previousMaxOutputTokens: row.budget.maxOutputTokens,
+        maxOutputTokens,
+        reason,
+      });
+    });
+  }
   async configure(id: string, input: unknown, client?: PoolClient) {
     const v = object(input),
       model = ModelConfig.parse(v.model),

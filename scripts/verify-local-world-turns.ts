@@ -4,6 +4,7 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { safeCode } from "../src/domain.js";
 import { runtime } from "../src/runtime.js";
+import { turnVerificationFailure } from "./local-turn-verification.js";
 
 // Explicit local operator command: no scheduler, retries, new accounts or history reset.
 const [root, id, selection] = process.argv.slice(2);
@@ -129,15 +130,7 @@ try {
     ).rows;
     // Legacy controllers persist failures instead of throwing; inspect the
     // terminal receipt, not only the host promise, before calling a pass healthy.
-    if (
-      !error &&
-      (turn.state !== "finished" ||
-        !compute.length ||
-        compute.some((row) => row.status !== "reported") ||
-        turn.pending_command ||
-        (turn.code !== "WAIT" && turn.actions === 0))
-    )
-      error = turn.code ?? "TURN_NOT_OPERATIVE";
+    if (!error) error = turnVerificationFailure(turn, compute);
     if (error) process.exitCode = 1;
     result.attempts.push({
       profile: group.profile_id,

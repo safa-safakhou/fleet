@@ -39,7 +39,7 @@ export const ModelConfig = z
   .refine((m) => !m.recallAssist || m.cognition === "llm-centered-v1", "Recall assistance requires cognition");
 const executionLimits = {
   perCallTokenLimit: z.number().int().min(100).max(40000),
-  maxOutputTokens: z.number().int().min(1).max(2000),
+  maxOutputTokens: z.number().int().min(1).max(4096),
   inputByteLimit: z.number().int().min(500).max(64000),
   maxCallsPerTurn: z.number().int().min(1).max(3),
   maxActionsPerTurn: z.number().int().min(1).max(3),
