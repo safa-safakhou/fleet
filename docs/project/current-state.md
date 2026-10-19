@@ -64,3 +64,7 @@ Stabilize one observation → retained memory → relevant delivered evidence �
 ## Local operability addendum — 19 October
 
 The separately authorized [local repair and four-profile single-turn check](../local-world-operability-20261019.md) is complete: all four original actors reached valid decisions,7 model calls fully reported,2 pre-inference legacy failures preserved before repair, zero new commands. The isolated local instance now uses connection-isolated MCP sessions and useful whole context; local input-only amendments are audited. Its clock/cohorts are paused and background worker stopped. Historical qualification windows, other installations and strategic-quality conclusions above remain distinct.
+
+## 20 October: isolated local-world repair
+
+The separate12-actor local world now has the [planning/interaction repair record](../interaction-planning-repair-20261020.md):694 checks pass, four initial profile turns plus one targeted C correction produced two building orders and one Spearman batch. Final143 turns/191 reported executions, groups/clock paused and no worker/unknown/pending blocker. C's training reason still falsely describes a Hall prerequisite; goal reasoning and live social competence remain unqualified. Other installations/populations in this historical checkpoint remain separate and unchanged.
