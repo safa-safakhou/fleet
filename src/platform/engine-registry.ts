@@ -16,6 +16,7 @@ export interface EngineContext {
   signal: AbortSignal;
   goal?: string;
   instructions?: string;
+  accountObjective?: (observation: Observation) => string | undefined;
   trace?: (stage: "thinking" | "deciding", label: string, detail: Data) => Promise<void>;
   capabilities?: import("./contracts.js").Capabilities;
   validateProposal?: (

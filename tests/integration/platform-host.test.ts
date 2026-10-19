@@ -333,6 +333,7 @@ it.each(["reactive-basic", "reactive-cognition"])(
   async (profileId) => {
     const f = await setup();
     f.board.adapter.instructions = "Fixture host owns the write session; use the already delegated objective.";
+    f.board.adapter.accountObjective = () => "Develop reliable grain supply";
     const source = f.board.adapter.connect;
     f.board.adapter.connect = async (b) => {
       const s = await source(b);
@@ -361,6 +362,12 @@ it.each(["reactive-basic", "reactive-cognition"])(
       decide: async (input) => {
         called = true;
         expect(input.messages[0].content).toContain(f.board.adapter.instructions);
+        expect(input.messages[0].content).toContain("Develop reliable grain supply");
+        expect(input.messages[0].content).toContain("A wait records no action");
+        expect(input.messages[0].content.includes("For this profile wrap that decision")).toBe(
+          profileId === "reactive-cognition",
+        );
+        expect(JSON.parse(input.messages[1].content).goal).toBe("Develop reliable grain supply");
         expect(input.messages[0].content).not.toContain("Ignore the current objective");
         return {
           decision:

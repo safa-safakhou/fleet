@@ -18,7 +18,7 @@ import type { GameAdapter } from "./game.js";
 import { bindGenerationSchema, closedDecisionSchema, executableActionSchema } from "./generation.js";
 import { RemoteRejection } from "./http.js";
 import { Observability, scrub } from "./observability.js";
-import { ownerRecallQuery, ownerValues } from "./owner-guidance.js";
+import { currentOwnerObjectiveInstruction, ownerRecallQuery, ownerValues } from "./owner-guidance.js";
 import type { Claim, Store } from "./store.js";
 import { schemaChanged, ToolArgumentError, validateTool } from "./tools.js";
 
@@ -443,7 +443,12 @@ export class Engine {
         let outputSchema = cognition
           ? bindGenerationSchema(nativeSchema(deliveredCognition(context)), generation)
           : generation;
-        const instructions = this.adapter.instructions + (cognition ? ` ${analysisInstructions}` : "");
+        const instructions =
+          this.adapter.instructions +
+          (cognition ? ` ${analysisInstructions}` : "") +
+          currentOwnerObjectiveInstruction(
+            claim.cohort.owner_guidance === "account_autonomy" ? this.adapter.accountObjective?.(facts) : undefined,
+          );
         const packetLimit = Math.min(b.inputByteLimit, b.perCallTokenLimit - b.maxOutputTokens - 1024);
         let messages!: ReturnType<typeof fitMessages>;
         try {

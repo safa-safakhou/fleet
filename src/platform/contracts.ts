@@ -81,6 +81,7 @@ export interface EnvironmentSession {
 }
 export interface EnvironmentAdapter {
   instructions?: string;
+  accountObjective?(observation: Observation): string | undefined;
   ref: { id: string; version: string };
   schemas: { observations: string[]; actions: string[] };
   presentation: { accountLabel: string; actorLabel: string; entityLabel: string; defaultGoal: string };

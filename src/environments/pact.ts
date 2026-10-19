@@ -71,6 +71,7 @@ export function createPactEnvironment(ports: {
   return {
     ref: { id: "pact", version: "1" },
     instructions: pactAdapter.instructions,
+    accountObjective: (observation) => pactAdapter.accountObjective?.(observation.payload),
     schemas: { observations: ["pact.observation.v1"], actions: ["pact.action.v1"] },
     presentation: {
       accountLabel: "Account",

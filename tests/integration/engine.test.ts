@@ -501,3 +501,29 @@ it("fits legacy packets to the tighter token-reservation envelope when input spa
   expect((await f.store.publicState()).turns[0].code).toBe("WAIT");
   expect((await f.store.agent(claim.agentId)).notes).toBe(claim.agent.notes);
 });
+
+it("tells the model the actual provided autonomous owner objective, not only a generic instruction to follow one", async () => {
+  const f = await setup();
+  await f.pool.query("UPDATE cohorts SET owner_guidance='account_autonomy' WHERE id=$1", [f.id]);
+  f.claim.cohort.owner_guidance = "account_autonomy";
+  const read = f.game.read.bind(f.game);
+  f.game.read = async (tool, args) =>
+    tool === "pact_world_read_v1"
+      ? { ...(await read(tool, args)), ambition: "Develop reliable grain supply autonomously" }
+      : read(tool, args);
+  let called = false;
+  await new Engine(
+    f.store,
+    {
+      decide: async (input) => {
+        called = true;
+        expect(input.messages[0].content).toContain("Develop reliable grain supply autonomously");
+        return { decision: { kind: "wait", summary: "Review available choices" }, inputTokens: 10, outputTokens: 2 };
+      },
+    },
+    async () => f.game,
+    true,
+  ).run(f.claim);
+  expect(called).toBe(true);
+  expect((await f.store.publicState()).turns[0].code).toBe("WAIT");
+});

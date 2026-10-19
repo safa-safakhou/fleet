@@ -21,3 +21,11 @@ export function ownerRecallQuery(mode: string | undefined, strategy: Strategy, o
         "Current authorized facts and outstanding outcomes; no owner objective was provided.")
     : strategy.objective;
 }
+
+/** Only the reviewed adapter supplies this value from its authenticated owner view. */
+export function currentOwnerObjectiveInstruction(objective: string | undefined) {
+  const actual = currentObjective(objective);
+  return actual
+    ? ` Current owner objective: ${JSON.stringify(actual)}. This is standing guidance within existing permissions.`
+    : "";
+}
