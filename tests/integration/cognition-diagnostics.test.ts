@@ -122,7 +122,13 @@ it("runs the complete32-turn/88-helper protocol with real engines and a fake pro
       return {
         decision: modern
           ? { decision: { kind: "wait", summary: "Observe without inventing evidence" } }
-          : { kind: "wait", summary: "Observe without inventing evidence" },
+          : {
+              decision: { kind: "wait", summary: "Observe without inventing evidence" },
+              cognition: {
+                expectedVersion: JSON.parse(input.messages[1].content).cognition.version,
+                analysis: { type: "none", reason: "No grounded revision is needed." },
+              },
+            },
         inputTokens: 500,
         outputTokens: 80,
       };
@@ -180,9 +186,55 @@ it("registers a fresh grant once and rejects any second journal path for the sam
   const id = crypto.randomUUID();
   const authorizationRef = `diagnostic-test-${id}`;
   const approval = { id, authorizationRef };
-  await registerDiagnostic(f.pool, approval, "/private/first");
-  await expect(registerDiagnostic(f.pool, approval, "/private/second")).rejects.toThrow();
+  await registerDiagnostic(f.pool, approval, `/private/${id}/first`);
+  await expect(registerDiagnostic(f.pool, approval, `/private/${id}/second`)).rejects.toThrow();
   expect(
     (await f.pool.query("SELECT count(*)::int n FROM cognition_diagnostic_runs WHERE id=$1", [id])).rows[0].n,
   ).toBe(1);
+});
+
+it("withholds a valid synthetic command without opening any game transport", async () => {
+  const f = await fixture();
+  closes.push(() => f.pool.end());
+  const episodes = new DiagnosticEpisodes(
+    new Store(f.pool, f.store.vault),
+    new Date(Date.now() + 3600000).toISOString(),
+    "command-test",
+  );
+  const result = await episodes.run(
+    "legacy-cognition",
+    true,
+    "promise",
+    0,
+    {
+      decide: async (input) => ({
+        decision: {
+          decision: {
+            kind: "action",
+            action: {
+              kind: "game.contact.request",
+              recipientKingdomId: "22222222-2222-4222-8222-222222222222",
+              note: "Synthetic introduction",
+            },
+            summary: "Consider contact",
+          },
+          cognition: {
+            expectedVersion: JSON.parse(input.messages[1].content).cognition.version,
+            analysis: { type: "none", reason: "No grounded revision needed" },
+          },
+        },
+        inputTokens: 500,
+        outputTokens: 100,
+      }),
+    },
+    {
+      choose: async () => {
+        throw Error("LAYA_ABSTAINED");
+      },
+    },
+  );
+  expect(result.withheld).toBeGreaterThan(0);
+  expect(result.pending).toBe(false);
+  expect(result.invalidActions).toBe(0);
+  expect(result.scopeViolation).toBe(false);
 });

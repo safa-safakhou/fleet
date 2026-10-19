@@ -187,8 +187,11 @@ export class DiagnosticJournal {
           input.model.thinking !== scope.thinking ||
           input.maxOutputTokens > 2000 ||
           Buffer.byteLength(JSON.stringify(input.messages)) > 24000
-        )
+        ) {
+          this.state = "blocked";
+          await this.write({ type: "stop", code: "DIAGNOSTIC_MODEL_SCOPE" });
           throw new FleetError("DIAGNOSTIC_MODEL_SCOPE");
+        }
         const result = await this.invoke(
           "model",
           scope,
@@ -203,6 +206,10 @@ export class DiagnosticJournal {
               ...input,
               signal: AbortSignal.any([input.signal, AbortSignal.timeout(90000)]),
               onDispatch: dispatch,
+            });
+            await this.write({
+              type: "provider-response",
+              detail: this.vault.encrypt(response, `diagnostic:${this.entries.at(-1)?.id}:provider-response`),
             });
             if (
               ![response.inputTokens, response.outputTokens].every(

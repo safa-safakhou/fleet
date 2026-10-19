@@ -196,3 +196,43 @@ it("rejects expired dispatch and stops on missing usage even when provider retur
   expect(j.summary()).toMatchObject({ state: "blocked", unknown: 1, reservedTokens: 40000 });
   await j.close();
 });
+
+it("fences a model scope mismatch before dispatch and enforces the wall-clock deadline", async () => {
+  const { j } = await setup();
+  let calls = 0;
+  const model = j.model(
+    {
+      decide: async () => {
+        calls++;
+        return { decision: {}, inputTokens: 1, outputTokens: 1 };
+      },
+    },
+    scope,
+  );
+  await expect(
+    model.decide({
+      model: { route: "ollama", model: "nemotron-3-nano:4b", thinking: false },
+      messages: [],
+      schema: { type: "object" },
+      maxOutputTokens: 2000,
+      signal: AbortSignal.timeout(1000),
+    }),
+  ).rejects.toThrow("DIAGNOSTIC_MODEL_SCOPE");
+  expect(calls).toBe(0);
+  expect(j.summary().state).toBe("blocked");
+  await j.close();
+  const dir = await mkdtemp(join(tmpdir(), "diag-clock-"));
+  dirs.push(dir);
+  const a = approval();
+  let time = Date.parse(a.startsAt) + 1;
+  const clocked = await DiagnosticJournal.create(
+    join(dir, "journal"),
+    a,
+    new Vault(Buffer.alloc(32, 7).toString("base64")),
+    () => time,
+  );
+  time = Date.parse(a.deadlineAt);
+  await expect(clocked.invoke("model", scope, {}, async () => ({}))).rejects.toThrow("DIAGNOSTIC_DEADLINE");
+  expect(clocked.summary().modelCalls).toBe(0);
+  await clocked.close();
+});
