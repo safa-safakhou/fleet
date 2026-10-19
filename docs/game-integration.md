@@ -39,7 +39,7 @@ See [F4 intake and reactive profile](reactive-engine-20261017.md) for explicit n
 
 ## Trusted controller instructions and standing objectives
 
-A registered `EnvironmentAdapter` can supply optional static `instructions`. The host forwards these separately from observation/peer text into the engine's system instructions; reactive-basic and reactive-cognition consume them. An absent field preserves the existing packet. Do not promote tool output or another player's prose into this field.
+A registered `EnvironmentAdapter` can supply optional static `instructions`. The host forwards these separately from observation/peer text into the engine's system instructions; reactive-basic and reactive-cognition consume them. An absent field preserves the existing packet. Do not promote tool output or another player's prose into this field. An optional `accountObjective(observation)` callback extracts only the authenticated current owner objective from the fresh owned view. The host forwards it separately; modern controllers refresh the actual assignment after reads rather than using only a generic default goal. Neither hook grants permission.
 
 PACT supplies the same controller contract used by the legacy integration: a current owner objective supplies standing guidance for already delegated actions, and Fleet handles the MCP write lease, command IDs and receipts. External MCP-client instructions about opening a lease describe a host responsibility in Fleet. Human-only actions, mandate bounds, freshness and server admission remain enforced.
 
