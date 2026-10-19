@@ -9,6 +9,6 @@ Founder explicitly requests merging and pushing the existing Fleet and PACT feat
 - [x] Complete Fleet checks/unit/integration/build/boundaries/audit, PACT lint/types/build/unit/integration/non-game/migration/audit, paired acceptance and helper stubs.
 - [x] Review the merge against each feature branch and scan outgoing history for credential patterns; runtime source remains exactly the branch code.
 - [x] Record actual results and remaining warnings, validate backlog/navigation/diff, commit both merge histories and push master normally.
-- [ ] Read back both remote heads, prove feature ancestry, observe hosted CI, stop only owned fixtures and retain feature worktrees/private verification logs.
+- [x] Read back both remote heads, prove feature ancestry, observe hosted CI, stop only owned fixtures and retain feature worktrees/private verification logs.
 
 No delegation, model/helper inference, server/game access, installed-source/configuration/account/history/allocation changes, unknown review/replay, reset, shadow or population run. Historical unused grants stay closed.
