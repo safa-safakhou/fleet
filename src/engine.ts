@@ -444,6 +444,7 @@ export class Engine {
           ? bindGenerationSchema(nativeSchema(deliveredCognition(context)), generation)
           : generation;
         const instructions = this.adapter.instructions + (cognition ? ` ${analysisInstructions}` : "");
+        const packetLimit = Math.min(b.inputByteLimit, b.perCallTokenLimit - b.maxOutputTokens - 1024);
         let messages!: ReturnType<typeof fitMessages>;
         try {
           const packDecision = () => {
@@ -454,7 +455,7 @@ export class Engine {
                 fittingContext,
                 instructions,
                 outputSchema,
-                b.inputByteLimit,
+                packetLimit,
                 boundedReads,
                 this.adapter.narrowRead,
                 this.adapter.compactEnvironment,
@@ -474,7 +475,7 @@ export class Engine {
               outputSchema = bindGenerationSchema(nativeSchema(deliveredCognition(fittingContext)), generation);
               if (
                 Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(outputSchema)) <=
-                b.inputByteLimit
+                packetLimit
               )
                 break;
               // Refit only the already delivered subset, then constrain IDs again.

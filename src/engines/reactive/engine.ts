@@ -36,6 +36,9 @@ export class ReactiveEngine implements AgentEngine {
   protected async extension(_ctx: EngineContext, _observation: EngineContext["observation"]): Promise<Data> {
     return {};
   }
+  protected modelObservation(observation: EngineContext["observation"]) {
+    return observation;
+  }
   protected fitExtension(_payload: Data): void {}
   protected generationSchema(_payload: Data, base: Data): Data {
     return base;
@@ -78,7 +81,7 @@ export class ReactiveEngine implements AgentEngine {
           sourceRefsOmitted: ctx.task.sourceRefsOmitted + Math.max(0, ctx.eventRefs.length - 20),
         },
         goal: ctx.goal ?? "Use the current authorized owner intent and environment rules.",
-        observation,
+        observation: this.modelObservation(observation),
         actionSchemas: ctx.schemas?.actions ?? [],
         catalog,
         ...(previousProposal ? { previousProposal } : {}),
@@ -98,19 +101,19 @@ export class ReactiveEngine implements AgentEngine {
       if (!fits()) this.fitExtension(payload);
       if (!fits()) {
         payload.catalog = fitCatalog(catalog, Math.floor(budget.inputByteLimit / 4));
-        omitted.omitted.push("catalog entries that exceed input budget");
+        omitted.omitted.push("catalog descriptions and input schemas; all tool names retained");
       }
-      if (!fits()) {
-        const keys = Object.keys(observation.payload);
-        const selected: Data = { ...observation.payload };
-        for (const key of keys.reverse()) {
-          if (fits()) break;
-          delete selected[key];
-          payload.observation = {
-            ...observation,
-            payload: { ...selected },
-            coverage: { ...observation.coverage, budgetOmittedKeys: keys.filter((k) => !(k in selected)) },
-          };
+      if (!fits() && ctx.packObservation) {
+        const original = this.modelObservation(observation);
+        const packetBytes = () =>
+          Buffer.byteLength(JSON.stringify(messages())) +
+          Buffer.byteLength(JSON.stringify(this.generationSchema(payload, baseSchema)));
+        let allowance = Math.min(Buffer.byteLength(JSON.stringify(original)), Math.floor(budget.inputByteLimit / 2));
+        payload.observation = ctx.packObservation(original, allowance);
+        for (let pass = 0; pass < 12 && !fits(); pass++) {
+          allowance -= Math.max(128, packetBytes() - budget.inputByteLimit + 128);
+          if (allowance <= 0) throw new FleetError("CONTEXT_LIMIT", true);
+          payload.observation = ctx.packObservation(original, allowance);
         }
       }
       if (!fits()) throw new FleetError("MODEL_REQUEST_NOT_ADMITTED", true);
@@ -216,8 +219,11 @@ function bindActionContracts(
   }
   return schema;
 }
-function fitCatalog(catalog: Tool[], limit: number) {
-  const kept: Tool[] = [];
-  for (const item of catalog) if (Buffer.byteLength(JSON.stringify([...kept, item])) <= limit) kept.push(item);
-  return kept;
+function fitCatalog(catalog: Tool[], _limit: number) {
+  // Exact write schemas are already delivered in the decision contract. Keep every
+  // capability name; scoped reads retrieve detail without hiding later tools.
+  return catalog.map((tool) => ({
+    name: tool.name,
+    annotations: { readOnlyHint: tool.annotations?.readOnlyHint === true },
+  }));
 }

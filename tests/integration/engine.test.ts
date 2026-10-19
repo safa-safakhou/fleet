@@ -478,3 +478,26 @@ describe("observe decide commit", () => {
     expect(model.inputs[1].messages[1].content).toContain("INVALID_MODEL_OUTPUT");
   });
 });
+
+it("fits legacy packets to the tighter token-reservation envelope when input space was increased", async () => {
+  const f = await fixture();
+  cleanup = () => f.pool.end();
+  const id = await ready(f.store, 1);
+  await f.store.setState(id, "paused", true);
+  await f.store.increaseInputAllowance(id, 48000, "One-pass repair requires whole current state and bounded context");
+  await f.store.setState(id, "running", true);
+  const claim = await f.store.claim("large-packet");
+  if (!claim) throw Error("NO_CLAIM");
+  claim.agent.notes = "Synthetic retained notes. " + "x".repeat(34000);
+  await f.pool.query("UPDATE agents SET notes=$2 WHERE id=$1", [claim.agentId, claim.agent.notes]);
+  const game = new FakeGame(claim),
+    model = new FakeModel();
+  await new Engine(f.store, model, async () => game, true).run(claim);
+  expect(model.inputs.length).toBeGreaterThan(0);
+  for (const input of model.inputs)
+    expect(
+      Buffer.byteLength(JSON.stringify(input.messages)) + Buffer.byteLength(JSON.stringify(input.schema)),
+    ).toBeLessThanOrEqual(36976);
+  expect((await f.store.publicState()).turns[0].code).toBe("WAIT");
+  expect((await f.store.agent(claim.agentId)).notes).toBe(claim.agent.notes);
+});

@@ -110,6 +110,33 @@ export class Store {
     };
     return client ? write(client) : transaction(this.pool, write);
   }
+  /** Explicit operator repair: only input space changes; quotas/model/history stay intact. */
+  async increaseInputAllowance(id: string, inputByteLimit: number, reason: string) {
+    if (reason.trim().length < 20 || reason.length > 1000) throw new FleetError("REVIEW_NOTE_REQUIRED");
+    await transaction(this.pool, async (c) => {
+      await c.query("SELECT pg_advisory_xact_lock(19281462)");
+      const row = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];
+      if (!row) throw new FleetError("NOT_FOUND");
+      if (row.state !== "paused" || !row.budget) throw new FleetError("COHORT_NOT_EDITABLE");
+      const budget = Budget.parse({ ...row.budget, inputByteLimit });
+      if (inputByteLimit <= row.budget.inputByteLimit) throw new FleetError("INPUT_INCREASE_REQUIRED");
+      if (
+        (
+          await c.query(
+            "SELECT 1 FROM turns WHERE cohort_id=$1 AND (state IN('running','pending','needs_owner') OR pending_command IS NOT NULL) UNION ALL SELECT 1 FROM compute_ledger WHERE cohort_id=$1 AND status IN('reserved','unknown') LIMIT 1",
+            [id],
+          )
+        ).rowCount
+      )
+        throw new FleetError("UNRESOLVED_EXECUTION");
+      await c.query("UPDATE cohorts SET budget=$2,generation=generation+1 WHERE id=$1", [id, budget]);
+      await this.audit(c, id, "cohort.input_allowance_increased", {
+        previousInputByteLimit: row.budget.inputByteLimit,
+        inputByteLimit,
+        reason,
+      });
+    });
+  }
   async configure(id: string, input: unknown, client?: PoolClient) {
     const v = object(input),
       model = ModelConfig.parse(v.model),

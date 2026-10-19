@@ -2,6 +2,7 @@ import { type Data, FleetError, type GamePort, object, safeCode } from "../domai
 import { pactAdapter } from "../games/pact/adapter.js";
 import { pactEvents } from "../games/pact/events.js";
 import { pactContinuity } from "../games/pact/outlook.js";
+import { packPactObservation } from "../games/pact/packing.js";
 import { pactActionContracts, pactProposalGuide, validatePactProposal } from "../games/pact/proposals.js";
 import { RemoteRejection } from "../http.js";
 import type { Bindings } from "../platform/bindings.js";
@@ -149,7 +150,7 @@ export function createPactEnvironment(ports: {
               observedAt: ports.now().toISOString(),
               environmentTime: { clockId: "pact.game-time-ms", value: mapped.time },
               sourceRefs: mapped.sourceRefs,
-              payload: { outlook: raw, ...extra },
+              payload: { ...(await pactAdapter.initial(game, binding.entityRef)), ...extra },
               coverage: {
                 authorizedView: true,
                 completeWorld: false,
@@ -167,7 +168,13 @@ export function createPactEnvironment(ports: {
             payload = await game.read(tool.name, object(query.args));
           } else payload = await pactAdapter.initial(game, binding.entityRef);
           const world = object(payload.world),
-            time = world.asOfGameTimeMs ?? payload.asOfGameTimeMs;
+            rawTime = world.asOfGameTimeMs ?? payload.asOfGameTimeMs,
+            time =
+              typeof rawTime === "number" && Number.isSafeInteger(rawTime) && rawTime >= 0
+                ? String(rawTime)
+                : typeof rawTime === "string" && /^\d+$/.test(rawTime)
+                  ? rawTime
+                  : undefined;
           return {
             schemaId: "pact.observation.v1",
             revision: typeof time === "string" ? time : "unavailable",
@@ -188,6 +195,7 @@ export function createPactEnvironment(ports: {
           pactAdapter.validateCatalog?.(tools);
           return tools;
         },
+        packObservation: packPactObservation,
         validateProposal: async (proposal, observation) =>
           validatePactProposal(proposal.intent.payload, observation.payload),
         actionContracts: async (observation) => pactActionContracts(observation.payload),

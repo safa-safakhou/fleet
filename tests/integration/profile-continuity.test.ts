@@ -430,6 +430,11 @@ it("bounds growing history and discloses omitted input without accepting evicted
   const connect = f.board.adapter.connect;
   f.board.adapter.connect = async (b) => ({
     ...(await connect(b)),
+    packObservation: (o) => ({
+      ...o,
+      payload: { current: o.payload.current },
+      coverage: { ...o.coverage, budgetOmittedKeys: ["huge"] },
+    }),
     observe: async () => ({
       ...observation(f, [fact("current")], "12"),
       payload: { current: "now", huge: "x".repeat(40000) },

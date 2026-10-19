@@ -9,6 +9,7 @@ export class McpGame implements GamePort {
   constructor(
     private base: string,
     private token: string,
+    private isolated = false,
   ) {}
   private headers() {
     return {
@@ -30,11 +31,14 @@ export class McpGame implements GamePort {
     return object(data.result);
   }
   async init() {
-    await this.rpc("initialize", {
+    const initialized = await this.rpc("initialize", {
       protocolVersion: "2025-11-25",
       clientInfo: { name: "fleet", version: "0.1.0" },
       capabilities: {},
+      ...(this.isolated ? { _meta: { "pact/session-scope": "connection" } } : {}),
     });
+    if (this.isolated && object(initialized._meta)["pact/session-scope"] !== "connection")
+      throw new FleetError("SESSION_ISOLATION_UNSUPPORTED", true);
     const r = await fetch(`${this.base}/mcp`, {
       method: "POST",
       headers: this.headers(),

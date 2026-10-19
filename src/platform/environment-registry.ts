@@ -117,6 +117,7 @@ export class EnvironmentRegistry {
         };
       },
       catalog: () => session.catalog(),
+      ...(session.packObservation ? { packObservation: session.packObservation.bind(session) } : {}),
       ...(session.validateProposal ? { validateProposal: session.validateProposal.bind(session) } : {}),
       ...(session.actionContracts
         ? {

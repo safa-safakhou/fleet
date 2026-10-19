@@ -85,13 +85,18 @@ export class CredentialBroker {
     secret.refreshToken = r.refresh_token;
     secret.expiresAt = this.store.now().getTime() + r.expires_in * 1000;
   }
-  private async lock<T>(id: string, operation: () => Promise<T>) {
+  private async lock<T>(id: string, operation: () => Promise<T>, wait = false) {
     const c = await this.store.pool.connect();
     let locked = false;
     try {
-      locked = (await c.query("SELECT pg_try_advisory_lock(hashtextextended($1,19281463)) locked", [id])).rows[0]
-        .locked;
-      if (!locked) throw new FleetError("AUTH_BUSY");
+      const deadline = Date.now() + 10000;
+      do {
+        locked = (await c.query("SELECT pg_try_advisory_lock(hashtextextended($1,19281463)) locked", [id])).rows[0]
+          .locked;
+        if (locked) break;
+        if (!wait || Date.now() >= deadline) throw new FleetError("AUTH_BUSY", true);
+        await new Promise((ready) => setTimeout(ready, 25));
+      } while (!locked);
       return await operation();
     } finally {
       if (locked) await c.query("SELECT pg_advisory_unlock(hashtextextended($1,19281463))", [id]);
@@ -342,31 +347,35 @@ export class CredentialBroker {
   }
   async game(id: string) {
     this.enabled();
-    return this.lock(id, async () => {
-      const a = await this.store.agent(id),
-        s = await this.load(id);
-      if (a.credential_state !== "ready" || !s.accessToken || !a.account_id) throw new FleetError("AUTH_REQUIRED");
-      await this.refresh(id, s);
-      let game = new McpGame(this.base, s.accessToken);
-      const initialize = async () => {
-        await game.init();
-        return game.profile();
-      };
-      let profile: Awaited<ReturnType<McpGame["profile"]>>;
-      try {
-        profile = await initialize();
-      } catch (error) {
-        if (!(error instanceof Error) || object(error).code !== "AUTH_REQUIRED") throw error;
-        await this.refresh(id, s, true);
-        game = new McpGame(this.base, s.accessToken ?? "");
-        profile = await initialize();
-      }
-      if (profile.accountId !== a.account_id) {
-        await game.close();
-        throw new FleetError("IDENTITY_MISMATCH");
-      }
-      return game;
-    });
+    return this.lock(
+      id,
+      async () => {
+        const a = await this.store.agent(id),
+          s = await this.load(id);
+        if (a.credential_state !== "ready" || !s.accessToken || !a.account_id) throw new FleetError("AUTH_REQUIRED");
+        await this.refresh(id, s);
+        let game = new McpGame(this.base, s.accessToken, true);
+        const initialize = async () => {
+          await game.init();
+          return game.profile();
+        };
+        let profile: Awaited<ReturnType<McpGame["profile"]>>;
+        try {
+          profile = await initialize();
+        } catch (error) {
+          if (!(error instanceof Error) || object(error).code !== "AUTH_REQUIRED") throw error;
+          await this.refresh(id, s, true);
+          game = new McpGame(this.base, s.accessToken ?? "", true);
+          profile = await initialize();
+        }
+        if (profile.accountId !== a.account_id) {
+          await game.close();
+          throw new FleetError("IDENTITY_MISMATCH");
+        }
+        return game;
+      },
+      true,
+    );
   }
   async provision(id: string, mandate: unknown) {
     this.enabled();
@@ -564,7 +573,7 @@ export class CredentialBroker {
     });
   }
   private async gameAfterProvision(s: Credentials) {
-    const game = new McpGame(this.base, s.accessToken ?? "");
+    const game = new McpGame(this.base, s.accessToken ?? "", true);
     await game.init();
     if ((await game.profile()).accountId !== s.accountId) {
       await game.close();

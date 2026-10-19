@@ -23,6 +23,10 @@ export class ContinuityEngine extends ReactiveEngine {
   protected async extension(ctx: EngineContext, observation: EngineContext["observation"]) {
     return { continuity: await this.continuity.context(ctx.binding, ctx.claim, observation) };
   }
+  protected modelObservation(observation: EngineContext["observation"]) {
+    const { continuity: _continuity, ...current } = observation;
+    return { ...current, coverage: { ...current.coverage, continuityDeliveredSeparately: true } };
+  }
   protected fitExtension(payload: Data) {
     const c = object(payload.continuity);
     let omitted = 0;

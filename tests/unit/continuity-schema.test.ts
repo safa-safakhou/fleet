@@ -66,7 +66,14 @@ it.each([false, true, "empty"] as const)(
       return { decision: { decision }, inputTokens: 10, outputTokens: 2 };
     });
     ctx.observation.continuity = {} as never;
-    if (fit === true) ctx.observation.payload = { huge: "x".repeat(40000) };
+    if (fit === true) {
+      ctx.observation.payload = { position: "a2", optionalHistory: "x".repeat(40000) };
+      ctx.packObservation = (o) => ({
+        ...o,
+        payload: { position: o.payload.position },
+        coverage: { omitted: ["optionalHistory"] },
+      });
+    }
     const module = {
       context: async () => ({
         version: 0,

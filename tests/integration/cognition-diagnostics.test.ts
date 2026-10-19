@@ -9,6 +9,13 @@ import { DiagnosticEpisodes } from "../../src/games/pact/cognition-diagnostics.j
 import { Store } from "../../src/store.js";
 import { fixture } from "../helpers.js";
 
+// Diagnostic observations and evidence validation share a fixed fixture clock.
+// Keep real journal deadlines separate; wall-clock adjustment cannot date a
+// just-created synthetic observation in the future.
+function fixtureClock() {
+  const time = Date.now();
+  return () => new Date(time);
+}
 const closes: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const c of closes.splice(0)) await c();
@@ -16,7 +23,7 @@ afterEach(async () => {
 it("continues three actual engine turns with one identity, owned cited memory and changed current evidence", async () => {
   const f = await fixture();
   closes.push(() => f.pool.end());
-  const store = new Store(f.pool, f.store.vault);
+  const store = new Store(f.pool, f.store.vault, fixtureClock());
   const episodes = new DiagnosticEpisodes(store, new Date(Date.now() + 3600000).toISOString(), "test-run");
   let calls = 0,
     saved = "";
@@ -68,7 +75,7 @@ it("runs the unchanged legacy cognition path and withholds synthetic actions", a
   const f = await fixture();
   closes.push(() => f.pool.end());
   const episodes = new DiagnosticEpisodes(
-    new Store(f.pool, f.store.vault),
+    new Store(f.pool, f.store.vault, fixtureClock()),
     new Date(Date.now() + 3600000).toISOString(),
     "test-run",
   );
@@ -162,7 +169,7 @@ it("runs the complete32-turn/88-helper protocol with real engines and a fake pro
   }));
   const result = await runCognitionDiagnostics(
     j,
-    new DiagnosticEpisodes(new Store(f.pool, f.store.vault), approval.deadlineAt, approval.id),
+    new DiagnosticEpisodes(new Store(f.pool, f.store.vault, fixtureClock()), approval.deadlineAt, approval.id),
     model,
     cases,
     transport,
@@ -197,7 +204,7 @@ it("withholds a valid synthetic command without opening any game transport", asy
   const f = await fixture();
   closes.push(() => f.pool.end());
   const episodes = new DiagnosticEpisodes(
-    new Store(f.pool, f.store.vault),
+    new Store(f.pool, f.store.vault, fixtureClock()),
     new Date(Date.now() + 3600000).toISOString(),
     "command-test",
   );

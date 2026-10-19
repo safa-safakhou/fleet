@@ -23,6 +23,7 @@ export interface EngineContext {
   ) => Promise<{ valid: boolean; code: string }>;
   schemas?: { observations: string[]; actions: string[] };
   actionContracts?: (observation: Observation) => Promise<import("./contracts.js").ActionContract[]>;
+  packObservation?: (observation: Observation, byteLimit: number) => Observation;
   catalog?: () => Promise<Tool[]>;
   waitForEvent?: () => Promise<void>;
 }

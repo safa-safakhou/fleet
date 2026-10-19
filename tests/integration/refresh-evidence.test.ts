@@ -46,6 +46,8 @@ function mock(accountId: string, token: () => Promise<Response>) {
       });
       return token();
     }
+    if (body.method === "initialize")
+      return Response.json({ result: { _meta: { "pact/session-scope": "connection" } } });
     if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
     if (body.method === "tools/list")
       return Response.json({
@@ -135,7 +137,7 @@ for (const mode of ["gateway", "lost_ack", "revoked"])
     expect(audit).not.toContain(old.refreshToken);
     expect(audit).not.toContain(old.accessToken);
   });
-it("single-flights concurrent brokers and refuses a second refresh", async () => {
+it("single-flights concurrent brokers and queues a second connection without refreshing twice", async () => {
   const f = await setup();
   let release: (() => void) | undefined, entered: (() => void) | undefined;
   const started = new Promise<void>((r) => {
@@ -174,9 +176,10 @@ it("single-flights concurrent brokers and refuses a second refresh", async () =>
     (await f.pool.query("SELECT phase FROM oauth_attempts WHERE state='callback-while-refreshing'")).rows[0].phase,
   ).toBe("pending");
   const second = new CredentialBroker(f.store, "https://fixture.example", "http://127.0.0.1:8820", true);
-  await expect(second.game(f.claim.agentId)).rejects.toThrow("AUTH_BUSY");
+  const queued = second.game(f.claim.agentId);
   release?.();
   await (await first).close();
+  await (await queued).close();
   expect(network.calls()).toBe(1);
 });
 for (const mode of ["pause", "newer_grant"])

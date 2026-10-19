@@ -40,7 +40,7 @@ export const ModelConfig = z
 const executionLimits = {
   perCallTokenLimit: z.number().int().min(100).max(40000),
   maxOutputTokens: z.number().int().min(1).max(2000),
-  inputByteLimit: z.number().int().min(500).max(24000),
+  inputByteLimit: z.number().int().min(500).max(64000),
   maxCallsPerTurn: z.number().int().min(1).max(3),
   maxActionsPerTurn: z.number().int().min(1).max(3),
   concurrency: z.number().int().min(1).max(16),

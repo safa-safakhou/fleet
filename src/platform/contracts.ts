@@ -76,6 +76,7 @@ export interface EnvironmentSession {
   events?(cursor: string | null): Promise<EventPage>;
   validateProposal?(proposal: Proposal, observation: Observation): Promise<{ valid: boolean; code: string }>;
   actionContracts?(observation: Observation): Promise<ActionContract[]>;
+  packObservation?(observation: Observation, byteLimit: number): Observation;
   close(): Promise<void>;
 }
 export interface EnvironmentAdapter {

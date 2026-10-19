@@ -311,3 +311,17 @@ it("runs observation, model decision, exact commitment and task acknowledgement 
     (await f.pool.query("SELECT calls,actions,pending_command FROM turns WHERE id=$1", [c.turn.id])).rows[0],
   ).toEqual({ calls: 1, actions: 1, pending_command: null });
 });
+
+it("an explicit one-pass claim selects only its requested task and keeps normal eligibility fences", async () => {
+  const f = await setup();
+  const earlier = await f.enqueue(f.group.bindings[0], "earlier", "event:earlier");
+  const selected = await f.enqueue(f.group.bindings[1], "selected", "event:selected");
+  const claim = await f.tasks.claim("one-pass", f.now(), selected.id);
+  expect(claim?.taskId).toBe(selected.id);
+  expect((await f.tasks.get(earlier.id)).state).toBe("ready");
+  if (!claim) throw Error("NO_SELECTED_CLAIM");
+  await f.tasks.finish(claim, "WAIT");
+  await f.store.setState(f.group.id, "paused", true);
+  expect(await f.tasks.claim("one-pass", f.now(), earlier.id)).toBeNull();
+  expect(await f.tasks.claim("one-pass", f.now(), randomUUID())).toBeNull();
+});

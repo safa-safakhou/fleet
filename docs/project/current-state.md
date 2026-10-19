@@ -59,3 +59,8 @@ Publishing source does not switch the installed symlink, migrate a runtime, enab
 Stabilize one observation → retained memory → relevant delivered evidence → decision → verified outcome cycle. Improve query/candidate diversity, receipt-backed memory status and semantic diagnostics. Verify source changes offline, then propose a new exact model budget and small environment-matched run. Preserve free choice: no compulsory alliance, messaging, memory count, threshold reduction or reward for action volume. F6/new-world rollout stays separately gated.
 
 [Detailed findings](findings.md) · [Journey and budget lineage](journey.md) · [Original diagnostic](../cognition-diagnostics-20261019.md)
+
+
+## Local operability addendum — 19 October
+
+The separately authorized [local repair and four-profile single-turn check](../local-world-operability-20261019.md) is complete: all four original actors reached valid decisions,7 model calls fully reported,2 pre-inference legacy failures preserved before repair, zero new commands. The isolated local instance now uses connection-isolated MCP sessions and useful whole context; local input-only amendments are audited. Its clock/cohorts are paused and background worker stopped. Historical qualification windows, other installations and strategic-quality conclusions above remain distinct.
