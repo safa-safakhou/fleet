@@ -1,3 +1,7 @@
+# One-hour local world complete — 19 October 2026
+
+Founder’s original14:26:13.625–15:26:13.625UTC window is closed, all4 groups/world clock paused, same12 identities preserved.49 turn attempts/41 reported model executions/0 unknown or outstanding allocations. Read docs/local-world-observation-20261019.md and the paired PACT report. Only A completed1 FarmII; one A / three C Hall II orders wait on prerequisites. No established inter-kingdom communication/contracts/military outcome; two self-directed proposals failed. B made6 Laya requests, all deterministic fallback. Reactive MCP session ownership and context delivery blocked a fair comparison. Preserve histories/deadline/evidence. No second hour, source repair rollout, old-population review/change, push or delegation is authorized automatically.
+
 # Local one-hour world preparation — 19 October 2026
 
 Founder requests preparing a separate local PACT world with four fleet types and no added experiment-wide compute quotas, then waiting for an explicit launch command. Read docs/local-one-hour-window-20261019.md and the paired PACT operator report in the sibling isolated worktree. Twelve new bindings are prepared; the new game clock is paused, cohorts draft and run-window times unset. Optional FLEET_RUN_WINDOW_FILE fails closed until the one-hour launch window is explicitly armed. No real model/helper calls, old-population changes, recovery reviews, push or delegation during preparation. Preserve private state and all identities/history.
