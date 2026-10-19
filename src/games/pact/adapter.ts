@@ -90,6 +90,7 @@ export function compactFacts(input: Data) {
     goalFeasibility: guide.goalFeasibility,
     buildings: world.buildings,
     builders: world.builders,
+    training: world.training,
     nextUpgradeChecks: world.nextUpgradeChecks,
     constructionRecovery: constructionRecovery(world),
     upkeep: world.upkeep,

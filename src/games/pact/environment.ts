@@ -13,6 +13,7 @@ const core = [
   "balances",
   "buildings",
   "builders",
+  "training",
   "nextUpgradeChecks",
   "constructionRecovery",
   "mandate",
