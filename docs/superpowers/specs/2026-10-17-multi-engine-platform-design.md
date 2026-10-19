@@ -4,7 +4,7 @@ Date: 17 October 2026. Status: proposed architecture and phased implementation d
 
 Fleet's purpose is to run capable, reliable agents in supported environments. Optional comparisons and reports help choose improvements and share useful results. They are supporting features, not a required research workflow.
 
-Implementation plans: [Fleet](../plans/2026-10-17-multi-engine-platform.md) and [PACT](../../../../pact/docs/superpowers/plans/2026-10-17-fleet-platform-integration.md). Work-package names in these documents are local planning references, not newly created tracker issues or implementation claims.
+Implementation plans: [Fleet](../plans/2026-10-17-multi-engine-platform.md) and [PACT](https://github.com/safa-safakhou/pact/blob/master/docs/superpowers/plans/2026-10-17-fleet-platform-integration.md). Work-package names in these documents are local planning references, not newly created tracker issues or implementation claims.
 
 ## 1. Decisions and scope
 

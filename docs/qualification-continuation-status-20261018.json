@@ -1,0 +1,460 @@
+{
+  "schemaVersion": "fleet.qualification-continuation-status.v1",
+  "assignment": "founder-exact-review-and-remaining112-20261018",
+  "owner": "Codex; no delegation",
+  "scope": "synthetic_fixtures_only",
+  "status": "completed_matrix_with_one_continuity_failure",
+  "sourceCommit": "787dba78213318d3c03859a8fe7932afe7ececac",
+  "batchId": "633a0b85-2850-4fda-861d-c401e3d8158a",
+  "batchDigest": "a8db80c20c8cafab170944ea6d9212e41c5ae83d33f91618a8447ced62bd0d93",
+  "predecessorBatchId": "25a72e51-85ca-4d41-8589-ffa1ec326d95",
+  "predecessorDigest": "d9128c84c3c352639fe61127a6054af8066e9e243d84b2ed53a096c922683e22",
+  "deadlineRetained": "2026-10-19T03:13:58.523Z",
+  "caps": {
+    "newExecutions": 112,
+    "newReservedTokens": 4480000,
+    "combinedExecutions": 208,
+    "combinedReservedTokens": 8320000,
+    "newHelperCalls": 73,
+    "combinedHelperCalls": 96
+  },
+  "sourceFixes": {
+    "duplicateEvidenceEnumDeduplicated": true,
+    "schemaGuardBeforeDispatch": true,
+    "reactivePayloadContractsBoundPerFreshObservation": true,
+    "observedMandateBound": true,
+    "legacyControllerAndBaselineUnchanged": true,
+    "continuationCannotChainAnotherGrant": true
+  },
+  "exactReview": {
+    "id": "7d622603-73c8-4eca-be3b-01c7d03dae1a",
+    "state": "unknown",
+    "tokens": "40000",
+    "code": "PROVIDER_INTERRUPTED",
+    "reserved_tokens": "40000",
+    "review": {
+      "reason": "local_generation_schema_failure",
+      "disposition": "accepted_unknown_allocation",
+      "sourceCommit": "787dba78213318d3c03859a8fe7932afe7ececac",
+      "evidenceDigest": "ee197ee0b2410b3a5cbabb0f73f76884c056ccfaf3f517f853a2080f847e36d6",
+      "reportedUsageKnown": false,
+      "originalStateRetained": true
+    }
+  },
+  "result": {
+    "state": "done",
+    "code": null,
+    "passed": false,
+    "rawPassed": false,
+    "executions": 110,
+    "reservedTokens": 4400000,
+    "accountedTokens": 4400000,
+    "reportedTokens": 299511,
+    "unknown": 0,
+    "helperCalls": 29,
+    "modes": [
+      {
+        "thinking": true,
+        "runId": "fc9e5903-c6c3-438c-8f14-393f1359dd46",
+        "state": "Q2_done",
+        "code": null,
+        "executions": 54,
+        "accountedTokens": 2160000,
+        "reservedTokens": 2160000,
+        "unknown": 0,
+        "invalid": 2,
+        "reportedInputTokens": 127425,
+        "reportedOutputTokens": 27744,
+        "groups": [
+          {
+            "profile": "calibration",
+            "executions": 4,
+            "valid": 4,
+            "unknown": 0
+          },
+          {
+            "profile": "legacy-cognition",
+            "executions": 13,
+            "valid": 12,
+            "unknown": 0
+          },
+          {
+            "profile": "legacy-loop",
+            "executions": 13,
+            "valid": 12,
+            "unknown": 0
+          },
+          {
+            "profile": "reactive-basic",
+            "executions": 12,
+            "valid": 12,
+            "unknown": 0
+          },
+          {
+            "profile": "reactive-cognition",
+            "executions": 12,
+            "valid": 12,
+            "unknown": 0
+          }
+        ],
+        "calibrationCasesPassed": 4,
+        "rawOutputsPassed": false,
+        "trials": 48,
+        "trialFailures": 0,
+        "unresolved": 0,
+        "recoveryPassed": true,
+        "passed": true,
+        "unsafeTrials": 0,
+        "policy": "fleet.qualification-policy.v3",
+        "coverageComplete": true,
+        "semanticTelemetryComplete": true,
+        "semanticRejections": 0,
+        "semanticRecoveries": 0,
+        "rawSchemaPassed": false,
+        "rawSemanticPassed": true,
+        "rawPassed": false,
+        "helperCalls": 13
+      },
+      {
+        "thinking": false,
+        "runId": "01cd694e-2063-40be-968c-e83665a8cb92",
+        "state": "Q2_done",
+        "code": null,
+        "executions": 56,
+        "accountedTokens": 2240000,
+        "reservedTokens": 2240000,
+        "unknown": 0,
+        "invalid": 0,
+        "reportedInputTokens": 138844,
+        "reportedOutputTokens": 5498,
+        "groups": [
+          {
+            "profile": "calibration",
+            "executions": 4,
+            "valid": 4,
+            "unknown": 0
+          },
+          {
+            "profile": "legacy-cognition",
+            "executions": 16,
+            "valid": 16,
+            "unknown": 0
+          },
+          {
+            "profile": "legacy-loop",
+            "executions": 12,
+            "valid": 12,
+            "unknown": 0
+          },
+          {
+            "profile": "reactive-basic",
+            "executions": 12,
+            "valid": 12,
+            "unknown": 0
+          },
+          {
+            "profile": "reactive-cognition",
+            "executions": 12,
+            "valid": 12,
+            "unknown": 0
+          }
+        ],
+        "calibrationCasesPassed": 4,
+        "rawOutputsPassed": false,
+        "trials": 48,
+        "trialFailures": 1,
+        "unresolved": 0,
+        "recoveryPassed": false,
+        "passed": false,
+        "unsafeTrials": 0,
+        "policy": "fleet.qualification-policy.v3",
+        "coverageComplete": true,
+        "semanticTelemetryComplete": true,
+        "semanticRejections": 0,
+        "semanticRecoveries": 0,
+        "rawSchemaPassed": true,
+        "rawSemanticPassed": true,
+        "rawPassed": false,
+        "helperCalls": 16
+      }
+    ]
+  },
+  "profileOutcomes": [
+    {
+      "thinking": true,
+      "profiles": [
+        {
+          "profile": "legacy-loop",
+          "cases": 12,
+          "acceptable": 12,
+          "failures": [],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 11
+        },
+        {
+          "profile": "legacy-cognition",
+          "cases": 12,
+          "acceptable": 12,
+          "failures": [],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 1
+        },
+        {
+          "profile": "reactive-basic",
+          "cases": 12,
+          "acceptable": 12,
+          "failures": [],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 4
+        },
+        {
+          "profile": "reactive-cognition",
+          "cases": 12,
+          "acceptable": 12,
+          "failures": [],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 5
+        }
+      ],
+      "p50ms": 4717.850363999998,
+      "p95ms": 10813.134586
+    },
+    {
+      "thinking": false,
+      "profiles": [
+        {
+          "profile": "legacy-loop",
+          "cases": 12,
+          "acceptable": 12,
+          "failures": [],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 1
+        },
+        {
+          "profile": "legacy-cognition",
+          "cases": 12,
+          "acceptable": 12,
+          "failures": [],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 0
+        },
+        {
+          "profile": "reactive-basic",
+          "cases": 12,
+          "acceptable": 12,
+          "failures": [],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 1
+        },
+        {
+          "profile": "reactive-cognition",
+          "cases": 12,
+          "acceptable": 11,
+          "failures": [
+            {
+              "trial": "threat-help:1",
+              "code": "CONTINUITY_EVIDENCE_NOT_DELIVERED",
+              "calls": 1
+            }
+          ],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 0
+        }
+      ],
+      "p50ms": 2874.3603209999856,
+      "p95ms": 4412.072361999948
+    }
+  ],
+  "coverage": {
+    "thinking": {
+      "acceptable": 48,
+      "attempted": 48,
+      "passed": true,
+      "rawPassed": false,
+      "correctedTruncatedFinals": 2
+    },
+    "nonThinking": {
+      "acceptable": 47,
+      "attempted": 48,
+      "passed": false,
+      "rawSchemaPassed": true,
+      "continuityFailures": 1
+    }
+  },
+  "remainingBlocker": {
+    "code": "CONTINUITY_EVIDENCE_NOT_DELIVERED",
+    "thinking": false,
+    "profile": "reactive-cognition",
+    "trial": "threat-help:1",
+    "executionId": "7371072a-a200-42fb-a1c5-b427b91ac2e8",
+    "knownUsageTokens": 3035,
+    "reservedTokens": 40000,
+    "generationOutputValid": true,
+    "deliveredEvidenceIds": 1,
+    "citedUndeliveredId": true,
+    "calls": 1,
+    "gameCommandPrepared": false,
+    "newUnknownUsage": false,
+    "replannedAfterKnownRejection": false,
+    "nextFix": "Constrain continuity reference generation to the final delivered evidence and replan known noncommitting update rejection within the existing turn allowance."
+  },
+  "outputRecovery": {
+    "rawInvalid": 2,
+    "thinkingEmptyFinals": 2,
+    "thinkingTruncated": 2,
+    "correctedSuccessfully": 2,
+    "nonThinkingRawInvalid": 0,
+    "newUnknownUsage": 0,
+    "exhaustedModelOutputRetries": 0,
+    "proposalSemanticRejections": 0,
+    "invalidDispatchedActions": 0
+  },
+  "helpers": {
+    "newCalls": 29,
+    "abstentions": 29,
+    "positiveSelections": 0,
+    "combinedWithPredecessor": 52
+  },
+  "ledger": {
+    "current": {
+      "executions": 110,
+      "reserved": 4400000,
+      "reported": 299511,
+      "unknown": 0,
+      "inflight": 0
+    },
+    "prior": {
+      "executions": 96,
+      "reserved": 3840000,
+      "reported": 256398,
+      "unknown": 1,
+      "inflight": 0
+    },
+    "review": {
+      "id": "7d622603-73c8-4eca-be3b-01c7d03dae1a",
+      "state": "unknown",
+      "tokens": "40000",
+      "code": "PROVIDER_INTERRUPTED",
+      "reserved_tokens": "40000",
+      "review": {
+        "reason": "local_generation_schema_failure",
+        "disposition": "accepted_unknown_allocation",
+        "sourceCommit": "787dba78213318d3c03859a8fe7932afe7ececac",
+        "evidenceDigest": "ee197ee0b2410b3a5cbabb0f73f76884c056ccfaf3f517f853a2080f847e36d6",
+        "reportedUsageKnown": false,
+        "originalStateRetained": true
+      }
+    },
+    "cohorts": [
+      {
+        "state": "paused",
+        "n": 96
+      }
+    ],
+    "trials": [
+      {
+        "thinking": false,
+        "trials": 48,
+        "incomplete": 0,
+        "unsafe": 0,
+        "withheld": 2
+      },
+      {
+        "thinking": true,
+        "trials": 48,
+        "incomplete": 0,
+        "unsafe": 0,
+        "withheld": 21
+      }
+    ],
+    "helpersCombined": 52,
+    "combined208": {
+      "executions": 206,
+      "reserved": 8240000
+    },
+    "lifetime": {
+      "executions": 302,
+      "reserved": 12080000,
+      "reported": 736105
+    },
+    "unused": {
+      "executions": 2,
+      "reservedTokens": 80000,
+      "automaticRestartAuthorized": false
+    }
+  },
+  "historyPreservation": {
+    "prior192CallsExact": true,
+    "sha256": "4dfd69d34bfb68d82c08a4af5638c20cfed113bea20f1de27435d1fdfe7ff309",
+    "oldBatchRunCallTrialCiphertextAndDeadlinesUnchanged": true,
+    "originalUnknownStateAndAllocationRetained": true,
+    "onlyExactOperationalReview": true
+  },
+  "offline": {
+    "unitPassed": 215,
+    "integrationPassed": 377,
+    "pairedAcceptancePassed": 12,
+    "focusedPostLineageChecks": 7,
+    "typeStyleBuildBoundariesPassed": true,
+    "fullAuditFindings": 0,
+    "productionAuditFindings": 0,
+    "authorReviewOnly": true,
+    "initialIntegrationFailure": "Two obsolete rejection-layer assertions; generation and prerequisite recovery now tested distinctly. Final377 pass.",
+    "initialAcceptanceFailure": "Wrong fixture password in test environment; existing container metadata corrected environment only. Final12 pass."
+  },
+  "preservation": {
+    "installedRelease": "953034e24b5f93f82f0571eef55ecce9a61999d2",
+    "installedTablesMatched": 38,
+    "installedAgents": 20,
+    "installedTurns": 10121,
+    "installedUnknownAllocations": 40,
+    "installedUnknownReservations": 1600000,
+    "executionDisabled": true,
+    "services": {
+      "fleet-windows-worker": "active",
+      "fleet-windows-console": "active",
+      "fleet-windows-laya": "active"
+    },
+    "fixtureCohortsPaused": 96,
+    "ownedProviderStopped": true,
+    "ownedQualificationDatabaseStopped": true,
+    "ownedPactFixtureDatabaseStopped": true,
+    "serverContacted": false,
+    "shadowStarted": false,
+    "populationStarted": false,
+    "gameReset": false,
+    "realGameAccountsCreated": 0,
+    "pushPerformed": false
+  },
+  "encryptedQualificationBackup": {
+    "artifact": "qualification-after.pgdump.enc",
+    "keyStoredSeparately": true,
+    "plaintextBytes": 148996465,
+    "plaintextSHA256": "e4fb70e5c60f61c30e11248ee6fec8d6c6310e75eff555dbed8614f46de7b9bd",
+    "authenticatedAndHashVerified": true,
+    "tocEntries": 366,
+    "fullRestoreRehearsal": false
+  },
+  "unused": {
+    "executions": 2,
+    "reservedTokens": 80000,
+    "automaticRestartAuthorized": false
+  },
+  "releaseQualified": false,
+  "executionActivationAuthorized": false,
+  "limitations": [
+    "Thinking qualifies eventual recovery, but its2 truncated/empty initial finals remain raw failures.",
+    "Non-thinking full matrix fails1 optional continuity update; the validly shaped undelivered citation is rejected without a same-turn correction.",
+    "All valid commands were withheld; no actual-world strategy, survival, delivery, focused-worker route or positive retrieval is certified.",
+    "No installed source/flag was changed; no transfer of old-source passes or automatic use of the last2 executions."
+  ],
+  "report": "qualification-continuation-20261018.md"
+}

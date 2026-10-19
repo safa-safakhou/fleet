@@ -3,7 +3,7 @@
 Execution update, 15 October: all eleven paired source/offline batches are verified and locally committed. The original proposal statuses below are retained as planning history; see [consolidated acceptance](agent-reliability-source-acceptance-20261015.md) and the local status register for all 22 source mappings and remaining owner/provider/rollout gates.
 Planning date: **15 October 2026, Europe/Berlin**. Status: **proposed and unstarted**. This records the founder's authorized consolidated plan and local documentation commit only. Implementation and deployment are not authorized.
 
-The [PACT counterpart](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md) owns the shared programme order/boundaries and authoritative game tasks AR-P01–AR-P11. This document owns Fleet task scopes AR-F01–AR-F11. They are local plan IDs, not invented Linear issues, execution claims or a started queue. Each task has one owning document; follow links for counterpart acceptance.
+The [PACT counterpart](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md) owns the shared programme order/boundaries and authoritative game tasks AR-P01–AR-P11. This document owns Fleet task scopes AR-F01–AR-F11. They are local plan IDs, not invented Linear issues, execution claims or a started queue. Each task has one owning document; follow links for counterpart acceptance.
 
 ## Source implementation assignment 15 October
 
@@ -13,9 +13,9 @@ The founder subsequently authorized source implementation and necessary syntheti
 
 The [20-account failure investigation](fleet-failure-investigation-20261014.md) concerns local Fleet **406d64b**, Nemotron 4B, ten LLM-only and ten cognition/Laya accounts on their common five-minute anchor. It establishes the real root-ambition/legacy retrieval wiring defects, open executable generation schema, repeated 24,000-byte packet pressure, invalid outgoing/nonexistent contact targets and legitimate stock/prerequisite waiting. All seventeen sampled waiting orders had concrete gates; two sampled active orders completed. Outside identities were delivered, while notice/contact evidence and follow-up remain weak.
 
-The separate [50-account Luna causal investigation](../../pact/docs/implementation/reports/fleet-root-causes-20261014.md), [census](../../pact/docs/implementation/reports/fleet-gameplay-investigation-20261014.md) and [roster](../../pact/docs/implementation/reports/fleet-agent-roster-20261014.md) concern server Fleet **b4ad9db**, medium reasoning, fifteen-minute stagger, two decisions/actions and basic notes/cache. Forecast packing, hidden Iron headroom, outcome/continuation loss, nil receipt lookup and restart-related refresh blocking are distinct mechanisms. Hall III was reached; original authority cannot fit Hall IV.
+The separate [50-account Luna causal investigation](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/reports/fleet-root-causes-20261014.md), [census](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/reports/fleet-gameplay-investigation-20261014.md) and [roster](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/reports/fleet-agent-roster-20261014.md) concern server Fleet **b4ad9db**, medium reasoning, fifteen-minute stagger, two decisions/actions and basic notes/cache. Forecast packing, hidden Iron headroom, outcome/continuation loss, nil receipt lookup and restart-related refresh blocking are distinct mechanisms. Hall III was reached; original authority cannot fit Hall IV.
 
-These are **14 October evidence**, not a fresh 15 October runtime check. Reproduced plumbing defects, legitimate waits, supported behavioral inferences and unresolved historical prompt coverage remain separate. Neither study proves all profitable cooperation is impossible or a model intrinsically incapable. The [historical 13 October plan](../../pact/docs/implementation/fleet-agent-investigation-plan-20261013.md) retains its original checkpoints; this programme expands the proposal without rewriting those results.
+These are **14 October evidence**, not a fresh 15 October runtime check. Reproduced plumbing defects, legitimate waits, supported behavioral inferences and unresolved historical prompt coverage remain separate. Neither study proves all profitable cooperation is impossible or a model intrinsically incapable. The [historical 13 October plan](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/fleet-agent-investigation-plan-20261013.md) retains its original checkpoints; this programme expands the proposal without rewriting those results.
 
 ## Ownership and integration
 
@@ -28,22 +28,22 @@ AR-02–AR-07 share a reviewed contract design before integrated acceptance: the
 | Local plan ID | Proposed deliverable | Dependencies for integrated acceptance | Status |
 | --- | --- | --- | --- |
 | [AR-F01](#ar-f01-faithful-owner-guidance) | Faithful owner guidance | None | Proposed / unstarted |
-| [AR-F02](#ar-f02-closed-executable-decisions) | Closed executable decisions | [AR-F01](#ar-f01-faithful-owner-guidance), [AR-P02](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p02-canonical-operations-and-schemas) | Proposed / unstarted |
-| [AR-F03](#ar-f03-grounded-typed-references) | Grounded typed references | [AR-F02](#ar-f02-closed-executable-decisions), [AR-P03](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p03-scoped-semantic-reference-facts) | Proposed / unstarted |
-| [AR-F04](#ar-f04-measured-observation-and-memory-envelope) | Measured observation and memory envelope | [AR-F03](#ar-f03-grounded-typed-references), [AR-P04](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p04-executable-compact-observation-sections) | Proposed / unstarted |
-| [AR-F05](#ar-f05-durable-decision-state-and-outcomes) | Durable decision state and outcomes | [AR-F04](#ar-f04-measured-observation-and-memory-envelope), [AR-P05](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p05-canonical-outcomes-and-lifecycle-evidence) | Proposed / unstarted |
-| [AR-F06](#ar-f06-consume-authoritative-admission-quotes) | Consume authoritative admission quotes | [AR-F05](#ar-f05-durable-decision-state-and-outcomes), [AR-P06](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p06-complete-admission-and-construction-quotes) | Proposed / unstarted |
-| [AR-F07](#ar-f07-precise-command-and-credential-recovery) | Precise command and credential recovery | [AR-F05](#ar-f05-durable-decision-state-and-outcomes), [AR-P07](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p07-precise-authentication-and-recovery-evidence) | Proposed / unstarted |
-| [AR-F08](#ar-f08-neutral-actionable-social-attention) | Neutral actionable social attention | [AR-F06](#ar-f06-consume-authoritative-admission-quotes), [AR-F07](#ar-f07-precise-command-and-credential-recovery), [AR-P08](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p08-actionable-social-lifecycle-views) | Proposed / unstarted |
-| [AR-F09](#ar-f09-feasible-owner-goals) | Feasible owner goals | [AR-F08](#ar-f08-neutral-actionable-social-attention), [AR-P09](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p09-goal-and-authority-feasibility) | Proposed / unstarted |
-| [AR-F10](#ar-f10-controlled-provider-and-behavior-evaluation) | Controlled provider and behavior evaluation | [AR-F09](#ar-f09-feasible-owner-goals), [AR-P10](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p10-controlled-world-and-incentive-evaluation) | Proposed / unstarted |
-| [AR-F11](#ar-f11-reviewed-controller-rollout) | Reviewed controller rollout | [AR-F10](#ar-f10-controlled-provider-and-behavior-evaluation), [AR-P11](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p11-reviewed-game-rollout-and-preservation) | Proposed / unstarted |
+| [AR-F02](#ar-f02-closed-executable-decisions) | Closed executable decisions | [AR-F01](#ar-f01-faithful-owner-guidance), [AR-P02](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p02-canonical-operations-and-schemas) | Proposed / unstarted |
+| [AR-F03](#ar-f03-grounded-typed-references) | Grounded typed references | [AR-F02](#ar-f02-closed-executable-decisions), [AR-P03](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p03-scoped-semantic-reference-facts) | Proposed / unstarted |
+| [AR-F04](#ar-f04-measured-observation-and-memory-envelope) | Measured observation and memory envelope | [AR-F03](#ar-f03-grounded-typed-references), [AR-P04](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p04-executable-compact-observation-sections) | Proposed / unstarted |
+| [AR-F05](#ar-f05-durable-decision-state-and-outcomes) | Durable decision state and outcomes | [AR-F04](#ar-f04-measured-observation-and-memory-envelope), [AR-P05](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p05-canonical-outcomes-and-lifecycle-evidence) | Proposed / unstarted |
+| [AR-F06](#ar-f06-consume-authoritative-admission-quotes) | Consume authoritative admission quotes | [AR-F05](#ar-f05-durable-decision-state-and-outcomes), [AR-P06](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p06-complete-admission-and-construction-quotes) | Proposed / unstarted |
+| [AR-F07](#ar-f07-precise-command-and-credential-recovery) | Precise command and credential recovery | [AR-F05](#ar-f05-durable-decision-state-and-outcomes), [AR-P07](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p07-precise-authentication-and-recovery-evidence) | Proposed / unstarted |
+| [AR-F08](#ar-f08-neutral-actionable-social-attention) | Neutral actionable social attention | [AR-F06](#ar-f06-consume-authoritative-admission-quotes), [AR-F07](#ar-f07-precise-command-and-credential-recovery), [AR-P08](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p08-actionable-social-lifecycle-views) | Proposed / unstarted |
+| [AR-F09](#ar-f09-feasible-owner-goals) | Feasible owner goals | [AR-F08](#ar-f08-neutral-actionable-social-attention), [AR-P09](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p09-goal-and-authority-feasibility) | Proposed / unstarted |
+| [AR-F10](#ar-f10-controlled-provider-and-behavior-evaluation) | Controlled provider and behavior evaluation | [AR-F09](#ar-f09-feasible-owner-goals), [AR-P10](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p10-controlled-world-and-incentive-evaluation) | Proposed / unstarted |
+| [AR-F11](#ar-f11-reviewed-controller-rollout) | Reviewed controller rollout | [AR-F10](#ar-f10-controlled-provider-and-behavior-evaluation), [AR-P11](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p11-reviewed-game-rollout-and-preservation) | Proposed / unstarted |
 
 ## Fleet task scope and acceptance
 
 ### AR-F01 Faithful owner guidance
 
-Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-01. Counterpart: [AR-P01](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p01-faithful-owned-intent).
+Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-01. Counterpart: [AR-P01](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p01-faithful-owned-intent).
 
 Use actual root `world.ambition` in PACT instructions, `compactFacts` and `cognitionQuery`. In `account_autonomy`, resolve current owner intent consistently rather than silently seeding retrieval with historical generated strategy. Preserve old strategies, notes and plans as dated provenance-labelled history; explicit owner-selected profile modes remain distinguishable. Review the owned-view contract and fixtures with AR-P01.
 
@@ -55,7 +55,7 @@ Acceptance:
 
 ### AR-F02 Closed executable decisions
 
-Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-02. Counterpart: [AR-P02](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p02-canonical-operations-and-schemas).
+Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-02. Counterpart: [AR-P02](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p02-canonical-operations-and-schemas).
 
 Derive closed read/action decision unions from the reviewed game adapter and authenticated live catalog. Bind every admitted name to its exact args; disallow arbitrary action/tool strings and catch-all extras. Supply the schema once at the transport boundary, with relevant selection/lookup inside the measured context. Keep provider conversion generic and PACT contract handling inside `src/games/pact/`. Ollama `format` is already enabled; the executable call's openness is the actual gap.
 
@@ -68,7 +68,7 @@ Acceptance:
 
 ### AR-F03 Grounded typed references
 
-Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-03. Counterpart: [AR-P03](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p03-scoped-semantic-reference-facts).
+Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-03. Counterpart: [AR-P03](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p03-scoped-semantic-reference-facts).
 
 Distinguish Request, Kingdom, Unit, Offer and Receipt references in adapter-supplied semantic facts and generic reference ports. Enable UUID-format validation separately from grounding in fresh scoped records, role/direction/status/version and authority. Answer only actual incoming pending requests under delegation; scout only with ordinary eligible available Spearmen. Never repair an invalid reference by guessing another record.
 
@@ -81,7 +81,7 @@ Acceptance:
 
 ### AR-F04 Measured observation and memory envelope
 
-Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-04. Counterpart: [AR-P04](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p04-executable-compact-observation-sections).
+Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-04. Counterpart: [AR-P04](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p04-executable-compact-observation-sections).
 
 Budget the whole serialized packet, including instructions, schemas, escaping, state, requested feedback, cognition, source cues and coverage. Reserve mandatory current facts/authority, actual unresolved command references, required feedback and executable schemas before optional cache/memory. Use semantic priorities, not object field order or accumulating late fallback metadata. Keep permitted history encrypted outside the prompt under registered retention.
 
@@ -95,7 +95,7 @@ Acceptance:
 
 ### AR-F05 Durable decision state and outcomes
 
-Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-05. Counterpart: [AR-P05](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p05-canonical-outcomes-and-lifecycle-evidence).
+Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-05. Counterpart: [AR-P05](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p05-canonical-outcomes-and-lifecycle-evidence).
 
 Persist structured objective, step, dependencies, postcondition, last verified outcome and wait condition, with exact evidence references. Notes remain supplementary hypotheses. Retain detailed validation/read/permission denial/commit/uncertainty/auth outcomes across turns and reconcile plans against fresh observations. Keep command-processing receipts distinct from downstream completion. Separate scheduler eligibility, finished/WAIT and actual plan progress.
 
@@ -108,7 +108,7 @@ Acceptance:
 
 ### AR-F06 Consume authoritative admission quotes
 
-Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-06. Counterpart: [AR-P06](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p06-complete-admission-and-construction-quotes).
+Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-06. Counterpart: [AR-P06](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p06-complete-admission-and-construction-quotes).
 
 Use scoped server quotes to distinguish usable stock/provenance, prerequisites, builders/units, reserve floors, rolling GAME-time headroom, reservations, versions and human-only routes. Carry precise allowance/refusal details into replanning. Explain queue admission separately from immediate startability and later completion; never recompute authoritative permission or rules in the generic runtime.
 
@@ -121,7 +121,7 @@ Acceptance:
 
 ### AR-F07 Precise command and credential recovery
 
-Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-07. Counterpart: [AR-P07](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p07-precise-authentication-and-recovery-evidence).
+Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-07. Counterpart: [AR-P07](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p07-precise-authentication-and-recovery-evidence).
 
 Distinguish ordinary failed reads, invalid local actions, explicit denials, unknown commits and authentication failures. Preserve original pending receipt IDs and full compute allocations/history. For credentials, use single-flight/CAS and fencing to distinguish confirmed pre-rotation nonexecution, confirmed rotation, unknown rotation and revocation where evidence supports it. Retry only bounded confirmed nonexecution; generic 502 is insufficient. Ambiguous rotation quarantines the same account for reconnect.
 
@@ -134,7 +134,7 @@ Acceptance:
 
 ### AR-F08 Neutral actionable social attention
 
-Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-08. Counterpart: [AR-P08](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p08-actionable-social-lifecycle-views).
+Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-08. Counterpart: [AR-P08](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p08-actionable-social-lifecycle-views).
 
 Balance urgent incoming requests/offers/signatures/obligations, varied existing contacts and new world opportunities. Do not allow a rich familiar peer history to displace new actionable candidates. Local twenty already received outside identities but need notices, contact evidence and correct follow-up routes; the server b4ad9db default cohort filter is a separate adapter issue. A shared API upgrade does not prove this server adapter adopted wider discovery.
 
@@ -147,7 +147,7 @@ Acceptance:
 
 ### AR-F09 Feasible owner goals
 
-Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-09. Counterpart: [AR-P09](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p09-goal-and-authority-feasibility).
+Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-09. Counterpart: [AR-P09](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p09-goal-and-authority-feasibility).
 
 Ground profiles and plans in actually supported mechanics and delegated authority. Present the rules-derived progression table rather than treating every Hall band as a reward or every objective as executable. Resolve the owner decision between a constrained run, exact human approvals and a reviewed bounded higher ceiling before claiming the selected goal is achievable.
 
@@ -160,7 +160,7 @@ Acceptance:
 
 ### AR-F10 Controlled provider and behavior evaluation
 
-Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-10. Counterpart: [AR-P10](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p10-controlled-world-and-incentive-evaluation).
+Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-10. Counterpart: [AR-P10](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p10-controlled-world-and-incentive-evaluation).
 
 First prove plumbing/safety with deterministic fake providers. Later qualify exact pinned provider/model/renderer/parser/settings on held-out cases under a separately approved call/token/deadline proposal. Nemotron's existing `format` and `.Prompt` metadata do not establish missing structured output or a broken native chat renderer. Qualify native tool calling/sampling without disabling selected thinking or automatically migrating to Luna.
 
@@ -174,7 +174,7 @@ Acceptance:
 
 ### AR-F11 Reviewed controller rollout
 
-Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-11. Counterpart: [AR-P11](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p11-reviewed-game-rollout-and-preservation).
+Owner: Fleet. Status: **Proposed / unstarted**. Shared work package AR-11. Counterpart: [AR-P11](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p11-reviewed-game-rollout-and-preservation).
 
 Prepare a separate deployment proposal naming exact compatible source versions, migration/retention changes, canary identities, call/token limits, deadlines, monitoring, stop/rollback criteria and owner approvals. Quiesce credential refresh/reconnect activity as well as model calls and commands. Record acceptance independently for each preserved cohort.
 
@@ -189,7 +189,7 @@ Acceptance:
 
 AR-F10-P is a **proposed / unstarted subtask**, not a new cohort or model switch. Its prerequisites are AR-F02, AR-F03, AR-F04, AR-F05 and AR-F07, including compatible AR-P02/03/04/05/07 contracts. Deterministic fake-provider qualification can be specified before game incentive variants. Actual Nemotron native renderer/parser/tool-calling and sampling qualification requires separately approved pinned settings, held-out fixtures, exact accounts or isolated cases, call/token caps and deadline. Preserve the owner's selected thinking mode. Existing Ollama `format` is already on; `.Prompt` alone is not evidence of a broken renderer. No automatic Luna migration is proposed.
 
-The [shared world-evaluation task AR-P10](../../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p10-controlled-world-and-incentive-evaluation) specifies independent replicas/fixed seeds, self-sufficient versus complementary founders, overflow, profitable/bad trade and later development. Change one factor at a time, then stated interactions. Attribute safety/plumbing, provider generation, decisions, signatures/settlement and material benefits separately. Include failure denominators and compute costs; do not optimize message volume. Existing personality groups and a shared-world observational run are not independent randomized estimates.
+The [shared world-evaluation task AR-P10](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md#ar-p10-controlled-world-and-incentive-evaluation) specifies independent replicas/fixed seeds, self-sufficient versus complementary founders, overflow, profitable/bad trade and later development. Change one factor at a time, then stated interactions. Attribute safety/plumbing, provider generation, decisions, signatures/settlement and material benefits separately. Include failure denominators and compute costs; do not optimize message volume. Existing personality groups and a shared-world observational run are not independent randomized estimates.
 
 ## Preservation migration and future authorization
 

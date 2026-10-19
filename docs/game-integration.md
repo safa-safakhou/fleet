@@ -10,6 +10,29 @@ Implement an adapter under `src/games/<game>/`, its credential enrollment and au
 
 The game server owns its rules and authority. Fleet never reads a game's database, grants itself permissions, replaces uncertain command IDs or infers success from prose. A model sees only authorized observations and reviewed tools. Schema changes, identity mismatch, ambiguous transport, revocation, claim fencing, terminal deadlines and budgets must have meaningful adapter acceptance tests.
 
-The current SQL/API compatibility fields `kingdom_id` and `peer_kingdom_id` hold PACT's authenticated game-entity bindings. They remain unchanged to preserve historical encrypted data and pending commands. Account/entity storage currently expects UUID identities; support for a game with other identifier types requires a reviewed schema migration. The current strategy presets and agreement views are oriented toward strategic games; new game-specific presets/views may be supplied later. This extraction is an extensible foundation, not certification of arbitrary games or a plugin marketplace.
+The SQL/API compatibility fields `kingdom_id` and `peer_kingdom_id` retain the existing PACT identities and history. Migration013 adds `environment_bindings` with opaque account/actor/entity strings; it never rewrites the legacy UUIDs or vault associated-data identity. Control remains exclusive per environment instance/entity, including terminal agents. The legacy controller still reads its old fields; the new task host consumes generic bindings. The existing strategy presets and agreement UI retain their compatibility behavior.
 
-`npm run check:boundaries` rejects game-module imports, PACT tool names and PACT artifacts in core modules. The stateful synthetic board-game integration tests run the same engine, ledger and receipt flow with different reads/actions and verify identity and read-authority rejection. Linux acceptance separately exercises the actual Codex process fixtures without real inference.
+`src/platform/contracts.ts` defines `EnvironmentAdapter`/`EnvironmentSession`, capability requirements and typed envelopes. `EnvironmentRegistry` statically selects an exact reviewed adapter/version/instance and rejects incompatible capabilities/schemas before connection/model work. `src/environments/pact.ts` wraps the existing authenticated game ports and credential ownership. Current PACT capabilities explicitly have no autonomous event feed or parallel within-actor reasoning. Source references include environment/version/instance and actor/entity scope. Unknown/missing outcomes never authorize replay.
+
+Defaults retain PACT version1 and use the normalized game base URL as instance ID. `FLEET_ENVIRONMENT_ID`, `FLEET_ENVIRONMENT_VERSION` and `FLEET_ENVIRONMENT_INSTANCE` explicitly select the deployed reviewed integration; they do not load arbitrary code or enroll accounts. PACT remains the only real integration composed in `runtime.ts`; another real environment needs its reviewed adapter, credential enrollment, presentation and acceptance. Adapters supply their own labels/default goals and optional trusted existing-account enrollment hook. These are integration services, not model tools. The board fixture needs no social behavior. [F2 acceptance and migration proof](environment-bindings-20261017.md).
+
+`npm run check:boundaries` rejects game/environment-module imports, PACT tool names and PACT artifacts in core modules and recursively in all platform/engine TypeScript directories. The stateful synthetic board-game integration tests run the same engine, ledger and receipt flow with different reads/actions and verify identity and read-authority rejection. Linux acceptance separately exercises the actual Codex process fixtures without real inference.
+
+
+## Durable host path
+
+[Phase1 host acceptance](platform-host-20261017.md) describes explicit fresh-cohort enrollment, static `AgentEngine` registration, durable task/source/turn fences, fair task-cohort admission, per-operation stop/drain and shared model/command services. Generic engines consume `EngineContext`; they do not receive a game database, credentials or a way to expand their own execution policy. Compatibility engines retain their own observation/accounting flow and use a capacity-only provider port. Real route capacity remains one pending separate qualification; the original Codex process lock remains.
+
+Commands retain their original internal UUID, encrypted intent and existing receipt archive. A known non-dispatch rejection can replan; unknown usage or action delivery retains its allocation/pending ID and concrete recovery gate. The cursor table is storage groundwork; current PACT still advertises no event feed. Feed polling, resync, enrollment and reactive profiles are later work. The phase1 source has not been installed into the existing runtimes.
+
+## Event-aware profiles
+
+See [F4 intake and reactive profile](reactive-engine-20261017.md) for explicit new-cohort wake enrollment, bounded polling/cursor resync and `pact.agent-events.v1`. Event metadata never grants model/action authority. Existing environments without a reviewed feed remain `events:none`; no human stream fallback.
+
+## Optional structured coordination — F6
+
+[Coordinator contract](specialist-coordinator-20261017.md) requires an environment-owned claim validator and atomic expected-revision enforcement. Parallel reasoning is separately negotiated. Existing PACT integration does not advertise this capability; no inferred game permissions, local economy arithmetic or real independent-submit broker is supplied.
+
+## Adapter/profile qualification
+
+[F8](profile-qualification.md) reviews exact profile, environment instance, adapter descriptor, source/configuration digests and separate fake/real evidence. See the [compatibility matrix](multi-engine-compatibility-20261017.md). A capability preview alone is insufficient; another adapter needs actual handler/permission/receipt and failure-path acceptance. No provider route or live profile is certified by synthetic tests.

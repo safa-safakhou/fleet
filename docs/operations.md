@@ -88,3 +88,17 @@ Synthetic contact acceptance is an explicit setup choice: include socialDelegati
 ## Recovering local execution
 
 See [the local repair and recovery guide](local-repair-20261013.md). Opt-in macOS `FLEET_KEEP_AWAKE=1` holds sleep assertions only while the worker has a running authorized cohort. Pause before reviewing interrupted executions: inspect the recovery path in the agent inspector, retain ledger reservations, reconcile original receipts for pending commands, explicitly review non-command uncertainty, reconnect the same account if needed, then resume the existing cohort. Do not reset counters, replace identities, clear unknown ledger rows, extend terminal cohorts or replay uncertain commands. Known malformed outputs with reported usage replan within the unchanged decision budget and original schedule.
+
+## Multi-engine release preparation —17 October2026
+
+The [F8 proposal](multi-engine-release-proposal-20261017.md) supersedes no deployment or recovery authorization. It prepares source qualification only, with no selected run. Its additive-schema rollback retains the latest database and explicitly prevents older workers from claiming unsupported task profiles. Server Fleet is excluded.
+
+
+## Accounted output recovery — 18 October 2026
+
+Generic engine admission permits one corrective model attempt for known, completed unusable outputs, within the existing allowance and stop/deadline fences. Each execution is separately metered. Persistent known failures wait for their original scheduled retry; unknown usage and uncertain commands retain their recovery gates. See [repair/evidence](model-output-recovery-20261018.md). This source capability is not installed or enabled by its documentation.
+
+
+## Bounded mode qualification —18 October2026
+
+The explicitly approved continuation uses `scripts/qualify-retries.ts` (review-only by default), one immutable recovery grant attached to the original qualification ledger, and43 executions per mode within the remaining86/3440000 ceiling. Original failed Q1 and closed diagnostics are not reopened. All game ports are synthetic command sinks, original provider pins/deadline remain, and installed execution stays disabled. See [protocol and evidence](retry-mode-qualification-20261018.md). Approval is specific to this one bounded continuation; it is not deployment, population or permission to replay unknown work.

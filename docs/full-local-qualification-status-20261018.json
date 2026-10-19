@@ -1,0 +1,429 @@
+{
+  "schemaVersion": "fleet.full-local-qualification-status.v1",
+  "assignment": "founder-full-two-mode-208-20261018",
+  "owner": "Codex; no delegation",
+  "scope": "synthetic_fixtures_only",
+  "status": "blocked_unknown_usage_and_semantic_failures",
+  "sourceCommit": "dc4a4bdc49ef78ac9a57132c380e4f2d92e3a7ac",
+  "batchId": "25a72e51-85ca-4d41-8589-ffa1ec326d95",
+  "batchDigest": "d9128c84c3c352639fe61127a6054af8066e9e243d84b2ed53a096c922683e22",
+  "policy": "fleet.qualification-policy.v3",
+  "caps": {
+    "executions": 208,
+    "reservedTokens": 8320000,
+    "perModeExecutions": 104,
+    "perModeReservedTokens": 4160000,
+    "helperCalls": 96
+  },
+  "result": {
+    "state": "blocked",
+    "code": "QUALIFICATION_UNKNOWN_USAGE",
+    "passed": false,
+    "rawPassed": false,
+    "executions": 96,
+    "reservedTokens": 3840000,
+    "accountedTokens": 3840000,
+    "reportedTokens": 256398,
+    "unknown": 1,
+    "helperCalls": 23,
+    "modes": [
+      {
+        "thinking": true,
+        "runId": "2abdae63-5ba2-4316-aca6-c030965bfd4d",
+        "state": "Q2_done",
+        "code": null,
+        "executions": 67,
+        "accountedTokens": 2680000,
+        "reservedTokens": 2680000,
+        "unknown": 0,
+        "invalid": 0,
+        "reportedInputTokens": 159856,
+        "reportedOutputTokens": 29314,
+        "groups": [
+          {
+            "profile": "calibration",
+            "executions": 4,
+            "valid": 4,
+            "unknown": 0
+          },
+          {
+            "profile": "legacy-cognition",
+            "executions": 13,
+            "valid": 13,
+            "unknown": 0
+          },
+          {
+            "profile": "legacy-loop",
+            "executions": 12,
+            "valid": 12,
+            "unknown": 0
+          },
+          {
+            "profile": "reactive-basic",
+            "executions": 19,
+            "valid": 19,
+            "unknown": 0
+          },
+          {
+            "profile": "reactive-cognition",
+            "executions": 19,
+            "valid": 19,
+            "unknown": 0
+          }
+        ],
+        "calibrationCasesPassed": 4,
+        "rawOutputsPassed": false,
+        "trials": 48,
+        "trialFailures": 7,
+        "unresolved": 0,
+        "recoveryPassed": false,
+        "passed": false,
+        "unsafeTrials": 0,
+        "policy": "fleet.qualification-policy.v3",
+        "coverageComplete": true,
+        "semanticTelemetryComplete": true,
+        "semanticRejections": 21,
+        "semanticRecoveries": 7,
+        "rawSchemaPassed": true,
+        "rawSemanticPassed": false,
+        "rawPassed": false,
+        "helperCalls": 13
+      },
+      {
+        "thinking": false,
+        "runId": "1fa92a3f-c425-4683-949b-cadc311b6d2a",
+        "state": "blocked",
+        "code": "QUALIFICATION_UNKNOWN_USAGE",
+        "executions": 29,
+        "accountedTokens": 1160000,
+        "reservedTokens": 1160000,
+        "unknown": 1,
+        "invalid": 0,
+        "reportedInputTokens": 64883,
+        "reportedOutputTokens": 2345,
+        "groups": [
+          {
+            "profile": "calibration",
+            "executions": 4,
+            "valid": 4,
+            "unknown": 0
+          },
+          {
+            "profile": "legacy-cognition",
+            "executions": 9,
+            "valid": 8,
+            "unknown": 1
+          },
+          {
+            "profile": "legacy-loop",
+            "executions": 6,
+            "valid": 6,
+            "unknown": 0
+          },
+          {
+            "profile": "reactive-basic",
+            "executions": 5,
+            "valid": 5,
+            "unknown": 0
+          },
+          {
+            "profile": "reactive-cognition",
+            "executions": 5,
+            "valid": 5,
+            "unknown": 0
+          }
+        ],
+        "calibrationCasesPassed": 4,
+        "rawOutputsPassed": false,
+        "trials": 22,
+        "trialFailures": 1,
+        "unresolved": 0,
+        "recoveryPassed": false,
+        "passed": false,
+        "unsafeTrials": 0,
+        "policy": "fleet.qualification-policy.v3",
+        "coverageComplete": false,
+        "semanticTelemetryComplete": true,
+        "semanticRejections": 0,
+        "semanticRecoveries": 0,
+        "rawSchemaPassed": false,
+        "rawSemanticPassed": false,
+        "rawPassed": false,
+        "helperCalls": 10
+      }
+    ]
+  },
+  "coverage": {
+    "thinking": {
+      "attempted": 48,
+      "acceptable": 41,
+      "proposalFailures": 7,
+      "remaining": 0
+    },
+    "nonThinking": {
+      "attempted": 22,
+      "acceptable": 21,
+      "transportUncertain": 1,
+      "remaining": 26
+    },
+    "calibrationCasesPassedPerMode": 4
+  },
+  "profiles": [
+    {
+      "thinking": true,
+      "calls": 67,
+      "invalid": 0,
+      "input": 159856,
+      "output": 29314,
+      "profiles": [
+        {
+          "profile": "legacy-loop",
+          "cases": 12,
+          "acceptable": 12,
+          "failures": [],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 10
+        },
+        {
+          "profile": "legacy-cognition",
+          "cases": 12,
+          "acceptable": 12,
+          "failures": [],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 1
+        },
+        {
+          "profile": "reactive-basic",
+          "cases": 12,
+          "acceptable": 7,
+          "failures": [
+            {
+              "trial": "multiple-events:2",
+              "code": "MODEL_PROPOSAL_REJECTED",
+              "calls": 2
+            },
+            {
+              "trial": "prerequisites:1",
+              "code": "MODEL_PROPOSAL_REJECTED",
+              "calls": 2
+            },
+            {
+              "trial": "prerequisites:2",
+              "code": "MODEL_PROPOSAL_REJECTED",
+              "calls": 2
+            },
+            {
+              "trial": "scarcity-trade:2",
+              "code": "MODEL_PROPOSAL_REJECTED",
+              "calls": 2
+            },
+            {
+              "trial": "threat-help:1",
+              "code": "MODEL_PROPOSAL_REJECTED",
+              "calls": 2
+            }
+          ],
+          "semanticRejections": 12,
+          "semanticRecoveries": 2,
+          "withheld": 1
+        },
+        {
+          "profile": "reactive-cognition",
+          "cases": 12,
+          "acceptable": 10,
+          "failures": [
+            {
+              "trial": "prerequisites:1",
+              "code": "MODEL_PROPOSAL_REJECTED",
+              "calls": 2
+            },
+            {
+              "trial": "threat-help:2",
+              "code": "MODEL_PROPOSAL_REJECTED",
+              "calls": 2
+            }
+          ],
+          "semanticRejections": 9,
+          "semanticRecoveries": 5,
+          "withheld": 1
+        }
+      ]
+    },
+    {
+      "thinking": false,
+      "calls": 29,
+      "invalid": 0,
+      "input": 64883,
+      "output": 2345,
+      "profiles": [
+        {
+          "profile": "legacy-loop",
+          "cases": 6,
+          "acceptable": 6,
+          "failures": [],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 0
+        },
+        {
+          "profile": "legacy-cognition",
+          "cases": 6,
+          "acceptable": 5,
+          "failures": [
+            {
+              "trial": "multiple-events:2",
+              "code": "TRANSPORT_UNCERTAIN",
+              "calls": 2
+            }
+          ],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 0
+        },
+        {
+          "profile": "reactive-basic",
+          "cases": 5,
+          "acceptable": 5,
+          "failures": [],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 0
+        },
+        {
+          "profile": "reactive-cognition",
+          "cases": 5,
+          "acceptable": 5,
+          "failures": [],
+          "semanticRejections": 0,
+          "semanticRecoveries": 0,
+          "withheld": 0
+        }
+      ]
+    }
+  ],
+  "reportedOutputs": {
+    "reported": 95,
+    "schemaInvalid": 0,
+    "knownEmptyFinals": 0,
+    "knownTruncations": 0,
+    "unknownFinalContentAvailable": false
+  },
+  "semanticRejections": {
+    "NOT_A_GAME_COMMAND": 19,
+    "OBSERVED_MANDATE_VERSION_MISMATCH": 2,
+    "recoveredCases": 7,
+    "exhaustedCases": 7
+  },
+  "newUnknownExecution": {
+    "id": "7d622603-73c8-4eca-be3b-01c7d03dae1a",
+    "profile": "legacy-cognition",
+    "trial": "multiple-events:2",
+    "thinking": false,
+    "allocation": 40000,
+    "state": "unknown",
+    "code": "PROVIDER_INTERRUPTED",
+    "gameCommandPending": false,
+    "automaticallyReviewed": false,
+    "dispatchesAfterUnknown": 0,
+    "transportCauseEstablished": false
+  },
+  "helpers": {
+    "calls": 23,
+    "abstentions": 22,
+    "reportedSelections": 1,
+    "positiveSelectionCoverage": "one synthetic selection only; no live-world retrieval certification"
+  },
+  "history": {
+    "previousExecutions": 96,
+    "previousReservedTokens": 3840000,
+    "previousReportedTokens": 180196,
+    "previousSHA256": "1c8b4b8475fd20f62d9fd88156892b224a09c252816463e365da44742f9e8a0f",
+    "preservedExactly": true,
+    "originalFailedParentAndClosedGrantsUnchanged": true,
+    "combinedExecutions": 192,
+    "combinedReservedTokens": 7680000,
+    "combinedReportedTokens": 436594,
+    "oldUnused8Transferred": false
+  },
+  "unusedCurrentBatch": {
+    "executions": 112,
+    "reservedTokens": 4480000,
+    "automaticRestartAuthorized": false
+  },
+  "offline": {
+    "unitPassed": 211,
+    "integrationPassed": 371,
+    "pairedAcceptancePassed": 12,
+    "typeStyleBuildBoundariesPassed": true,
+    "productionAuditFindings": 0,
+    "fullAuditFindings": 0,
+    "authorReviewOnly": true
+  },
+  "preservation": {
+    "installedRelease": "953034e24b5f93f82f0571eef55ecce9a61999d2",
+    "executionDisabled": true,
+    "retainedTablesMatched": 38,
+    "installedAgents": 20,
+    "installedTurns": 10121,
+    "installedUnknownAllocations": 40,
+    "installedUnknownReservations": 1600000,
+    "services": {
+      "fleet-windows-worker": "active",
+      "fleet-windows-console": "active",
+      "fleet-windows-laya": "active"
+    },
+    "fixtureCohortsPaused": 70,
+    "ownedProviderStopped": true,
+    "ownedQualificationDatabaseStopped": true,
+    "ownedPactFixtureDatabaseStopped": true,
+    "serverContacted": false,
+    "shadowStarted": false,
+    "populationStarted": false,
+    "gameReset": false,
+    "realGameAccountsCreated": 0,
+    "pushPerformed": false
+  },
+  "encryptedQualificationBackup": {
+    "artifact": "qualification-after.pgdump.enc",
+    "keyStoredSeparately": true,
+    "plaintextBytes": 102141575,
+    "plaintextSHA256": "f4675b714fa5fd7eb49106e9c41338f5056f4eaf1cec7b3ea16ce72f1fbb96d4",
+    "authenticatedAndHashVerified": true,
+    "tocEntries": 360,
+    "fullRestoreRehearsal": false
+  },
+  "nextSteps": [
+    "Diagnose the interrupted local response with better retained transport-error evidence; HTTP200 alone cannot settle usage.",
+    "Exact owner review is required for only the new unknown execution with its original40000 allocation/history retained, before any controlled continuation.",
+    "Correct reactive action payload/mandate handling without weakening validation, and verify offline before any separately approved retest.",
+    "Complete the26 unrun non-thinking cells under an explicit preserved-history continuation, then requalify actual source changes as needed."
+  ],
+  "limitations": [
+    "Thinking full matrix failed7 semantic cases despite21 caught rejections and7 recoveries.",
+    "Non-thinking matrix is incomplete and blocked by unknown usage;28 reported calls were schema-valid.",
+    "No actual PACT command was sent; captured actions were withheld by fixtures.",
+    "Fixtures do not certify live-world strategy, survival outcomes, scheduler/event delivery or the focused-worker production route.",
+    "Both mode qualification verdicts remain false; no release activation or shadow/population run is authorized."
+  ],
+  "report": "full-local-qualification-20261018.md",
+  "followupQualificationContinuation": {
+    "report": "qualification-continuation-20261018.md",
+    "statusRegister": "qualification-continuation-status-20261018.json",
+    "sourceCommit": "787dba78213318d3c03859a8fe7932afe7ececac",
+    "newExecutions": 110,
+    "newReservedTokens": 4400000,
+    "thinkingPassed": true,
+    "thinkingAcceptable": 48,
+    "nonThinkingPassed": false,
+    "nonThinkingAcceptable": 47,
+    "trialsPerMode": 48,
+    "newUnknownUsage": 0,
+    "priorUnknownReviewedWithAllocationRetained": true,
+    "fullQualificationPassed": false,
+    "remainingExecutions": 2,
+    "remainingReservedTokens": 80000,
+    "executionDisabled": true
+  }
+}

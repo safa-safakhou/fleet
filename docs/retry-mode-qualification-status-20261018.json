@@ -1,0 +1,152 @@
+{
+  "schemaVersion": "fleet.retry-mode-qualification-status.v1",
+  "owner": "Codex; no delegation",
+  "status": "completed_both_modes_failed_overall_qualification",
+  "sourceCommit": "9ce3f558bbcfb03207856061ad66121642267369",
+  "approval": "ecd5bd8f-375c-4d5d-b541-47f68e13c730",
+  "parent": "f8facc31-f95a-40cc-a40d-4bb526efbb6a",
+  "startedAt": "2026-10-18T12:49:12.944Z",
+  "endedAt": "2026-10-18T12:54:25.208Z",
+  "priorExecutions": 18,
+  "priorReservedTokens": 720000,
+  "newExecutionCeiling": 86,
+  "newTokenCeiling": 3440000,
+  "perModeExecutionCeiling": 43,
+  "newExecutions": 49,
+  "newReservedTokens": 1960000,
+  "newReportedTokens": 113718,
+  "modes": [
+    {
+      "thinking": true,
+      "executions": 25,
+      "reserved": 1000000,
+      "invalid": 1,
+      "unknown": 0,
+      "reported": 61240,
+      "trials": 22,
+      "failures": 5,
+      "recoveredOutputs": 1,
+      "recoveryPassed": false,
+      "rawPassed": false
+    },
+    {
+      "thinking": false,
+      "executions": 24,
+      "reserved": 960000,
+      "invalid": 3,
+      "unknown": 0,
+      "reported": 52478,
+      "trials": 22,
+      "failures": 1,
+      "recoveredOutputs": 1,
+      "recoveryPassed": false,
+      "rawPassed": false
+    }
+  ],
+  "aggregate": {
+    "state": "blocked",
+    "code": "QUALIFICATION_CALIBRATION_FAILED",
+    "executions": 67,
+    "accountedTokens": 2680000,
+    "reservedTokens": 2680000,
+    "unknown": 0,
+    "invalid": 7,
+    "reportedInputTokens": 103276,
+    "reportedOutputTokens": 13730,
+    "groups": [
+      {
+        "profile": "calibration",
+        "executions": 2,
+        "valid": 1,
+        "unknown": 0
+      },
+      {
+        "profile": "legacy-cognition",
+        "executions": 13,
+        "valid": 9,
+        "unknown": 0
+      },
+      {
+        "profile": "legacy-loop",
+        "executions": 12,
+        "valid": 12,
+        "unknown": 0
+      },
+      {
+        "profile": "output-diagnostic",
+        "executions": 16,
+        "valid": 14,
+        "unknown": 0
+      },
+      {
+        "profile": "reactive-basic",
+        "executions": 10,
+        "valid": 10,
+        "unknown": 0
+      },
+      {
+        "profile": "reactive-cognition",
+        "executions": 10,
+        "valid": 10,
+        "unknown": 0
+      },
+      {
+        "profile": "recovery-calibration",
+        "executions": 4,
+        "valid": 4,
+        "unknown": 0
+      }
+    ],
+    "calibrationCasesPassed": 1,
+    "rawOutputsPassed": false,
+    "trials": 0,
+    "trialFailures": 0,
+    "unresolved": 0,
+    "recoveryPassed": false,
+    "passed": false,
+    "helperCalls": 13
+  },
+  "remainingUnused": {
+    "executions": 37,
+    "reservedTokens": 1480000,
+    "automaticRestartAuthorized": false
+  },
+  "emptyFinals": 0,
+  "unknown": 0,
+  "pendingCommands": 0,
+  "originalRowsExact": true,
+  "helper": {
+    "calls": 13,
+    "intentionalAbstentions": 12,
+    "timeouts": 1,
+    "positiveSelections": 0
+  },
+  "offline": {
+    "unitPassed": 201,
+    "integrationPassed": 362,
+    "pairedAcceptancePassed": 12,
+    "auditFindings": 0,
+    "typeStyleBuildBoundariesPassed": true
+  },
+  "preservation": {
+    "installedRelease": "953034e24b5f93f82f0571eef55ecce9a61999d2",
+    "retainedTablesMatched": 38,
+    "executionDisabled": true,
+    "serverContacted": false,
+    "gameReset": false,
+    "populationStarted": false,
+    "installed": false,
+    "pushed": false,
+    "ownedProviderAndFixturesStopped": true
+  },
+  "encryptedBackup": {
+    "artifact": "qualification-after.pgdump.enc",
+    "keyStoredSeparately": true,
+    "plaintextBytes": 56365989,
+    "plaintextSHA256": "ae042de4c3ab837cf50f7506f7e0684abda657e617a0b035a1fcfa8ce7a7fea1",
+    "authenticatedAndHashVerified": true,
+    "tocEntries": 288,
+    "fullRestoreRehearsal": false
+  },
+  "report": "retry-mode-qualification-20261018.md"
+}

@@ -1,0 +1,203 @@
+{
+  "assignment": "Founder local execution-disabled release installation2026-10-18",
+  "scope": "Install verified Fleet953034e locally with execution disabled; preserve history/eligibility; server/new runs excluded",
+  "assignee": "Codex",
+  "status": "locally_installed_execution_disabled",
+  "baselineRevision": "c212373ccca98d3e064d24ebd2a9398dd94e2a77",
+  "plan": "docs/superpowers/plans/2026-10-17-multi-engine-platform.md",
+  "packages": {
+    "F1": {
+      "status": "done",
+      "evidence": [
+        "docs/engine-baseline-20261017.md",
+        "389 deterministic local tests passed across 63 files",
+        "Type/style, build, boundary and dependency audit passed",
+        "22 installed local application tables matched exactly; runtime unchanged"
+      ]
+    },
+    "F2": {
+      "status": "done",
+      "assignee": "Codex",
+      "evidence": ["docs/environment-bindings-20261017.md", "399 tests /66 files passed; full checks passed"]
+    },
+    "F3": {
+      "status": "done",
+      "assignee": "Codex",
+      "dependencies": ["F2"],
+      "evidence": [
+        "docs/platform-host-20261017.md",
+        "431 deterministic tests /69 files passed",
+        "Type/style, build, boundaries and dependency audit passed",
+        "Compiled runtime resolves both compatibility profiles; disabled guard retained",
+        "22 installed local application tables matched exactly; runtime unchanged"
+      ]
+    },
+    "PACT P1": {
+      "status": "done",
+      "revision": "8688586e106adf3ac0f1eb751bf4291c6c0995f0",
+      "verificationRevision": "7f04bd5",
+      "evidence": [
+        "PACT docs/implementation/reports/agent-events-20261017.md",
+        "386 unit;447 integration passed,1 existing skip;build/type/lint/backlog passed"
+      ]
+    },
+    "F4": {
+      "status": "done",
+      "assignee": "Codex",
+      "dependencies": ["F3", "PACT P1"],
+      "evidence": [
+        "docs/reactive-engine-20261017.md",
+        "446 deterministic tests /71 files passed",
+        "Type/style, build, recursive boundaries and audit passed",
+        "22 installed local table fingerprints unchanged; server Fleet untouched"
+      ]
+    },
+    "PACT P2": {
+      "status": "done",
+      "revision": "d4f0ea7",
+      "evidence": ["PACT docs/implementation/reports/agent-outlook-20261017.md"],
+      "featureRevision": "bae89b8"
+    },
+    "F5": {
+      "status": "done",
+      "assignee": "Codex",
+      "dependencies": ["F4", "PACT P2"],
+      "evidence": [
+        "docs/continuity-engine-20261017.md",
+        "168 unit +296 integration passed /74 files; final19 affected tests passed",
+        "Type/style, build, boundaries and full audit passed",
+        "Four compiled profiles resolved; exact F4 basic-input parity and byte-identical legacy controller",
+        "22 installed application table fingerprints unchanged; same7093cb8 release; server Fleet untouched"
+      ],
+      "qualification": "source_offline_only"
+    },
+    "PACT P3": {
+      "status": "done",
+      "revision": "177ad6c",
+      "qualification": "source_offline_only",
+      "evidence": [
+        "PACT docs/implementation/reports/agent-engine-scenarios-20261017.md",
+        "389 unit +465 integration passed,1 pre-existing optional skip; complete integration rerun with maxWorkers=2",
+        "Build/type/lint/contracts/boundaries/eval/backlog passed"
+      ]
+    },
+    "F6": {
+      "status": "done",
+      "assignee": "Codex",
+      "dependencies": ["F5"],
+      "qualification": "source_offline_synthetic_environment_only",
+      "evidence": [
+        "docs/specialist-coordinator-20261017.md",
+        "docs/specialist-coordination-comparison-20261017.json",
+        "174 unit/39 files +318 integration/37 files passed (492 total)",
+        "Build, type/style, boundaries and full dependency audit passed;0 vulnerabilities",
+        "Five compiled profiles resolve; PACT F6 capability rejection verified before inference",
+        "Pinned legacy controller byte-identical;22 installed application tables and7093cb8 release unchanged"
+      ],
+      "limitations": [
+        "PACT coordination protocol and parallel exception remain unimplemented/unqualified",
+        "Independent-submit candidate is fake-only, absent from runtime",
+        "At most2 workers+1 coordinator and1 next command per task; no budgets raised",
+        "Hard-crash outstanding F6 reservations remain unknown for exact review"
+      ]
+    },
+    "F8": {
+      "status": "done",
+      "assignee": "Codex",
+      "dependencies": ["F1", "F2", "F3", "F4", "F5", "F7", "PACT P1", "PACT P2", "PACT P3"],
+      "scope": "Qualification and disarmed release/run proposal; optional F6 only on compatible synthetic environment",
+      "qualification": "source_offline_only_release_blocked",
+      "sourceRevision": "8c83be5da23b7bae2cbcdfb8986b696ffcd2ec28",
+      "evidence": [
+        "docs/qualification-release-20261017.md",
+        "docs/multi-engine-release-proposal-20261017.md",
+        "docs/multi-engine-compatibility-20261017.md",
+        "185 unit +326 integration +12 actual-handler/profile acceptance passed; Fleet audit0",
+        "PACT389 unit +465 integration passed,1 existing optional real-provider skip; full build/type/lint/eval/backlog passed",
+        "PACT dependency audit23 (16 high/7 moderate) in unchanged Expo tree: release blocked",
+        "Pinned legacy controller unchanged; installed7093cb8 release and22 application table fingerprints unchanged",
+        "Dependency follow-up: docs/dependency-qualification-20261017.md; only audit blocker cleared at PACT60ec57b98c825eb1756d63121aa53d1aaa3b3315",
+        "docs/local-release-rehearsal-20261018.md: authenticated encrypted target restore, all25 tables,28266 file entries, idempotent migration and disabled source rollback; current quiescence gate remains false after original services restored"
+      ],
+      "limitations": [
+        "No actual provider qualification, exact live selection, installation, push or server contact",
+        "PACT F6 coordination/parallel protocol unsupported",
+        "Artifact authenticity requires review; pure gates perform no operational action",
+        "Author review only under no-delegation instructions"
+      ]
+    },
+    "F7": {
+      "status": "done",
+      "assignee": "Codex",
+      "scope": "source/offline only; installed runtimes and server Fleet excluded",
+      "dependencies": ["F5", "PACT P3"],
+      "qualification": "source_offline_only",
+      "evidence": [
+        "docs/profiles-and-reports-20261017.md",
+        "178 unit /41 files +325 integration /38 files passed (503 total)",
+        "Type/style/build/boundaries and dependency audit passed;0 vulnerabilities",
+        "Synthetic desktop/390px browser checks; report responses/privacy/auth and zero remote read/inference checks",
+        "Pinned legacy controller unchanged; same7093cb8 release and22 installed application-table fingerprints unchanged"
+      ],
+      "limitations": [
+        "PACT F6 coordination/parallel protocol still unsupported; compatibility preview is not real-provider qualification",
+        "Operational reports mark material outcomes unmeasured; no intelligence ranking",
+        "Browser saved-file download not certified after automation download-event wait reset; HTTP export paths verified",
+        "Author review only under no-delegation instructions; no hosted CI or rollout"
+      ]
+    },
+    "PACT dependency follow-up": {
+      "status": "done",
+      "revision": "60ec57b98c825eb1756d63121aa53d1aaa3b3315",
+      "evidence": [
+        "PACT docs/implementation/reports/dependency-qualification-20261017.md",
+        "405 unit +466 integration passed,1 existing optional skip;16 direct dependency/security checks",
+        "Local/pruned image audit0; clean-install/provenance/actual-consumer checks and Docker final-stage guard passed",
+        "Native Android export733 modules; original Expo/React/React Native versions retained"
+      ],
+      "limitations": [
+        "Private backports require original-version advisory review",
+        "No actual provider qualification, deployment, new run or recovery review"
+      ]
+    }
+  },
+  "preserve": [
+    "identities",
+    "encrypted history",
+    "configuration",
+    "anchors",
+    "budgets",
+    "pending commands",
+    "unknown allocations",
+    "recovery gates"
+  ],
+  "serverFleetTouched": false,
+  "runtimeInstalled": true,
+  "liveProviderQualified": false,
+  "dependencyAuditPassed": true,
+  "localReleaseRehearsal": {
+    "status": "done",
+    "qualification": "local_target_disabled_source_rollback_only",
+    "evidence": "docs/local-release-rehearsal-20261018.md",
+    "rollbackRehearsed": true,
+    "currentWorkersFenced": false,
+    "installedBinaryChanged": false,
+    "newRunsStarted": false,
+    "checks": "185 unit+326 integration; type/style/build/boundaries/audit0; protected target proof and PACT backlog/diff passed"
+  },
+  "localInstallation": {
+    "status": "done",
+    "sourceRevision": "953034e24b5f93f82f0571eef55ecce9a61999d2",
+    "previousRevision": "7093cb8782e1b81df1ebddfd24a00eec9927b5b5",
+    "executionEnabled": false,
+    "serverFleetTouched": false,
+    "newRunsStarted": false,
+    "installedMigrationIdempotent": true,
+    "retainedOriginalTables": 22,
+    "newTablesEmpty": true,
+    "installedHttpChecks": 25,
+    "evidence": "docs/local-disabled-install-20261018.md",
+    "postInstallChecks": "185 unit+326 integration+12 paired acceptance; type/style/build/boundaries/provenance/installed graph/audit0;25 actual HTTP checks; protected preservation proof",
+    "addedEmptyTables": 16
+  }
+}

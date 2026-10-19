@@ -1,0 +1,329 @@
+{
+  "schemaVersion": "fleet.cognition-diagnostic-status.v1",
+  "recordedAt": "2026-10-19T00:50:20.298961+00:00",
+  "state": "complete_with_quality_findings",
+  "runId": "3f4455d8-cda3-4a14-8a65-f54ed77149dd",
+  "sourceCommit": "646635cdceb593a8ce2e1d2e8e9233f22150e985",
+  "executionWindow": {
+    "startsAt": "2026-10-19T00:40:52.709Z",
+    "deadlineAt": "2026-10-19T02:40:52.709Z",
+    "lastTurnAt": "2026-10-19T00:44:19.299Z",
+    "journalClosed": true
+  },
+  "authorization": {
+    "modelCalls": 64,
+    "reservedTokens": 2560000,
+    "helperCalls": 160,
+    "standaloneCeiling": 96,
+    "embeddedCeiling": 64,
+    "modeCallCeiling": 32,
+    "profileModeCallCeiling": 16,
+    "turnCallCeiling": 2,
+    "embeddedTurnHelperCeiling": 4
+  },
+  "usage": {
+    "modelCalls": 34,
+    "reservedTokens": 1360000,
+    "reportedTokens": 128538,
+    "helperCalls": 104,
+    "standalone": 88,
+    "embedded": 16,
+    "unknown": 0,
+    "outputRecoveryRetries": 0,
+    "helperRetries": 0,
+    "modelReadDecisions": 3,
+    "additionalModelRounds": 2,
+    "invalidOutputs": 0,
+    "logicalTurns": 32,
+    "syntheticFixtureCohorts": 16,
+    "withheldCommands": 4,
+    "pendingCommands": 0,
+    "unusedCalls": 30,
+    "unusedReservedTokens": 1200000,
+    "unusedHelpers": 56,
+    "unusedIsNotARegrant": true
+  },
+  "modelGroups": [
+    {
+      "thinking": true,
+      "profile": "legacy-cognition",
+      "calls": 8,
+      "reservedTokens": 320000,
+      "reportedTokens": 34135,
+      "valid": 8,
+      "memories": 3,
+      "allSourcesOwned": true,
+      "controls": [
+        {
+          "scenario": "memory-control",
+          "memories": 1
+        },
+        {
+          "scenario": "no-evidence",
+          "memories": 1
+        }
+      ],
+      "episodes": [
+        {
+          "scenario": "promise",
+          "memories": 1,
+          "beliefs": 1,
+          "plan": false
+        },
+        {
+          "scenario": "reserve",
+          "memories": 0,
+          "beliefs": 1,
+          "plan": false
+        }
+      ]
+    },
+    {
+      "thinking": true,
+      "profile": "reactive-cognition",
+      "calls": 8,
+      "reservedTokens": 320000,
+      "reportedTokens": 28308,
+      "valid": 8,
+      "memories": 0,
+      "allSourcesOwned": true,
+      "controls": [
+        {
+          "scenario": "memory-control",
+          "memories": 0
+        },
+        {
+          "scenario": "no-evidence",
+          "memories": 0
+        }
+      ],
+      "episodes": [
+        {
+          "scenario": "promise",
+          "memories": 0,
+          "beliefs": 0,
+          "plan": false
+        },
+        {
+          "scenario": "reserve",
+          "memories": 0,
+          "beliefs": 0,
+          "plan": false
+        }
+      ]
+    },
+    {
+      "thinking": false,
+      "profile": "legacy-cognition",
+      "calls": 10,
+      "reservedTokens": 400000,
+      "reportedTokens": 41049,
+      "valid": 10,
+      "memories": 1,
+      "allSourcesOwned": true,
+      "controls": [
+        {
+          "scenario": "memory-control",
+          "memories": 0
+        },
+        {
+          "scenario": "no-evidence",
+          "memories": 0
+        }
+      ],
+      "episodes": [
+        {
+          "scenario": "promise",
+          "memories": 1,
+          "beliefs": 1,
+          "plan": false
+        },
+        {
+          "scenario": "reserve",
+          "memories": 0,
+          "beliefs": 1,
+          "plan": true
+        }
+      ]
+    },
+    {
+      "thinking": false,
+      "profile": "reactive-cognition",
+      "calls": 8,
+      "reservedTokens": 320000,
+      "reportedTokens": 25046,
+      "valid": 8,
+      "memories": 0,
+      "allSourcesOwned": true,
+      "controls": [
+        {
+          "scenario": "memory-control",
+          "memories": 0
+        },
+        {
+          "scenario": "no-evidence",
+          "memories": 0
+        }
+      ],
+      "episodes": [
+        {
+          "scenario": "promise",
+          "memories": 0,
+          "beliefs": 0,
+          "plan": false
+        },
+        {
+          "scenario": "reserve",
+          "memories": 0,
+          "beliefs": 0,
+          "plan": false
+        }
+      ]
+    }
+  ],
+  "helperGroups": [
+    {
+      "arm": "frozen",
+      "calls": 32,
+      "accepted": 18,
+      "abstained": 14,
+      "selectedExpected": 18,
+      "meanSelectedScore": 0.6564593750000001
+    },
+    {
+      "arm": "original",
+      "calls": 16,
+      "accepted": 3,
+      "abstained": 13,
+      "selectedExpected": 3,
+      "meanSelectedScore": 0.6136562500000001
+    },
+    {
+      "arm": "focused",
+      "calls": 16,
+      "accepted": 15,
+      "abstained": 1,
+      "selectedExpected": 15,
+      "meanSelectedScore": 0.74435
+    },
+    {
+      "arm": "compact",
+      "calls": 16,
+      "accepted": 15,
+      "abstained": 1,
+      "selectedExpected": 15,
+      "meanSelectedScore": 0.74755625
+    },
+    {
+      "arm": "negative",
+      "calls": 8,
+      "accepted": 1,
+      "abstained": 7,
+      "selectedExpected": 0,
+      "meanSelectedScore": 0.5585375
+    },
+    {
+      "arm": "embedded",
+      "calls": 16,
+      "accepted": 1,
+      "abstained": 15,
+      "selectedExpected": 0,
+      "meanSelectedScore": 0.5595625
+    }
+  ],
+  "findings": {
+    "modernMemories": 0,
+    "modernOmitted": {
+      "thinking": 6,
+      "nonThinking": 5
+    },
+    "modernEmpty": {
+      "thinking": 2,
+      "nonThinking": 3
+    },
+    "legacyMemories": {
+      "thinking": 3,
+      "nonThinking": 1
+    },
+    "legacyControlMemories": 2,
+    "legacyFreeChoiceMemories": 2,
+    "allMemoryCitationsOwned": true,
+    "semanticFidelityNotGuaranteed": true,
+    "modernMemorySchemaPositiveProbes": 14,
+    "emptyEvidenceControls": 2,
+    "fabricatedCitationsRejected": 16,
+    "observedSavedMemoryDeliveredToNextTurn": false,
+    "retrievalReplayMatchesExactly": true,
+    "memoryRankInObservedFailure": 7,
+    "deliveryEvidenceSelectedInObservedFailure": false,
+    "helperFocusedExpectedSelections": 15,
+    "helperOriginalExpectedSelections": 3,
+    "helperComparisonsPerArm": 16,
+    "helperPairs": 8,
+    "formatAddedSelections": 0,
+    "negativeControlAccepted": 1,
+    "negativeControlMeaning": "Selected unfulfilled-promise counterevidence at0.6599; does not establish fulfilled delivery and is not itself a false world assertion.",
+    "resourceArithmeticFailureObserved": true,
+    "qualityQualificationPassed": false
+  },
+  "verification": {
+    "unit": 237,
+    "integration": 393,
+    "pairedAcceptance": 12,
+    "pythonHelperStubs": 3,
+    "offlineTestsTotal": 645,
+    "check": true,
+    "build": true,
+    "boundaries": true,
+    "fullAuditFindings": 0,
+    "productionAuditFindings": 0,
+    "diffCheck": true,
+    "review": "author self-review; delegation forbidden",
+    "initialFailuresRetained": [
+      "46 missing fixture5436 connection failures",
+      "1 fixed fake journal path collision; UUID-scoped paths and final full393-test rerun pass"
+    ]
+  },
+  "preservation": {
+    "oldQualificationTablesExact": 25,
+    "priorCognitionTablesRowsRetained": 5,
+    "originalExecutions": 410,
+    "originalReservedTokens": 16400000,
+    "originalReportedTokens": 1023602,
+    "originalUnknown": 1,
+    "originalExecutionSHA256": "88e8ed6849e507d40409930ff188a9240be20366a9e3c61273b7bdc182f80305",
+    "combinedHistoricalAndDiagnosticExecutions": 444,
+    "combinedReservedTokens": 17760000,
+    "combinedReportedTokens": 1152140,
+    "installedRelease": "953034e24b5f93f82f0571eef55ecce9a61999d2",
+    "installedApplicationTableFingerprintsExact": 38,
+    "installedOriginalAgents": 20,
+    "installedOriginalTurns": 10121,
+    "installedOriginalUnknownAllocations": 40,
+    "installedOriginalUnknownTokens": 1600000,
+    "executionEnabled": false,
+    "serverFleetContacted": false,
+    "gameHostContacted": false,
+    "newGameAccounts": 0,
+    "shadowOrPopulationRuns": 0,
+    "oldReviewOrReplay": false
+  },
+  "backup": {
+    "artifact": "qualification-after.pgdump.enc",
+    "keyStoredSeparately": true,
+    "plaintextBytes": 237820657,
+    "plaintextSHA256": "ede580f06e5b9a415c4b9a5dde9cd8eb1e5bab2ec399afd4db62ca6ba7a153f9",
+    "authenticatedAndHashVerified": true,
+    "tocEntries": 371,
+    "fullRestoreRehearsal": false
+  },
+  "cleanup": {
+    "ownedProviderStopped": true,
+    "ownedFixture5436Stopped": true,
+    "ownedFixture5438Stopped": true,
+    "preexistingFixture5437Retained": true,
+    "installedWorkerConsoleHelperUnchangedActive": true,
+    "allDiagnosticCohortsPaused": true
+  },
+  "nextWork": "Source/offline design for focused query and candidate selection, structured-memory acknowledgement, and semantic constraint diagnostics; any new model experiment needs a fresh explicit budget. No deployment/activation/push authorized."
+}

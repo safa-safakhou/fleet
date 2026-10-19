@@ -78,3 +78,7 @@ When a successful command grows the next input, the prompt can project the exact
 Fresh peer forecasts require evidence captured after that peer's last anchored review; older messages/contact snapshots remain history and cannot rotate to restart a forecast. Reassessing the same saved prediction on a later reply remains supported. Native review horizons are common game-minute values (15/30/60/120/360/1440), avoiding accidental epoch-number deadlines.
 
 The [comparison feature](comparisons.md) prepares paired LLM-only and cognition groups, with optional Laya recall. Templates travel without account data. It separates accepted analysis, Laya selection and actual delivery from claims of quality; drafting never starts accounts or inference.
+
+## Separate task-based continuity profile — 17 October 2026
+
+[reactive-cognition@1](continuity-engine-20261017.md) adds the full source-linked bundle for explicitly selected new task cohorts. Legacy cognition/Laya settings and input contracts remain unchanged. It is source/offline work, with no installed rollout or live performance claim.

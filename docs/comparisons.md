@@ -35,3 +35,7 @@ All routes require the existing private operator login. POSTs require the config
 Template version 1 has `name`, `countPerArm` (default 5, 1–500), `intervalMinutes` (5/10/15/30/60), `seed`, `strategies`, shared `model`, per-group `budget`, and optional `recallAssist: "laya-recall-v1"`. Existing model/budget schemas enforce execution limits, Codex accounting and explicit continuous consent. The shared model must omit cognition, recall and decision-policy selectors; the comparison assigns the two modes. Strict validation refuses credentials, account bindings, endpoint URLs, start flags and VW. Exported finite deadlines are exact UTC instants and must be deliberately reviewed on import.
 
 Installation uses normal Fleet build/migration commands, including additive `008_comparisons.sql` and `009_five_minute_schedule.sql`. The latter expands the interval constraint without modifying any existing row or schedule. Source installation does not authorize enrollment or execution. [Implementation/verification status](comparisons-20261014.md).
+
+## Optional engine comparisons (F7 source)
+
+[Engines & reports](profiles-and-reports-20261017.md) links existing groups without making a study mandatory or changing ownership/configuration. Existing paired templates are retained. Private evidence and shareable aggregate exports have separate boundaries and explicit coverage.

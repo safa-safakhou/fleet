@@ -1,0 +1,180 @@
+{
+  "schemaVersion": "fleet.local-qualification-status.v1",
+  "assignment": "founder-local-qualification-20261018",
+  "owner": "Codex; no delegation",
+  "scope": "synthetic_fixtures_only",
+  "status": "blocked_provider_qualification",
+  "harnessCommit": "d0b49b0e628eaaca8bf357077687dab8a5e0cde7",
+  "runId": "f8facc31-f95a-40cc-a40d-4bb526efbb6a",
+  "planDigest": "4bde77b32eb1a87fab0ba93bf1ce0782fac8824e3ee9cb978797abd91db2db62",
+  "offline": {
+    "unitPassed": 187,
+    "integrationPassed": 335,
+    "pairedAcceptancePassed": 12,
+    "typeStyleBuildBoundariesPassed": true,
+    "auditFindings": 0,
+    "authorReviewOnly": true
+  },
+  "task1": "verified",
+  "task2": "Q1_failed_Q2_not_started",
+  "q1": {
+    "error": "QUALIFICATION_CALIBRATION_FAILED",
+    "state": "blocked",
+    "code": "QUALIFICATION_CALIBRATION_FAILED",
+    "executions": 2,
+    "accountedTokens": 80000,
+    "reservedTokens": 80000,
+    "unknown": 0,
+    "invalid": 1,
+    "reportedInputTokens": 136,
+    "reportedOutputTokens": 266,
+    "groups": [
+      {
+        "profile": "calibration",
+        "executions": 2,
+        "valid": 1,
+        "unknown": 0
+      }
+    ],
+    "trials": 0,
+    "trialFailures": 0,
+    "unresolved": 0,
+    "passed": false,
+    "helperCalls": 0
+  },
+  "caps": {
+    "executions": 104,
+    "reservedTokens": 4160000,
+    "helperCalls": 48
+  },
+  "remainingUnused": {
+    "executions": 8,
+    "reservedTokens": 320000,
+    "restartAuthorized": false
+  },
+  "installed": {
+    "release": "953034e24b5f93f82f0571eef55ecce9a61999d2",
+    "liveEnabled": false,
+    "retainedTablesMatched": 38,
+    "agents": 20,
+    "turns": 10121,
+    "historicalUnknownCalls": 40,
+    "historicalUnknownTokens": 1600000
+  },
+  "serverContacted": false,
+  "gameReset": false,
+  "populationStarted": false,
+  "realGameAccountsCreated": 0,
+  "pushPerformed": false,
+  "nextTasksAuthorized": false,
+  "report": "local-provider-qualification-20261018.md",
+  "followupOutputDiagnosis": {
+    "report": "nemotron-empty-output-fix-20261018.md",
+    "originalQ1SnapshotUnchanged": true,
+    "thinkingOnCalls": 8,
+    "thinkingOnValid": 6,
+    "thinkingOffCalls": 8,
+    "thinkingOffValid": 8,
+    "aggregate": {
+      "state": "blocked",
+      "code": "QUALIFICATION_CALIBRATION_FAILED",
+      "executions": 18,
+      "accountedTokens": 720000,
+      "reservedTokens": 720000,
+      "unknown": 0,
+      "invalid": 3,
+      "reportedInputTokens": 1576,
+      "reportedOutputTokens": 1712,
+      "groups": [
+        {
+          "profile": "calibration",
+          "executions": 2,
+          "valid": 1,
+          "unknown": 0
+        },
+        {
+          "profile": "output-diagnostic",
+          "executions": 16,
+          "valid": 14,
+          "unknown": 0
+        }
+      ],
+      "trials": 0,
+      "trialFailures": 0,
+      "unresolved": 0,
+      "passed": false,
+      "helperCalls": 0
+    }
+  },
+  "followupModelRecovery": {
+    "report": "model-output-recovery-20261018.md",
+    "statusRegister": "model-output-recovery-status-20261018.json",
+    "originalQ1Unchanged": true,
+    "newRealCalls": 0,
+    "fullQualificationPassed": false
+  },
+  "followupRetryQualification": {
+    "report": "retry-mode-qualification-20261018.md",
+    "statusRegister": "retry-mode-qualification-status-20261018.json",
+    "newExecutions": 49,
+    "aggregateExecutions": 67,
+    "aggregateReservedTokens": 2680000,
+    "originalQ1Preserved": true,
+    "fullQualificationPassed": false
+  },
+  "remainingBeforeRetryQualification": {
+    "executions": 86,
+    "reservedTokens": 3440000,
+    "restartAuthorized": false
+  },
+  "remainingBeforeRemainingFailureRepairs": {
+    "executions": 37,
+    "reservedTokens": 1480000,
+    "restartAuthorized": false
+  },
+  "followupRemainingFailureRepairs": {
+    "report": "qualification-repair-20261018.md",
+    "statusRegister": "qualification-repair-status-20261018.json",
+    "newExecutions": 29,
+    "aggregateExecutions": 96,
+    "aggregateReservedTokens": 3840000,
+    "targetedRecoveryPassedBothModes": true,
+    "thinkingRawPassed": false,
+    "fullQualificationPassed": false,
+    "originalQ1Preserved": true
+  },
+  "followupFullLocalQualification": {
+    "report": "full-local-qualification-20261018.md",
+    "statusRegister": "full-local-qualification-status-20261018.json",
+    "sourceCommit": "dc4a4bdc49ef78ac9a57132c380e4f2d92e3a7ac",
+    "newExecutions": 96,
+    "newReservedTokens": 3840000,
+    "thinkingAcceptable": 41,
+    "thinkingAttempted": 48,
+    "nonThinkingAcceptable": 21,
+    "nonThinkingAttempted": 22,
+    "nonThinkingUnrun": 26,
+    "newUnknownExecutions": 1,
+    "fullQualificationPassed": false,
+    "originalHistoryPreserved": true,
+    "executionDisabled": true
+  },
+  "followupQualificationContinuation": {
+    "report": "qualification-continuation-20261018.md",
+    "statusRegister": "qualification-continuation-status-20261018.json",
+    "sourceCommit": "787dba78213318d3c03859a8fe7932afe7ececac",
+    "newExecutions": 110,
+    "newReservedTokens": 4400000,
+    "thinkingPassed": true,
+    "thinkingAcceptable": 48,
+    "nonThinkingPassed": false,
+    "nonThinkingAcceptable": 47,
+    "trialsPerMode": 48,
+    "newUnknownUsage": 0,
+    "priorUnknownReviewedWithAllocationRetained": true,
+    "fullQualificationPassed": false,
+    "remainingExecutions": 2,
+    "remainingReservedTokens": 80000,
+    "executionDisabled": true
+  }
+}

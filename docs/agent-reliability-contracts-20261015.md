@@ -1,6 +1,6 @@
 # Closed decision source acceptance
 
-AR-F02 and AR-P02 / PACT-172 are source-verified on 15 October 2026. [Executable decisions](executable-decisions.md) describes exact action/read binding, selected schema lookup, single schema transport, local validation and catalog version handling. [Counterpart acceptance](../../pact/docs/implementation/reports/agent-reliability-contracts-20261015.md) records the joint controls and PACT dispatch semantics.
+AR-F02 and AR-P02 / PACT-172 are source-verified on 15 October 2026. [Executable decisions](executable-decisions.md) describes exact action/read binding, selected schema lookup, single schema transport, local validation and catalog version handling. [Counterpart acceptance](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/reports/agent-reliability-contracts-20261015.md) records the joint controls and PACT dispatch semantics.
 
 Fleet check/build/boundaries, 116 unit and 169 integration tests pass. The four archived malformed-call shapes are negative controls; legitimate building, offer and generic second-game actions pass. The dense cognition fixture measures the actual 24 KB serialized envelope, retains accepted evidence order, explicitly reports paged optional subjective state and persists the new grounded reflection; eight UUID-order variations pass. PACT has 369 unit and 62 relevant integration passes, build/typecheck/lint and unchanged 26/26 v1 freeze.
 

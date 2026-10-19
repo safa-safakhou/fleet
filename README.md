@@ -2,17 +2,19 @@
 
 An independent server controller and private console for scheduled game agents. Scheduling, budgets, model execution, memory and command recovery use an injected game adapter. PACT is the first supported integration; additional games need their own authenticated adapter and acceptance tests. Fleet has its own database, processes, credentials and repository and never connects to a game's database.
 
-The proposed [multi-engine and environment architecture](docs/superpowers/specs/2026-10-17-multi-engine-platform-design.md) preserves the current controller while adding selectable engines, reviewed environment adapters and optional comparisons. Read the [phased Fleet implementation plan](docs/superpowers/plans/2026-10-17-multi-engine-platform.md) and its linked PACT counterpart. These are planning documents; new engines, migrations, deployments and runs are not activated by them.
+Start with the [PACT and Fleet project handbook](docs/project/README.md) for the product, technical architecture, design decisions, full development/report journey, findings and presentation notes. The [19 October state](docs/project/current-state.md) separates implemented source, synthetic provider qualification, installed artifacts and remaining live/quality gates. Multiple engine packages now coexist; the original controller is preserved. Current source publication does not deploy or enable an installation.
+
+The original [architecture design](docs/superpowers/specs/2026-10-17-multi-engine-platform-design.md) and [phased plan](docs/superpowers/plans/2026-10-17-multi-engine-platform.md) retain their dated intent. The handbook links each phase's actual acceptance and later corrections. Notes below include historical operations and should not be read as continuous monitoring.
 
 The [focused PACT discovery source change](docs/discovery-20261013.md) replaces directory traversal with filtered, varied kingdom shortlists on compatible game releases. It is verified locally; rollout remains separate.
 
 For day-to-day console use, read the [operator guide](docs/operator-guide.md): draft setup, model/allowance selection, accounts, monitoring, pause and recovery.
 
-The independent [five-account Mac Nemotron installation](docs/local-nemotron-20261013.md) runs its controller, database, dashboard and inference on this Mac, every fifteen minutes until stopped. It is separate from the server Luna cohort.
+The [13 October five-account Mac Nemotron installation report](docs/local-nemotron-20261013.md) records a separate controller/database/dashboard/inference installation. It is historical evidence, not a fresh Mac or server-health assessment.
 
 The [13 October P1 controller report](docs/p1-controller-20261013.md) records verified fresh-read delivery, persisted memory, action-permission and construction-recovery fixes. The [subsequent deployment and recovery](docs/p1-deployment-20261013.md) deployed these changes and resumed the same fifty-owner Luna group, preserving its accounts, counters and fifteen-minute schedule. The reviewed cancelled execution's full allocation and historical unknown-usage marker remain visible.
 
-Latest: [the reliability follow-up](docs/reliability-follow-up-20261013.md) records the deployed context/read-correction changes, five exact owner queue recoveries, the second reviewed timeout, 168 tests and an observed fifty-agent round. Scheduler health and cleared deadlocks remain distinct from weak planning/communication. Sign in with ChatGPT is assessed as a future provider; the current cohort still uses Codex.
+13 October: [the reliability follow-up](docs/reliability-follow-up-20261013.md) records the deployed context/read-correction changes, five exact owner queue recoveries, the second reviewed timeout, 168 tests and an observed fifty-agent round. Scheduler health and cleared deadlocks remain distinct from weak planning/communication. Sign in with ChatGPT is assessed as a future provider; the current cohort still uses Codex.
 
 The completed five-agent Luna pilot is preserved. A subsequent founder assignment requests 50 fresh account-bound Luna agents on a continuous 15-minute schedule; see [its implementation and launch record](docs/continuous-fleet-20261012.md) for actual status. See also [the migration report](docs/repository-migration-20261012.md), [adapter contract](docs/game-integration.md) and [final pilot results](docs/luna-pilot-final-20261012.md).
 
@@ -42,7 +44,7 @@ The completed five-agent Luna pilot is preserved. A subsequent founder assignmen
 
 ## Consolidated reliability proposal 15 October
 
-The [Fleet task plan](docs/agent-reliability-plan-20261015.md) and [PACT counterpart](../pact/docs/implementation/agent-reliability-consolidated-plan-20261015.md) define proposed/unstarted owner-intent, contract, context, planning/recovery, social and evaluation work. The [twenty local agents investigation](docs/fleet-failure-investigation-20261014.md) and [fifty server Luna causal report](../pact/docs/implementation/reports/fleet-root-causes-20261014.md) remain separate dated evidence. Saving the plans does not authorize implementation, experiments, deployment or changes to existing accounts/settings.
+The [Fleet task plan](docs/agent-reliability-plan-20261015.md) and [PACT counterpart](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/agent-reliability-consolidated-plan-20261015.md) define proposed/unstarted owner-intent, contract, context, planning/recovery, social and evaluation work. The [twenty local agents investigation](docs/fleet-failure-investigation-20261014.md) and [fifty server Luna causal report](https://github.com/safa-safakhou/pact/blob/master/docs/implementation/reports/fleet-root-causes-20261014.md) remain separate dated evidence. Saving the plans does not authorize implementation, experiments, deployment or changes to existing accounts/settings.
 
 See [detailed run debugging](docs/run-debugging-20261016.md) for the Runs browser, per-run input/output reports and timing. [Installed on the existing local and server runtimes](docs/run-debugging-deployment-20261016.md); pre-existing local recovery gates remain.
 
@@ -103,3 +105,9 @@ Each turn observes one rotating contact from the delivered guide and its latest 
 Adapters support Ollama `/api/chat` with bounded output and immediate unload, an explicitly selected API-compatible `/chat/completions` endpoint with JSON output, and native Linux Codex CLI with ChatGPT subscription authentication. They do not silently switch models. The [Codex setup and accounting guide](docs/codex-provider.md) explains protected login, execution-based allowances and required live certification. Actual provider/account/scheduler certification remains a launch prerequisite. See [Ollama's chat API](https://docs.ollama.com/api/chat) and [OpenAI's Chat API](https://developers.openai.com/api/reference/resources/chat).
 
 The PACT integration's public action artifact in `vendor/` is explicitly exported and checked by digest; no PACT rules or database credentials are copied. Update it only after reviewing a PACT contract change. The game remains authoritative.
+
+Phase2 source implementation: [event intake and reactive-basic@1](docs/reactive-engine-20261017.md). Existing cohorts remain on their selected engines; installation is separate.
+
+Phase3 source architecture: [grounded continuity profile and PACT adapter](docs/continuity-engine-20261017.md), alongside preserved compatibility/basic engines. Activation and new runs remain explicit.
+
+Phase4 source architecture: [focused workers and shared coordinator](docs/specialist-coordinator-20261017.md), with a fake-only independent-submit comparison and explicit environment/provider gates.

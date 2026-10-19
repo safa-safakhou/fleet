@@ -1,0 +1,85 @@
+{
+  "schemaVersion": "fleet.output-fix-status.v1",
+  "owner": "Codex; no delegation",
+  "status": "source_verified_nonthinking_control_passed_full_qualification_blocked",
+  "diagnosticSource": "401a39d78ff68d86c115f8e3e778e0c4a992aa9e",
+  "correctedSource": "5beccbd2cf52dc8b726ba5de1eadb614be8a913a",
+  "parentRun": "f8facc31-f95a-40cc-a40d-4bb526efbb6a",
+  "originalQ1Preserved": true,
+  "originalQ1Executions": 2,
+  "originalQ1ReservedTokens": 80000,
+  "thinkingOn": {
+    "approval": "71fdde40-19d7-4bc3-ad7d-4ccf43e151da",
+    "calls": 8,
+    "valid": 6
+  },
+  "thinkingOff": {
+    "approval": "f46e4d45-d411-40a0-9836-e8f247139fbe",
+    "calls": 8,
+    "valid": 8
+  },
+  "aggregate": {
+    "state": "blocked",
+    "code": "QUALIFICATION_CALIBRATION_FAILED",
+    "executions": 18,
+    "accountedTokens": 720000,
+    "reservedTokens": 720000,
+    "unknown": 0,
+    "invalid": 3,
+    "reportedInputTokens": 1576,
+    "reportedOutputTokens": 1712,
+    "groups": [
+      {
+        "profile": "calibration",
+        "executions": 2,
+        "valid": 1,
+        "unknown": 0
+      },
+      {
+        "profile": "output-diagnostic",
+        "executions": 16,
+        "valid": 14,
+        "unknown": 0
+      }
+    ],
+    "trials": 0,
+    "trialFailures": 0,
+    "unresolved": 0,
+    "passed": false,
+    "helperCalls": 0
+  },
+  "remainingUnused": {
+    "executions": 86,
+    "reservedTokens": 3440000,
+    "restartAuthorized": false
+  },
+  "q2Trials": 0,
+  "helpers": 0,
+  "offline": {
+    "unitPassed": 192,
+    "integrationPassed": 340,
+    "pairedAcceptancePassed": 12,
+    "auditFindings": 0,
+    "typeStyleBuildBoundariesPassed": true
+  },
+  "preservation": {
+    "installedRelease": "953034e24b5f93f82f0571eef55ecce9a61999d2",
+    "liveEnabled": false,
+    "retainedTablesMatched": 38,
+    "historicalUnknownCalls": 40,
+    "historicalUnknownTokens": 1600000,
+    "serverContacted": false,
+    "gameReset": false,
+    "populationStarted": false,
+    "deployed": false,
+    "pushed": false
+  },
+  "report": "nemotron-empty-output-fix-20261018.md",
+  "followupModelRecovery": {
+    "report": "model-output-recovery-20261018.md",
+    "statusRegister": "model-output-recovery-status-20261018.json",
+    "upstreamGrammarPermitsEarlyEnd": true,
+    "newRealCalls": 0,
+    "installed": false
+  }
+}

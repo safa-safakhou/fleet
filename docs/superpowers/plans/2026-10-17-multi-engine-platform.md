@@ -1,6 +1,6 @@
 # Fleet Multi-engine Platform Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: use `superpowers:executing-plans` to implement authorized tasks sequentially. Repository instructions require ownership without delegation. All checkboxes below describe future work, not work completed by saving this plan.
+> **For agentic workers:** REQUIRED SUB-SKILL: use `superpowers:executing-plans` to implement authorized tasks sequentially. Repository instructions require ownership without delegation. Checked steps record verified acceptance linked below; unchecked steps remain future work.
 
 **Goal:** Preserve Fleet's current engines while adding selectable engines and reviewed environment adapters with reliable execution and optional comparisons.
 
@@ -8,7 +8,7 @@
 
 **Tech Stack:** Existing Node 24, TypeScript, PostgreSQL 17, Fastify, React, Vitest and pinned dependencies. No new queue service or arbitrary plugin loader.
 
-**Spec:** [Fleet multi-engine and environment architecture](../specs/2026-10-17-multi-engine-platform-design.md). [PACT companion plan](../../../../pact/docs/superpowers/plans/2026-10-17-fleet-platform-integration.md).
+**Spec:** [Fleet multi-engine and environment architecture](../specs/2026-10-17-multi-engine-platform-design.md). [PACT companion plan](https://github.com/safa-safakhou/pact/blob/master/docs/superpowers/plans/2026-10-17-fleet-platform-integration.md).
 
 ## Global constraints
 
@@ -52,7 +52,7 @@ Cross-repository order: F1 → F2 → F3 → PACT P1/F4 → PACT P2/F5 → F7 + 
 
 **Interfaces:** `EngineProfileRef = { id: string; version: string }`; `LegacyManifest = { sourceRevision: string; artifactDigest: string; configurationDigest: string; provenance: "recorded" | "inferred_legacy" }`; `LegacyEngineBridge.run(claim: Claim): Promise<void>` delegates to existing `Engine.run`. `legacyProfileFor(model: ModelSettings): EngineProfileRef` returns `legacy-loop@1` or `legacy-cognition@1`, preserving recall settings in the manifest.
 
-- [ ] Write red tests named `preserves legacy inputs and accounting`, `keeps legacy cognition and recall distinct`, `labels historical provenance without rewriting history`. Use fake game/model ports and injected clocks/IDs. Assert, for example:
+- [x] Write red tests named `preserves legacy inputs and accounting`, `keeps legacy cognition and recall distinct`, `labels historical provenance without rewriting history`. Use fake game/model ports and injected clocks/IDs. Assert, for example:
 
   ```ts
   expect(bridged.modelInputs).toEqual(pinned.modelInputs);
@@ -61,10 +61,12 @@ Cross-repository order: F1 → F2 → F3 → PACT P1/F4 → PACT P2/F5 → F7 + 
   expect(legacyProfileFor({ route: "ollama", model: "fixture" })).toEqual({ id: "legacy-loop", version: "1" });
   ```
 
-- [ ] Run `npx vitest run tests/integration/legacy-engine.test.ts --maxWorkers=1` in the isolated `fleet_test` setup. Expected red profile/bridge assertions, not a production connection or fixture failure.
-- [ ] Implement the bridge/profile resolver and a credential-free manifest from the pinned revision. Add additive run metadata without changing consumed configuration or historical ciphertext. Baseline fixtures contain synthetic inputs only.
-- [ ] Rerun the focused suite plus existing `tests/integration/engine.test.ts`, `cognition.test.ts`, `continuous.test.ts` and `recovery.test.ts`. Require identical decision-visible inputs, game commits and lifetime accounting; verify default composition still selects the legacy path.
-- [ ] Document the baseline contract and actual parity coverage; run `npm run check`, `npm run check:boundaries`, `git diff --check`; commit only F1 files and its report.
+- [x] Run `npx vitest run tests/integration/legacy-engine.test.ts --maxWorkers=1` in the isolated `fleet_test` setup. Expected red profile/bridge assertions, not a production connection or fixture failure.
+- [x] Implement the bridge/profile resolver and a credential-free manifest from the pinned revision. Add additive run metadata without changing consumed configuration or historical ciphertext. Baseline fixtures contain synthetic inputs only.
+- [x] Rerun the focused suite plus existing `tests/integration/engine.test.ts`, `cognition.test.ts`, `continuous.test.ts` and `recovery.test.ts`. Require identical decision-visible inputs, game commits and lifetime accounting; verify default composition still selects the legacy path.
+- [x] Document the baseline contract and actual parity coverage; run `npm run check`, `npm run check:boundaries`, `git diff --check`; commit only F1 files and its report.
+
+F1 acceptance: [source implementation and local verification](../../engine-baseline-20261017.md), with 389 passing tests. Installed runtimes remain unchanged.
 
 ## F2 — Register environments and generic bindings (phase 1)
 
@@ -101,7 +103,7 @@ interface EnvironmentAdapter {
 
 `EnvironmentRegistry.resolve(ref)` returns a statically registered adapter or `UNSUPPORTED_ENVIRONMENT`. Credentials are resolved through an integration-owned binding repository and never included in `BindingRef`. Required capabilities/schema versions are validated before dispatch. `resolve` returns `unknown` when reliable lookup is unavailable; this must not authorize replay.
 
-- [ ] Write tests `binds opaque actor IDs`, `preserves legacy vault identity and pending receipt`, `rejects duplicate controlling binding`, `refuses missing capabilities before model dispatch`. Assert:
+- [x] Write tests `binds opaque actor IDs`, `preserves legacy vault identity and pending receipt`, `rejects duplicate controlling binding`, `refuses missing capabilities before model dispatch`. Assert:
 
   ```ts
   expect(binding.actorRef).toBe("seat:red");
@@ -111,10 +113,12 @@ interface EnvironmentAdapter {
   expect(await session.resolve("lost-command")).toMatchObject({ status: "unknown" });
   ```
 
-- [ ] Run both new suites; expect unsupported/new registry/binding assertions to fail. Keep the existing `game-adapter.test.ts` fixture passing as the initial baseline.
-- [ ] Implement generic bindings and reviewed registry composition, using a PACT compatibility adapter around existing `GameAdapter`/`GamePort`. Keep one selected environment per deployment. Retain legacy columns, IDs, ciphertext bindings and terminal-state uniqueness. Provide environment-specific labels/default goals/enrollment hooks; optional social capabilities must not force contacts onto a board-game fixture.
-- [ ] Run new and existing game-adapter/enrollment/release-preservation suites. Verify a full second-environment action/receipt cycle with non-UUID external IDs, without PACT nouns, credentials or database imports. Extend the boundary scan to all new core/engine directories and include a forbidden-import fixture.
-- [ ] Record the compatibility/migration proof; run relevant full Fleet checks; commit F2 and update `docs/game-integration.md`. This certifies the fixture boundary, not a new real game.
+- [x] Run both new suites; expect unsupported/new registry/binding assertions to fail. Keep the existing `game-adapter.test.ts` fixture passing as the initial baseline.
+- [x] Implement generic bindings and reviewed registry composition, using a PACT compatibility adapter around existing `GameAdapter`/`GamePort`. Keep one selected environment per deployment. Retain legacy columns, IDs, ciphertext bindings and terminal-state uniqueness. Provide environment-specific labels/default goals/enrollment hooks; optional social capabilities must not force contacts onto a board-game fixture.
+- [x] Run new and existing game-adapter/enrollment/release-preservation suites. Verify a full second-environment action/receipt cycle with non-UUID external IDs, without PACT nouns, credentials or database imports. Extend the boundary scan to all new core/engine directories and include a forbidden-import fixture.
+- [x] Record the compatibility/migration proof; run relevant full Fleet checks; commit F2 and update `docs/game-integration.md`. This certifies the fixture boundary, not a new real game.
+
+F2 acceptance: [contracts, bindings and migration proof](../../environment-bindings-20261017.md), with399 passing tests. F3 remains the next dependency-ordered package in the phase1 assignment.
 
 ## F3 — Build durable admission, actor lanes and shared execution (phase 1)
 
@@ -129,7 +133,7 @@ interface EnvironmentAdapter {
 - `AgentEngine = { ref: EngineProfileRef; requiredCapabilities: CapabilityRequirements; run(context: EngineContext): Promise<void> }`. `EngineRegistry.resolve(ref: EngineProfileRef): AgentEngine`; unknown refs fail before dispatch. A reactive engine accepts either native or polled event delivery according to its explicit requirements.
 - `OperationSupervisor.run(claim, operation): Promise<void>` creates a per-operation abort controller and drains or fences independently on stop. `observe(query)` uses the selected session; `eventRefs` are retained source IDs, not raw unbounded bodies.
 
-- [ ] Write concurrency/crash tests: two different bindings can progress with a parallel fake route; the same binding cannot run twice; a serial route remains at one call; event-heavy actors cannot starve due scheduled actors; stopping one operation does not abort another; unknown usage/pending commands survive restart.
+- [x] Write concurrency/crash tests: two different bindings can progress with a parallel fake route; the same binding cannot run twice; a serial route remains at one call; event-heavy actors cannot starve due scheduled actors; stopping one operation does not abort another; unknown usage/pending commands survive restart.
 
   ```ts
   expect(serialProvider.maxInFlight).toBe(1);
@@ -140,10 +144,12 @@ interface EnvironmentAdapter {
   expect(secondActor.signal.aborted).toBe(false);
   ```
 
-- [ ] Run the new focused integration suites to obtain meaningful red admission/recovery assertions.
-- [ ] Implement durable task claims and fair round-robin admission across ready cohorts, with owner priority/deadline ordering within each cohort. Provider capacity and per-cohort allowance remain separate constraints. Persist tasks/cursors/fences in PostgreSQL, not in a process-only promise array. Reuse the existing store/accounting and exact-receipt flow, extracting execution only behind F1 parity. Lease opening remains immediately before actual commitment, not around all reasoning. Keep Codex lock/concurrency rules unchanged.
-- [ ] Run host/recovery suites plus scheduler, worker-liveness, admission, Codex and release-preservation suites. Exercise crashes before reserve, after reserve/before provider result, before command submission, after server commit/before response and after task completion/before local acknowledgement. Require no duplicate debit/action and explicit next steps for unresolved cases.
-- [ ] Document fairness, stop/drain, compatibility-engine scheduling and route limitations. Run `npm run check`, all unit/integration tests, build and boundary checks; commit F3 with actual evidence.
+- [x] Run the new focused integration suites to obtain meaningful red admission/recovery assertions.
+- [x] Implement durable task claims and fair round-robin admission across ready cohorts, with owner priority/deadline ordering within each cohort. Provider capacity and per-cohort allowance remain separate constraints. Persist tasks/cursors/fences in PostgreSQL, not in a process-only promise array. Reuse the existing store/accounting and exact-receipt flow, extracting execution only behind F1 parity. Lease opening remains immediately before actual commitment, not around all reasoning. Keep Codex lock/concurrency rules unchanged.
+- [x] Run host/recovery suites plus scheduler, worker-liveness, admission, Codex and release-preservation suites. Exercise crashes before reserve, after reserve/before provider result, before command submission, after server commit/before response and after task completion/before local acknowledgement. Require no duplicate debit/action and explicit next steps for unresolved cases.
+- [x] Document fairness, stop/drain, compatibility-engine scheduling and route limitations. Run `npm run check`, all unit/integration tests, build and boundary checks; commit F3 with actual evidence.
+
+F3 acceptance: [durable host, compatibility and recovery proof](../../platform-host-20261017.md), with 431 passing tests. Phase1 is source-verified; installation and real-provider qualification remain separate.
 
 ## F4 — Add event-aware profiles alongside scheduled profiles (phase 2)
 
@@ -153,7 +159,7 @@ interface EnvironmentAdapter {
 
 **Interfaces:** `EventIntake.ingest(binding, page: EventPage): Promise<{ inserted: number; cursor: string | null }>` atomically stores deduplicated sources/task effects and advances the cursor. `WakePolicy = { enabled: boolean; categories: string[]; periodicReviewMinutes: number; quietCategories: string[] }`. `ReactiveEngine.run(context)` uses F3 services; its profile IDs are `reactive-basic@1` and later `reactive-cognition@1` after F5.
 
-- [ ] Write tests `groups two completions for one goal`, `keeps separate conversations`, `does not infer on receipt without enrollment`, `deduplicates after restart`, `resyncs expired cursor without fabricated history`, `marks missed battle lock before model dispatch`.
+- [x] Write tests `groups two completions for one goal`, `keeps separate conversations`, `does not infer on receipt without enrollment`, `deduplicates after restart`, `resyncs expired cursor without fabricated history`, `marks missed battle lock before model dispatch`.
 
   ```ts
   expect(goalTasks).toHaveLength(1); // two related source events retained
@@ -164,10 +170,12 @@ interface EnvironmentAdapter {
   expect(afterExpiredDeadline.code).toBe("DEADLINE_MISSED");
   ```
 
-- [ ] Run the focused suite to red; treat absent PACT feed capability as `UNSUPPORTED_CAPABILITY`, not as permission to open a human session stream.
-- [ ] Implement bounded polling intake, task coalescing and explicit event-wake enrollment on new cohorts. Native and polled delivery are labeled. Preserve timed reviews and conditional waits; apply mutes/categories in wake policy. Enforce model caps before every dispatch, even during a flood. On a cursor gap, persist gap evidence, obtain a fresh authorized snapshot and resume from the server resync token.
-- [ ] Run reactive, admission, scheduler, legacy parity and PACT-adapter tests. Verify 100 duplicate/flood events do not produce 100 model calls; each actual call still needs remaining allowance and provider admission. Verify out-of-order events do not regress current state.
-- [ ] Document the new profiles and actual PACT feed versions; commit only after boundary/build/type/behavior checks pass. Existing cohorts are not enrolled by migration.
+- [x] Run the focused suite to red; treat absent PACT feed capability as `UNSUPPORTED_CAPABILITY`, not as permission to open a human session stream.
+- [x] Implement bounded polling intake, task coalescing and explicit event-wake enrollment on new cohorts. Native and polled delivery are labeled. Preserve timed reviews and conditional waits; apply mutes/categories in wake policy. Enforce model caps before every dispatch, even during a flood. On a cursor gap, persist gap evidence, obtain a fresh authorized snapshot and resume from the server resync token.
+- [x] Run reactive, admission, scheduler, legacy parity and PACT-adapter tests. Verify 100 duplicate/flood events do not produce 100 model calls; each actual call still needs remaining allowance and provider admission. Verify out-of-order events do not regress current state.
+- [x] Document the new profiles and actual PACT feed versions; commit only after boundary/build/type/behavior checks pass. Existing cohorts are not enrolled by migration.
+
+F4 source acceptance: [reactive engine and event intake](../../reactive-engine-20261017.md),446 passing deterministic tests. PACT P1 is source-verified; no installation, provider qualification or current-cohort enrollment.
 
 ## F5 — Connect grounded continuity, self-models and relationships to tasks (phase 3)
 
@@ -222,7 +230,7 @@ interface EnvironmentAdapter {
 
 **Interfaces:** `createProfileDraft(input): Promise<{ cohortId: string; profile: EngineProfileRef }>` creates only inactive controller records. `compareCohorts(ids: string[]): Promise<Data>` links two or more existing permitted cohorts without reassigning accounts. `exportReport(scope: "private" | "shareable", ids): Promise<Data>` uses versioned schemas, consent filtering and explicit missing-data coverage.
 
-- [ ] Write tests for normal operation without a study, a four-cohort comparison, immutable consumed profiles, configuration drift, revoked/expired detail and sanitized export.
+- [x] Write tests for normal operation without a study, a four-cohort comparison, immutable consumed profiles, configuration drift, revoked/expired detail and sanitized export.
 
   ```ts
   expect(ordinaryAgent.studyId).toBeNull();
@@ -233,10 +241,12 @@ interface EnvironmentAdapter {
   expect(report.unknownAllocatedTokens).toBe(originalUnknownAllocation);
   ```
 
-- [ ] Run the new focused suites to red; use existing fake console fixtures, never real operator/game accounts.
-- [ ] Implement profile selection/compatibility preview, normal cohort operation and optional multi-cohort comparison. Extend Runs with engine/environment/task/trigger refs and links from expectation through actual outcome. Preserve readable input/output/raw JSON and existing capture bounds. Separate private report downloads from shareable aggregates and give exports an explicit version/coverage section.
-- [ ] Run existing console/comparisons/observability/rendering suites and the new profile suites. Inspect synthetic desktop and 390-pixel views: baseline selection, incompatible adapter feedback, a four-profile comparison and missing historical evidence. Verify viewing/exporting does not call models or acknowledge game messages.
-- [ ] Document the workflow and definitions; run full relevant checks/build/boundaries; commit F7. Do not declare a universal intelligence winner or silently choose a run budget.
+- [x] Run the new focused suites to red; use existing fake console fixtures, never real operator/game accounts.
+- [x] Implement profile selection/compatibility preview, normal cohort operation and optional multi-cohort comparison. Extend Runs with engine/environment/task/trigger refs and links from expectation through actual outcome. Preserve readable input/output/raw JSON and existing capture bounds. Separate private report downloads from shareable aggregates and give exports an explicit version/coverage section.
+- [x] Run existing console/comparisons/observability/rendering suites and the new profile suites. Inspect synthetic desktop and 390-pixel views: baseline selection, incompatible adapter feedback, a four-profile comparison and missing historical evidence. Verify viewing/exporting does not call models or acknowledge game messages.
+- [x] Document the workflow and definitions; run full relevant checks/build/boundaries; commit F7. Do not declare a universal intelligence winner or silently choose a run budget.
+
+F7 source/offline acceptance: [report](../../profiles-and-reports-20261017.md). Browser saved-file download remains uncertified after an automation timeout; authenticated export payload/privacy checks passed.
 
 ## F8 — Qualify and prepare a concrete release/run proposal (phase 5)
 
@@ -265,4 +275,4 @@ interface EnvironmentAdapter {
 
 Coverage: F1 preserves baseline; F2 proves environment independence; F3 supplies reliable/fair execution; F4/P1 add events; F5/P2 connect grounded continuity and outlooks; F6 compares both worker choices; F7 keeps operation primary and comparisons optional; F8/P3 distinguish offline readiness from real acceptance. The five review-focus failures are assigned above.
 
-This is a phased implementation plan, not a claim that source work is assigned or tests above have run. The next source package is F1 under a covering implementation assignment. Execution stays native/sequential without delegation.
+F1–F7 and PACT P1–P3 are source/offline verified in their linked phase reports/status registers. F6 remains synthetic-environment-only and unsupported on PACT. F8 is the next unstarted qualification/release-proposal package. No runtime, provider run, rollout or new allowance was selected. Execution stays native/sequential without delegation.
