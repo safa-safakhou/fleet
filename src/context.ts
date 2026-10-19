@@ -241,7 +241,18 @@ function fitAcceptedMessages(
         // Dense authority/core state can require more than 4 KB while optional
         // pages make 6 KB too large for the complete provider envelope. Search
         // that interval as well; never infer that a failed coarse bucket cannot fit.
-        for (const allowance of Array.from({ length: 201 }, (_, index) => 12000 - index * 50)) {
+        const larger = Math.max(
+          0,
+          Math.ceil((Math.min(Buffer.byteLength(JSON.stringify(context.environment)), limit) - 12000) / 500),
+        );
+        // Preserve existing small-envelope choices first. A post-command core
+        // can exceed 12KB while still fitting the complete request; never treat
+        // that historical search bucket as the environment's hard ceiling.
+        const allowances = [
+          ...Array.from({ length: 201 }, (_, index) => 12000 - index * 50),
+          ...Array.from({ length: larger }, (_, index) => 12500 + index * 500),
+        ];
+        for (const allowance of allowances) {
           let environment: Data;
           try {
             environment = compactEnvironment(object(context.environment), allowance);

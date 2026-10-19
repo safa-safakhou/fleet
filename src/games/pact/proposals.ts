@@ -17,9 +17,35 @@ export function pactActionContracts(facts: Data) {
     }
     return shape;
   });
+  // Generation should not advertise arguments already rejected by the same
+  // owned-view preflight. Unknown observations keep the static contract.
   const detailed = new Set(exact.map((s) => object(object(s.properties).kind).const));
+  const builders = Array.isArray(object(facts.world).builders)
+    ? (object(facts.world).builders as unknown[]).map(object)
+    : [];
+  const feasible = exact.filter((shape) => {
+    const properties = object(shape.properties);
+    if (object(properties.kind).const !== "game.building.queue") return true;
+    const building = object(properties.building),
+      slot = object(properties.slot);
+    if (Array.isArray(building.enum)) {
+      const kinds = building.enum.filter(
+        (kind) => !builders.some((b) => b.kind === kind && ["active", "waiting"].includes(String(b.state))),
+      );
+      if (!kinds.length) return false;
+      properties.building = { ...building, enum: kinds };
+    }
+    if (Array.isArray(slot.anyOf)) {
+      const slots = slot.anyOf.filter(
+        (variant) => !builders.some((b) => b.slot === object(variant).const && b.state === "waiting"),
+      );
+      if (!slots.length) return false;
+      properties.slot = { ...slot, anyOf: slots };
+    }
+    return true;
+  });
   const remaining = [...new Set(available?.kinds ?? [])].filter((kind) => !detailed.has(kind));
-  const variants: Data[] = [...exact];
+  const variants: Data[] = [...feasible];
   if (remaining.length)
     variants.push({
       type: "object",

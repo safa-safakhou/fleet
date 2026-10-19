@@ -19,3 +19,8 @@ Preserve all12 identities, original closed hour and61 turns/59 allocations. A cu
 - [ ] Run focused regressions, full unit/integration/paired checks, type/build/boundaries/audit and commit verified source; private fake-provider replay of exact current packets.
 - [ ] Back up this world; register a new one-pass ID for only original A/C actors, each once. Preserve decisions, receipts and allocations; close gates and park clock/cohorts afterward.
 - [ ] Verify actual useful work versus any remaining failure, local installation/health, encrypted restore, documentation/planning consistency and local commits. No push or extra model turn is implied by failure.
+
+
+## Evidence-driven follow-up
+
+The requested A/C pass is consumed and retained: A accepted BarracksII then hit a known pre-inference packing error; C selected FarmII but chose occupied slot1, then duplicate Hall. Two further failing regressions cover a post-command core larger than12KB and action contracts offering known-preflight-rejected arguments. Fix those with larger whole-core fitting fallback and observed slot/building exclusions, then verify offline before any additional actual turn. Never relabel/reopen the consumed pass or exceed the requested count without the founder's covering response.
