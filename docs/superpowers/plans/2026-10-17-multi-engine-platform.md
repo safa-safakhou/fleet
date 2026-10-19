@@ -8,7 +8,7 @@
 
 **Tech Stack:** Existing Node 24, TypeScript, PostgreSQL 17, Fastify, React, Vitest and pinned dependencies. No new queue service or arbitrary plugin loader.
 
-**Spec:** [Fleet multi-engine and environment architecture](../specs/2026-10-17-multi-engine-platform-design.md). [PACT companion plan](../../../../pact/docs/superpowers/plans/2026-10-17-fleet-platform-integration.md).
+**Spec:** [Fleet multi-engine and environment architecture](../specs/2026-10-17-multi-engine-platform-design.md). [PACT companion plan](https://github.com/safa-safakhou/pact/blob/master/docs/superpowers/plans/2026-10-17-fleet-platform-integration.md).
 
 ## Global constraints
 
