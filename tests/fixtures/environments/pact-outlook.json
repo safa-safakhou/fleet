@@ -1,0 +1,263 @@
+{
+  "schemaVersion": "pact.agent-outlook.v1",
+  "ownerRef": "a8fdbc96-a5a0-4629-a70a-331d500dea14",
+  "revision": "6cf9b180cfb89b1c76e088f1c895ac2946875f17abd5fb32003bda26887c4c33",
+  "asOfGameTimeMs": "1792255320000",
+  "committedTickSequence": "0",
+  "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"],
+  "ownerValues": "",
+  "resources": [
+    {
+      "resource": "iron",
+      "ordinaryUnits": "0",
+      "allowanceUnits": "120000",
+      "lockedUnits": "0",
+      "productionPerMinuteUnits": "200",
+      "upkeepPerMinuteUnits": "0",
+      "forecastUnits": "12000",
+      "forecastAllowanceUnits": "0",
+      "throughGameTimeMs": "1792258920000",
+      "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+    },
+    {
+      "resource": "silver",
+      "ordinaryUnits": "0",
+      "allowanceUnits": "60000",
+      "lockedUnits": "0",
+      "productionPerMinuteUnits": "100",
+      "upkeepPerMinuteUnits": "0",
+      "forecastUnits": "6000",
+      "forecastAllowanceUnits": "0",
+      "throughGameTimeMs": "1792258920000",
+      "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+    },
+    {
+      "resource": "grain",
+      "ordinaryUnits": "0",
+      "allowanceUnits": "48000",
+      "lockedUnits": "0",
+      "productionPerMinuteUnits": "300",
+      "upkeepPerMinuteUnits": "0",
+      "forecastUnits": "18000",
+      "forecastAllowanceUnits": "0",
+      "throughGameTimeMs": "1792258920000",
+      "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+    }
+  ],
+  "commitments": [
+    {
+      "id": "5cd881d8-ad59-4a83-a7bf-882ee9b1d391",
+      "kind": "garrison",
+      "counterpartyRef": "22c7e612-ad84-4fec-a68d-9e3490e22809",
+      "admission": "confirmed",
+      "fulfilment": "fulfilled",
+      "status": "closed",
+      "dueGameTimeMs": "3600000",
+      "settledGameTimeMs": "3600000",
+      "authorityExposureUnits": {
+        "grain": "1300"
+      },
+      "hostFoodExposure": {
+        "signedMaximumUnits": "1300",
+        "durationMinutes": 60,
+        "maximumLockExtensionMinutes": 5,
+        "meaning": "Full signed maximum authority exposure, including the existing five-minute lock bound. Not another stock debit or a forecast of actual consumption; current visitor upkeep is already in the short forecast."
+      },
+      "sourceRefs": [
+        "world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0",
+        "garrison-contract:5cd881d8-ad59-4a83-a7bf-882ee9b1d391"
+      ]
+    }
+  ],
+  "knownThreats": [],
+  "dependencies": [],
+  "outcomes": [
+    {
+      "id": "76576b8b-8aeb-43e5-a78a-1924280ee9f2",
+      "kind": "battle",
+      "result": "lost",
+      "gameTimeMs": "1200000",
+      "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0", "raid:76576b8b-8aeb-43e5-a78a-1924280ee9f2"]
+    }
+  ],
+  "feasibility": {
+    "candidates": [
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:barracks:2:1",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:barracks:2:2",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:farm:2:1",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:farm:2:2",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:hall:2:1",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:hall:2:2",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:market:2:1",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:market:2:2",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:mine:2:1",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:mine:2:2",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:storehouse:2:1",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:storehouse:2:2",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:wall:2:1",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:build:wall:2:2",
+        "action": "game.building.queue",
+        "stockSufficient": true,
+        "authoritySufficient": false,
+        "blockers": ["FORBIDDEN", "INSUFFICIENT_ALLOWANCE:iron", "INSUFFICIENT_ALLOWANCE:silver"],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:train:archer:1",
+        "action": "game.training.queue",
+        "stockSufficient": false,
+        "authoritySufficient": null,
+        "blockers": [],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:train:ram:1",
+        "action": "game.training.queue",
+        "stockSufficient": false,
+        "authoritySufficient": null,
+        "blockers": [],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:train:rider:1",
+        "action": "game.training.queue",
+        "stockSufficient": false,
+        "authoritySufficient": null,
+        "blockers": [],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      },
+      {
+        "candidateId": "a8fdbc96-a5a0-4629-a70a-331d500dea14:4b0a741fa04704d10d8463d7c3ef0756:train:spearman:1",
+        "action": "game.training.queue",
+        "stockSufficient": false,
+        "authoritySufficient": null,
+        "blockers": [],
+        "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+      }
+    ],
+    "meaning": "Unranked per-action stock and delegated-authority checks from existing decision support. Other prerequisites, floors, versions and capacity still apply. No permission or reservation is granted; shared command handlers revalidate."
+  },
+  "assumptions": [
+    {
+      "source": "conditional_forecast",
+      "detail": "Scenario only: current production, troop upkeep and active signed supply flows continue; each delivery is assumed funded and accepted. No new orders, defaults, combat, reserve-floor changes or building completions are predicted. Harvest percentages are supplied by the configured test/season clock.",
+      "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+    },
+    {
+      "source": "signed_exposure",
+      "detail": "Full signed maxima and permission reservations are not stock spending. Future partner funding, deliveries, casualties and lock extensions remain conditional.",
+      "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+    },
+    {
+      "source": "unknown_opponent",
+      "detail": "No opponent private strength, intentions, future choices or dice are observed here.",
+      "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+    },
+    {
+      "source": "admission_not_fulfilment",
+      "detail": "Accepted commands and signatures do not certify completed jobs, deliveries, military success or motive.",
+      "sourceRefs": ["world:a8fdbc96-a5a0-4629-a70a-331d500dea14:0:0"]
+    }
+  ],
+  "coverage": {
+    "opponentPrivateState": false,
+    "completeWorld": false,
+    "forecastMinutes": 60,
+    "garrisonOmitted": 0,
+    "commitmentHistoryLimit": 20,
+    "threatLimit": 20,
+    "meaning": "Current authorized repeatable snapshot. Latest20 construction/supply/garrison records and active training; additional history may exist. Omitted/absent records prove no outcome. Ratios describe observed signed incoming flows, not partner reliability or a strategic ranking."
+  }
+}

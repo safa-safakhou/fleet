@@ -1,5 +1,6 @@
 import { FleetError, type ModelPort, object } from "./domain.js";
 import { jsonRequest } from "./http.js";
+import { compileGenerationSchema } from "./model-schema.js";
 export class HttpModel implements ModelPort {
   readonly tracksDispatch = true;
   constructor(
@@ -7,11 +8,24 @@ export class HttpModel implements ModelPort {
     private apiKey: string | undefined,
   ) {}
   async decide(input: Parameters<ModelPort["decide"]>[0]) {
+    compileGenerationSchema(input.schema);
     if (input.model.route === "codex-cli") throw new FleetError("CODEX_CONFIGURATION_REQUIRED", true);
     const base = this.routes[input.model.route];
     if (!base) throw new FleetError("MODEL_ENDPOINT_REQUIRED", true);
     const ollama = input.model.route === "ollama";
     if (!ollama && !this.apiKey) throw new FleetError("MODEL_CREDENTIAL_REQUIRED", true);
+    // Nemotron's renderer reads inline mode toggles even from untrusted message data.
+    // Refuse the conflict rather than silently changing the caller's explicit mode.
+    if (
+      ollama &&
+      input.model.model.split(":")[0] === "nemotron-3-nano" &&
+      input.model.thinking !== undefined &&
+      input.messages.some((m) => {
+        const text = m.content.replaceAll("</think>", "");
+        return (m.role === "user" || m.role === "system") && (text.includes("/think") || text.includes("/no_think"));
+      })
+    )
+      throw new FleetError("MODEL_PROMPT_MODE_CONFLICT", true);
     const body = ollama
       ? {
           model: input.model.model,
@@ -47,6 +61,18 @@ export class HttpModel implements ModelPort {
     const usage = object(data.usage),
       i = ollama ? data.prompt_eval_count : usage.prompt_tokens,
       o = ollama ? data.eval_count : usage.completion_tokens;
+    const providerMetadata = ollama
+      ? {
+          protocol: "ollama.chat" as const,
+          done: typeof data.done === "boolean" ? data.done : null,
+          doneReason: ["stop", "length", "load", "unload"].includes(String(data.done_reason))
+            ? String(data.done_reason)
+            : null,
+          contentChars: typeof message.content === "string" ? message.content.length : 0,
+          thinkingChars: typeof message.thinking === "string" ? message.thinking.length : 0,
+          toolCallCount: Array.isArray(message.tool_calls) ? message.tool_calls.length : 0,
+        }
+      : undefined;
     // Usage belongs to the completed execution, even when its answer is unusable.
     let decision: unknown = null;
     let decisionError: string | undefined;
@@ -57,11 +83,16 @@ export class HttpModel implements ModelPort {
       decisionError =
         data.done_reason === "length" || object(choices[0]).finish_reason === "length"
           ? "MODEL_OUTPUT_TRUNCATED"
-          : "INVALID_MODEL_OUTPUT";
+          : ollama &&
+              (typeof message.content !== "string" || !message.content.trim()) &&
+              providerMetadata?.thinkingChars
+            ? "MODEL_THINKING_WITHOUT_FINAL"
+            : "INVALID_MODEL_OUTPUT";
     }
     return {
       decision,
       decisionError,
+      ...(providerMetadata ? { providerMetadata } : {}),
       outputText: typeof message.content === "string" ? message.content : undefined,
       inputTokens: typeof i === "number" ? i : null,
       outputTokens: typeof o === "number" ? o : null,

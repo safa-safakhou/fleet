@@ -165,5 +165,13 @@ export interface ModelPort {
     outputTokens: number | null;
     decisionError?: string;
     outputText?: string;
+    providerMetadata?: {
+      protocol: "ollama.chat";
+      done: boolean | null;
+      doneReason: string | null;
+      contentChars: number;
+      thinkingChars: number;
+      toolCallCount: number;
+    };
   }>;
 }

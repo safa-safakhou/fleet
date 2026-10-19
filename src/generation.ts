@@ -173,20 +173,19 @@ export function closedDecisionSchema(input: {
   // Share the read envelope without widening any tool/argument pair.
   // Repeating summary/notes/closure for every advertised schema is pure overhead.
   const readTools = [...input.reads.filter((t) => selected.has(t.name)), ...local];
-  const readPairs = readTools.map((t) => ({
-    properties: { tool: { const: t.name }, args: argsShape(t.inputSchema) },
-  }));
-  // Each exact pair already requires object arguments and a literal tool name.
-  // Keep the outer property whitelist/required list without duplicating those
-  // assertions; preserve the generic name bound if any literal can exceed it.
-  const readProperties = {
-    ...object(read.properties),
-    args: {},
-    ...(readTools.every((t) => t.name.length <= 100) ? { tool: {} } : {}),
-  };
+  // Grammar converters may choose anyOf before reading its sibling properties/required.
+  // Each alternative must therefore carry the complete closed read envelope.
   const variants: Data[] = [
     wait,
-    ...(readPairs.length ? [{ ...read, properties: readProperties, anyOf: readPairs }] : []),
+    ...readTools.map((t) => ({
+      ...read,
+      properties: {
+        ...object(read.properties),
+        kind: { const: "read" },
+        tool: { const: t.name },
+        args: argsShape(t.inputSchema),
+      },
+    })),
   ];
   const actions = input.actionSchemas
     .map(executableActionSchema)

@@ -1,5 +1,7 @@
 # Documentation publication record — 19 October 2026
 
+**Historical documentation-only checkpoint.** The subsequent [implementation integration record](merge-20261019.md) covers the separately authorized merge, clean-checkout typecheck repair and full local verification. The original CI failure below remains evidence of the earlier publication.
+
 This assignment prepares and publishes the project explanation to both repositories' master branches. It does not merge the multi-engine/PACT integration feature branches, deploy services, enable execution or authorize a new experiment. Existing master history is retained; this documentation commit introduces no runtime code or dependency change. The [handbook](README.md) describes the assessed local candidates and explicitly separates them from published/installed source.
 
 ## Contents and provenance

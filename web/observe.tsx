@@ -23,6 +23,7 @@ export type ObservedAgent = {
   game_attention_label?: string | null;
 };
 type CohortView = {
+  engine_profile?: { id: string; version: string } | null;
   owner_guidance?: "strategy" | "account_autonomy";
   ownerGuidance?: "strategy" | "account_autonomy";
   id: string;
@@ -225,11 +226,13 @@ export function Overview({
         <p className="muted">
           {cohort.model?.model ?? "Choose a model"} · Every {cohort.interval_minutes} minutes · Staggered turns
           {cohort.model?.thinking !== undefined ? ` · Thinking ${cohort.model.thinking ? "on" : "off"}` : ""}
-          {cohort.model?.cognition
-            ? " · Memory, reflection & plans"
-            : cohort.model?.decisionPolicy
-              ? " · Legacy VW unused"
-              : " · LLM only"}
+          {cohort.engine_profile
+            ? ` · ${cohort.engine_profile.id}@${cohort.engine_profile.version}`
+            : cohort.model?.cognition
+              ? " · Memory, reflection & plans"
+              : cohort.model?.decisionPolicy
+                ? " · Legacy VW unused"
+                : " · LLM only"}
         </p>
         <div className="operation-metrics">
           <div>

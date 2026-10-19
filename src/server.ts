@@ -13,6 +13,11 @@ import { actionKinds } from "./games/pact/contracts.js";
 import type { CredentialBroker } from "./games/pact/credentials.js";
 import { OwnerPolicy } from "./games/pact/owner.js";
 import { Observability } from "./observability.js";
+import type { EngineRegistry } from "./platform/engine-registry.js";
+import type { EnvironmentRegistry } from "./platform/environment-registry.js";
+import { ProfileConsole } from "./platform/profile-console.js";
+import { PlatformReports } from "./platform/reports.js";
+import type { TaskStore } from "./platform/tasks.js";
 import { recoveryHint } from "./recovery.js";
 import type { Store } from "./store.js";
 
@@ -25,6 +30,9 @@ export function buildServer(options: {
   operatorSecret: string;
   liveAllowed: boolean;
   demo?: boolean;
+  tasks?: TaskStore;
+  engines?: EngineRegistry;
+  environments?: EnvironmentRegistry;
 }) {
   if (options.operatorSecret.length < 32) throw new FleetError("OPERATOR_SECRET_REQUIRED");
   const app = Fastify({ logger: false, bodyLimit: 65536 }),
@@ -111,6 +119,29 @@ export function buildServer(options: {
     profiles,
     gameKinds: actionKinds,
   }));
+  const profileConsole =
+    options.tasks && options.engines && options.environments
+      ? new ProfileConsole(store, options.tasks, options.environments, options.engines)
+      : null;
+  const requireProfiles = () => {
+    if (!profileConsole) throw new FleetError("PROFILE_CONSOLE_UNAVAILABLE");
+    return profileConsole;
+  };
+  app.get("/api/profiles", async () => requireProfiles().catalog());
+  app.post("/api/profiles/preview", async (r) => requireProfiles().preview(r.body));
+  app.post("/api/profiles/drafts", async (r) => requireProfiles().createProfileDraft(r.body));
+  app.get("/api/profile-comparisons", async () => ({ comparisons: await new PlatformReports(store).list() }));
+  app.post("/api/profile-comparisons", async (r) => new PlatformReports(store).link(r.body));
+  app.get<{ Params: { id: string } }>("/api/profile-comparisons/:id", async (r) =>
+    new PlatformReports(store).inspectComparison(r.params.id),
+  );
+  app.post("/api/reports/export", async (r) => {
+    const v = z
+      .object({ scope: z.enum(["private", "shareable"]), cohortIds: z.array(z.uuid()).min(1).max(10) })
+      .strict()
+      .parse(r.body);
+    return new PlatformReports(store).exportReport(v.scope, v.cohortIds);
+  });
   app.post("/api/cohorts", async (r) => store.create(r.body));
   app.post("/api/comparisons/preview", async (r) => comparisonPreview(r.body));
   app.post("/api/comparisons", async (r) => new Comparisons(store).create(r.body));
@@ -138,6 +169,7 @@ export function buildServer(options: {
       .object({ state: z.enum(["running", "paused", "stopped"]) })
       .strict()
       .parse(r.body);
+    if (b.state === "running" && options.liveAllowed) await profileConsole?.prepareStart(z.uuid().parse(r.params.id));
     await store.setState(z.uuid().parse(r.params.id), b.state, options.liveAllowed);
     return { ok: true };
   });

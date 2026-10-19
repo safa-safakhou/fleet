@@ -273,6 +273,14 @@ export const pactAdapter: GameAdapter = {
       "game.training.queue",
     ]
       .filter((kind) => kinds.includes(kind))
+      .filter(
+        (kind) =>
+          kind !== "game.contact.answer" ||
+          !Array.isArray(object(facts.guide).contactRequests) ||
+          (object(facts.guide).contactRequests as unknown[]).some(
+            (r) => typeof object(r).id === "string" && !referencePreflight({ kind, requestId: object(r).id }, facts),
+          ),
+      )
       .map(actionSchema);
     return { kinds, schemas, humanOnly: excluded, matrix };
   },

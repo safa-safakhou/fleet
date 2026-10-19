@@ -1,7 +1,10 @@
 import { type ChildProcess, spawn } from "node:child_process";
 import { once } from "node:events";
 import { afterEach, expect, it } from "vitest";
-import { fixture, key, ready, testUrl } from "../helpers.js";
+import { PactBindings } from "../../src/environments/pact.js";
+import { Bindings } from "../../src/platform/bindings.js";
+import { TaskStore } from "../../src/platform/tasks.js";
+import { continuousBudget, fixture, key, ready, testUrl } from "../helpers.js";
 
 let child: ChildProcess | undefined, close: (() => Promise<void>) | undefined;
 afterEach(async () => {
@@ -14,7 +17,7 @@ afterEach(async () => {
   close = undefined;
   child = undefined;
 }, 20000);
-function worker(url = testUrl) {
+function worker(url = testUrl, minFreeBytes = String(Number.MAX_SAFE_INTEGER)) {
   return spawn(process.execPath, ["--import", "tsx", "src/worker.ts"], {
     cwd: process.cwd(),
     env: {
@@ -26,7 +29,7 @@ function worker(url = testUrl) {
       FLEET_ALLOW_HTTP: "1",
       FLEET_GAME_BASE_URL: "http://127.0.0.1:9",
       FLEET_STATE_PATH: "/tmp",
-      FLEET_MIN_FREE_BYTES: String(Number.MAX_SAFE_INTEGER),
+      FLEET_MIN_FREE_BYTES: minFreeBytes,
     },
     stdio: ["ignore", "ignore", "pipe"],
   });
@@ -64,4 +67,42 @@ it("survives database connection loss instead of terminating its supervision loo
   });
   await expect.poll(() => messages, { timeout: 10000, interval: 100 }).toContain("fleet supervision deferred");
   expect(child.exitCode).toBeNull();
+}, 15000);
+
+it("admits an explicitly enrolled compatibility task through the actual worker and retains its auth gate", async () => {
+  const f = await fixture();
+  close = () => f.pool.end();
+  const id = await ready(f.store, 1);
+  await f.store.setState(id, "paused", true);
+  await f.store.configure(id, { model: { route: "ollama", model: "fake-model" }, budget: continuousBudget });
+  const bindings = new Bindings(f.store, { id: "pact", version: "1", instanceId: "http://127.0.0.1:9" }),
+    tasks = new TaskStore(f.store, bindings, 1);
+  await tasks.enroll(id, { id: "legacy-loop", version: "1" });
+  const agent = (await f.pool.query("SELECT id FROM agents WHERE cohort_id=$1", [id])).rows[0];
+  const binding = await new PactBindings(f.store, bindings).attach(agent.id);
+  await f.store.setState(id, "running", true);
+  await tasks.upsertFromEvent(
+    binding,
+    {
+      id: "synthetic:manual",
+      type: "manual",
+      sourceRef: "synthetic:manual",
+      observedAt: f.now().toISOString(),
+      environmentTime: { clockId: "utc", value: f.now().toISOString() },
+      metadata: {},
+    },
+    "manual",
+  );
+  child = worker(testUrl, "0");
+  await expect
+    .poll(
+      async () =>
+        (await f.pool.query("SELECT state FROM platform_tasks WHERE binding_id=$1", [binding.id])).rows[0]?.state,
+      { timeout: 10000, interval: 100 },
+    )
+    .toBe("blocked");
+  expect((await f.pool.query("SELECT state,code,calls FROM turns WHERE agent_id=$1", [agent.id])).rows).toEqual([
+    { state: "needs_owner", code: "AUTH_REQUIRED", calls: 0 },
+  ]);
+  expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger")).rows[0].n).toBe(0);
 }, 15000);

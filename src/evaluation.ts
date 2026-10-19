@@ -111,3 +111,17 @@ export function evaluate(records: unknown[]) {
     };
   });
 }
+
+/** Operational counters are supporting evidence; environment outcomes require a separate authoritative evaluator. */
+export const operationDefinitions = {
+  calls: "Lifetime compute allocations, including unknown/reserved; no retries excluded.",
+  allocatedTokens: "Conservative charged ledger tokens; unknown allocations retained in full.",
+  unknownAllocatedTokens: "Sum of original tokens on status=unknown; not measured usage.",
+  committedActions: "Accepted command count, not material fulfilment or intelligence.",
+  waits: "Turns ending WAIT; validity ungraded.",
+  meanQueueDelayMs: "Mean wall milliseconds started minus due across recorded turns.",
+  meanFinishedDurationMs: "Mean finished minus started among finished_at-present turns.",
+  comparison: "Optional links only; one interacting world differs from independent replicas.",
+  detail:
+    "Consent-controlled retained events,30 days,20 newest runs/cohort,512KiB/run,8MiB total raw run budget; absence is not zero activity.",
+};

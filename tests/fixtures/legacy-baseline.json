@@ -1,0 +1,22 @@
+{
+  "sourceRevision": "c212373ccca98d3e064d24ebd2a9398dd94e2a77",
+  "synthetic": true,
+  "cases": [
+    {
+      "profile": "legacy-loop",
+      "modelInputDigest": "67dc8cb0ac589c32543c1e3091f3e82bf7da83f86b9079ba399ebd4b140a77f3",
+      "calls": 1,
+      "actions": 0,
+      "inputTokens": "500",
+      "outputTokens": "50"
+    },
+    {
+      "profile": "legacy-cognition",
+      "modelInputDigest": "745c1be3e1c76211a2b1c0e3f58a04ac1f1cc24ed5934eb1a6cd5cb2a52259e5",
+      "calls": 1,
+      "actions": 0,
+      "inputTokens": "500",
+      "outputTokens": "50"
+    }
+  ]
+}

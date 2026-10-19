@@ -8,7 +8,7 @@ The platform has progressed further than demonstrated intelligence. We have mult
 
 ## Publication scope
 
-This handbook describes the recorded, locally verified source candidate. The documentation-only publication does not merge the implementation branches `feature/engine-baseline-20261017` (Fleet) or `feature/phase2-agent-events-20261017` (PACT). Code paths and acceptance refer to the pinned candidates in the reports; they must not be read as a claim that all candidate code is present on `master` or installed. The original branch histories remain preserved. A later implementation merge and any runtime rollout are separate operations.
+The founder subsequently authorized merging the implementation branches `feature/engine-baseline-20261017` (Fleet) and `feature/phase2-agent-events-20261017` (PACT) into master. The [merge verification report](merge-20261019.md) records the integrated source, checks and publication result. Original dated reports retain their pinned historical candidates. Source integration does not install a release, enable execution or establish live strategic quality.
 
 Read the [documentation publication and verification record](publication-20261019.md) for exactly what this publication includes and checks performed.
 

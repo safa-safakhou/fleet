@@ -53,6 +53,29 @@ const belief = {
   },
 };
 
+it("deduplicates recalled source IDs after a read without widening eligible citations", () => {
+  const delivered = { ...context, evidence: [current, incoming, outcome, incoming, current] };
+  const check = new Ajv({ strict: false, validateFormats: false }).compile(analysisSchemaForVersion(2, delivered));
+  const envelope = {
+    cognition: {
+      expectedVersion: 2,
+      analysis: { type: "none", reason: "Retain context" },
+      memories: [{ summary: "Observed peer", importance: 1, evidenceRefs: [incoming.id] }],
+    },
+    decision: { kind: "wait", summary: "Wait" },
+  };
+  expect(check(envelope)).toBe(true);
+  expect(
+    check({
+      ...envelope,
+      cognition: {
+        ...envelope.cognition,
+        memories: [{ summary: "Foreign", importance: 1, evidenceRefs: [randomUUID()] }],
+      },
+    }),
+  ).toBe(false);
+});
+
 describe("native analysis grounded in final delivery", () => {
   it("does not re-offer reviewed peer evidence when belief prose is paged, while a newer incoming message stays eligible", () => {
     const reviewed = { ...context, reviewedPeerEvidenceAt: { peer: Date.parse(incoming.at) } };

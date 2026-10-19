@@ -236,6 +236,8 @@ describe("comparison drafts and evidence", () => {
       reflectionsAdded: 0,
       duplicateReflectionsSkipped: 2,
     });
+    f.advance(31 * 86400000);
+    expect((await f.comparisons.inspect(saved.id)).arms[1].cognition?.layaAccepted).toBe(0);
     await f.store.consent(id, false);
     expect((await f.comparisons.inspect(saved.id)).arms[1].cognition).toBeNull();
   });

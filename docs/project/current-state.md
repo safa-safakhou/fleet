@@ -18,7 +18,7 @@
 | Release operations | Encrypted restore, disabled rollback/fencing and disabled local installation | Latest source is ahead of installed artifact |
 | Future population | Written 100-Luna plus local-group proposal | No reset/new world/shadow/population; identity/roster/renewal/throughput prerequisites remain |
 
-The handbook publication is documentation-only; implementation branches are retained separately. Source references below identify assessed local candidates rather than claiming those implementation commits were merged into published `master`.
+The initial handbook publication contained documentation only. The founder then authorized integrating both implementation branches into master; the [merge verification report](merge-20261019.md) records that source integration. Source references below retain the exact historical qualification/diagnostic candidates. The integrated source is separate from installed releases and live acceptance.
 
 ## Source, installation and other hosts
 

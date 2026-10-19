@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import type { evidenceChain } from "../src/platform/evidence.js";
 import { type RecordedTurn, readable } from "./observe.js";
 import { explainStep, StepExplanation } from "./run-steps.js";
 
@@ -6,6 +7,14 @@ type RunData = {
   turn: RecordedTurn & { deadline_at?: string; unknown_usage?: boolean };
   agent: { id: string; name: string };
   executions: Record<string, unknown>[];
+  engine?: unknown;
+  platform?: {
+    taskId: string;
+    profile: { id: string; version: string };
+    environment: { id: string; version: string; instanceId: string };
+    trigger: unknown;
+  };
+  evidence?: ReturnType<typeof evidenceChain>;
   coverage: string;
 };
 const instant = (at?: string | null) =>
@@ -111,6 +120,65 @@ export function RunReport({ data }: { data: RunData }) {
           <dd>{t.unknown_usage ? "Yes — original allocation retained" : "No"}</dd>
         </div>
       </dl>
+      <section className="run-provenance">
+        <h3>Engine, environment and task</h3>
+        {data.platform ? (
+          <>
+            <p>
+              {data.platform.profile.id}@{data.platform.profile.version} · {data.platform.environment.id}@
+              {data.platform.environment.version}
+            </p>
+            <p>
+              Task <code>{data.platform.taskId}</code>
+            </p>
+            <Json title="Trigger references and environment" value={data.platform} />
+          </>
+        ) : (
+          <p>Historical task/environment references unavailable.</p>
+        )}
+        <Json title="Engine provenance" value={data.engine ?? { coverage: "No retained manifest" }} />
+        {data.evidence && (
+          <>
+            <p>{data.evidence.coverage}</p>
+            <div>
+              {data.evidence.stages.map((s) => (
+                <a className="evidence-link" key={s.eventId} href={`#step-${s.eventId}`}>
+                  {s.label}
+                </a>
+              ))}
+            </div>
+            {!!data.evidence.predictions?.length && (
+              <div>
+                <h4>Predictions and observed evidence</h4>
+                {data.evidence.predictions.map((p) => (
+                  <p key={`${p.predictionId}:${p.eventId}`}>
+                    <a href={`#step-${p.eventId}`}>{p.predictionId}</a>: expected {String(p.expected)}, observed{" "}
+                    {String(p.observed ?? "unavailable")} · {String(p.status)} · evidence{" "}
+                    {String(p.outcomeRef ?? "unresolved")}
+                  </p>
+                ))}
+              </div>
+            )}
+            {!!data.evidence.commands?.length && (
+              <div>
+                <h4>Proposal through command result</h4>
+                {data.evidence.commands.map((c) => (
+                  <p key={`${c.commandId}:${c.proposalEventId}`}>
+                    <a href={`#step-${c.proposalEventId}`}>{String(c.expectedOutcome)}</a> →{" "}
+                    {c.resultEventId ? (
+                      <a href={`#step-${c.resultEventId}`}>{String(c.status)} command</a>
+                    ) : (
+                      "Result unavailable"
+                    )}
+                    . Material fulfilment unmeasured here.
+                  </p>
+                ))}
+              </div>
+            )}
+            <Json title="Exact evidence links" value={data.evidence} />
+          </>
+        )}
+      </section>
       <p className="trace-coverage">{data.coverage}</p>
       <div className="run-filters">
         <label>

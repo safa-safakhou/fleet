@@ -217,10 +217,21 @@ export function explainStep(event: Event, events: Event[] = [], index = -1) {
       for (let n = index + 1; n < events.length; n++) {
         const next = events[n],
           nextName = next.label.replace(/^Debug: /, "");
-        if (nextName === name && (responseName !== "Model response" || next.detail?.execution === d.execution)) break;
+        if (
+          nextName === name &&
+          (responseName !== "Model response" ||
+            (typeof d.allocationId === "string"
+              ? next.detail?.allocationId === d.allocationId
+              : next.detail?.allocationId === undefined && next.detail?.execution === d.execution))
+        )
+          break;
         const match =
           responseName === "Model response"
-            ? typeof d.execution === "number" && next.detail?.execution === d.execution
+            ? typeof d.allocationId === "string"
+              ? next.detail?.allocationId === d.allocationId
+              : next.detail?.allocationId === undefined &&
+                typeof d.execution === "number" &&
+                next.detail?.execution === d.execution
             : responseName === "Game read response"
               ? typeof d.tool === "string" && next.detail?.tool === d.tool
               : true;

@@ -1,0 +1,233 @@
+import { type Data, FleetError, type GamePort, object, safeCode } from "../domain.js";
+import { pactAdapter } from "../games/pact/adapter.js";
+import { pactEvents } from "../games/pact/events.js";
+import { pactContinuity } from "../games/pact/outlook.js";
+import { pactActionContracts, pactProposalGuide, validatePactProposal } from "../games/pact/proposals.js";
+import { RemoteRejection } from "../http.js";
+import type { Bindings } from "../platform/bindings.js";
+import type { ActionOutcome, BindingRef, EnvironmentAdapter } from "../platform/contracts.js";
+import type { Store } from "../store.js";
+import { validateTool } from "../tools.js";
+
+/** Preserve the agent UUID used as the existing vault associated-data identity. */
+export class PactBindings {
+  constructor(
+    private store: Store,
+    readonly bindings: Bindings,
+  ) {}
+  async attach(agentId: string) {
+    if (this.bindings.selected.id !== "pact") throw new FleetError("ENVIRONMENT_NOT_SELECTED");
+    const agent = await this.store.agent(agentId);
+    if (!agent.account_id || !agent.kingdom_id) throw new FleetError("AUTH_REQUIRED");
+    return this.bindings.bind(
+      agentId,
+      {
+        environment: this.bindings.selected,
+        accountRef: agent.account_id,
+        actorRef: agent.account_id,
+        entityRef: agent.kingdom_id,
+      },
+      "inferred_legacy",
+    );
+  }
+  async agentFor(binding: BindingRef) {
+    const id = await this.bindings.agentFor(binding),
+      agent = await this.store.agent(id);
+    if (
+      binding.accountRef !== agent.account_id ||
+      binding.actorRef !== agent.account_id ||
+      binding.entityRef !== agent.kingdom_id
+    )
+      throw new FleetError("BINDING_MISMATCH");
+    return id;
+  }
+}
+function receipt(id: string, result: Data): ActionOutcome {
+  if (result.commandId !== id) return { commandId: id, status: "unknown", code: "RECEIPT_MISMATCH", sourceRefs: [] };
+  const code = String(result.code ?? "TRANSPORT_UNCERTAIN");
+  if (["COMMITTED", "ALREADY_COMMITTED"].includes(code))
+    return { commandId: id, status: "confirmed", code, sourceRefs: [`command:${id}`] };
+  if (code === "PENDING") return { commandId: id, status: "pending", code, sourceRefs: [] };
+  if (["RECEIPT_NOT_FOUND", "NOT_FOUND", "TRANSPORT_UNCERTAIN"].includes(code))
+    return { commandId: id, status: "unknown", code, sourceRefs: [] };
+  const knownRejection = pactAdapter.rejection(new RemoteRejection(code, 400), false);
+  return {
+    commandId: id,
+    status: knownRejection ? "rejected" : "unknown",
+    code,
+    sourceRefs: knownRejection ? [`command:${id}`] : [],
+  };
+}
+export function createPactEnvironment(ports: {
+  store: Store;
+  bindings: PactBindings;
+  game: (agentId: string) => Promise<GamePort>;
+  now: () => Date;
+  eventFeedVersion?: "pact.agent-events.v1";
+  outlookVersion?: "pact.agent-outlook.v1";
+}): EnvironmentAdapter {
+  return {
+    ref: { id: "pact", version: "1" },
+    schemas: { observations: ["pact.observation.v1"], actions: ["pact.action.v1"] },
+    presentation: {
+      accountLabel: "Account",
+      actorLabel: "Envoy",
+      entityLabel: "Kingdom",
+      defaultGoal: "Follow the authenticated account's owner intent and authority.",
+    },
+    enrollment: { attachExisting: (id) => ports.bindings.attach(id) },
+    capabilities: {
+      timing: "realtime",
+      events: ports.eventFeedVersion ? "poll" : "none",
+      idempotency: "native",
+      outcomeLookup: true,
+      parallelReasoning: false,
+      social: true,
+      simulationControls: false,
+      continuity: Boolean(ports.outlookVersion),
+    },
+    async connect(binding) {
+      const agentId = await ports.bindings.agentFor(binding),
+        game = await ports.game(agentId);
+      try {
+        if ((await game.profile()).accountId !== binding.accountRef) throw new FleetError("IDENTITY_MISMATCH");
+      } catch (error) {
+        await game.close();
+        throw error;
+      }
+      return {
+        async observe(query) {
+          if (query.continuity === true) {
+            if (!ports.outlookVersion) throw new FleetError("UNSUPPORTED_CAPABILITY");
+            const catalog = await game.tools();
+            const tool = catalog.find(
+              (t) => t.name === "pact_agent_outlook_v1" && t.annotations?.readOnlyHint === true,
+            );
+            if (!tool) throw new FleetError("UNSUPPORTED_SCHEMA");
+            const raw = await game.read(tool.name, { forecastMinutes: 60 }),
+              mapped = pactContinuity(raw, binding.entityRef);
+            mapped.continuity.self.capabilities = catalog.slice(0, 40).map((tool) => tool.name);
+            mapped.continuity.self.needs.capabilityCatalogOmitted = Math.max(0, catalog.length - 40);
+            const extra: Data = {};
+            if (typeof query.tool === "string") {
+              const read = (await game.tools()).find((t) => t.name === query.tool);
+              if (!read || !pactAdapter.isRead(read) || read.annotations?.readOnlyHint !== true)
+                throw new FleetError("READ_TOOL_FORBIDDEN");
+              validateTool(read, object(query.args));
+              extra.requestedRead = await game.read(read.name, object(query.args));
+              if (read.name === "pact_council_thread_v1") {
+                const result = object(extra.requestedRead),
+                  peer = object(query.args).kingdomId;
+                for (const raw of Array.isArray(result.messages) ? result.messages : []) {
+                  const message = object(raw);
+                  if (
+                    typeof message.id !== "string" ||
+                    typeof message.body !== "string" ||
+                    message.senderKingdomId !== peer ||
+                    peer === binding.entityRef ||
+                    typeof peer !== "string"
+                  )
+                    continue;
+                  const sourceRef = `message:${message.id}`;
+                  mapped.continuity.facts.unshift({
+                    sourceRef,
+                    kind: "statement",
+                    subject: peer,
+                    predicate: "statement",
+                    value:
+                      message.body.length > 400 ? `[partial statement] ${message.body.slice(0, 380)}` : message.body,
+                  });
+                  mapped.sourceRefs.push(sourceRef);
+                }
+                mapped.continuity.self.needs.statementFactsOmitted = Math.max(0, mapped.continuity.facts.length - 40);
+                mapped.continuity.facts = mapped.continuity.facts.slice(0, 40);
+              }
+            }
+            return {
+              schemaId: "pact.observation.v1",
+              revision: mapped.revision,
+              observedAt: ports.now().toISOString(),
+              environmentTime: { clockId: "pact.game-time-ms", value: mapped.time },
+              sourceRefs: mapped.sourceRefs,
+              payload: { outlook: raw, ...extra },
+              coverage: {
+                authorizedView: true,
+                completeWorld: false,
+                requestedReadSeparateSnapshot: Boolean(extra.requestedRead),
+              },
+              continuity: mapped.continuity,
+            };
+          }
+          let payload: Data;
+          if (typeof query.tool === "string") {
+            const tool = (await game.tools()).find((tool) => tool.name === query.tool);
+            if (!tool || !pactAdapter.isRead(tool) || tool.annotations?.readOnlyHint !== true)
+              throw new FleetError("READ_TOOL_FORBIDDEN");
+            validateTool(tool, object(query.args));
+            payload = await game.read(tool.name, object(query.args));
+          } else payload = await pactAdapter.initial(game, binding.entityRef);
+          const world = object(payload.world),
+            time = world.asOfGameTimeMs ?? payload.asOfGameTimeMs;
+          return {
+            schemaId: "pact.observation.v1",
+            revision: typeof time === "string" ? time : "unavailable",
+            observedAt: ports.now().toISOString(),
+            environmentTime: { clockId: "pact.game-time-ms", value: typeof time === "string" ? time : "unavailable" },
+            sourceRefs: [`authorized-read:${String(query.tool ?? "initial")}:${String(time ?? "unavailable")}`],
+            payload: { ...payload, actionGuide: pactProposalGuide(payload) },
+            coverage: {
+              authorizedView: true,
+              environmentTimeAvailable: typeof time === "string",
+              detail: "Existing authenticated reads; current snapshot with explicit coverage, no full-world guarantee.",
+            },
+          };
+        },
+        ...(ports.eventFeedVersion ? { events: (cursor: string | null) => pactEvents(game, cursor, ports.now) } : {}),
+        async catalog() {
+          const tools = await game.tools();
+          pactAdapter.validateCatalog?.(tools);
+          return tools;
+        },
+        validateProposal: async (proposal, observation) =>
+          validatePactProposal(proposal.intent.payload, observation.payload),
+        actionContracts: async (observation) => pactActionContracts(observation.payload),
+        async execute(intent) {
+          try {
+            if (intent.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH");
+            if (intent.schemaId !== "pact.action.v1") throw new FleetError("UNSUPPORTED_SCHEMA");
+            if (intent.expectedVersion !== undefined) throw new FleetError("UNSUPPORTED_EXPECTED_VERSION");
+            if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(intent.commandId))
+              throw new FleetError("INVALID_COMMAND_ID");
+            validateTool(
+              { name: "pact.action.v1", inputSchema: pactAdapter.actionSchema(String(intent.payload.kind)) },
+              intent.payload,
+            );
+            await ports.bindings.agentFor(binding);
+            await game.open();
+          } catch (error) {
+            throw new FleetError(safeCode(error), true);
+          }
+          try {
+            return receipt(intent.commandId, await game.submit(intent.commandId, intent.payload));
+          } catch (error) {
+            const denied = pactAdapter.rejection(error, false);
+            return {
+              commandId: intent.commandId,
+              status: denied ? "rejected" : "unknown",
+              code: denied ?? safeCode(error),
+              sourceRefs: [],
+            };
+          }
+        },
+        async resolve(id) {
+          try {
+            return receipt(id, await game.receipt(id));
+          } catch (error) {
+            return { commandId: id, status: "unknown", code: safeCode(error), sourceRefs: [] };
+          }
+        },
+        close: () => game.close(),
+      };
+    },
+  };
+}

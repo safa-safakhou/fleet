@@ -3,6 +3,8 @@ import { expect, it } from "vitest";
 import { analysisSchemaForVersion } from "../../src/cognitive-analysis.js";
 import { pactAdapter } from "../../src/games/pact/adapter.js";
 import { bindGenerationSchema, closedDecisionSchema } from "../../src/generation.js";
+import archived from "../fixtures/legacy-baseline.json" with { type: "json" };
+import correction from "../fixtures/legacy-contract-correction-20261018.json" with { type: "json" };
 
 const kinds = ["game.building.queue", "game.message.send"];
 const schema = closedDecisionSchema({
@@ -79,4 +81,29 @@ it("never widens an unsupported schema dialect or admits an action without its e
   ).toThrow("SCHEMA_CHANGED");
   const check = new Ajv({ strict: false, validateFormats: false }).compile(schema);
   expect(check({ ...valid, action: { building: "farm", slot: 1, targetLevel: 2 } })).toBe(false);
+});
+
+it("makes every grammar union branch self-contained so converters cannot drop the read discriminator", () => {
+  const reads = (schema.anyOf as Record<string, unknown>[]).filter((b) => JSON.stringify(b).includes('"tool"'));
+  expect(reads.length).toBeGreaterThan(0);
+  const visit = (s: unknown): void => {
+    if (!s || typeof s !== "object") return;
+    const o = s as Record<string, unknown>;
+    if (Array.isArray(o.anyOf)) {
+      expect(o.properties).toBeUndefined();
+      expect(o.required).toBeUndefined();
+    }
+    for (const v of Object.values(o))
+      if (Array.isArray(v)) v.forEach(visit);
+      else visit(v);
+  };
+  visit(schema);
+  for (const bad of [{ args: {} }, { tool: "pact_world_read_v1", args: {} }]) {
+    const check = new Ajv({ strict: false, validateFormats: false }).compile(schema);
+    expect(check(bad)).toBe(false);
+  }
+});
+
+it("retains archived fingerprints separately from the explicit generation contract correction", () => {
+  expect(correction.cases.map((c) => c.priorModelInputDigest)).toEqual(archived.cases.map((c) => c.modelInputDigest));
 });

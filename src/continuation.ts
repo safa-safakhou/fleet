@@ -112,7 +112,7 @@ export function reconcileContinuation(state: State, signals: Signal[], fingerpri
         : "active";
   return next;
 }
-function validatePlan(p: Proposal) {
+export function validateContinuationPlan(p: Proposal) {
   const ids = new Set(p.steps.map((s) => s.id));
   if (
     ids.size !== p.steps.length ||
@@ -173,7 +173,7 @@ export class Continuation {
     if (!result.success || Buffer.byteLength(JSON.stringify(raw)) > 5000)
       throw new FleetError("CONTINUATION_INVALID_UPDATE");
     const proposal = result.data;
-    validatePlan(proposal);
+    validateContinuationPlan(proposal);
     return this.change(claim, (state) => {
       const key = `${claim.id}:${decision}`,
         digest = intentFingerprint(raw),
