@@ -1,0 +1,119 @@
+import { Ajv } from "ajv";
+import { expect, it } from "vitest";
+import { type Data, object } from "../../src/domain.js";
+import { pactAdapter } from "../../src/games/pact/adapter.js";
+import { pactActionContracts, validatePactProposal } from "../../src/games/pact/proposals.js";
+
+const self = "11111111-1111-4111-8111-111111111111";
+const peer = "22222222-2222-4222-8222-222222222222";
+const facts = {
+  world: {
+    profile: { kingdomId: self },
+    buildings: [{ kind: "hall", level: 1 }],
+    builders: [
+      { slot: 1, state: "waiting", kind: "hall" },
+      { slot: 2, state: null },
+    ],
+  },
+  guide: { contacts: [], contactRequests: [] },
+  discovery: { players: [{ kingdomId: self }, { kingdomId: peer }] },
+  development: { hallUnlocks: { archers: 2, riders: 3, rams: 4, lending: 3 } },
+};
+const compile = (f: Data) =>
+  new Ajv({ strict: false, validateFormats: false }).compile(pactActionContracts(f)[0].payloadSchema);
+const terms = {
+  aToB: { resource: "grain", wholePerHour: 2 },
+  bToA: null,
+  aBond: null,
+  bBond: null,
+  durationHours: 6,
+  noticeHours: 0,
+};
+
+it("legacy upfront generation excludes occupied slots/buildings and Hall-locked training", () => {
+  const schemas = pactAdapter.availableActions?.(facts, null)?.schemas;
+  const check = new Ajv({ strict: false, validateFormats: false }).compile({ anyOf: schemas });
+  const farm = { kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 2 };
+  expect(check(farm)).toBe(true);
+  expect(check({ ...farm, slot: 1 })).toBe(false);
+  expect(check({ ...farm, building: "hall" })).toBe(false);
+  expect(check({ kind: "game.training.queue", type: "spearman", count: 1 })).toBe(true);
+  expect(check({ kind: "game.training.queue", type: "archer", count: 1 })).toBe(false);
+});
+it("modern proposals use exact trade contracts instead of accepting arbitrary garrison arguments", () => {
+  const check = compile(facts);
+  expect(check({ kind: "game.supply.offer", counterpartyKingdomId: peer, terms })).toBe(true);
+  expect(check({ kind: "game.supply.offer", recipient: { kingdomId: peer }, resources: { grain: 1 } })).toBe(false);
+  expect(
+    check({
+      kind: "game.garrison.offer",
+      recipient: { kingdomId: self },
+      offerId: "00000000-0000-0000-0000-000000000000",
+      resources: {},
+      durationHours: 24,
+    }),
+  ).toBe(false);
+  expect(check({ kind: "game.supply.offer", counterpartyKingdomId: self, terms })).toBe(false);
+});
+it("self interactions and direct messages without an observed contact fail locally, while introductions and real contacts remain usable", () => {
+  for (const action of [
+    { kind: "game.contact.request", recipientKingdomId: self, note: "Hello" },
+    { kind: "game.message.send", recipientKingdomId: self, body: "Hello" },
+    { kind: "game.supply.offer", counterpartyKingdomId: self, terms },
+    { kind: "game.garrison.offer", hostKingdomId: self, terms: {} },
+  ])
+    expect(pactAdapter.preflight?.(action, facts)?.code).toBe("OBSERVED_SELF_TARGET");
+  const message = { kind: "game.message.send", recipientKingdomId: peer, body: "Hello" };
+  expect(validatePactProposal(message, facts).valid).toBe(false);
+  expect(compile(facts)(message)).toBe(false);
+  expect(compile(facts)({ kind: "game.contact.request", recipientKingdomId: peer, note: "Hello" })).toBe(true);
+  const connected = { ...facts, guide: { ...facts.guide, contacts: [{ kingdomId: peer }] } };
+  expect(validatePactProposal(message, connected).valid).toBe(true);
+  expect(compile(connected)(message)).toBe(true);
+});
+it("garrison lending and advanced training require the observed Hall unlock without hiding valid advanced choices", () => {
+  const archer = { kind: "game.training.queue", type: "archer", count: 1 };
+  expect(validatePactProposal(archer, facts).code).toBe("OBSERVED_HALL_LOCKED");
+  const advanced = { ...facts, world: { ...facts.world, buildings: [{ kind: "hall", level: 3 }] } };
+  expect(compile(advanced)(archer)).toBe(true);
+  expect(
+    compile(advanced)({
+      kind: "game.garrison.offer",
+      hostKingdomId: peer,
+      terms: { units: [{ type: "spearman", count: 1 }], durationHours: 1, lenderBond: null, hostBond: null },
+    }),
+  ).toBe(true);
+});
+
+it("does not lose target exclusion or the legal trade path when observations are compacted", async () => {
+  const { compactFacts } = await import("../../src/games/pact/adapter.js");
+  const { compactEnvironment, expandFactTables } = await import("../../src/games/pact/environment.js");
+  const compact = expandFactTables(compactEnvironment(compactFacts(facts), 10000));
+  expect(object(object(object(compact).agentBriefing).interactions).selfKingdomId).toBe(self);
+  expect(object(object(object(compact).agentBriefing).interactions).observedPeerIds).toEqual([peer]);
+  const check = compile(facts);
+  expect(check({ kind: "game.supply.offer", counterpartyKingdomId: peer, terms })).toBe(true);
+  expect(check({ kind: "game.supply.offer", counterpartyKingdomId: peer, terms, recipient: { kingdomId: self } })).toBe(
+    false,
+  );
+});
+
+it("requires observed request/offer/contract references in generation instead of inviting guessed IDs", () => {
+  const empty = {
+    ...facts,
+    guide: {
+      ...facts.guide,
+      openSupplyOffers: [],
+      activeSupplyContracts: [],
+      openGarrisonOffers: [],
+      activeGarrisonContracts: [],
+    },
+  };
+  const check = compile(empty);
+  expect(check({ kind: "game.contact.answer", requestId: peer, accept: true })).toBe(false);
+  expect(check({ kind: "game.supply.counter", offerId: peer, expectedVersion: 1, terms })).toBe(false);
+  expect(check({ kind: "game.supply.sign", offerId: peer, version: 1 })).toBe(false);
+  const observed = { ...empty, guide: { ...empty.guide, openSupplyOffers: [{ id: peer, version: 1 }] } };
+  expect(compile(observed)({ kind: "game.supply.counter", offerId: peer, expectedVersion: 1, terms })).toBe(true);
+  expect(compile(observed)({ kind: "game.supply.sign", offerId: peer, version: 1 })).toBe(true);
+});

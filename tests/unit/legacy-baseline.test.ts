@@ -3,13 +3,26 @@ import { readFile } from "node:fs/promises";
 import { expect, it } from "vitest";
 import baseline from "../../src/engines/legacy/baseline.json" with { type: "json" };
 
-it("preserves the recorded controller except the explicit 19 October context and owner-assignment repairs", async () => {
+it("preserves the recorded controller except the explicit context, owner-assignment and 20 October proposal lookup/feedback repairs", async () => {
   const source = await readFile(new URL("../../src/engine.ts", import.meta.url));
   const pinned = baseline.files.find((file) => file.path === "src/engine.ts");
   // Preserve the historical pin. Reverse only the explicitly reviewed repairs;
   // any other controller drift still fails against the original source digest.
   let historical = source.toString();
   const reviewed: [string, string][] = [
+    [
+      "            const shape = this.adapter.proposalSchema\n              ? this.adapter.proposalSchema(String(object(entry.args).kind), facts)\n              : actionSchema(String(object(entry.args).kind));\n            if (shape && !actionShapes.some((s) => JSON.stringify(s) === JSON.stringify(shape)))\n              actionShapes.push(shape);\n",
+      "            const shape = actionSchema(String(object(entry.args).kind));\n            if (!actionShapes.some((s) => JSON.stringify(s) === JSON.stringify(shape))) actionShapes.push(shape);\n",
+    ],
+    [
+      '            result = {\n              schema: this.adapter.proposalSchema\n                ? (this.adapter.proposalSchema(decision.args.kind, facts) ?? null)\n                : actionSchema(decision.args.kind),\n              coverage:\n                "Schema inspection only, not a fresh game-state read. Null means no currently observed eligible proposal; read fresh facts or choose another action/wait.",\n            };\n',
+      "            result = { schema: actionSchema(decision.args.kind) };\n",
+    ],
+    [
+      "          await rememberFeedback({ actionKind: decision.action.kind, attemptedArgs: decision.action, ...preflight });\n",
+      "          await rememberFeedback({ actionKind: decision.action.kind, ...preflight });\n",
+    ],
+
     [
       'import { currentOwnerObjectiveInstruction, ownerRecallQuery, ownerValues } from "./owner-guidance.js";',
       'import { ownerRecallQuery, ownerValues } from "./owner-guidance.js";',

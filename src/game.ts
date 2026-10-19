@@ -13,6 +13,7 @@ export interface GameAdapter {
   readonly actionKinds: string[];
   validateCatalog?(tools: Tool[]): void;
   actionSchema(kind: string): Data;
+  proposalSchema?(kind: string, facts: Data): Data | undefined;
   isRead(tool: Tool): boolean;
   initial(
     game: GamePort,

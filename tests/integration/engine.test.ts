@@ -335,6 +335,7 @@ describe("observe decide commit", () => {
         },
         { kind: "wait", summary: "Await response" },
       ]);
+    game.acceptedContacts = [peer];
     await new Engine(f.store, second, async () => game, true).run(claim);
     expect(second.inputs[0].messages[1].content).toContain("A synthetic trade proposal");
     expect(second.inputs[0].messages[1].content).toContain("2026-10-11T12:00:00.000Z");
@@ -373,6 +374,7 @@ describe("observe decide commit", () => {
         },
         { kind: "wait", summary: "Wait for a response" },
       ]);
+    f.game.acceptedContacts = [peer];
     await f.store.consent(f.id, true);
     const engine = new Engine(f.store, model, async () => f.game, true);
     await engine.run(f.claim);
@@ -415,6 +417,7 @@ describe("observe decide commit", () => {
     const f = await setup(),
       action = { kind: "game.message.send", recipientKingdomId: randomUUID(), body: "A synthetic message" },
       model = new FakeModel([{ kind: "action", action, summary: "send" }]);
+    f.game.acceptedContacts = [action.recipientKingdomId];
     f.game.failSubmit = true;
     const engine = new Engine(f.store, model, async () => f.game, true);
     await engine.run(f.claim);

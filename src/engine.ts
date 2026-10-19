@@ -382,8 +382,11 @@ export class Engine {
             entry.tool === "fleet_action_schema" &&
             (capability?.kinds ?? actionKinds).includes(String(object(entry.args).kind))
           ) {
-            const shape = actionSchema(String(object(entry.args).kind));
-            if (!actionShapes.some((s) => JSON.stringify(s) === JSON.stringify(shape))) actionShapes.push(shape);
+            const shape = this.adapter.proposalSchema
+              ? this.adapter.proposalSchema(String(object(entry.args).kind), facts)
+              : actionSchema(String(object(entry.args).kind));
+            if (shape && !actionShapes.some((s) => JSON.stringify(s) === JSON.stringify(shape)))
+              actionShapes.push(shape);
           }
         const continuationShape =
           decisionState.goal ||
@@ -767,7 +770,13 @@ export class Engine {
               tool: decision.tool,
               args: decision.args,
             });
-            result = { schema: actionSchema(decision.args.kind) };
+            result = {
+              schema: this.adapter.proposalSchema
+                ? (this.adapter.proposalSchema(decision.args.kind, facts) ?? null)
+                : actionSchema(decision.args.kind),
+              coverage:
+                "Schema inspection only, not a fresh game-state read. Null means no currently observed eligible proposal; read fresh facts or choose another action/wait.",
+            };
           } else if (decision.tool === "fleet_read_schema") {
             const tool = tools.find((t) => t.name === decision.args.name && isRead(t));
             if (!tool || Object.keys(decision.args).length !== 1) throw new FleetError("INVALID_TOOL_ARGUMENTS");
@@ -931,7 +940,7 @@ export class Engine {
             });
         };
         if (preflight) {
-          await rememberFeedback({ actionKind: decision.action.kind, ...preflight });
+          await rememberFeedback({ actionKind: decision.action.kind, attemptedArgs: decision.action, ...preflight });
           lastCode = String(preflight.code);
           await recordNotSubmitted(lastCode);
           await observation.record(claim, "result", "Proposed action deferred before submission", {

@@ -17,9 +17,12 @@ import { TaskStore } from "../../platform/tasks.js";
 import type { Store } from "../../store.js";
 import { pactAdapter } from "./adapter.js";
 import { actionContract } from "./contracts.js";
+import { packPactObservation } from "./packing.js";
 import { pactActionContracts, pactProposalGuide, validatePactProposal } from "./proposals.js";
 
 const peer = "22222222-2222-4222-8222-222222222222";
+// Frozen published development facts for the synthetic Hall-I world, not adapter-owned game rules.
+const development = { hallUnlocks: { archers: 2, riders: 3, lending: 3, rams: 4 } };
 const tools: Tool[] = [
   { name: "pact_agent_guide_v1", inputSchema: { type: "object" }, annotations: { readOnlyHint: true } },
   { name: "pact_world_read_v1", inputSchema: { type: "object" }, annotations: { readOnlyHint: true } },
@@ -127,6 +130,9 @@ export class DiagnosticEpisodes {
       contacts: [{ kingdomId: peer, name: "Synthetic contact" }],
       contactRequests: [],
       openSupplyOffers: [],
+      activeSupplyContracts: [],
+      openGarrisonOffers: [],
+      activeGarrisonContracts: [],
       planningCautions: [situation.story],
       mandate: { version: 1 },
       firstContact: "Introductions do not guarantee a reply; communication remains optional.",
@@ -160,19 +166,21 @@ export class DiagnosticEpisodes {
         return structuredClone(
           tool === "pact_world_read_v1"
             ? world
-            : tool === "pact_council_thread_v1"
-              ? {
-                  messages: [
-                    {
-                      id: "33333333-3333-4333-8333-333333333333",
-                      senderKingdomId: peer,
-                      body: situation.story,
-                      sentGameTimeMs: String(1000 + step * 1000),
-                    },
-                  ],
-                  next: null,
-                }
-              : guide,
+            : tool === "pact_agent_guide_v1" && _args.topic === "development"
+              ? development
+              : tool === "pact_council_thread_v1"
+                ? {
+                    messages: [
+                      {
+                        id: "33333333-3333-4333-8333-333333333333",
+                        senderKingdomId: peer,
+                        body: situation.story,
+                        sentGameTimeMs: String(1000 + step * 1000),
+                      },
+                    ],
+                    next: null,
+                  }
+                : guide,
         );
       },
       open: async () => {},
@@ -237,6 +245,7 @@ export class DiagnosticEpisodes {
           payload: {
             world,
             guide,
+            development,
             story: situation.story,
             peerId: peer,
             actionGuide: pactProposalGuide({ world, guide }),
@@ -275,6 +284,7 @@ export class DiagnosticEpisodes {
           connect: async () => ({
             observe: async () => structuredClone(observation),
             catalog: async () => structuredClone(tools),
+            packObservation: packPactObservation,
             validateProposal: async (proposal, observed) =>
               validatePactProposal(proposal.intent.payload, observed.payload),
             actionContracts: async (observed) => pactActionContracts(observed.payload),

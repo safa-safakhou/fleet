@@ -61,13 +61,15 @@ describe("explicit recovery and owner boundaries", () => {
   });
   it("a missing receipt preserves the exact command and never replans", async () => {
     const f = await setup(),
+      peer = randomUUID(),
       model = new FakeModel([
         {
           kind: "action",
           summary: "send",
-          action: { kind: "game.message.send", recipientKingdomId: randomUUID(), body: "fixture" },
+          action: { kind: "game.message.send", recipientKingdomId: peer, body: "fixture" },
         },
       ]);
+    f.game.acceptedContacts = [peer];
     f.game.failSubmit = true;
     const e = new Engine(f.store, model, async () => f.game, true);
     await e.run(f.claim);

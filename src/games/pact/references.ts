@@ -1,4 +1,5 @@
 import { type Data, object } from "../../domain.js";
+import { observedHall, requiredHall } from "./choices.js";
 
 const nil = new Set(["00000000-0000-0000-0000-000000000000", "ffffffff-ffff-ffff-ffff-ffffffffffff"]);
 const records = (value: unknown) => (Array.isArray(value) ? value.map(object) : []);
@@ -15,6 +16,52 @@ function refused(code: string, field: string, id: unknown, reason: string): Data
 export function referencePreflight(action: Data, facts: Data): Data | undefined {
   const guide = object(facts.guide),
     world = object(facts.world);
+  const self = object(world.profile).kingdomId;
+  const targetField = (
+    {
+      "game.contact.request": "recipientKingdomId",
+      "game.message.send": "recipientKingdomId",
+      "game.supply.offer": "counterpartyKingdomId",
+      "game.garrison.offer": "hostKingdomId",
+    } as Record<string, string>
+  )[String(action.kind)];
+  if (targetField && typeof self === "string" && action[targetField] === self)
+    return refused(
+      "OBSERVED_SELF_TARGET",
+      targetField,
+      self,
+      "This is your own kingdom, not a counterparty. Choose an observed other kingdom.",
+    );
+  if (
+    action.kind === "game.message.send" &&
+    Array.isArray(guide.contacts) &&
+    !records(guide.contacts).some((p) => p.kingdomId === action.recipientKingdomId)
+  )
+    return refused(
+      "OBSERVED_CONTACT_REQUIRED",
+      "recipientKingdomId",
+      action.recipientKingdomId,
+      "No accepted contact with this recipient is in the observed page. Inspect contacts or use a lawful introduction and wait for acceptance before direct messaging.",
+    );
+  const hall = observedHall(facts),
+    required = requiredHall(
+      action.kind === "game.garrison.offer"
+        ? "lending"
+        : action.kind === "game.training.queue"
+          ? String(action.type)
+          : "",
+      facts,
+    );
+  if (hall !== undefined && required !== undefined && hall < required)
+    return {
+      code: "OBSERVED_HALL_LOCKED",
+      currentHall: hall,
+      requiredHall: required,
+      submitted: false,
+      committed: false,
+      guidance:
+        "The observed Hall is below this action's published unlock. Plan the Hall prerequisites first or choose another lawful step; no command was submitted.",
+    };
   if (action.kind === "game.contact.answer") {
     const request = records(guide.contactRequests).find((r) => r.id === action.requestId),
       ref = object(request?.reference);

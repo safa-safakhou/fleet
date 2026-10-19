@@ -1,4 +1,5 @@
 import { type Data, object } from "../../domain.js";
+import { observedHall, observedPeerIds } from "./choices.js";
 
 const rows = (value: unknown): Data[] => (Array.isArray(value) ? value.map(object) : []);
 /** Clarify the controller handoff using only current owner-authorized observations. */
@@ -88,6 +89,27 @@ export function pactAgentBriefing(facts: Data): Data {
       allowedActions: Array.isArray(allowed) ? allowed : [],
       humanOnly: "Explicit human-only actions still require their existing owner approval.",
     },
+    ...(facts.discovery || Array.isArray(guide.contacts)
+      ? {
+          interactions: {
+            selfKingdomId: object(world.profile).kingdomId,
+            observedPeerIds: observedPeerIds(facts),
+            observedContactIds: rows(guide.contacts).map((p) => p.kingdomId),
+            guidance:
+              "Self is never a peer. Introduce with contact.request; message.send needs accepted contact. Resource trade=supply.offer(counterpartyKingdomId, exact terms); garrison.offer lends troops. Unsigned reserves nothing; both sign returned ID/version to activate. Missing pages unknown: use scoped reads.",
+          },
+        }
+      : {}),
+    ...(object(facts.development).hallUnlocks
+      ? {
+          training: {
+            currentHall: observedHall(facts),
+            hallUnlocks: object(facts.development).hallUnlocks,
+            guidance:
+              "Check Hall unlock, queue, ordinary stock, capacity and mandate. Founding construction allowance cannot pay training.",
+          },
+        }
+      : {}),
     construction: {
       availableQueueSlots,
       options,
