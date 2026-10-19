@@ -23,22 +23,27 @@ import { CommandExecutor } from "./platform/execution.js";
 import { currentLegacyClaim, legacyProfileFor } from "./platform/profiles.js";
 import { OperationSupervisor, PlatformHost } from "./platform/supervisor.js";
 import { TaskStore } from "./platform/tasks.js";
+import { RunWindow } from "./run-window.js";
 import { Store } from "./store.js";
 import { Vault } from "./vault.js";
 export function runtime() {
   const settings = config(),
     pool = connect(settings.databaseUrl),
     store = new Store(pool, new Vault(settings.vaultKey));
+  const runWindow = new RunWindow(settings.runWindowFile);
   const broker = new CredentialBroker(store, settings.gameBase, settings.origin, settings.liveAllowed),
-    model = new RoutedModel(new HttpModel(settings.routes, settings.apiKey), new CodexModel(settings.codex)),
+    model = runWindow.model(
+      new RoutedModel(new HttpModel(settings.routes, settings.apiKey), new CodexModel(settings.codex)),
+    ),
     owner = new SyntheticOwner(store, broker);
+  const game = async (id: string) => runWindow.game(await broker.game(id));
   const bindings = new Bindings(store, settings.environment);
   const environments = new EnvironmentRegistry(
     [
       createPactEnvironment({
         store,
         bindings: new PactBindings(store, bindings),
-        game: (id) => broker.game(id),
+        game,
         now: store.now,
         eventFeedVersion: settings.pactEventFeedVersion,
         outlookVersion: settings.pactOutlookVersion,
@@ -46,7 +51,7 @@ export function runtime() {
     ],
     settings.environment,
   );
-  const cognition = new Cognition(store, new LayaRecall(settings.layaEndpoint));
+  const cognition = new Cognition(store, runWindow.recall(new LayaRecall(settings.layaEndpoint)));
   const capacity = new RouteCapacity(store, (model) => ({
     key:
       model.route === "codex-cli"
@@ -56,16 +61,7 @@ export function runtime() {
   }));
   const capacityModel = capacity.wrap(model, currentLegacyClaim);
   const makeLegacyEngine = () =>
-    new LegacyEngineBridge(
-      store,
-      capacityModel,
-      (id) => broker.game(id),
-      settings.liveAllowed,
-      pactAdapter,
-      owner,
-      undefined,
-      cognition,
-    );
+    new LegacyEngineBridge(store, capacityModel, game, settings.liveAllowed, pactAdapter, owner, undefined, cognition);
   const engine = makeLegacyEngine();
   const tasks = new TaskStore(store, bindings, settings.maxConcurrency),
     engines = new EngineRegistry();
@@ -105,6 +101,7 @@ export function runtime() {
   const host = new PlatformHost(tasks, bindings, environments, engines, admission, commands, supervisor);
   return {
     settings,
+    runWindow,
     continuity,
     specialistContinuity,
     pool,

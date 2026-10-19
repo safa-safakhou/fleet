@@ -31,9 +31,9 @@ try {
       await r.store.heartbeat(worker, r.settings.liveAllowed);
       await r.store.recoverExpired();
       await r.tasks.recover();
+      const admissionOpen = r.settings.liveAllowed && r.runWindow.isOpen();
       const running =
-        r.settings.liveAllowed &&
-        (await r.pool.query("SELECT 1 FROM cohorts WHERE state='running' LIMIT 1")).rowCount !== 0;
+        admissionOpen && (await r.pool.query("SELECT 1 FROM cohorts WHERE state='running' LIMIT 1")).rowCount !== 0;
       awake.update(running);
       const disk = await enoughDisk(r.settings.statePath, r.settings.minFreeBytes);
       await r.pool.query(
@@ -41,8 +41,14 @@ try {
         ON CONFLICT(id) DO UPDATE SET updated_at=excluded.updated_at,dispatch_ready=excluded.dispatch_ready,reason=excluded.reason`,
         [
           worker,
-          r.settings.liveAllowed && disk,
-          disk ? (r.settings.liveAllowed ? "READY" : "LIVE_DISABLED") : "LOW_DISK",
+          admissionOpen && disk,
+          disk
+            ? admissionOpen
+              ? "READY"
+              : r.settings.liveAllowed
+                ? "RUN_WINDOW_CLOSED"
+                : "LIVE_DISABLED"
+            : "LOW_DISK",
         ],
       );
       // Recovery is independent of admission. Never submit a replacement game command.
@@ -72,7 +78,7 @@ try {
           });
       }
       const platformEnabled =
-        r.settings.liveAllowed &&
+        admissionOpen &&
         Boolean(
           (
             await r.pool.query(
@@ -128,7 +134,7 @@ try {
         preferPlatform = !preferPlatform;
         while (platformInFlight.size + Number(Boolean(inFlight)) < r.settings.maxConcurrency && (await platform())) {}
       } else {
-        if (r.settings.liveAllowed && disk && !inFlight) {
+        if (admissionOpen && disk && !inFlight) {
           inFlight = r.engine
             .tick(worker, r.settings.maxConcurrency)
             .then(async (claim) => {
