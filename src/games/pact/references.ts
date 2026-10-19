@@ -1,5 +1,5 @@
 import { type Data, object } from "../../domain.js";
-import { observedHall, requiredHall } from "./choices.js";
+import { observedHall, observedJoinableRaids, observedOrdinaryHomeUnitCount, requiredHall } from "./choices.js";
 
 const nil = new Set(["00000000-0000-0000-0000-000000000000", "ffffffff-ffff-ffff-ffff-ffffffffffff"]);
 const records = (value: unknown) => (Array.isArray(value) ? value.map(object) : []);
@@ -62,6 +62,51 @@ export function referencePreflight(action: Data, facts: Data): Data | undefined 
       guidance:
         "The observed Hall is below this action's published unlock. Plan the Hall prerequisites first or choose another lawful step; no command was submitted.",
     };
+  if (action.kind === "game.raid.accept" && Array.isArray(world.raids)) {
+    const raid = records(world.raids).find((r) => r.raidId === action.raidId);
+    if (!raid)
+      return refused(
+        "OBSERVED_RAID_NOT_FOUND",
+        "raidId",
+        action.raidId,
+        "No raid reference with this ID is in the owned raid view. A kingdom UUID is not a raid UUID; read the actual raid/invitation before accepting.",
+      );
+    if (!observedJoinableRaids(facts)?.some((r) => r.raidId === action.raidId))
+      return refused(
+        "OBSERVED_RAID_NOT_JOINABLE",
+        "raidId",
+        action.raidId,
+        "This observed raid is locked, closed, led by you or targets you. The server must still verify nomination, troops and mandate.",
+      );
+  }
+  if (
+    ["game.raid.accept", "game.raid.declare"].includes(String(action.kind)) &&
+    observedOrdinaryHomeUnitCount(facts) === 0
+  )
+    return {
+      code: "OBSERVED_RAID_UNITS_UNAVAILABLE",
+      submitted: false,
+      committed: false,
+      guidance:
+        "The fresh complete owned unit page has no ordinary available home troops for an attack. Home Guard cannot attack. Choose other lawful work or wait; no command was submitted.",
+    };
+  if (action.kind === "game.scout.share" && Array.isArray(world.scouts)) {
+    const operation = records(world.scouts).find((r) => r.operationId === action.operationId);
+    if (!operation)
+      return refused(
+        "OBSERVED_SCOUT_NOT_FOUND",
+        "operationId",
+        action.operationId,
+        "No owned scout operation with this ID is in the observed page. Read the actual operation before sharing its report.",
+      );
+    if (operation.status !== "completed")
+      return refused(
+        "OBSERVED_SCOUT_NOT_COMPLETE",
+        "operationId",
+        action.operationId,
+        "This scouting operation has not completed; there is no completed report to share yet.",
+      );
+  }
   if (action.kind === "game.contact.answer") {
     const request = records(guide.contactRequests).find((r) => r.id === action.requestId),
       ref = object(request?.reference);

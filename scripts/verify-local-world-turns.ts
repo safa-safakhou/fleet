@@ -130,7 +130,12 @@ try {
     ).rows;
     // Legacy controllers persist failures instead of throwing; inspect the
     // terminal receipt, not only the host promise, before calling a pass healthy.
-    if (!error) error = turnVerificationFailure(turn, compute);
+    const resolutions = (
+      await r.pool.query("SELECT command_id,code FROM command_resolutions WHERE turn_id=$1 ORDER BY resolved_at", [
+        claim.turn.id,
+      ])
+    ).rows;
+    if (!error) error = turnVerificationFailure(turn, compute, resolutions);
     if (error) process.exitCode = 1;
     result.attempts.push({
       profile: group.profile_id,
@@ -138,6 +143,7 @@ try {
       taskId: task.id,
       turn,
       compute,
+      resolutions,
       ...(error ? { error } : {}),
     });
     save();

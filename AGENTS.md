@@ -1,3 +1,7 @@
+# Verification follow-up —20 October2026
+
+Initial four-task interaction check is retained: A MarketII and B BarracksII committed; B first repeated two prevented Hall deadlocks, C submitted a rejected invalid raid reference despite terminal WAIT, D waited. Under the ongoing fix-and-verify assignment, close the observed construction/raid/scout generation gaps and fix receipt-based verification, then perform one separate bounded original C0 recheck only. Preserve all142 turns/190 reported executions and the closed initial pass; no replay, identity/goal/permission/budget/anchor change, other profile rerun, worker, server/old-population change, push or delegation. Document the five total attempts honestly.
+
 # Current planning and interaction repair —20 October2026
 
 Founder explicitly requests busy-slot retries, self-target messages and invalid trade/planning repairs, followed by exactly one turn per four existing local profiles. Work inline without delegation under docs/superpowers/plans/2026-10-20-interaction-repair.md; preserve12 identities,138 turns/183 reported executions, all goals/mandates/models/budgets/anchors, existing queues and closed windows. Local verified source installation/commits and those four exact tasks are covered; no background worker, extra inference, server/old-population change, push, resets or uncertainty review. Record failures honestly and park/restore-verify afterward.

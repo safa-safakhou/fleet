@@ -21,3 +21,19 @@ it("allows an intentional wait but refuses pending or unreported work", () => {
   expect(turnVerificationFailure(finished, [{ status: "unknown" }])).toBeTruthy();
   expect(turnVerificationFailure(finished, [])).toBeTruthy();
 });
+
+it.each(["WAIT", "COMMITTED"])("does not hide a rejected game command behind reactive terminal code %s", (code) => {
+  expect(
+    turnVerificationFailure({ ...finished, code, actions: code === "WAIT" ? 0 : 1 }, reported, [
+      ...(code === "COMMITTED" ? [{ code: "COMMITTED" }] : []),
+      { code: "INVALID_COMMAND" },
+    ]),
+  ).toBe("INVALID_COMMAND");
+  expect(
+    turnVerificationFailure(
+      { ...finished, code, actions: code === "WAIT" ? 0 : 1 },
+      reported,
+      code === "WAIT" ? [] : [{ code: "COMMITTED" }],
+    ),
+  ).toBeUndefined();
+});

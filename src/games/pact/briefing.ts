@@ -111,6 +111,12 @@ export function pactAgentBriefing(facts: Data): Data {
         }
       : {}),
     construction: {
+      ...(Array.isArray(world.raids)
+        ? {
+            queueScope:
+              "Raids and training cannot free builder waiting positions. Construction completion or owner cancellation can.",
+          }
+        : {}),
       availableQueueSlots,
       options,
       ...(prerequisiteWork.length ? { prerequisiteWork } : {}),
