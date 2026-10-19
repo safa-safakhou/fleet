@@ -8,6 +8,8 @@ The [19 October local operability repair](docs/local-world-operability-20261019.
 
 The [autonomous-work investigation](docs/autonomous-work-repair-20261019.md) explains the subsequent waits: goals/permissions were present, but modern controller instructions were dropped and scoped reads could discard owner context. It records the corrected standing-objective/lease briefing, two committed constructions and remaining non-cognition goal-use/planning failures across11 fully reported model calls. The local world remains parked; passing execution checks does not establish reliable play in all four profiles.
 
+The [goal/prerequisite follow-up](docs/goal-prerequisite-repair-20261019.md) separates current assignments from stale notes, links available prerequisite work and constrains busy queue arguments. Actual checks committed BarracksII/StorehouseII for legacy loop and WallII for reactive basic; a late legacy response truncation and the uncompleted Hall path remain explicit. The world is paused.
+
 The original [architecture design](docs/superpowers/specs/2026-10-17-multi-engine-platform-design.md) and [phased plan](docs/superpowers/plans/2026-10-17-multi-engine-platform.md) retain their dated intent. The handbook links each phase's actual acceptance and later corrections. Notes below include historical operations and should not be read as continuous monitoring.
 
 The [focused PACT discovery source change](docs/discovery-20261013.md) replaces directory traversal with filtered, varied kingdom shortlists on compatible game releases. It is verified locally; rollout remains separate.

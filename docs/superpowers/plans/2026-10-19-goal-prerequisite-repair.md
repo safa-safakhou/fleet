@@ -14,13 +14,18 @@ Preserve all12 identities, original closed hour and61 turns/59 allocations. A cu
 
 ## Tasks
 
-- [ ] Write and observe failing tests: current versus historical model context, missing/blank owner objective, direct ready prerequisite candidates, active/unknown/unauthorized/full-queue exclusions and preservation through packing.
-- [ ] Implement the minimal owner-context presentation and factual prerequisite joins. Keep stored continuation/notes unchanged and no forced command or scripted strategy.
-- [ ] Run focused regressions, full unit/integration/paired checks, type/build/boundaries/audit and commit verified source; private fake-provider replay of exact current packets.
-- [ ] Back up this world; register a new one-pass ID for only original A/C actors, each once. Preserve decisions, receipts and allocations; close gates and park clock/cohorts afterward.
-- [ ] Verify actual useful work versus any remaining failure, local installation/health, encrypted restore, documentation/planning consistency and local commits. No push or extra model turn is implied by failure.
+- [x] Write and observe failing tests: current versus historical model context, missing/blank owner objective, direct ready prerequisite candidates, active/unknown/unauthorized/full-queue exclusions and preservation through packing.
+- [x] Implement the minimal owner-context presentation and factual prerequisite joins. Keep stored continuation/notes unchanged and no forced command or scripted strategy.
+- [x] Run focused regressions, full unit/integration/paired checks, type/build/boundaries/audit and commit verified source; private fake-provider replay of exact current packets.
+- [x] Back up this world; register a new one-pass ID for only original A/C actors, each once. Preserve decisions, receipts and allocations; close gates and park clock/cohorts afterward.
+- [x] Verify actual useful work versus any remaining failure, local installation/health, encrypted restore, documentation/planning consistency and local commits. No push or extra model turn is implied by failure.
 
 
 ## Evidence-driven follow-up
 
 The requested A/C pass is consumed and retained: A accepted BarracksII then hit a known pre-inference packing error; C selected FarmII but chose occupied slot1, then duplicate Hall. Two further failing regressions cover a post-command core larger than12KB and action contracts offering known-preflight-rejected arguments. Fix those with larger whole-core fitting fallback and observed slot/building exclusions, then verify offline before any additional actual turn. Never relabel/reopen the consumed diagnostic pass or replay either command. The current founder fix-and-verify assignment covers a final targeted one-turn-per-affected-profile check after these newly evidenced execution fixes: original identities, fresh owned facts, reported allocations and no unknown command usage. Announce this recheck and preserve both passes separately.
+
+
+## Completion evidence
+
+Source3ec882d repaired goal/history framing and prerequisite joins; diagnostic one-turn checks exposed a larger post-command core and invalid slot advertisement. Sourcefcfa526 fixed those, passed258 unit/401 integration/12 paired checks and actual before/after offline replay. One final targeted turn each produced accepted StorehouseII (legacy) and WallII (reactive), with a retained late legacy output-truncation failure. Across all4 turns/9 calls,3 exact PACT receipts are committed. Long-term Hall sequencing and error-free model completion are not certified. Final installed artifacts/health, encrypted10+39-table restore, parked65-turn/68-execution world, preserved failures and local reports/commits are verified.
