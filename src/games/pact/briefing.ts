@@ -25,6 +25,59 @@ export function pactAgentBriefing(facts: Data): Data {
   const allowed = Array.isArray(authority.allowedActions)
     ? authority.allowedActions
     : object(guide.mandate).allowedActions;
+  const options = rows(world.nextUpgradeChecks).map((check) => {
+    const quote = stock.find((q) => q.building === check.kind && q.targetLevel === check.targetLevel);
+    return {
+      building: check.kind,
+      targetLevel: check.targetLevel,
+      prerequisiteCheck: check.prerequisiteCheck ?? "unknown",
+      missingBuildings: check.missingBuildings,
+      stockAffordable: typeof quote?.stockAffordable === "boolean" ? quote.stockAffordable : null,
+      costWhole: quote?.costWhole,
+      busy: occupied.has(check.kind) ? true : typeof quote?.busy === "boolean" ? quote.busy : null,
+    };
+  });
+  const prerequisiteWork = options
+    .filter((o) => rows(o.missingBuildings).length)
+    .map((target) => {
+      const readySteps: Data[] = [],
+        activeSteps: Data[] = [],
+        unresolvedSteps: Data[] = [];
+      for (const missing of rows(target.missingBuildings)) {
+        const step = { building: missing.kind, targetLevel: missing.level };
+        if (typeof missing.kind !== "string" || !Number.isSafeInteger(missing.level) || Number(missing.level) < 1)
+          continue;
+        const active = builders.some(
+          (b) =>
+            b.kind === missing.kind &&
+            b.state === "active" &&
+            Number.isSafeInteger(b.targetLevel) &&
+            Number(b.targetLevel) >= Number(missing.level),
+        );
+        const next = options.find((o) => o.building === missing.kind && o.targetLevel === missing.level);
+        if (active) activeSteps.push(step);
+        else if (
+          next?.prerequisiteCheck === "ready" &&
+          next.stockAffordable === true &&
+          next.busy === false &&
+          availableQueueSlots.length &&
+          Array.isArray(allowed) &&
+          allowed.includes("building.queue")
+        )
+          readySteps.push(step);
+        else unresolvedSteps.push(step);
+      }
+      return {
+        target: {
+          building: target.building,
+          targetLevel: target.targetLevel,
+          alreadyQueued: occupied.has(target.building),
+        },
+        readySteps,
+        activeSteps,
+        unresolvedSteps,
+      };
+    });
   return {
     ownerIntent: { status: objective ? "provided" : "absent", objective: objective || null },
     execution: {
@@ -37,18 +90,8 @@ export function pactAgentBriefing(facts: Data): Data {
     },
     construction: {
       availableQueueSlots,
-      options: rows(world.nextUpgradeChecks).map((check) => {
-        const quote = stock.find((q) => q.building === check.kind && q.targetLevel === check.targetLevel);
-        return {
-          building: check.kind,
-          targetLevel: check.targetLevel,
-          prerequisiteCheck: check.prerequisiteCheck ?? "unknown",
-          missingBuildings: check.missingBuildings,
-          stockAffordable: typeof quote?.stockAffordable === "boolean" ? quote.stockAffordable : null,
-          costWhole: quote?.costWhole,
-          busy: occupied.has(check.kind) ? true : typeof quote?.busy === "boolean" ? quote.busy : null,
-        };
-      }),
+      options,
+      ...(prerequisiteWork.length ? { prerequisiteWork } : {}),
       coverage:
         "Observed candidates, no prescribed strategy or promised admission. A blocked Hall cannot satisfy its own missing prerequisites. With queue space, consider a ready affordable prerequisite or other useful permitted work. Waiting remains valid for a concrete current dependency, stock, risk or owner constraint; do not infer global inability from one blocked target. Unknown facts need a scoped read.",
     },

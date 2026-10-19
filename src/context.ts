@@ -2,6 +2,7 @@ import { beliefCue, deliveredCognition, type Episode, utf8Prefix } from "./cogni
 import { analysisOpportunities } from "./cognitive-analysis.js";
 import { type Data, FleetError, object } from "./domain.js";
 import { factTable } from "./fact-table.js";
+import { ownerDecisionContext } from "./owner-guidance.js";
 import { referenceOpportunityText, referenceSchemaFeedback } from "./schema-feedback.js";
 
 // Count the serialized transport envelope plus the separately supplied output schema.
@@ -79,7 +80,7 @@ function fitAcceptedMessages(
   let compactTransport = false;
   const messages = (c: Data) => {
     const encode = (value: Data) => {
-      if (!compactTransport) return value;
+      if (!compactTransport) return ownerDecisionContext(value);
       const actualSchema = schemaForContext ? schemaForContext(value) : schema;
       let encoded = referenceSchemaFeedback(value, actualSchema);
       if (String(value.schemaCoverage).includes("sameTextAs"))
@@ -110,7 +111,7 @@ function fitAcceptedMessages(
             requestedRead: { ...read, result: { ...result, state: { ...state, outcomes: table } } },
           };
       }
-      return encoded;
+      return ownerDecisionContext(encoded);
     };
     return [
       { role: "system", content: instructions },

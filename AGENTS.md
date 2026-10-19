@@ -1,3 +1,7 @@
+# Current goal/prerequisite follow-up — 19 October 2026
+
+Founder explicitly requests repairing legacy loop/reactive basic and exactly one new turn each on their existing ordinal0 actors. Work inline without delegation; preserve all61 turns/59 executions,12 identities, closed hour, past receipts/settings/mandates/model/budgets. Read docs/superpowers/plans/2026-10-19-goal-prerequisite-repair.md and docs/goal-prerequisite-repair-20261019.md. Local verified source/install/commits and this separate two-actor pass are authorized; no push, other profile turn, background schedule, server or old-population change. Record actual results honestly, including failure.
+
 19 October autonomous-work repair completed: Fleet62eb4bc/dc080e9 correct trusted controller guidance, standing-goal prominence, reactive scoped-read context and action-format delivery. Actual6 turns/11 reported calls committed FarmII (legacy cognition) and BarracksII (reactive cognition); legacy loop still asks for direction and reactive basic still waits on missing prerequisites. Read docs/autonomous-work-repair-20261019.md. Goals/permissions are present for all12, with no active auth/blocker/unknown/pending issue. Do not claim all-profile strategic reliability. Original hour and both new passes closed; world/groups paused, worker stopped, identities/history unchanged. No further run, push, server/old-population change or delegation is implied.
 
 # Autonomous-work investigation and repair — 19 October 2026

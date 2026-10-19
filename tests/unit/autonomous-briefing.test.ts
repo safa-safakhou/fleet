@@ -80,3 +80,73 @@ it("does not invent an objective, stock affordability, queue slot or permission 
   expect(object(brief.construction).availableQueueSlots).toEqual([]);
   expect(object(brief.construction).options).toEqual([]);
 });
+
+it("links a waiting target to its observed ready prerequisites instead of presenting the target as work that must only be awaited", () => {
+  const current = structuredClone(facts);
+  current.world.nextUpgradeChecks.push({
+    kind: "barracks",
+    targetLevel: 2,
+    prerequisiteCheck: "ready",
+    missingBuildings: [],
+  });
+  current.guide.constructionStockChecks.push({
+    building: "barracks",
+    targetLevel: 2,
+    stockAffordable: true,
+    busy: false,
+  });
+  const brief = object(compactFacts(current).agentBriefing);
+  const work = object(brief.construction).prerequisiteWork;
+  expect(work).toEqual([
+    {
+      target: { building: "hall", targetLevel: 2, alreadyQueued: true },
+      readySteps: [
+        { building: "farm", targetLevel: 2 },
+        { building: "barracks", targetLevel: 2 },
+      ],
+      activeSteps: [],
+      unresolvedSteps: [],
+    },
+  ]);
+  expect(object(compactEnvironment(compactFacts(current), 12000).agentBriefing).construction).toEqual(
+    brief.construction,
+  );
+});
+
+it("distinguishes already active work and unknown checks, and never advertises an immediate step without queue space or delegation", () => {
+  const current = structuredClone(facts);
+  current.world.builders[1] = {
+    slot: 2,
+    state: "active",
+    kind: "farm",
+    targetLevel: 2,
+    instructionId: "farm-job",
+    missingBuildings: [],
+  } as (typeof current.world.builders)[1];
+  const work = object(object(compactFacts(current).agentBriefing).construction).prerequisiteWork;
+  expect(work).toEqual([
+    {
+      target: { building: "hall", targetLevel: 2, alreadyQueued: true },
+      readySteps: [],
+      activeSteps: [{ building: "farm", targetLevel: 2 }],
+      unresolvedSteps: [{ building: "barracks", targetLevel: 2 }],
+    },
+  ]);
+  const denied = structuredClone(facts);
+  denied.world.authority.allowedActions = ["world.read"];
+  expect(object(object(compactFacts(denied).agentBriefing).construction).prerequisiteWork).toEqual([
+    expect.objectContaining({ readySteps: [] }),
+  ]);
+  const full = structuredClone(facts);
+  full.world.builders[1] = {
+    slot: 2,
+    state: "waiting",
+    kind: "market",
+    targetLevel: 2,
+    instructionId: "market-job",
+    missingBuildings: [],
+  } as (typeof full.world.builders)[1];
+  expect(object(object(compactFacts(full).agentBriefing).construction).prerequisiteWork).toEqual([
+    expect.objectContaining({ readySteps: [] }),
+  ]);
+});
