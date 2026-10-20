@@ -24,5 +24,5 @@ Preserve the twelve identities, 32 historical turns/48 reported executions, verb
 - [x] Source98e4c20 committed/installed with1631 hashes and unchanged PACT artifacts before inference.
 - [x] Four exact turns on98e4c20; six responses/one unknown, three commitments, mixed/failed semantic acceptance retained. World/groups parked.
 - Post-pass ruling: actual B2 schema rejected the brief's exact consent payload. Preserve current signature/contact-answer shapes through initial/corrective/paged legacy generation, with a narrow historical-source-pin exception. Six RED/GREEN real-engine fake-provider regressions and final741-check suite pass; no extra real turn.
-- [ ] Follow-up commit/install and final preservation/restore/report.
+- [x] Follow-up259d285 committed/installed;741 checks and1631 hashes pass. Three owned receipt reads, exact original history/settings/goals/mandates/gates and encrypted10-PACT/39-Fleet-table restore verified. Final36/55,54 reported/one unknown, eleven ready/A2 owner-blocked; four groups/clock paused tick34, no worker/active/pending/reserved/lease. Durable reports and final documentation commits follow. No extra inference.
 - Explicit approval requested for only A2's exact40,000-token unknown allocation, without another turn. No response is consent; pending approval leaves the blocker intact.
