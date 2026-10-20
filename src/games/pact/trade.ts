@@ -227,6 +227,6 @@ export function tradeBriefing(facts: Data): Data | undefined {
         )
       : null,
     guidance:
-      "Set expectedOutcome.trade.youSend/youReceive outside payload to the actual flows/null. Seek scarce Hall stock in YOU RECEIVE; exporting it or bonding it may delay Hall. Use ordinary stock/production, never allowances. Bonds optional (null); value <= side hourly flow value * min(duration,maxBondFlowHours). Use modest supportable terms. Unsigned earns nothing; sign the returned ID/version once, then await the peer and settlement. Review existing obligations before adding another; repeated signatures add nothing. Peer stock/interest/authority unknown. Introductions can discuss supply.",
+      "When required, expectedOutcome.trade.youSend/youReceive goes outside payload and must match actual flows/null. Only YOU RECEIVE supplies the named resource; exporting/bonding scarce target stock delays that target. Use ordinary stock/production, never allowances. Null bonds valid; bond value <= side hourly flow value * min(duration,maxBondFlowHours). Offer creates terms; sign uses existing offerId/version once. Consent may reserve stock but delivers nothing yet. Peer consent/stock unknown; verify activation/settlement. No duplicate negotiation or repeated signature.",
   };
 }

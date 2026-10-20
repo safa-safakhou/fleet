@@ -30,8 +30,30 @@ export function pactAgentBriefing(facts: Data): Data {
   const allowed = Array.isArray(authority.allowedActions)
     ? authority.allowedActions
     : object(guide.mandate).allowedActions;
+  const idleBuilder = availableQueueSlots.some((slot) =>
+    builders.filter((b) => b.slot === slot).every((b) => b.state === null),
+  );
   const options = rows(world.nextUpgradeChecks).map((check) => {
     const quote = stock.find((q) => q.building === check.kind && q.targetLevel === check.targetLevel);
+    const busy = occupied.has(check.kind) ? true : typeof quote?.busy === "boolean" ? quote.busy : null;
+    const startStatus =
+      Array.isArray(allowed) && !allowed.includes("building.queue")
+        ? "not_delegated"
+        : busy === true
+          ? "active_or_queued"
+          : rows(check.missingBuildings).length
+            ? "building_prerequisites"
+            : quote?.stockAffordable === false
+              ? "stock_shortage"
+              : check.prerequisiteCheck !== "ready" ||
+                  quote?.stockAffordable !== true ||
+                  busy !== false ||
+                  !Array.isArray(allowed) ||
+                  !Array.isArray(world.builders)
+                ? "unknown"
+                : !idleBuilder
+                  ? "no_idle_builder"
+                  : "ready";
     return {
       building: check.kind,
       targetLevel: check.targetLevel,
@@ -39,7 +61,8 @@ export function pactAgentBriefing(facts: Data): Data {
       missingBuildings: check.missingBuildings,
       stockAffordable: typeof quote?.stockAffordable === "boolean" ? quote.stockAffordable : null,
       costWhole: quote?.costWhole,
-      busy: occupied.has(check.kind) ? true : typeof quote?.busy === "boolean" ? quote.busy : null,
+      busy,
+      startStatus,
     };
   });
   const prerequisiteWork = options
@@ -84,24 +107,24 @@ export function pactAgentBriefing(facts: Data): Data {
       };
     });
   return {
-    ...(trade ? { trade } : {}),
     ownerIntent: { status: objective ? "provided" : "absent", objective: objective || null },
     execution: {
       objectiveIsStandingGuidance: Boolean(objective),
       lease: "managed_by_host",
       guidance:
-        "A provided owner objective is already standing guidance. Choose its lawful steps yourself; the owner need not name each delegated action. Fleet opens the write lease, assigns command IDs and reconciles receipts. Emit a bare supported game action; do not represent run.open as a game action. Shapes and stock checks are not permission grants; the server rechecks current mandate, stock and prerequisites.",
+        "Owner intent is standing guidance: choose a useful subgoal and lawful step yourself. Fleet manages leases, command IDs and receipts. Put bare game arguments inside your profile's action/payload envelope. Shapes/checks are not grants; the server rechecks authority and admission.",
       allowedActions: Array.isArray(allowed) ? allowed : [],
       humanOnly: "Explicit human-only actions still require their existing owner approval.",
     },
-    ...(facts.discovery || Array.isArray(guide.contacts)
+    ...(trade ? { trade } : {}),
+    ...(facts.discovery || facts.socialAttention || Array.isArray(guide.contacts)
       ? {
           interactions: {
             selfKingdomId: object(world.profile).kingdomId,
             observedPeerIds: observedPeerIds(facts),
             observedContactIds: rows(guide.contacts).map((p) => p.kingdomId),
             guidance:
-              "Self is never a peer. Introduce with contact.request; message.send needs accepted contact. Resource trade=supply.offer(counterpartyKingdomId, exact terms); garrison.offer lends troops. Unsigned reserves nothing; both sign returned ID/version to activate. Missing pages unknown: use scoped reads.",
+              "Self is not a peer. contact.request introduces; message.send needs accepted contact. Review socialAttention.records too: deduplicated empty contactRequests/openSupplyOffers do not mean an empty inbox. Accept, counter, decline or defer on merits; no required interaction count. Missing pages are unknown.",
           },
         }
       : {}),
@@ -116,12 +139,12 @@ export function pactAgentBriefing(facts: Data): Data {
         }
       : {}),
     construction: {
+      completedBuildings: world.buildings,
       ...(queuedProgress.length
         ? {
-            completedBuildings: world.buildings,
             queuedProgress,
             goalReconciliation:
-              "When expectedOutcome requests actionKind and basis, match the actual payload.kind and the fresh goal.currentState maps; do not describe a signature as a building order. The owner goal states desired outcomes; its old descriptions of missing work are not current state. Reconcile them with completedBuildings and queuedProgress. prerequisiteCheck=ready means BUILDING prerequisites met, not affordable or completed. A queued target needs no duplicate order. Troop training is never a building prerequisite and cannot supply construction stock. For stock_shortage, conserve scarce target resources and consider permitted resource acquisition: an affordable production upgrade if queue space exists, an introduction to discuss supply, or a lawful supply offer. Peer stock/acceptance is unknown; offers do not deliver resources until signed and settled. Ordinary stock alone can fund trade, not construction allowance. A concrete production wait is valid if no useful feasible step; name the actual blocker. Do not substitute unrelated spending for goal progress. Unknown checks need a scoped read. shortfallWholeCeil is whole units needed to cover the exact marked shortfall, not a new cost or authority grant.",
+              "Current completedBuildings/queuedProgress override old notes and missing-work descriptions. stock_shortage needs resources, not another order or troop training. Conserve the target's scarce stock or explain a different chosen priority; unrelated spending does not acquire resources. A production wait is valid: name the actual constraint. expectedOutcome.actionKind/basis must match payload.kind/currentState. shortfallWholeCeil rounds the marked gap, not a new cost/grant.",
           }
         : {}),
       ...(Array.isArray(world.raids)
@@ -134,7 +157,7 @@ export function pactAgentBriefing(facts: Data): Data {
       options,
       ...(prerequisiteWork.length ? { prerequisiteWork } : {}),
       coverage:
-        "Observed candidates, no prescribed strategy or promised admission. A blocked Hall cannot satisfy its own missing prerequisites. With queue space, consider a ready affordable prerequisite or other useful permitted work. Waiting remains valid for a concrete current dependency, stock, risk or owner constraint; do not infer global inability from one blocked target. Unknown facts need a scoped read.",
+        "startStatus=ready is an observed immediate-start candidate, not guaranteed admission. Queue space can exist behind an active builder. prerequisiteCheck=ready means building prerequisites only, not affordability/completion. Queueing Hall with missing Farm/Barracks does not build those prerequisites: consider a ready prerequisite with space. No duplicate queued kind. Choose work for your actual objective or a concrete dependency/stock/risk wait; unknown facts need a scoped read.",
     },
   };
 }

@@ -43,7 +43,7 @@ export class ReactiveEngine implements AgentEngine {
     return "";
   }
   protected formatInstructions() {
-    return ' Return an outer decision: {"kind":"action","schemaId":"<advertised schema>","payload":<bare domain action>,"summary":"<intent>"}. Include expectedOutcome when the action contract requires it; it is a checked effect statement, not a receipt. A read uses {"kind":"read","query":{},"summary":"<reason>"}. A wait records no action even if its summary describes an intended command. Choose the correct outer kind; do not put session operations or an action only in summary.';
+    return ' Return {"kind":"action","schemaId":"<advertised schema>","payload":<bare domain action>,"summary":"<step; current reason; immediate effect>"}, with expectedOutcome if required (claim, not receipt). Read: {"kind":"read","query":<supported query>,"summary":"<needed fact; why>"}. Wait: {"kind":"wait","summary":"<current constraint; what changes it>"} plus basis if required. A wait records no action; a read only observes. Use actual kind/arguments; summary text is not a command.';
   }
   protected async extension(_ctx: EngineContext, _observation: EngineContext["observation"]): Promise<Data> {
     return {};

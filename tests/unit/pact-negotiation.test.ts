@@ -2,6 +2,7 @@ import { Ajv } from "ajv";
 import { expect, it } from "vitest";
 import type { Data } from "../../src/domain.js";
 import { observedActionSchema } from "../../src/games/pact/choices.js";
+import { negotiationBriefing, negotiationPreflight } from "../../src/games/pact/negotiation.js";
 import { validatePactProposal } from "../../src/games/pact/proposals.js";
 
 const self = "11111111-1111-4111-8111-111111111111",
@@ -40,7 +41,49 @@ const active = {
   youReceive: receive,
   endGameTimeMs: "2000",
 };
+it("delivers exact first-consent arguments and actual self-relative flows instead of describing an open offer as secured supply", () => {
+  const f = facts();
+  (f.guide as Data).openSupplyOffers = [offer];
+  expect(negotiationBriefing(f)?.observedLive).toEqual([
+    expect.objectContaining({
+      id,
+      version: 2,
+      state: "open",
+      youSend: send,
+      youReceive: receive,
+      consentAction: { kind: "game.supply.sign", offerId: id, version: 2 },
+      resourceDelivery: "not_established_by_offer",
+    }),
+  ]);
+  expect(negotiationPreflight(propose, f)?.detail).toEqual(
+    expect.objectContaining({
+      existingId: id,
+      version: 2,
+      state: "open",
+      consentAction: { kind: "game.supply.sign", offerId: id, version: 2 },
+    }),
+  );
+  (f.guide as Data).openSupplyOffers = [{ ...offer, signedBy: [self] }];
+  expect(((negotiationBriefing(f)?.observedLive ?? []) as Data[])[0].consentAction).toBeNull();
+  (f.guide as Data).openSupplyOffers = [];
+  (f.guide as Data).activeSupplyContracts = [active];
+  expect(((negotiationBriefing(f)?.observedLive ?? []) as Data[])[0]).toEqual(
+    expect.objectContaining({
+      state: "active",
+      consentAction: null,
+      resourceDelivery: "requires_settlement_evidence",
+    }),
+  );
+});
 const outcome = { trade: { youSend: send, youReceive: receive } };
+it("withholds consent suggestions when the current self or a valid offer version is unknown", () => {
+  for (const change of ["self", "version"] as const) {
+    const f = facts();
+    (f.guide as Data).openSupplyOffers = [{ ...offer, version: change === "version" ? 0 : 2 }];
+    if (change === "self") (f.world as Data).profile = {};
+    expect(((negotiationBriefing(f)?.observedLive ?? []) as Data[])[0].consentAction).toBeNull();
+  }
+});
 const valid = (a: Data, f: Data) =>
   validatePactProposal(
     a,

@@ -139,7 +139,9 @@ it.each([false, true])("uses the actual remaining envelope for a core above half
   expect(ctx.observation.payload).toEqual(current);
 });
 it("reduces optional continuity records further when they crowd out an otherwise deliverable current core", async () => {
-  const whole = "current owned resources and permission ".repeat(700);
+  // Leave room for the whole core but force optional-page pressure even when
+  // system guidance becomes shorter. The test must exercise reduction, not prose length.
+  const whole = "current owned resources and permission ".repeat(900);
   let requests = 0;
   const ctx = reactiveProbe(async (_claim, input) => {
     requests++;

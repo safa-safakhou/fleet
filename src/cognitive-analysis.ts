@@ -185,7 +185,7 @@ export const analysisDecisionGuide = {
     "expectedVersion=cognition.version; analysis required. Use one offered key: belief {type,opportunity,evidenceQuote,inferredMotive,alternativeMotive,expectedPeerResponse,confidence:low|medium,predictedEvent:reply|agreement,reviewAfterMinutes:15|30|60|120|360|1440}; reflection {type,opportunity,observedFact,difference,lesson,nextStep}; reassessment {type,opportunity,evidenceQuote,inferredMotive,alternativeMotive,confidence:low|medium,assessment:supported|unresolved}; or none {type,reason}. Fleet supplies IDs/time/verified result. Optional plan {goal,steps,status,reconsiderWhen,evidenceRefs}, memories [{summary,importance,evidenceRefs}]; omit unchanged fields.",
 };
 export const analysisInstructions =
-  "Cognition first: inspect sources/analysisOpportunities; quote exact text/result. Cautious peer motive + alternative; predict reply/agreement, not builder benefit/confidence. Greeting!=commitment. Compare intent/result: difference, lesson, next step. Not submitted=no action; commit!=completion; repeated intent!=reflection. Reply tests responsiveness, not reliability. No new insight: none; keep useful plans.";
+  "Cognition first: fresh facts outrank old plans. Sources/analysisOpportunities: quote exact result. Citation!=interpretation truth. Accepted proposal!=consent/delivery. Correct disproved assumptions. Motive+alternative; predict reply/agreement, not builder benefit. Reply!=reliability. No insight: analysis none; omit unchanged edits.";
 
 export function analysisSchemaForVersion(
   version: unknown,

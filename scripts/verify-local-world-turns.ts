@@ -4,17 +4,12 @@ import { readFileSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { safeCode } from "../src/domain.js";
 import { runtime } from "../src/runtime.js";
+import { parseTurnSelection } from "./local-turn-selection.js";
 import { turnVerificationFailure } from "./local-turn-verification.js";
 
 // Explicit local operator command: no scheduler, retries, new accounts or history reset.
-const [root, id, selection] = process.argv.slice(2);
-const profiles = selection?.split(",");
-if (
-  profiles &&
-  (new Set(profiles).size !== profiles.length ||
-    profiles.some((p) => !["legacy-loop", "legacy-cognition", "reactive-basic", "reactive-cognition"].includes(p)))
-)
-  throw Error("Invalid explicit profile selection");
+const [root, id, selection, actors] = process.argv.slice(2);
+const selectedActors = parseTurnSelection(selection || undefined, actors);
 if (!root || !id || !/^[a-z0-9-]{1,60}$/.test(id)) throw Error("Private root and unique pass ID required");
 const config = JSON.parse(readFileSync(resolve(root, "config.json"), "utf8"));
 assert.equal(config.root, resolve(root));
@@ -56,20 +51,16 @@ try {
   ).rows[0].n;
   assert.equal(dirty, 0, "Reconcile existing uncertainty before a pass");
   const selected = [];
-  for (const group of groups.filter((g) => !profiles || profiles.includes(g.profile_id))) {
-    if (group.budget.inputByteLimit < 48000)
-      await r.store.increaseInputAllowance(
-        group.id,
-        48000,
-        "Founder authorized operability repair and one-pass verification: deliver whole current facts plus continuity and schema within the existing 32K model context. No lifetime quota, deadline, identity or accounting reset.",
-      );
+  for (const { profile, ordinal } of selectedActors) {
+    const group = groups.find((g) => g.profile_id === profile);
+    assert.ok(group);
     const agent = (
       await r.pool.query(
-        "SELECT id FROM agents WHERE cohort_id=$1 AND ordinal=0 AND state='ready' AND credential_state='ready'",
-        [group.id],
+        "SELECT id FROM agents WHERE cohort_id=$1 AND ordinal=$2 AND state='ready' AND credential_state='ready'",
+        [group.id, ordinal],
       )
     ).rows[0];
-    assert.ok(agent, "Original first actor must be ready");
+    assert.ok(agent, "Selected original actor must be ready");
     const binding = await r.bindings.forAgent(agent.id);
     assert.ok(binding);
     const task = await r.tasks.upsertFromEvent(

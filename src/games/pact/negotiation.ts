@@ -63,6 +63,23 @@ function records(facts: Data): Data[] {
       .map((r) => ({ ...r, negotiationState: "active" })),
   ];
 }
+function consentAction(record: Data, facts: Data): Data | null {
+  const self = object(object(facts.world).profile).kingdomId;
+  if (
+    typeof self !== "string" ||
+    record.negotiationState !== "open" ||
+    typeof record.id !== "string" ||
+    !Number.isSafeInteger(record.version) ||
+    Number(record.version) < 1 ||
+    !Array.isArray(record.signedBy) ||
+    record.signedBy.includes(self)
+  )
+    return null;
+  const key = perspective(record, facts);
+  if (key && records(facts).some((r) => r.negotiationState === "active" && equal(key, perspective(r, facts))))
+    return null;
+  return { kind: "game.supply.sign", offerId: record.id, version: record.version };
+}
 /** Known observed duplication only. Missing/stale pages never establish absence or authority. */
 export function negotiationPreflight(action: Data, facts: Data): Data | undefined {
   if (!["game.supply.offer", "game.supply.counter", "game.supply.sign"].includes(String(action.kind))) return;
@@ -95,9 +112,14 @@ export function negotiationPreflight(action: Data, facts: Data): Data | undefine
   if (!same) return;
   return {
     code: "PACT_DUPLICATE_NEGOTIATION",
-    detail: { existingId: same.id, state: same.negotiationState },
+    detail: {
+      existingId: same.id,
+      version: same.version,
+      state: same.negotiationState,
+      consentAction: consentAction(same, facts),
+    },
     guidance:
-      "Equivalent live terms with this peer already exist from your perspective (A/B ordering does not change them). Do not open, counter or sign another copy. Review the existing consent/status, wait for its peer, or choose a materially different useful proposal/partner. An active contract is a commitment, not uncommitted spare production.",
+      "Duplicate; no command submitted. Review detail.existingId/version/state and consentAction; sign existing terms only if useful/permitted. Do not create a copy.",
   };
 }
 /** Generation excludes known repeats; preflight remains the independent final local check. */
@@ -129,8 +151,13 @@ export function negotiationBriefing(facts: Data): Data | undefined {
       version: r.version,
       state: r.negotiationState,
       alreadySignedByYou: Array.isArray(r.signedBy) ? r.signedBy.includes(self) : null,
+      youSend: r.kingdomA === self ? object(r.terms).aToB : r.kingdomB === self ? object(r.terms).bToA : r.youSend,
+      youReceive:
+        r.kingdomA === self ? object(r.terms).bToA : r.kingdomB === self ? object(r.terms).aToB : r.youReceive,
+      consentAction: consentAction(r, facts),
+      resourceDelivery: r.negotiationState === "open" ? "not_established_by_offer" : "requires_settlement_evidence",
     })),
     guidance:
-      "Review current offers and active commitments before proposing. Same self-relative terms/peer are a duplicate even with swapped A/B; repeated own consent earns nothing. Use changed terms only for a distinct economic reason. Missing or stale records stay unknown; read before guessing.",
+      "Offer creates terms, sign consents to an existing ID/version, counter changes its terms. consentAction is a possible shape, not permission or advice to accept: evaluate both flows/risks first. Open offer != secured supply. Both consent before activation; actual settlements establish delivery. Same terms/peer is a duplicate even with swapped A/B. Missing/stale records unknown.",
   };
 }

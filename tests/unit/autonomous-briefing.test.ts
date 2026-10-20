@@ -3,6 +3,57 @@ import { object } from "../../src/domain.js";
 import { compactFacts } from "../../src/games/pact/adapter.js";
 import { compactEnvironment, expandFactTables } from "../../src/games/pact/environment.js";
 
+it("separates an affordable Hall queue from immediate prerequisite work, and current completion from stale notes", () => {
+  const current = structuredClone(facts);
+  current.world.builders = [{ slot: 1, state: null, instructionId: null } as (typeof current.world.builders)[0]];
+  current.guide.constructionStockChecks[1].busy = false;
+  const construction = object(object(compactFacts(current).agentBriefing).construction);
+  expect(construction.completedBuildings).toEqual(current.world.buildings);
+  expect(construction.options).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({ building: "hall", startStatus: "building_prerequisites" }),
+      expect.objectContaining({ building: "farm", startStatus: "ready" }),
+    ]),
+  );
+  current.world.buildings[1].level = 2;
+  current.world.nextUpgradeChecks[0].targetLevel = 3;
+  expect(object(object(compactFacts(current).agentBriefing).construction).completedBuildings).toEqual([
+    { kind: "hall", level: 1 },
+    { kind: "farm", level: 2 },
+    { kind: "barracks", level: 1 },
+  ]);
+  expect(object(object(compactFacts(current).agentBriefing).construction).options).toEqual(
+    expect.arrayContaining([expect.objectContaining({ building: "farm", targetLevel: 3, startStatus: "unknown" })]),
+  );
+});
+
+it("does not equate an active slot's free queue position with an idle builder or invent start readiness", () => {
+  const current = structuredClone(facts);
+  current.world.builders = [
+    {
+      slot: 1,
+      state: "active",
+      kind: "barracks",
+      targetLevel: 2,
+      instructionId: "job",
+    } as (typeof current.world.builders)[0],
+  ];
+  const construction = object(object(compactFacts(current).agentBriefing).construction);
+  expect(construction.availableQueueSlots).toEqual([1]);
+  expect(construction.options).toEqual(
+    expect.arrayContaining([expect.objectContaining({ building: "farm", startStatus: "no_idle_builder" })]),
+  );
+  current.world.builders[0].state = "waiting";
+  current.world.builders.push({ slot: 1, state: null, instructionId: null } as (typeof current.world.builders)[0]);
+  expect(object(object(compactFacts(current).agentBriefing).construction).options).toEqual(
+    expect.arrayContaining([expect.objectContaining({ building: "farm", startStatus: "no_idle_builder" })]),
+  );
+  current.world.authority.allowedActions = ["world.read"];
+  expect(object(object(compactFacts(current).agentBriefing).construction).options).toEqual(
+    expect.arrayContaining([expect.objectContaining({ building: "farm", startStatus: "not_delegated" })]),
+  );
+});
+
 const facts = {
   world: {
     ambition: "Develop a resilient kingdom and choose your own legal actions",
