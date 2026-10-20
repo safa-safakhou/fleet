@@ -161,3 +161,25 @@ it("uses a scoped diplomacy refresh to recover missing numeric bond rules", () =
   );
   expect(validatePactProposal(bonded, f, expectedOutcome).valid).toBe(true);
 });
+
+it("groups equal observed per-resource rate caps without duplicating the full flow shape", () => {
+  const contract = pactActionContracts(facts).find((c) => c.expectedOutcomeSchema);
+  const offer = (object(contract?.payloadSchema).anyOf as Data[]).find(
+    (s) => object(object(s.properties).kind).const === "game.supply.offer",
+  );
+  const out = object(object(object(object(offer).properties).terms).properties).aToB;
+  expect((object(out).anyOf as Data[]).filter((s) => s.type === "object")).toHaveLength(1);
+  const different = structuredClone(facts);
+  object(object(object(different.world).balances).silver).capacityUnits = "180000";
+  const check = new Ajv({ strict: false, validateFormats: false }).compile({
+    anyOf: pactActionContracts(different).map((c) => c.payloadSchema),
+  });
+  for (const [resource, cap] of [
+    ["iron", 600],
+    ["silver", 300],
+    ["grain", 600],
+  ] as const) {
+    expect(check({ ...action, terms: { ...terms, aToB: { resource, wholePerHour: cap } } })).toBe(true);
+    expect(check({ ...action, terms: { ...terms, aToB: { resource, wholePerHour: cap + 1 } } })).toBe(false);
+  }
+});

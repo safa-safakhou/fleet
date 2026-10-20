@@ -166,36 +166,37 @@ export function constrainTradeSchema(shape: Data, kind: string, facts: Data): Da
   };
   if (creator && observedRules(facts)) {
     const base = rows(object(terms.aToB).anyOf).find((s) => s.type === "object");
-    if (base)
+    if (base) {
+      // Equal observed caps share one flow shape; no resource/cap pairing is lost.
+      const groups = new Map<string, { cap: bigint | undefined; resources: string[] }>();
+      for (const resource of resources) {
+        const cap = rateCap(facts, resource);
+        if (cap !== undefined && cap < 1n) continue;
+        const key = cap === undefined ? "unknown" : String(cap);
+        const group = groups.get(key) ?? { cap, resources: [] };
+        group.resources.push(resource);
+        groups.set(key, group);
+      }
       terms.aToB = {
         description: object(terms.aToB).description,
         anyOf: [
           { type: "null" },
-          ...resources.flatMap((resource) => {
-            const cap = rateCap(facts, resource);
-            if (cap !== undefined && cap < 1n) return [];
-            return [
-              {
-                ...base,
-                properties: {
-                  ...object(base.properties),
-                  resource: { const: resource },
-                  wholePerHour: {
-                    ...object(object(base.properties).wholePerHour),
-                    ...(cap !== undefined
-                      ? {
-                          maximum: Number(
-                            cap > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : cap,
-                          ),
-                        }
-                      : {}),
-                  },
-                },
+          ...[...groups.values()].map(({ cap, resources: members }) => ({
+            ...base,
+            properties: {
+              ...object(base.properties),
+              resource: { type: "string", enum: members },
+              wholePerHour: {
+                ...object(object(base.properties).wholePerHour),
+                ...(cap !== undefined
+                  ? { maximum: Number(cap > BigInt(Number.MAX_SAFE_INTEGER) ? BigInt(Number.MAX_SAFE_INTEGER) : cap) }
+                  : {}),
               },
-            ];
-          }),
+            },
+          })),
         ],
       };
+    }
   }
   return shape;
 }
@@ -219,6 +220,6 @@ export function tradeBriefing(facts: Data): Data | undefined {
         )
       : null,
     guidance:
-      "State expectedOutcome.trade={youSend:<actual outgoing flow or null>,youReceive:<actual incoming flow or null>} outside payload. To request a scarce resource in a new offer, put it in bToA (YOU RECEIVE); aToB exports it. Outgoing scarce construction stock or bonds can delay your queued goal. Use actual ordinary stock/production and modest supportable terms; allowances cannot pay trade/bonds. Bonds are optional: null is valid. Bond value <= its side's flow/hour value * min(duration,maxBondFlowHours). Direction and bond checks precede submission. An unsigned offer is a negotiation step, not income; both sign its real ID/version before delivery. Peer stock/interest/authority are unknown. An introduction to discuss supply is also possible.",
+      "Set expectedOutcome.trade.youSend/youReceive outside payload to the actual flows/null. Seek scarce Hall stock in YOU RECEIVE; exporting it or bonding it may delay Hall. Use ordinary stock/production, never allowances. Bonds optional (null); value <= side hourly flow value * min(duration,maxBondFlowHours). Use modest supportable terms. Unsigned earns nothing; both sign returned ID/version before settlement. Peer stock/interest/authority unknown. Introductions can discuss supply.",
   };
 }
