@@ -162,7 +162,7 @@ export function negotiationState(facts: Data): NegotiationState {
     offers,
     contracts,
     constraints: {
-      stock: world.stock ?? world.stocks ?? null,
+      stock: world.stock ?? world.stocks ?? world.balances ?? null,
       authority: world.authority ?? null,
       mandate: guide.mandate ?? null,
       socialDelegation: guide.socialDelegation ?? null,
@@ -180,6 +180,12 @@ export function fitNegotiationState(input: NegotiationState, maxBytes: number) {
   const result = () => ({ state, coverage: state.coverage });
   if (!Number.isSafeInteger(maxBytes) || maxBytes < 1) throw new FleetError("CONTEXT_LIMIT", true);
   while (Buffer.byteLength(JSON.stringify(result())) > maxBytes) {
+    if (state.constraints !== null) {
+      state.constraints = null;
+      state.coverage.complete = false;
+      state.coverage.omitted.push("constraints_unavailable; read current scoped authority/stock");
+      continue;
+    }
     const values = state.offers.length ? state.offers : state.contracts;
     const dropped = values.pop();
     if (!dropped) throw new FleetError("CONTEXT_LIMIT", true);

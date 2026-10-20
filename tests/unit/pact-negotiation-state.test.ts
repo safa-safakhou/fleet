@@ -164,3 +164,16 @@ it("one delivered installment cannot establish whole-contract closure", () => {
   ];
   expect((negotiationState(f).contracts as Data[])[0].closure).toBe("unknown");
 });
+
+it("oversized duplicated authority is explicitly unavailable while whole offer survives", () => {
+  const f = facts();
+  object(f.world).authority = {
+    resources: {
+      iron: { reservations: Array.from({ length: 100 }, (_, i) => ({ id: `reservation${i}`, units: "1000" })) },
+    },
+  };
+  const fitted = fitNegotiationState(negotiationState(f), 3000);
+  expect(fitted.state.offers[0]).toMatchObject({ id: "one", terms });
+  expect(fitted.state.constraints).toBeNull();
+  expect(fitted.coverage.omitted).toContain("constraints_unavailable; read current scoped authority/stock");
+});
