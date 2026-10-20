@@ -21,5 +21,8 @@ Preserve the twelve identities, 32 historical turns/48 reported executions, verb
 - Ruling: native legacy schemas and analysisDecisionGuide already define their exact envelopes. Extra legacy format prose was removed after the full-history fit checks; the legacy controller source pin remains unchanged. Modern instructions were shortened after the third-turn 24KB continuity diagnostic exposed needless repetition. Historical input goldens are archived; a separately identified prompt golden records the intentional new inputs.
 - Observation: a stopped two-agent Random Fleet draft is also present. Preserve it alongside the twelve matched actors; only the four profiled cohorts are eligible for this pass.
 - Source freeze: 317 Linux unit,404 Linux integration,14 native paired checks pass; type/style/boundary/build/diff checks pass and twelve-state packet replay fits. The final readiness regression also excludes null active positions alongside waiting work. Inline review complete. Source commit/local installation follows before native inference.
-- [ ] Verified source commit/install.
-- [ ] Four exact turns, request/response/receipt review, parking/preservation/restore evidence and committed reports.
+- [x] Source98e4c20 committed/installed with1631 hashes and unchanged PACT artifacts before inference.
+- [x] Four exact turns on98e4c20; six responses/one unknown, three commitments, mixed/failed semantic acceptance retained. World/groups parked.
+- Post-pass ruling: actual B2 schema rejected the brief's exact consent payload. Preserve current signature/contact-answer shapes through initial/corrective/paged legacy generation, with a narrow historical-source-pin exception. Six RED/GREEN real-engine fake-provider regressions and final741-check suite pass; no extra real turn.
+- [ ] Follow-up commit/install and final preservation/restore/report.
+- Explicit approval requested for only A2's exact40,000-token unknown allocation, without another turn. No response is consent; pending approval leaves the blocker intact.

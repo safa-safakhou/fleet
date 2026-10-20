@@ -278,6 +278,7 @@ export const pactAdapter: GameAdapter = {
       "game.message.send",
       "game.building.queue",
       "game.training.queue",
+      "game.supply.sign",
       "game.supply.offer",
     ]
       .filter((kind) => kinds.includes(kind))
@@ -293,7 +294,10 @@ export const pactAdapter: GameAdapter = {
         const shape = observedActionSchema(kind, facts);
         return shape ? [shape] : [];
       });
-    return { kinds, schemas, humanOnly: excluded, matrix };
+    const requiredSchemas = schemas.filter((shape) =>
+      ["game.supply.sign", "game.contact.answer"].includes(String(object(object(shape.properties).kind).const)),
+    );
+    return { kinds, schemas, requiredSchemas, humanOnly: excluded, matrix };
   },
   reviewableRejection(code, action) {
     return (

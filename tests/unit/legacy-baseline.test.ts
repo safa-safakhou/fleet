@@ -10,6 +10,12 @@ it("preserves the recorded controller except the explicit context, owner-assignm
   // any other controller drift still fails against the original source digest.
   let historical = source.toString();
   const reviewed: [string, string][] = [
+    // Prompt review: preserve observed follow-up shapes through correction/paging.
+    [
+      "        const requiredShapes = capability?.requiredSchemas ?? [];\n        const actionShapes = [\n          ...new Set([...requiredShapes, ...(correctionShapes.length ? correctionShapes : initialShapes)]),\n        ];\n",
+      "        const actionShapes = correctionShapes.length ? correctionShapes : initialShapes;\n",
+    ],
+    ["                    requiredShapes.includes(shape) ||\n", ""],
     [
       "            const shape = this.adapter.proposalSchema\n              ? this.adapter.proposalSchema(String(object(entry.args).kind), facts)\n              : actionSchema(String(object(entry.args).kind));\n            if (shape && !actionShapes.some((s) => JSON.stringify(s) === JSON.stringify(shape)))\n              actionShapes.push(shape);\n",
       "            const shape = actionSchema(String(object(entry.args).kind));\n            if (!actionShapes.some((s) => JSON.stringify(s) === JSON.stringify(shape))) actionShapes.push(shape);\n",

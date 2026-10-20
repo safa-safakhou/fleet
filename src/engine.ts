@@ -376,7 +376,10 @@ export class Engine {
         );
         // A recorded actionable correction gets its exact shape; every other
         // admitted kind remains accessible through the closed schema lookup.
-        const actionShapes = correctionShapes.length ? correctionShapes : initialShapes;
+        const requiredShapes = capability?.requiredSchemas ?? [];
+        const actionShapes = [
+          ...new Set([...requiredShapes, ...(correctionShapes.length ? correctionShapes : initialShapes)]),
+        ];
         for (const entry of lookups)
           if (
             entry.tool === "fleet_action_schema" &&
@@ -403,6 +406,7 @@ export class Engine {
             actionSchemas: pageOptional
               ? actionShapes.filter(
                   (shape) =>
+                    requiredShapes.includes(shape) ||
                     correctionShapes.includes(shape) ||
                     lookups.some(
                       (entry) =>

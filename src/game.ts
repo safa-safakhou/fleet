@@ -26,7 +26,7 @@ export interface GameAdapter {
   availableActions?(
     facts: Data,
     ownerPolicy: Data | null,
-  ): { kinds: string[]; schemas: Data[]; humanOnly: string[]; matrix?: Data[] };
+  ): { kinds: string[]; schemas: Data[]; requiredSchemas?: Data[]; humanOnly: string[]; matrix?: Data[] };
   reviewableRejection?(code: string, action: Data): boolean;
   preflight?(action: Data, facts: Data): Data | undefined;
   preflightRead?(tool: string, args: Data, facts: Data): Data | undefined;
