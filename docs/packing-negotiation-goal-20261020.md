@@ -58,3 +58,10 @@ A follow-up full suite exposed one 24 KB three-round memory regression (403 inte
 Final follow-up source passes **311 Linux unit +404 Linux integration +14 native paired PACT checks =729 tests**. Native type/style/build/import-boundary/diff checks pass with the existing26 warnings/15 infos and no errors. All twelve owned-state projections and eighteen reactive fake-provider packets, including corrective paths, are within48KB; real current key facts and citation checks are retained. Final-source replay rejects the exact retained duplicate and self-targeted raid locally. No additional actual model call was used for these post-pass fixes.
 
 The source used for the four actual turns (`2c203b2`) is distinguished from the final follow-up source, whose commit is recorded by the separate final installation manifest. The final installation and encrypted restore check are completed while parked; their final evidence is appended after those checks. No all-profile useful-work or complete strategic/Hall-reasoning certification is claimed.
+
+
+## Final installation and preservation
+
+Final Fleet application source `df4d0c3` is locally installed; all1,631 artifact hashes match. PACT application artifacts remain unchanged. Health checks pass with197 turns/254 reported executions and no active/reserved/unknown/pending work. Both worktrees contain verified local commits only; nothing was pushed.
+
+After all owned reads and the final paused installation, `repair-round-20261020-verified` was encrypted and restored into a disposable PostgreSQL clone with network disabled. Complete rows matched across10 core PACT and39 Fleet tables; the clone was removed. All temporary test containers were stopped/removed. Original settings, twelve identities, goals, mandates, schedules, queues, historical receipts and all failed attempts remain. The eight actual model calls are final for this assignment; no post-follow-up live verification or all-profile useful-action certification is claimed.
