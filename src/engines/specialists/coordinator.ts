@@ -2,9 +2,12 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { type Data, FleetError, object } from "../../domain.js";
 import { recoverableOutput } from "../../model-recovery.js";
+import type { ContinuityV1Ports } from "../../modules/continuity/v1/ports.js";
+import { ContinuityUpdateSchema, ContinuityV1 } from "../../modules/continuity/v1/state.js";
+import { type DecisionContext, decisionContext } from "../../modules/decision-step/v1/context.js";
 import type { ActionIntent, Observation, Proposal } from "../../platform/contracts.js";
-import type { AgentEngine, EngineContext } from "../../platform/engine-registry.js";
-import { type ContinuityModule, ContinuityUpdateSchema } from "../continuity/state.js";
+import type { ScopedServices } from "../../platform/engine-context.js";
+import { manifest } from "./manifest.js";
 import { CoordinationFrameSchema, checkProposals, WorkerResultSchema } from "./proposals.js";
 
 const Selection = z
@@ -63,15 +66,15 @@ function requireFrame(observation: Observation) {
 /** Bound to the same parent claim/model allowance; never a second action permission system. */
 export class ProposalCoordinator {
   constructor(
-    private ctx: EngineContext,
-    private continuity: ContinuityModule,
+    private ctx: DecisionContext,
+    private continuity: ContinuityV1,
     private context: Data,
   ) {}
   async select(proposals: Proposal[], observation: Observation): Promise<ActionIntent[]> {
     const ctx = this.ctx,
       frame = requireFrame(observation),
-      budget = ctx.claim.turn.cohort.budget,
-      model = ctx.claim.turn.cohort.model;
+      budget = ctx.configuration.budget,
+      model = ctx.configuration.model;
     if (!budget || !model || !ctx.validateProposal) throw new FleetError("COORDINATION_PROTOCOL_REQUIRED", true);
     const admitted: Proposal[] = [],
       rejected: Data[] = [];
@@ -80,7 +83,7 @@ export class ProposalCoordinator {
       const valid = local.valid ? await ctx.validateProposal(p, observation) : local;
       if (
         valid.valid &&
-        p.taskId === ctx.claim.taskId &&
+        p.taskId === ctx.task.id &&
         p.intent.bindingId === ctx.binding.id &&
         ctx.schemas?.actions.includes(p.intent.schemaId)
       )
@@ -88,7 +91,7 @@ export class ProposalCoordinator {
       else rejected.push({ commandId: p.intent.commandId, code: valid.code, status: "rejected" });
     }
     await ctx.trace?.("deciding", "Focused proposals checked", {
-      taskId: ctx.claim.taskId,
+      taskId: ctx.task.id,
       admitted: admitted.map((p) => p.intent.commandId),
       rejected,
       formalGuarantee: "Advertised structured claims only; prose consistency remains judgment.",
@@ -97,7 +100,7 @@ export class ProposalCoordinator {
     const schema = z.toJSONSchema(Selection, { target: "draft-7" }),
       payload: Data = {
         stage: "coordinator",
-        taskId: ctx.claim.taskId,
+        taskId: ctx.task.id,
         proposals: admitted,
         shared: {
           revision: observation.revision,
@@ -110,12 +113,14 @@ export class ProposalCoordinator {
         coverage: { oneCommandPerTask: true, languageConsistency: "judgment_only" },
       };
     const fitted = packet(payload, schema, budget.inputByteLimit);
-    this.continuity.restrict(ctx.claim, fitted.delivered);
-    const result = await ctx.model.decide(
-      ctx.claim,
-      { model, messages: fitted.messages, schema, maxOutputTokens: budget.maxOutputTokens, signal: ctx.signal },
-      { kind: "coordinator" },
-    );
+    this.continuity.restrict(fitted.delivered);
+    const result = await ctx.model.decide({
+      messages: fitted.messages,
+      schema,
+      maxOutputTokens: budget.maxOutputTokens,
+      signal: ctx.signal,
+      stage: { kind: "coordinator" },
+    });
     if (result.decisionError) throw new FleetError(result.decisionError);
     const parsed = Selection.safeParse(result.decision);
     if (!parsed.success) throw new FleetError("INVALID_COORDINATOR_OUTPUT", true);
@@ -127,16 +132,11 @@ export class ProposalCoordinator {
     );
     if (!checked.valid) throw new FleetError(checked.code, true);
     if (parsed.data.continuity) {
-      const update = await this.continuity.apply(
-        ctx.binding,
-        ctx.claim,
-        Number(this.context.version),
-        parsed.data.continuity,
-      );
+      const update = await this.continuity.apply(Number(this.context.version), parsed.data.continuity);
       if (!update.accepted) throw new FleetError(`CONTINUITY_${update.code}`, true);
     }
     await ctx.trace?.("deciding", "Coordinator selection", {
-      taskId: ctx.claim.taskId,
+      taskId: ctx.task.id,
       commandIds: parsed.data.commandIds,
       judgement: parsed.data.judgement,
       languageConsistency: "judgment_only",
@@ -144,17 +144,29 @@ export class ProposalCoordinator {
     return selected.filter((p): p is Proposal => !!p).map((p) => p.intent);
   }
 }
-export class SpecialistCoordinatorEngine implements AgentEngine {
+export class SpecialistCoordinatorEngine {
   readonly executionModes: ("serial" | "sibling-reasoning")[] = ["serial", "sibling-reasoning"];
   readonly ref = { id: "specialist-coordinator", version: "1" };
   readonly requiredCapabilities = { continuity: true, coordination: true };
-  constructor(private continuity: ContinuityModule) {}
-  async run(ctx: EngineContext): Promise<void> {
+  readonly manifest = manifest;
+  constructor(private override?: ContinuityV1Ports) {}
+  create(services: ScopedServices) {
+    return {
+      route: () => [],
+      run: (operation: Parameters<typeof decisionContext>[0]) => this.run(decisionContext(operation, services)),
+    };
+  }
+  private continuityFor(ctx: DecisionContext) {
+    return new ContinuityV1(this.override ?? ctx.continuity);
+  }
+
+  async run(ctx: DecisionContext): Promise<void> {
     if (!ctx.validateProposal) throw new FleetError("COORDINATION_PROTOCOL_REQUIRED", true);
+    const continuity = this.continuityFor(ctx);
     const { proposals, state } = await this.focusedProposals(ctx);
     const query = { continuity: true, coordination: true };
     const current = await ctx.observe(query),
-      coordinator = new ProposalCoordinator(ctx, this.continuity, state),
+      coordinator = new ProposalCoordinator(ctx, continuity, state),
       selected = await coordinator.select(proposals, current);
     for (const intent of selected) {
       const proposal = proposals.find((p) => p.intent.commandId === intent.commandId);
@@ -165,18 +177,18 @@ export class SpecialistCoordinatorEngine implements AgentEngine {
       const checked = await ctx.validateProposal(proposal, fresh);
       if (!checked.valid) throw new FleetError(checked.code, true);
       // The environment must atomically enforce expectedVersion again at commit. Do not rebase a stale intent.
-      const outcome = await ctx.commands.submit(ctx.claim, intent);
-      await this.continuity.recordCommand(ctx.binding, ctx.claim, outcome);
+      const outcome = await ctx.actions.submit(intent);
+      await continuity.recordCommand(outcome);
     }
   }
   /** Shared proposal stage; independent execution stays outside the runtime implementation. */
   protected async focusedProposals(
-    ctx: EngineContext,
+    ctx: DecisionContext,
     reserveCoordinator = true,
     onProposal?: (p: Proposal, observation: Observation) => Promise<void>,
   ) {
-    const budget = ctx.claim.turn.cohort.budget,
-      model = ctx.claim.turn.cohort.model;
+    const budget = ctx.configuration.budget,
+      model = ctx.configuration.model;
     if (!budget || !model) throw new FleetError("MODEL_CONFIGURATION_REQUIRED");
     if (model.cognition || model.recallAssist || model.decisionPolicy)
       throw new FleetError("PROFILE_CONFIGURATION_MISMATCH");
@@ -186,13 +198,13 @@ export class SpecialistCoordinatorEngine implements AgentEngine {
         ctx.observation.coordination && ctx.observation.continuity ? ctx.observation : await ctx.observe(query),
       frame = requireFrame(observation);
     if (!checkProposals([], observation).valid) throw new FleetError("INVALID_CLAIM_PROTOCOL", true);
-    const remaining = await ctx.model.remainingCalls(ctx.claim),
+    const remaining = await ctx.model.remainingCalls(),
       count = Math.min(2, frame.focuses.length, Math.max(0, remaining - (reserveCoordinator ? 1 : 0))),
       focuses = frame.focuses.slice(0, count),
-      state = await this.continuity.context(ctx.binding, ctx.claim, observation);
+      state = await this.continuityFor(ctx).context(observation);
     await ctx.trace?.("thinking", "Focused worker admission", {
-      taskId: ctx.claim.taskId,
-      parentBudgetId: ctx.claim.turn.cohortId,
+      taskId: ctx.task.id,
+      parentBudgetId: ctx.configuration.parentBudgetId,
       remainingCallSlots: remaining,
       admittedWorkers: count,
       focusesOmitted: frame.focuses.length - count,
@@ -211,7 +223,7 @@ export class SpecialistCoordinatorEngine implements AgentEngine {
       if (signal.aborted) throw new FleetError("TASK_FENCED", true);
       const payload: Data = {
         stage: "worker",
-        taskId: ctx.claim.taskId,
+        taskId: ctx.task.id,
         focus,
         shared: {
           revision: observation.revision,
@@ -231,11 +243,17 @@ export class SpecialistCoordinatorEngine implements AgentEngine {
         },
       };
       const fitted = packet(payload, schema, budget.inputByteLimit),
-        result = await ctx.model.decide(
-          ctx.claim,
-          { model, messages: fitted.messages, schema, maxOutputTokens: budget.maxOutputTokens, signal },
-          { kind: "worker", focusId: focus.id, retryReserveCalls: reserveCoordinator ? count : Math.max(0, count - 1) },
-        );
+        result = await ctx.model.decide({
+          messages: fitted.messages,
+          schema,
+          maxOutputTokens: budget.maxOutputTokens,
+          signal,
+          stage: {
+            kind: "worker",
+            focusId: focus.id,
+            retryReserveCalls: reserveCoordinator ? count : Math.max(0, count - 1),
+          },
+        });
       if (recoverableOutput(result.decisionError)) {
         failedOutputs++;
         await ctx.trace?.("thinking", "Focused worker output exhausted", {
@@ -255,7 +273,7 @@ export class SpecialistCoordinatorEngine implements AgentEngine {
         throw new FleetError("PROPOSAL_SOURCE_NOT_DELIVERED", true);
       const proposal: Proposal = {
         ...raw,
-        taskId: ctx.claim.taskId,
+        taskId: ctx.task.id,
         intent: {
           ...raw.intent,
           commandId: randomUUID(),

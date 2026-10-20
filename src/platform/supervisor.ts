@@ -169,11 +169,16 @@ export class PlatformHost {
             );
           },
         };
-        if (this.scopeFactory && this.engines.architectures) {
-          const definition = this.engines.architectures.resolve(claim.profile),
-            scope = await this.scopeFactory(context, definition, session);
+        const definition =
+          this.engines.architectures?.resolve(claim.profile) ??
+          ("create" in engine
+            ? { manifest: engine.manifest, validate: () => [], create: engine.create.bind(engine) }
+            : undefined);
+        if (this.scopeFactory && definition) {
+          const scope = await this.scopeFactory(context, definition, session);
           await definition.create(scope.services).run(scope.operation);
-        } else await engine.run(context);
+        } else if ("create" in engine) throw new FleetError("SCOPED_HOST_REQUIRED");
+        else await (engine as import("./engine-registry.js").AgentEngine).run(context);
       } finally {
         await session?.close().catch(() => {});
       }

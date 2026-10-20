@@ -36,16 +36,8 @@ export function runtime() {
       "legacy-cognition@1": (services) =>
         compatibilityRuntime(services, () => engines.resolve({ id: "legacy-cognition", version: "1" })),
       "reactive-basic@1": (services) => compatibilityRuntime(services, () => new ReactiveEngine()),
-      "reactive-cognition@1": (services) =>
-        compatibilityRuntime(services, () => new ContinuityEngine(new ContinuityModule(tasks, bindings, cognition))),
-      "specialist-coordinator@1": (services) =>
-        compatibilityRuntime(
-          services,
-          () =>
-            new SpecialistCoordinatorEngine(
-              new ContinuityModule(tasks, bindings, cognition, { id: "specialist-coordinator", version: "1" }),
-            ),
-        ),
+      "reactive-cognition@1": (services) => compatibilityRuntime(services, () => new ContinuityEngine()),
+      "specialist-coordinator@1": (services) => compatibilityRuntime(services, () => new SpecialistCoordinatorEngine()),
     }),
     pool = connect(settings.databaseUrl),
     store = new Store(pool, new Vault(settings.vaultKey), undefined, architectures);
@@ -90,7 +82,7 @@ export function runtime() {
       requiredCapabilities: { timing: ["realtime"] },
       requiredSchemas: { observations: ["pact.observation.v1"], actions: ["pact.action.v1"] },
       observationOwner: "engine",
-      async run(context) {
+      async run(context: import("./platform/engine-registry.js").EngineContext) {
         if (!context.claim.turn.cohort.model || legacyProfileFor(context.claim.turn.cohort.model).id !== id)
           throw new FleetError("PROFILE_CONFIGURATION_MISMATCH");
         await new PactBindings(store, bindings).agentFor(context.binding);
@@ -110,12 +102,12 @@ export function runtime() {
     supervisor = new OperationSupervisor(tasks);
   engines.register(new ReactiveEngine());
   const continuity = new ContinuityModule(tasks, bindings, cognition);
-  engines.register(new ContinuityEngine(continuity));
+  engines.register(new ContinuityEngine());
   const specialistContinuity = new ContinuityModule(tasks, bindings, cognition, {
     id: "specialist-coordinator",
     version: "1",
   });
-  engines.register(new SpecialistCoordinatorEngine(specialistContinuity));
+  engines.register(new SpecialistCoordinatorEngine());
   const intake = new EventIntake(tasks, bindings, environments);
   const host = new PlatformHost(
     tasks,

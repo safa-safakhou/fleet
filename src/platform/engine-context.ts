@@ -28,17 +28,20 @@ export type ScopedModelRequest = {
   messages: Parameters<ModelPort["decide"]>[0]["messages"];
   schema: Data;
   maxOutputTokens: number;
+  signal?: AbortSignal;
   stage?: { kind: "worker" | "coordinator"; focusId?: string; retryReserveCalls?: number };
 };
 export type ScopedModelResult = Awaited<ReturnType<ModelPort["decide"]>> & { allocationId: string };
 export type ScopedEvidence = { id: string; kind: string; detail: Data; sourceRefs: string[] };
 export interface ScopedServices {
+  continuity?: import("../modules/continuity/v1/ports.js").ContinuityV1Ports;
   configuration: Readonly<{
     model: ModelSettings;
     budget: BudgetConfig;
     architectureConfig: Data;
     goal?: string;
     instructions?: string;
+    parentBudgetId?: string;
   }>;
   observe(query: Data): Promise<Observation>;
   model: { decide(request: ScopedModelRequest): Promise<ScopedModelResult>; remainingCalls(): Promise<number> };

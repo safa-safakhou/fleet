@@ -100,11 +100,11 @@ Exact-version selection, concurrent edit/start, missing capabilities, wrong fixt
 
 **Interfaces:** `BoundedDecisionStep.run(operation,services,hooks):Promise<void>` owns existing bounded read/decide mechanics. `ContinuityV1` exposes the existing `context/restrict/apply/recordCommand` semantics via scoped repository/evidence ports. `EvidenceJournal.capture/retained` extracts storage from cognition; it does not impose a new ranking policy. Each engine composes these modules in its own entry point.
 
-- [ ] Extend F01 tests to assert all five packets/commands/allocations remain equal and two bindings cannot share a module's mutable delivered-evidence state. Add a static assertion that no engine imports another engine's implementation.
-- [ ] Run `npm run test:architecture -- tests/integration/architecture-parity.test.ts`; expect the new isolation assertion to fail on current sibling imports.
-- [ ] Extract mechanics without changing prompt wording, ordering, fitting limits, retries, namespaces or receipt semantics. Reactive cognition composes decision-step/continuity rather than extending the reactive architecture. Coordinator composes continuity from the shared module. Keep old import shims for external tests temporarily, but no engine depends on the shims. Adapt existing journal/storage without copying ciphertext rows or changing associated-data identity.
-- [ ] Rerun F01 plus `tests/integration/reactive-engine.test.ts`, `profile-continuity.test.ts`, `specialist-engine.test.ts`, and `tests/unit/continuity-schema.test.ts`.
-- [ ] Commit: `refactor: isolate engines behind versioned shared modules`.
+- [x] Extend F01 tests to assert all five packets/commands/allocations remain equal and two bindings cannot share a module's mutable delivered-evidence state. Add a static assertion that no engine imports another engine's implementation.
+- [x] Run `npm run test:architecture -- tests/integration/architecture-parity.test.ts`; expect the new isolation assertion to fail on current sibling imports.
+- [x] Extract mechanics without changing prompt wording, ordering, fitting limits, retries, namespaces or receipt semantics. Reactive cognition composes decision-step/continuity rather than extending the reactive architecture. Coordinator composes continuity from the shared module. Keep old import shims for external tests temporarily, but no engine depends on the shims. Adapt existing journal/storage without copying ciphertext rows or changing associated-data identity.
+- [x] Rerun F01 plus `tests/integration/reactive-engine.test.ts`, `profile-continuity.test.ts`, `specialist-engine.test.ts`, and `tests/unit/continuity-schema.test.ts`.
+- [x] Commit: `refactor: isolate engines behind versioned shared modules`.
 
 ## F06 — Composition, maintenance and dependency enforcement
 

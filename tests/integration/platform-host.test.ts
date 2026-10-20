@@ -380,10 +380,7 @@ it.each(["reactive-basic", "reactive-cognition"])(
       },
     });
     if (profileId === "reactive-basic") h.engines.register(new ReactiveEngine());
-    else
-      h.engines.register(
-        new ContinuityEngine({ context: async () => ({ version: 0, evidence: [] }), restrict: () => {} } as never),
-      );
+    else h.engines.register(new ContinuityEngine());
     await h.host.run(await f.claim());
     expect(called).toBe(true);
   },

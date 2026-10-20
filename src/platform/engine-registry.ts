@@ -39,15 +39,24 @@ export interface AgentEngine {
   executionModes?: ("serial" | "sibling-reasoning")[];
   run(context: EngineContext): Promise<void>;
 }
+export type ScopedAgentEngine = Omit<AgentEngine, "run"> & {
+  manifest: import("./architecture.js").ArchitectureManifest;
+  create(services: import("./engine-context.js").ScopedServices): import("./architecture.js").ArchitectureRuntime;
+  run?: (context: never) => Promise<void>;
+};
+export type RegisteredEngine = AgentEngine | ScopedAgentEngine;
 export class EngineRegistry {
-  private engines = new Map<string, AgentEngine>();
+  private engines = new Map<string, RegisteredEngine>();
   constructor(
-    engines: AgentEngine[] = [],
+    engines: RegisteredEngine[] = [],
     readonly architectures?: import("./architecture.js").ArchitectureRegistry,
   ) {
     for (const engine of engines) this.register(engine);
   }
-  register(engine: AgentEngine) {
+  register(engine: AgentEngine): void;
+  register(engine: ScopedAgentEngine): void;
+  register(engine: RegisteredEngine): void;
+  register(engine: RegisteredEngine) {
     const key = JSON.stringify([engine.ref.id, engine.ref.version]);
     if (this.engines.has(key)) throw new FleetError("DUPLICATE_ENGINE");
     this.engines.set(key, engine);
@@ -55,7 +64,7 @@ export class EngineRegistry {
   list() {
     return [...this.engines.values()];
   }
-  resolve(ref: EngineProfileRef): AgentEngine {
+  resolve(ref: EngineProfileRef): RegisteredEngine {
     const engine = this.engines.get(JSON.stringify([ref.id, ref.version]));
     if (!engine) throw new FleetError("UNSUPPORTED_ENGINE");
     return engine;

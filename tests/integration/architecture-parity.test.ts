@@ -59,3 +59,68 @@ it("detects changed decision packets and missing or refunded accounting", () => 
   refunded.allocations[0].tokens = "0";
   expect(() => assertArchitectureParity(refunded, original)).toThrow("ARCHITECTURE_PARITY_DRIFT");
 });
+
+it("has no dependency from one architecture implementation to a sibling", async () => {
+  const { readFile, readdir } = await import("node:fs/promises"),
+    { resolve, dirname } = await import("node:path");
+  const violations: string[] = [];
+  async function scan(dir: string) {
+    for (const e of await readdir(dir, { withFileTypes: true })) {
+      const path = resolve(dir, e.name);
+      if (e.isDirectory()) await scan(path);
+      else if (e.name.endsWith(".ts") && !e.name.endsWith("manifest.ts")) {
+        const own = path.split("/engines/")[1]?.split("/")[0];
+        for (const m of (await readFile(path, "utf8")).matchAll(/(?:from|import\s*\()\s*["']([^"']+)["']/g)) {
+          const target = resolve(dirname(path), m[1]);
+          const other = target.split("/engines/")[1]?.split("/")[0];
+          if (other && own !== other) violations.push(`${own}->${other}`);
+        }
+      }
+    }
+  }
+  await scan(resolve("src/engines"));
+  expect(violations).toEqual([]);
+});
+it("never transfers one binding's delivered continuity evidence to another binding", async () => {
+  const { platformFixture } = await import("../platform-helpers.js"),
+    { Cognition } = await import("../../src/cognition.js"),
+    { ContinuityModule } = await import("../../src/engines/continuity/state.js");
+  const f = await platformFixture();
+  try {
+    await f.store.setState(f.group.id, "paused", true);
+    await f.tasks.enroll(f.group.id, { id: "reactive-cognition", version: "1" });
+    await f.store.consent(f.group.id, true);
+    await f.store.setState(f.group.id, "running", true);
+    const module = new ContinuityModule(f.tasks, f.bindings, new Cognition(f.store));
+    const obs = (source: string) => ({
+      schemaId: "board.position.v1",
+      revision: "0",
+      observedAt: f.now().toISOString(),
+      environmentTime: { clockId: "board.ply", value: "0" },
+      sourceRefs: [source],
+      payload: {},
+      coverage: {},
+      continuity: {
+        schemaVersion: "fleet.continuity-observation.v1" as const,
+        self: { capabilities: [], needs: {}, dependencies: {}, ownerValues: {} },
+        facts: [{ sourceRef: source, kind: "state" as const, subject: "self", predicate: "stock", value: "known" }],
+      },
+    });
+    await f.enqueue(f.group.bindings[0], "a", "source:a");
+    const a = await f.claim(),
+      one = await module.context(f.group.bindings[0], a, obs("source:a"));
+    await f.enqueue(f.group.bindings[1], "b", "source:b");
+    const b = await f.claim(),
+      two = await module.context(f.group.bindings[1], b, obs("source:b"));
+    const ids = (c: Record<string, unknown>) => (c.evidence as { id: string }[]).map((e) => e.id);
+    expect(ids(one).every((id) => !ids(two).includes(id))).toBe(true);
+    module.restrict(a, { ...one, evidence: [] });
+    const attempted = await module.apply(f.group.bindings[1], b, 0, {
+      memories: [{ text: "Other actor's private evidence", evidenceRefs: ids(one) }],
+    });
+    expect(attempted.accepted).toBe(false);
+    expect(attempted.code).toBe("EVIDENCE_NOT_DELIVERED");
+  } finally {
+    await f.pool.end();
+  }
+});

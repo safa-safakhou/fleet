@@ -4,6 +4,7 @@ import type { Data } from "../../src/domain.js";
 import { observedActionSchema } from "../../src/games/pact/choices.js";
 import { negotiationBriefing, negotiationPreflight } from "../../src/games/pact/negotiation.js";
 import { validatePactProposal } from "../../src/games/pact/proposals.js";
+import { decisionProbe } from "../scoped-probe.js";
 
 const self = "11111111-1111-4111-8111-111111111111",
   peer = "22222222-2222-4222-8222-222222222222",
@@ -207,7 +208,7 @@ it("delivers a factual duplicate correction to the engine instead of consuming a
       return { status: "confirmed", code: "COMMITTED" };
     },
   } as never;
-  await new ReactiveEngine().run(ctx);
+  await new ReactiveEngine().run(decisionProbe(ctx));
   expect(calls).toBe(2);
   expect(submitted).toHaveLength(1);
 });

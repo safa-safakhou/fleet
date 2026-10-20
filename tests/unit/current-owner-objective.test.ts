@@ -2,6 +2,7 @@ import { expect, it } from "vitest";
 import { object } from "../../src/domain.js";
 import { ReactiveEngine } from "../../src/engines/reactive/engine.js";
 import { reactiveProbe } from "../reactive-probe-context.js";
+import { decisionProbe } from "../scoped-probe.js";
 
 it("presents the actual current owner goal as the assignment and refreshes it after a scoped read", async () => {
   let calls = 0;
@@ -26,6 +27,6 @@ it("presents the actual current owner goal as the assignment and refreshes it af
     ...ctx.observation,
     payload: { owner: { objective: "Prioritize economic resilience" } },
   });
-  await new ReactiveEngine().run(ctx);
+  await new ReactiveEngine().run(decisionProbe(ctx));
   expect(calls).toBe(2);
 });

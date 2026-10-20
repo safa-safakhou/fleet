@@ -1,10 +1,10 @@
 import { randomUUID } from "node:crypto";
+import { hostScopeFactory } from "../../app/host-services.js";
 import type { RecallPort } from "../../cognition.js";
 import { Cognition } from "../../cognition.js";
 import { migrate } from "../../db.js";
 import { type Data, FleetError, type GamePort, type ModelPort, safeCode, type Tool } from "../../domain.js";
 import { ContinuityEngine } from "../../engines/continuity/engine.js";
-import { ContinuityModule } from "../../engines/continuity/state.js";
 import { LegacyEngineBridge } from "../../engines/legacy/bridge.js";
 import { ReactiveEngine } from "../../engines/reactive/engine.js";
 import { ModelAdmission, RouteCapacity } from "../../platform/admission.js";
@@ -358,18 +358,18 @@ export class PactQualificationFixtures implements QualificationFixtures {
         const claim = await tasks.claim(`qualification:${this.plan.plan.id}`, store.now());
         if (!claim || claim.turn.agentId !== agent) throw new FleetError("NO_CLAIM");
         turnId = claim.turn.id;
-        const engine =
-          profile === "reactive-basic"
-            ? new ReactiveEngine()
-            : new ContinuityEngine(new ContinuityModule(tasks, bindings, cognition));
+        const engine = profile === "reactive-basic" ? new ReactiveEngine() : new ContinuityEngine();
+        const admission = new ModelAdmission(store, tasks, model, route),
+          commands = new CommandExecutor(store, tasks, bindings, environments);
         const host = new PlatformHost(
           tasks,
           bindings,
           environments,
           new EngineRegistry([engine]),
-          new ModelAdmission(store, tasks, model, route),
-          new CommandExecutor(store, tasks, bindings, environments),
+          admission,
+          commands,
           new OperationSupervisor(tasks),
+          hostScopeFactory({ store, tasks, bindings, model: admission, commands }),
         );
         await host.run(claim);
       }

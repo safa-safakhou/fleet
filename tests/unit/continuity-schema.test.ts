@@ -4,6 +4,7 @@ import { FleetError } from "../../src/domain.js";
 import { ContinuityEngine } from "../../src/engines/continuity/engine.js";
 import type { ContinuityModule } from "../../src/engines/continuity/state.js";
 import { reactiveProbe } from "../reactive-probe-context.js";
+import { continuityProbe, decisionProbe } from "../scoped-probe.js";
 
 const first = "2a4e4abb-b710-48c3-b742-128300cbdcc3";
 const invented = "2a4e4abb-97ac-4117-9c2f-4c857b79c787";
@@ -88,7 +89,7 @@ it.each([false, true, "empty"] as const)(
       restrict: (_claim: unknown, payload: { evidence: unknown[] }) =>
         expect(payload.evidence).toHaveLength(fit === true ? 4 : evidence.length),
     } as unknown as ContinuityModule;
-    await new ContinuityEngine(module).run(ctx);
+    await new ContinuityEngine(continuityProbe(module)).run(decisionProbe(ctx));
   },
 );
 
@@ -143,7 +144,7 @@ it.each(["correct", "reject-again", "no-budget", "turn-limit", "fenced", "unknow
       },
       recordCommand: async () => {},
     } as unknown as ContinuityModule;
-    const run = new ContinuityEngine(module).run(ctx);
+    const run = new ContinuityEngine(continuityProbe(module)).run(decisionProbe(ctx));
     if (mode === "correct") await run;
     else
       await expect(run).rejects.toThrow(
@@ -182,17 +183,19 @@ it("withholds citations and subjective entries whose evidence is removed by adap
     if (Buffer.byteLength(JSON.stringify(v)) > n) throw new FleetError("CONTEXT_LIMIT", true);
     return v;
   };
-  await new ContinuityEngine({
-    context: async () => ({
-      version: 0,
-      self: {},
-      evidence,
-      beliefs: [],
-      predictions: [],
-      reflections: [],
-      plan: null,
-      memories: evidence.map((e) => ({ text: "Grounded", evidenceRefs: [e.id] })),
-    }),
-    restrict: () => {},
-  } as never).run(ctx);
+  await new ContinuityEngine(
+    continuityProbe({
+      context: async () => ({
+        version: 0,
+        self: {},
+        evidence,
+        beliefs: [],
+        predictions: [],
+        reflections: [],
+        plan: null,
+        memories: evidence.map((e) => ({ text: "Grounded", evidenceRefs: [e.id] })),
+      }),
+      restrict: () => {},
+    } as never),
+  ).run(decisionProbe(ctx));
 });

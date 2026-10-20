@@ -1,10 +1,8 @@
 import { vi } from "vitest";
 import { builtinArchitectures } from "../src/app/builtins.js";
 import { compatibilityRuntime, createScopedServices, scopedOperationFor } from "../src/app/host-services.js";
-import { Cognition } from "../src/cognition.js";
 import { type Data, type ModelPort, object, safeCode } from "../src/domain.js";
 import { ContinuityEngine } from "../src/engines/continuity/engine.js";
-import { ContinuityModule } from "../src/engines/continuity/state.js";
 import { LegacyEngineBridge } from "../src/engines/legacy/bridge.js";
 import { ReactiveEngine } from "../src/engines/reactive/engine.js";
 import { SpecialistCoordinatorEngine } from "../src/engines/specialists/coordinator.js";
@@ -189,25 +187,15 @@ export async function captureArchitectureTranscript(
       const host = f.host(model);
       if (ref.id === "reactive-basic") host.engines.register(new ReactiveEngine());
       else {
-        const continuity = new ContinuityModule(f.tasks, f.bindings, new Cognition(store), {
-          id: ref.id === "reactive-cognition" ? "reactive-cognition" : "specialist-coordinator",
-          version: "1",
-        });
         host.engines.register(
-          ref.id === "reactive-cognition"
-            ? new ContinuityEngine(continuity)
-            : new SpecialistCoordinatorEngine(continuity),
+          ref.id === "reactive-cognition" ? new ContinuityEngine() : new SpecialistCoordinatorEngine(),
         );
       }
       const architectures = builtinArchitectures({
         [`${ref.id}@${ref.version}`]: (services) =>
           compatibilityRuntime(services, () => {
             if (ref.id === "reactive-basic") return new ReactiveEngine();
-            const c = new ContinuityModule(f.tasks, f.bindings, new Cognition(f.store), {
-              id: ref.id === "reactive-cognition" ? "reactive-cognition" : "specialist-coordinator",
-              version: "1",
-            });
-            return ref.id === "reactive-cognition" ? new ContinuityEngine(c) : new SpecialistCoordinatorEngine(c);
+            return ref.id === "reactive-cognition" ? new ContinuityEngine() : new SpecialistCoordinatorEngine();
           }),
       });
       const executing = new PlatformHost(

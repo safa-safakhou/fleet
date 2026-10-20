@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
+import { Cognition } from "../cognition.js";
 import { transaction } from "../db.js";
 import { type Data, FleetError } from "../domain.js";
 import type { ModelAdmission } from "../platform/admission.js";
@@ -11,6 +12,7 @@ import type { EngineContext } from "../platform/engine-registry.js";
 import type { CommandExecutor } from "../platform/execution.js";
 import type { TaskClaim, TaskStore } from "../platform/tasks.js";
 import type { Store } from "../store.js";
+import { ContinuityV1Repository } from "./continuity-v1-repository.js";
 
 const scopes = new WeakMap<ScopedServices, { operation: ScopedOperation; context: EngineContext }>();
 export function scopedOperationFor(services: ScopedServices): ScopedOperation {
@@ -123,6 +125,7 @@ export async function createScopedServices(
         ).rows[0]?.architecture_config ?? {},
       goal: context.goal,
       instructions: context.instructions,
+      parentBudgetId: owned.turn.cohortId,
     }),
     observe: async (query) => {
       await guard();
@@ -137,7 +140,7 @@ export async function createScopedServices(
       },
       decide: async (request) => {
         await guard();
-        if (Object.keys(request).some((k) => !["messages", "schema", "maxOutputTokens", "stage"].includes(k)))
+        if (Object.keys(request).some((k) => !["messages", "schema", "maxOutputTokens", "stage", "signal"].includes(k)))
           throw new FleetError("MODEL_REQUEST_NOT_ADMITTED", true);
         const result = await context.model.decide(
           owned,
@@ -146,7 +149,7 @@ export async function createScopedServices(
             messages: request.messages,
             schema: request.schema,
             maxOutputTokens: request.maxOutputTokens,
-            signal: context.signal,
+            signal: request.signal ? AbortSignal.any([context.signal, request.signal]) : context.signal,
           },
           request.stage,
         );
@@ -361,20 +364,50 @@ export async function createScopedServices(
       packObservation: context.packObservation,
     },
   };
+  if (definition.manifest.modules.some((m) => m.id === "continuity" && m.version === "1")) {
+    const id = owned.profile.id;
+    if (id !== "reactive-cognition" && id !== "specialist-coordinator")
+      throw new FleetError("UNSUPPORTED_CONTINUITY_NAMESPACE");
+    const repository = new ContinuityV1Repository(tasks, bindings, new Cognition(store), { id, version: "1" });
+    services.continuity = {
+      context: (o) => repository.context(binding, owned, o),
+      restrict: (c) => repository.restrict(owned, c),
+      apply: (version, raw) => repository.apply(binding, owned, version, raw),
+      recordCommand: (r) => repository.recordCommand(binding, owned, r),
+    };
+  }
   scopes.set(services, { operation: op, context });
   return services;
 }
 
 export function compatibilityRuntime(
   services: ScopedServices,
-  make: () => import("../platform/engine-registry.js").AgentEngine,
+  make: () => import("../platform/engine-registry.js").RegisteredEngine,
 ): import("../platform/architecture.js").ArchitectureRuntime {
   const engine = make();
+  if ("create" in engine && engine.create) return engine.create(services);
   return {
     route: () => [],
     run: async (operation) => {
       if (operation !== scopedOperationFor(services)) throw new FleetError("OPERATION_SCOPE_MISMATCH");
-      await engine.run(compatibilityContextFor(services));
+      await (engine as import("../platform/engine-registry.js").AgentEngine).run(compatibilityContextFor(services));
     },
+  };
+}
+
+export function hostScopeFactory(deps: {
+  store: Store;
+  tasks: TaskStore;
+  bindings: Bindings;
+  model: ModelAdmission;
+  commands: CommandExecutor;
+}) {
+  return async (
+    context: EngineContext,
+    definition: ArchitectureDefinition,
+    session: EnvironmentSession | undefined,
+  ) => {
+    const services = await createScopedServices(context.claim, definition, session, { ...deps, context });
+    return { services, operation: scopedOperationFor(services) };
   };
 }

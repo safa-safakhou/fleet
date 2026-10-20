@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { hostScopeFactory } from "../src/app/host-services.js";
 import type { ModelPort } from "../src/domain.js";
 import { ModelAdmission, RouteCapacity } from "../src/platform/admission.js";
 import { Bindings } from "../src/platform/bindings.js";
@@ -82,7 +83,7 @@ export async function platformFixture(capacity = 2) {
   });
   function host(
     model: ModelPort,
-    run?: Parameters<EngineRegistry["register"]>[0]["run"],
+    run?: import("../src/platform/engine-registry.js").AgentEngine["run"],
     requirements: CapabilityRequirements = {},
   ) {
     const admission = new ModelAdmission(f.store, tasks, model, route),
@@ -100,7 +101,16 @@ export async function platformFixture(capacity = 2) {
         }),
     });
     return {
-      host: new PlatformHost(tasks, bindings, environments, engines, admission, commands, supervisor),
+      host: new PlatformHost(
+        tasks,
+        bindings,
+        environments,
+        engines,
+        admission,
+        commands,
+        supervisor,
+        hostScopeFactory({ store: f.store, tasks, bindings, model: admission, commands }),
+      ),
       admission,
       commands,
       supervisor,

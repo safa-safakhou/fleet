@@ -318,7 +318,7 @@ export class ModelAdmission {
           throw error;
         }
       },
-      this.supportsSiblingReasoning(request.model) && stage?.kind === "worker",
+      this.siblingWorkers && stage?.kind === "worker",
     );
   }
 }

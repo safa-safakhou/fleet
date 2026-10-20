@@ -94,7 +94,7 @@ it("delivers an optional source-linked memory to a later engine turn of the same
     },
   };
   const h = f.host(model);
-  h.engines.register(new ContinuityEngine(f.module));
+  h.engines.register(new ContinuityEngine());
   await h.host.run(f.claim);
   round = 1;
   f.advance(16 * 60000);
@@ -248,7 +248,7 @@ it("runs the complete profile in a non-social environment with optional abstenti
   f.board.adapter.connect = async (b) => ({ ...(await connect(b)), observe: async () => observation(f, [fact("a2")]) });
   const model = new FakeModel([{ decision: { kind: "wait", summary: "Wait" } }]),
     h = f.host(model);
-  h.engines.register(new ContinuityEngine(f.module));
+  h.engines.register(new ContinuityEngine());
   await h.host.run(f.claim);
   expect(model.inputs).toHaveLength(1);
   expect(JSON.stringify(model.inputs)).toContain("fleet.continuity");
@@ -407,7 +407,7 @@ it("saves predictions before command dispatch and records admission separately f
     },
   };
   const h = f.host(model);
-  h.engines.register(new ContinuityEngine(f.module));
+  h.engines.register(new ContinuityEngine());
   await h.host.run(f.claim);
   expect(observedSaved).toBe(true);
   expect(f.board.executions).toBe(1);
@@ -442,7 +442,7 @@ it("bounds growing history and discloses omitted input without accepting evicted
   });
   const model = new FakeModel([{ decision: { kind: "wait", summary: "Wait" } }]),
     h = f.host(model);
-  h.engines.register(new ContinuityEngine(f.module));
+  h.engines.register(new ContinuityEngine());
   await h.host.run(f.claim);
   expect(model.inputs).toHaveLength(1);
   const input = model.inputs[0];
@@ -503,7 +503,7 @@ it("meters a fabricated citation and corrects it before any command preparation"
       { decision: { kind: "wait", summary: "No grounded update" } },
     ]),
     h = f.host(model);
-  h.engines.register(new ContinuityEngine(f.module));
+  h.engines.register(new ContinuityEngine());
   await h.host.run(f.claim);
   expect(model.inputs).toHaveLength(2);
   expect(f.board.executions).toBe(0);
@@ -560,7 +560,7 @@ it.each(["correct", "exhaust"])(
       },
     };
     const h = f.host(model);
-    h.engines.register(new ContinuityEngine(f.module));
+    h.engines.register(new ContinuityEngine());
     const run = h.host.run(f.claim);
     if (mode === "correct") await run;
     else await expect(run).rejects.toThrow("CONTINUITY_CONFIDENCE_NEEDS_CORROBORATION");

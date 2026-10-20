@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import { type Data, object } from "../../src/domain.js";
 import { ReactiveEngine } from "../../src/engines/reactive/engine.js";
 import { createPactEnvironment } from "../../src/environments/pact.js";
+import { decisionProbe } from "../scoped-probe.js";
 
 const facts = {
   world: {
@@ -97,53 +98,55 @@ it("replans a rejected factual wait before preparing a useful action, and delive
   const base = environment();
   const session = await base.connect({ accountRef: "owner" } as never);
   try {
-    await new ReactiveEngine().run({
-      claim: {
-        taskId: "task",
-        turn: {
-          cohort: {
-            model: { route: "fixture", model: "fake" },
-            budget: { maxCallsPerTurn: 3, inputByteLimit: 24000, maxOutputTokens: 2000 },
+    await new ReactiveEngine().run(
+      decisionProbe({
+        claim: {
+          taskId: "task",
+          turn: {
+            cohort: {
+              model: { route: "fixture", model: "fake" },
+              budget: { maxCallsPerTurn: 3, inputByteLimit: 24000, maxOutputTokens: 2000 },
+            },
           },
         },
-      },
-      binding: { id: "binding" },
-      observation,
-      task: { key: "goal", sourceCount: 1, sourceRefsOmitted: 0 },
-      eventRefs: [],
-      signal: new AbortController().signal,
-      accountObjective: () => goal,
-      schemas: { actions: ["fixture.action"] },
-      waitSchema: session.waitSchema?.bind(session),
-      validateWait: session.validateWait?.bind(session),
-      trace: async (_s: unknown, _l: unknown, d: Data) => {
-        feedback.push(d);
-      },
-      model: {
-        decide: async (_claim: unknown, input: Data) => {
-          inputs.push(input);
-          return {
-            decision:
-              inputs.length === 1
-                ? { kind: "wait", basis: stale, summary: "Farm II and Barracks II are missing" }
-                : {
-                    kind: "action",
-                    schemaId: "fixture.action",
-                    payload: { acquire: "iron" },
-                    summary: "Seek Hall stock",
-                  },
-            inputTokens: 1,
-            outputTokens: 1,
-          };
+        binding: { id: "binding" },
+        observation,
+        task: { key: "goal", sourceCount: 1, sourceRefsOmitted: 0 },
+        eventRefs: [],
+        signal: new AbortController().signal,
+        accountObjective: () => goal,
+        schemas: { actions: ["fixture.action"] },
+        waitSchema: session.waitSchema?.bind(session),
+        validateWait: session.validateWait?.bind(session),
+        trace: async (_s: unknown, _l: unknown, d: Data) => {
+          feedback.push(d);
         },
-      },
-      commands: {
-        submit: async (_c: unknown, intent: Data) => {
-          submitted.push(intent);
-          return { status: "confirmed", code: "COMMITTED" };
+        model: {
+          decide: async (_claim: unknown, input: Data) => {
+            inputs.push(input);
+            return {
+              decision:
+                inputs.length === 1
+                  ? { kind: "wait", basis: stale, summary: "Farm II and Barracks II are missing" }
+                  : {
+                      kind: "action",
+                      schemaId: "fixture.action",
+                      payload: { acquire: "iron" },
+                      summary: "Seek Hall stock",
+                    },
+              inputTokens: 1,
+              outputTokens: 1,
+            };
+          },
         },
-      },
-    } as never);
+        commands: {
+          submit: async (_c: unknown, intent: Data) => {
+            submitted.push(intent);
+            return { status: "confirmed", code: "COMMITTED" };
+          },
+        },
+      } as never),
+    );
     expect(inputs).toHaveLength(2);
     expect(submitted).toHaveLength(1);
     expect(feedback[0]).toMatchObject({ code: "PACT_WAIT_STATE_MISMATCH", submitted: false, committed: false });
@@ -163,31 +166,33 @@ it("fails a stale wait without dispatch when the existing turn allowance is exha
   const submitted: unknown[] = [];
   try {
     await expect(
-      new ReactiveEngine().run({
-        claim: {
-          turn: { cohort: { model: { route: "fixture" }, budget: { maxCallsPerTurn: 1, inputByteLimit: 24000 } } },
-        },
-        binding: { id: "binding" },
-        observation,
-        task: { key: "goal", sourceCount: 1, sourceRefsOmitted: 0 },
-        eventRefs: [],
-        signal: new AbortController().signal,
-        schemas: { actions: [] },
-        waitSchema: session.waitSchema?.bind(session),
-        validateWait: session.validateWait?.bind(session),
-        model: {
-          decide: async () => ({
-            decision: { kind: "wait", basis: stale, summary: "Old prerequisites" },
-            inputTokens: 1,
-            outputTokens: 1,
-          }),
-        },
-        commands: {
-          submit: async () => {
-            submitted.push("unexpected");
+      new ReactiveEngine().run(
+        decisionProbe({
+          claim: {
+            turn: { cohort: { model: { route: "fixture" }, budget: { maxCallsPerTurn: 1, inputByteLimit: 24000 } } },
           },
-        },
-      } as never),
+          binding: { id: "binding" },
+          observation,
+          task: { key: "goal", sourceCount: 1, sourceRefsOmitted: 0 },
+          eventRefs: [],
+          signal: new AbortController().signal,
+          schemas: { actions: [] },
+          waitSchema: session.waitSchema?.bind(session),
+          validateWait: session.validateWait?.bind(session),
+          model: {
+            decide: async () => ({
+              decision: { kind: "wait", basis: stale, summary: "Old prerequisites" },
+              inputTokens: 1,
+              outputTokens: 1,
+            }),
+          },
+          commands: {
+            submit: async () => {
+              submitted.push("unexpected");
+            },
+          },
+        } as never),
+      ),
     ).rejects.toMatchObject({ code: "MODEL_WAIT_REJECTED", notDispatched: true });
     expect(submitted).toHaveLength(0);
   } finally {
@@ -242,50 +247,52 @@ it("corrects a stale action premise before proposing actual Hall resource acquis
     },
   };
   try {
-    await new ReactiveEngine().run({
-      claim: {
-        taskId: "goal-fix",
-        turn: { cohort: { model: { route: "fixture" }, budget: { maxCallsPerTurn: 3, inputByteLimit: 48000 } } },
-      },
-      binding: { id: "binding" },
-      task: { key: "stock", sourceCount: 1, sourceRefsOmitted: 0 },
-      eventRefs: [],
-      observation,
-      schemas: { actions: ["pact.action.v1"] },
-      signal: new AbortController().signal,
-      accountObjective: () => environment().accountObjective?.(observation as never),
-      actionContracts: session.actionContracts?.bind(session),
-      validateProposal: async (proposal: Data) =>
-        validatePactProposal(object(proposal.intent).payload as Data, current, proposal.expectedOutcome as Data),
-      model: {
-        decide: async (_claim: unknown, input: Data) => {
-          calls++;
-          const packet = JSON.parse((input.messages as { content: string }[])[1].content);
-          if (calls === 2) expect(packet.previousProposal.code).toBe("PACT_ACTION_STATE_MISMATCH");
-          return {
-            decision: {
-              kind: "action",
-              schemaId: "pact.action.v1",
-              payload: action,
-              expectedOutcome: {
-                actionKind: action.kind,
-                basis: calls === 1 ? stale : correct,
-                trade: { youSend: action.terms.aToB, youReceive: action.terms.bToA },
+    await new ReactiveEngine().run(
+      decisionProbe({
+        claim: {
+          taskId: "goal-fix",
+          turn: { cohort: { model: { route: "fixture" }, budget: { maxCallsPerTurn: 3, inputByteLimit: 48000 } } },
+        },
+        binding: { id: "binding" },
+        task: { key: "stock", sourceCount: 1, sourceRefsOmitted: 0 },
+        eventRefs: [],
+        observation,
+        schemas: { actions: ["pact.action.v1"] },
+        signal: new AbortController().signal,
+        accountObjective: () => environment().accountObjective?.(observation as never),
+        actionContracts: session.actionContracts?.bind(session),
+        validateProposal: async (proposal: Data) =>
+          validatePactProposal(object(proposal.intent).payload as Data, current, proposal.expectedOutcome as Data),
+        model: {
+          decide: async (_claim: unknown, input: Data) => {
+            calls++;
+            const packet = JSON.parse((input.messages as { content: string }[])[1].content);
+            if (calls === 2) expect(packet.previousProposal.code).toBe("PACT_ACTION_STATE_MISMATCH");
+            return {
+              decision: {
+                kind: "action",
+                schemaId: "pact.action.v1",
+                payload: action,
+                expectedOutcome: {
+                  actionKind: action.kind,
+                  basis: calls === 1 ? stale : correct,
+                  trade: { youSend: action.terms.aToB, youReceive: action.terms.bToA },
+                },
+                summary: "Propose grain for needed Hall iron; no delivery until consent and settlement",
               },
-              summary: "Propose grain for needed Hall iron; no delivery until consent and settlement",
-            },
-            inputTokens: 1,
-            outputTokens: 1,
-          };
+              inputTokens: 1,
+              outputTokens: 1,
+            };
+          },
         },
-      },
-      commands: {
-        submit: async (_claim: unknown, intent: Data) => {
-          commands.push(intent);
-          return { status: "confirmed", code: "COMMITTED" };
+        commands: {
+          submit: async (_claim: unknown, intent: Data) => {
+            commands.push(intent);
+            return { status: "confirmed", code: "COMMITTED" };
+          },
         },
-      },
-    } as never);
+      } as never),
+    );
     expect(calls).toBe(2);
     expect(commands).toHaveLength(1);
     expect(object(commands[0].payload).kind).toBe("game.supply.offer");
