@@ -146,18 +146,29 @@ export function negotiationBriefing(facts: Data): Data | undefined {
   if (!records(facts).length) return;
   const self = object(object(facts.world).profile).kingdomId;
   return {
-    observedLive: records(facts).map((r) => ({
-      id: r.id,
-      version: r.version,
-      state: r.negotiationState,
-      alreadySignedByYou: Array.isArray(r.signedBy) ? r.signedBy.includes(self) : null,
-      youSend: r.kingdomA === self ? object(r.terms).aToB : r.kingdomB === self ? object(r.terms).bToA : r.youSend,
-      youReceive:
-        r.kingdomA === self ? object(r.terms).bToA : r.kingdomB === self ? object(r.terms).aToB : r.youReceive,
-      consentAction: consentAction(r, facts),
-      resourceDelivery: r.negotiationState === "open" ? "not_established_by_offer" : "requires_settlement_evidence",
-    })),
+    observedLive: records(facts).map((r) => {
+      const peer = perspective(r, facts)?.[0];
+      return {
+        id: r.id,
+        version: r.version,
+        state: r.negotiationState,
+        counterpartyKingdomId: typeof peer === "string" ? peer : null,
+        peerSignedSameVersion:
+          typeof peer === "string" &&
+          Number.isSafeInteger(r.version) &&
+          Number(r.version) > 0 &&
+          Array.isArray(r.signedBy)
+            ? r.signedBy.includes(peer)
+            : null,
+        alreadySignedByYou: Array.isArray(r.signedBy) ? r.signedBy.includes(self) : null,
+        youSend: r.kingdomA === self ? object(r.terms).aToB : r.kingdomB === self ? object(r.terms).bToA : r.youSend,
+        youReceive:
+          r.kingdomA === self ? object(r.terms).bToA : r.kingdomB === self ? object(r.terms).aToB : r.youReceive,
+        consentAction: consentAction(r, facts),
+        resourceDelivery: r.negotiationState === "open" ? "not_established_by_offer" : "requires_settlement_evidence",
+      };
+    }),
     guidance:
-      "Offer creates terms, sign consents to an existing ID/version, counter changes its terms. consentAction is a possible shape, not permission or advice to accept: evaluate both flows/risks first. Open offer != secured supply. Both consent before activation; actual settlements establish delivery. Same terms/peer is a duplicate even with swapped A/B. Missing/stale records unknown.",
+      "Bind each ID/version to counterpartyKingdomId and peerSignedSameVersion (null means unknown). Offer creates terms; sign records your consent, counter changes terms. consentAction is a possible shape, not permission or advice to accept: evaluate both flows/risks first. Open offer != secured supply. Both consent before activation; actual settlements establish delivery. Same terms/peer is a duplicate even with swapped A/B. Missing/stale records unknown.",
   };
 }

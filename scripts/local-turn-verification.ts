@@ -40,9 +40,9 @@ export function turnVerificationFailure(
     turn.pending_command
   )
     return "TURN_NOT_OPERATIVE";
-  if (!turn.code || !["WAIT", "COMMITTED", "ALREADY_COMMITTED"].includes(turn.code))
+  if (!turn.code || !["WAIT", "READ", "COMMITTED", "ALREADY_COMMITTED"].includes(turn.code))
     return turn.code ?? "TURN_NOT_OPERATIVE";
-  if (turn.code !== "WAIT" && turn.actions === 0) return "TURN_NOT_OPERATIVE";
+  if (!["WAIT", "READ"].includes(turn.code) && turn.actions === 0) return "TURN_NOT_OPERATIVE";
   if (resolutions) {
     const refused = resolutions.find((r) => !r.code || !["COMMITTED", "ALREADY_COMMITTED"].includes(r.code));
     if (refused) return refused.code ?? "COMMAND_OUTCOME_UNRESOLVED";

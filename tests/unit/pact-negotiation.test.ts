@@ -76,6 +76,40 @@ it("delivers exact first-consent arguments and actual self-relative flows instea
   );
 });
 const outcome = { trade: { youSend: send, youReceive: receive } };
+it.each([
+  [true, false],
+  [false, false],
+  [true, true],
+  [false, true],
+])(
+  "keeps the exact counterparty and peer consent in the protected negotiation brief, selfA=%s peerSigned=%s",
+  (selfA, peerSigned) => {
+    const f = facts();
+    (f.guide as Data).openSupplyOffers = [
+      {
+        ...offer,
+        kingdomA: selfA ? self : peer,
+        kingdomB: selfA ? peer : self,
+        signedBy: peerSigned ? [peer] : [],
+      },
+    ];
+    expect(((negotiationBriefing(f)?.observedLive ?? []) as Data[])[0]).toMatchObject({
+      id,
+      counterpartyKingdomId: peer,
+      peerSignedSameVersion: peerSigned,
+      alreadySignedByYou: false,
+      consentAction: sign,
+    });
+  },
+);
+it("leaves peer consent unknown when the supplied records omit signatures", () => {
+  const f = facts();
+  (f.guide as Data).activeSupplyContracts = [active];
+  expect(((negotiationBriefing(f)?.observedLive ?? []) as Data[])[0]).toMatchObject({
+    counterpartyKingdomId: peer,
+    peerSignedSameVersion: null,
+  });
+});
 it("withholds consent suggestions when the current self or a valid offer version is unknown", () => {
   for (const change of ["self", "version"] as const) {
     const f = facts();

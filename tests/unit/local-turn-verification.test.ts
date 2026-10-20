@@ -22,18 +22,34 @@ it("allows an intentional wait but refuses pending or unreported work", () => {
   expect(turnVerificationFailure(finished, [])).toBeTruthy();
 });
 
-it.each(["WAIT", "COMMITTED"])("does not hide a rejected game command behind reactive terminal code %s", (code) => {
-  expect(
-    turnVerificationFailure({ ...finished, code, actions: code === "WAIT" ? 0 : 1 }, reported, [
-      ...(code === "COMMITTED" ? [{ code: "COMMITTED" }] : []),
-      { code: "INVALID_COMMAND" },
-    ]),
-  ).toBe("INVALID_COMMAND");
-  expect(
-    turnVerificationFailure(
-      { ...finished, code, actions: code === "WAIT" ? 0 : 1 },
-      reported,
-      code === "WAIT" ? [] : [{ code: "COMMITTED" }],
-    ),
-  ).toBeUndefined();
-});
+it.each([0, 2])(
+  "accepts a completed native read with %s prior commands without claiming useful reasoning",
+  (actions) => {
+    expect(
+      turnVerificationFailure(
+        { ...finished, code: "READ", actions },
+        reported,
+        Array.from({ length: actions }, () => ({ code: "COMMITTED" })),
+      ),
+    ).toBeUndefined();
+  },
+);
+
+it.each(["WAIT", "COMMITTED", "READ"])(
+  "does not hide a rejected game command behind reactive terminal code %s",
+  (code) => {
+    expect(
+      turnVerificationFailure({ ...finished, code, actions: code === "WAIT" ? 0 : 1 }, reported, [
+        ...(code === "COMMITTED" ? [{ code: "COMMITTED" }] : []),
+        { code: "INVALID_COMMAND" },
+      ]),
+    ).toBe("INVALID_COMMAND");
+    expect(
+      turnVerificationFailure(
+        { ...finished, code, actions: code === "WAIT" ? 0 : 1 },
+        reported,
+        code === "WAIT" ? [] : [{ code: "COMMITTED" }],
+      ),
+    ).toBeUndefined();
+  },
+);
