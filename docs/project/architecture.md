@@ -14,6 +14,10 @@ This describes implemented source boundaries at the 19 October 2026 checkpoint. 
 
 Fleet never connects to PACT's database. The adapter uses authenticated game interfaces. A proposal does not become true because an LLM wrote it; successful submission does not prove a future delivery or defense succeeded.
 
+Reactive action contracts may optionally require a structured `expectedOutcome` alongside the bare action payload. The environment validates this assertion before preparation and may return factual guidance/details for a correction within the existing turn budget. PACT uses this for creator-relative supply send/receive claims and validates bonds from its observed versioned rule descriptor. The core has no PACT rule imports; outcome claims grant no authority and are never receipts. See [the trade repair](../reactive-trade-repair-20261020.md).
+
+Modern objectives may separate verbatim owner `intent` from adapter-derived `currentState`. Optional environment wait schemas and validation check a structured factual basis before completing a wait, with bounded corrective feedback. PACT uses these only when current queued stock coverage is established; truthful waiting remains available. See [stale-goal reconciliation](../reactive-stale-goal-20261020.md).
+
 ```mermaid
 flowchart TB
     subgraph Game[PACT: separate repository and database]
@@ -122,3 +126,8 @@ The HTTP model adapter makes one execution. Admission can perform one corrective
 ## What another adapter needs
 
 A synthetic board proves contract separation, not universal compatibility. Each real integration needs authenticated enrollment, authorized views, world/source identity, action validation, time semantics, idempotency/outcome lookup and acceptance. Registry entries are reviewed/static, not arbitrary uploaded plugins. Reusing a URL for a new world requires trustworthy game-owned incarnation identity; changing a Fleet string alone is insufficient.
+
+
+### Current packet and PACT proposal checks, 20 October 2026
+
+Modern packets reserve the measured non-observation bytes and shrink optional continuity records under pressure, with explicit omission coverage and citation rebinding. Current authoritative facts remain whole. PACT's negotiation helper compares self-relative existing commitments before adding/signing equivalent terms, and modern expectedOutcome checks the current construction basis plus the actual command kind. These are local generation/proposal checks; the PACT server still owns authority, stock, atomic commands and receipts. See [the repair report](../packing-negotiation-goal-20261020.md).

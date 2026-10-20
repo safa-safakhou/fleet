@@ -1,0 +1,21 @@
+# Reactive basic: current construction goal and stock, 20 October 2026
+
+Founder requests fixing the remaining Hall prerequisite/stock reasoning and exactly one new original reactive-basic C0 turn. Preserve all 12 identities, 143 turns/191 executions, owner goal version 3, mandates, models, budgets, anchors and existing construction/training. No other actor, worker, historical-window reopening, reset, cancellation, push, server change or delegation.
+
+The retained C0 decision called Spearman training a missing Hall prerequisite. Current owned facts instead show Farm II/Barracks II complete, Hall II already waiting with building prerequisites ready, and construction stock unaffordable. The briefing explains missing prerequisites but has no explicit current-phase view when they become complete; training is absent from compact context. Repair that factual handoff without parsing owner prose into a command or prescribing an action.
+
+1. Add red regression cases for prerequisite-ready/stock-short queued work, exact allowance-aware shortages, completed levels, active training, unknown coverage, and active/already-funded work. Preserve whole facts through compact packing and scoped refresh.
+2. Project queued construction status and exact stock gaps from matching current server checks; distinguish building readiness from affordability, current facts from historical goal assumptions, and ordinary tradable stock from construction allowance. Explain lawful resource-acquisition/communication/wait alternatives without asserting a peer has stock or granting authority. Include observed training in compact context. Keep generic engines/game rules unchanged.
+3. Verify focused regressions and full required Node24/PG17 unit/integration/paired checks, types/build/boundaries/audit; preserve legacy baseline/golden history. Read-only actual-context packet checks use fake providers only.
+4. Commit verified source and install only the owned local Fleet. Freeze settings/history and create a new single-pass gate for exactly C0, preserving all closed windows. Run one native turn, with its unchanged per-turn bounds.
+5. Verify actual decision reasoning against fresh facts and command receipts. A legal unrelated training action is not Hall acceptance. Preserve any failure honestly, park cohorts/clock, verify settings/history and encrypted restore, document and locally commit results. Do not run additional live turns to seek a better result.
+
+## Retained single-turn failure and bounded follow-up
+
+The one live C0 turn on eb8ea3e received the explicit stock-shortage phase and active training, but again selected Spearman training with an unsupported construction-benefit claim. Server returned INVALID_COMMAND;0 actions committed,1 reported response, no unknown/pending state. The world was parked immediately. Do not run another turn under this one-turn assignment or reinterpret terminal WAIT as success.
+
+Close the concrete occupied-training generation/preflight gap with a red-to-green test and replay that exact retained action offline. Reverify/commit/install that guard locally, preserving the known rejected command and all144 turns/192 executions. This guard does not prove goal reasoning. Record actual semantic failure separately from operational health, verify encrypted restore, and state the unresolved acceptance in the handoff. No extra prompt-only live attempts, forced trade/introduction or model/goal/permission changes.
+
+## Explicitly approved additional verification
+
+Founder answered “Run one additional verification turn.” Run exactly one additional original C0 native turn on verified da0277a using a new separate gate. Preserve all144 prior turns/192 executions and the first failed check. No source/model/goal/authority/budget/anchor change or other actor is included. Verify current source/artifact/readiness pins first, then execute once, park, independently check the actual action and goal connection, freeze history, verify encrypted restore and commit the resulting reports. This approval supersedes the pending additional-turn choice only; there is no open-ended retry authority.

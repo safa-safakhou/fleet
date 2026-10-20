@@ -335,6 +335,7 @@ describe("observe decide commit", () => {
         },
         { kind: "wait", summary: "Await response" },
       ]);
+    game.acceptedContacts = [peer];
     await new Engine(f.store, second, async () => game, true).run(claim);
     expect(second.inputs[0].messages[1].content).toContain("A synthetic trade proposal");
     expect(second.inputs[0].messages[1].content).toContain("2026-10-11T12:00:00.000Z");
@@ -373,6 +374,7 @@ describe("observe decide commit", () => {
         },
         { kind: "wait", summary: "Wait for a response" },
       ]);
+    f.game.acceptedContacts = [peer];
     await f.store.consent(f.id, true);
     const engine = new Engine(f.store, model, async () => f.game, true);
     await engine.run(f.claim);
@@ -415,6 +417,7 @@ describe("observe decide commit", () => {
     const f = await setup(),
       action = { kind: "game.message.send", recipientKingdomId: randomUUID(), body: "A synthetic message" },
       model = new FakeModel([{ kind: "action", action, summary: "send" }]);
+    f.game.acceptedContacts = [action.recipientKingdomId];
     f.game.failSubmit = true;
     const engine = new Engine(f.store, model, async () => f.game, true);
     await engine.run(f.claim);
@@ -477,4 +480,53 @@ describe("observe decide commit", () => {
     expect(model.inputs).toHaveLength(2);
     expect(model.inputs[1].messages[1].content).toContain("INVALID_MODEL_OUTPUT");
   });
+});
+
+it("fits legacy packets to the tighter token-reservation envelope when input space was increased", async () => {
+  const f = await fixture();
+  cleanup = () => f.pool.end();
+  const id = await ready(f.store, 1);
+  await f.store.setState(id, "paused", true);
+  await f.store.increaseInputAllowance(id, 48000, "One-pass repair requires whole current state and bounded context");
+  await f.store.setState(id, "running", true);
+  const claim = await f.store.claim("large-packet");
+  if (!claim) throw Error("NO_CLAIM");
+  claim.agent.notes = "Synthetic retained notes. " + "x".repeat(34000);
+  await f.pool.query("UPDATE agents SET notes=$2 WHERE id=$1", [claim.agentId, claim.agent.notes]);
+  const game = new FakeGame(claim),
+    model = new FakeModel();
+  await new Engine(f.store, model, async () => game, true).run(claim);
+  expect(model.inputs.length).toBeGreaterThan(0);
+  for (const input of model.inputs)
+    expect(
+      Buffer.byteLength(JSON.stringify(input.messages)) + Buffer.byteLength(JSON.stringify(input.schema)),
+    ).toBeLessThanOrEqual(36976);
+  expect((await f.store.publicState()).turns[0].code).toBe("WAIT");
+  expect((await f.store.agent(claim.agentId)).notes).toBe(claim.agent.notes);
+});
+
+it("tells the model the actual provided autonomous owner objective, not only a generic instruction to follow one", async () => {
+  const f = await setup();
+  await f.pool.query("UPDATE cohorts SET owner_guidance='account_autonomy' WHERE id=$1", [f.id]);
+  f.claim.cohort.owner_guidance = "account_autonomy";
+  const read = f.game.read.bind(f.game);
+  f.game.read = async (tool, args) =>
+    tool === "pact_world_read_v1"
+      ? { ...(await read(tool, args)), ambition: "Develop reliable grain supply autonomously" }
+      : read(tool, args);
+  let called = false;
+  await new Engine(
+    f.store,
+    {
+      decide: async (input) => {
+        called = true;
+        expect(input.messages[0].content).toContain("Develop reliable grain supply autonomously");
+        return { decision: { kind: "wait", summary: "Review available choices" }, inputTokens: 10, outputTokens: 2 };
+      },
+    },
+    async () => f.game,
+    true,
+  ).run(f.claim);
+  expect(called).toBe(true);
+  expect((await f.store.publicState()).turns[0].code).toBe("WAIT");
 });

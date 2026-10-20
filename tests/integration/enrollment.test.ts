@@ -86,6 +86,8 @@ function mockGame() {
       }
       if (path === "/mcp") {
         if (init.method === "DELETE") return new Response(null, { status: 204 });
+        if (body.method === "initialize")
+          return Response.json({ result: { _meta: { "pact/session-scope": "connection" } } });
         if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
         const result =
           body.method === "tools/list"

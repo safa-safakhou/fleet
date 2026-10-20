@@ -26,6 +26,7 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
     },
     liveAllowed: env.FLEET_LIVE_ENABLED === "1",
     keepAwake: env.FLEET_KEEP_AWAKE === "1",
+    runWindowFile: env.FLEET_RUN_WINDOW_FILE,
     port: z.coerce
       .number()
       .int()

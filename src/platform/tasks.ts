@@ -182,7 +182,7 @@ export class TaskStore {
         );
     }
   }
-  async claim(workerId: string, now: Date): Promise<TaskClaim | null> {
+  async claim(workerId: string, now: Date, selectedTaskId?: string): Promise<TaskClaim | null> {
     await this.store.recoverExpired();
     await this.recover();
     await this.seedScheduled();
@@ -198,12 +198,18 @@ export class TaskStore {
         await db.query(
           `SELECT t.*,a.id actor_agent_id FROM platform_tasks t JOIN environment_bindings b ON b.id=t.binding_id JOIN agents a ON a.id=b.agent_id JOIN cohorts c ON c.id=t.cohort_id JOIN cohort_engine_profiles p ON p.cohort_id=c.id LEFT JOIN platform_cohort_admission admission ON admission.cohort_id=c.id
     WHERE t.state='ready' AND t.due_at<=$1 AND b.state='active' AND c.state='running' AND a.state='ready' AND a.credential_state='ready' AND c.model IS NOT NULL AND c.budget IS NOT NULL
-    AND b.environment_id=$2 AND b.environment_version=$3 AND b.instance_id=$4
+    AND b.environment_id=$2 AND b.environment_version=$3 AND b.instance_id=$4 AND ($5::uuid IS NULL OR t.id=$5)
     AND NOT EXISTS(SELECT 1 FROM turns x WHERE x.agent_id=a.id AND (x.state IN('running','pending','needs_owner') OR x.pending_command IS NOT NULL))
     AND NOT EXISTS(SELECT 1 FROM agent_blockers x WHERE x.agent_id=a.id) AND NOT EXISTS(SELECT 1 FROM maintenance_holds h WHERE h.cohort_id=c.id AND h.released_at IS NULL)
     AND (SELECT count(*) FROM turns x WHERE x.cohort_id=c.id AND x.state='running')<(c.budget->>'concurrency')::int
     ORDER BY coalesce(admission.last_ticket,0),c.created_at,c.id,t.owner_priority DESC,t.deadline_at NULLS LAST,t.due_at,t.sequence FOR UPDATE OF t,a SKIP LOCKED LIMIT 1`,
-          [now, this.bindings.selected.id, this.bindings.selected.version, this.bindings.selected.instanceId],
+          [
+            now,
+            this.bindings.selected.id,
+            this.bindings.selected.version,
+            this.bindings.selected.instanceId,
+            selectedTaskId ?? null,
+          ],
         )
       ).rows[0];
       if (!candidate) return null;

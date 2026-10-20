@@ -3,7 +3,7 @@ import { LegacyEngineBridge } from "../../src/engines/legacy/bridge.js";
 import { pactAdapter } from "../../src/games/pact/adapter.js";
 import { RouteCapacity } from "../../src/platform/admission.js";
 import { currentLegacyClaim } from "../../src/platform/profiles.js";
-import golden from "../fixtures/legacy-contract-correction-20261018.json" with { type: "json" };
+import golden from "../fixtures/legacy-reasoning-effects-20261020.json" with { type: "json" };
 import { FakeGame, FakeModel, fixture, ready } from "../helpers.js";
 import { modelInputDigest } from "../legacy-parity.js";
 

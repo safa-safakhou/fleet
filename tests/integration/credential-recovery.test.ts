@@ -38,6 +38,8 @@ function network(accountId: string) {
       if (attempts === 1) throw new TypeError("lost acknowledgment after rotation");
       return Response.json({ access_token: "new-access", refresh_token: "new-refresh", expires_in: 600 });
     }
+    if (body.method === "initialize")
+      return Response.json({ result: { _meta: { "pact/session-scope": "connection" } } });
     if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
     if (body.method === "tools/list")
       return Response.json({
@@ -133,6 +135,8 @@ it("refreshes once when a locally unexpired access token is rejected during prof
       refreshes++;
       return Response.json({ access_token: "new-access", refresh_token: "new-refresh", expires_in: 3600 });
     }
+    if (body.method === "initialize")
+      return Response.json({ result: { _meta: { "pact/session-scope": "connection" } } });
     if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
     if (body.method === "tools/list")
       return Response.json({
@@ -152,4 +156,56 @@ it("refreshes once when a locally unexpired access token is rejected during prof
   expect(refreshes).toBe(1);
   expect((await f.broker.load(f.agent.id)).refreshToken).toBe("new-refresh");
   await game.close();
+});
+
+it("queues concurrent connections for the same account without losing a normal turn to AUTH_BUSY", async () => {
+  const f = await setup();
+  await f.broker.save(f.agent.id, { accessToken: "access", expiresAt: f.now().getTime() + 600000 }, "ready");
+  let entered!: () => void, release!: () => void;
+  const inInitialize = new Promise<void>((ok) => {
+    entered = ok;
+  });
+  const hold = new Promise<void>((ok) => {
+    release = ok;
+  });
+  let initialized = 0;
+  vi.stubGlobal("fetch", async (_input: unknown, init: RequestInit = {}) => {
+    const body = JSON.parse(String(init.body ?? "{}"));
+    if (body.method === "initialize") {
+      initialized++;
+      if (initialized === 1) {
+        entered();
+        await hold;
+      }
+      return Response.json(
+        {
+          result: {
+            _meta: { "pact/session-scope": "connection" },
+            capabilities: { experimental: { "pact/connection-sessions": true } },
+          },
+        },
+        { headers: { "Mcp-Session-Id": "fixture-" + initialized } },
+      );
+    }
+    if (body.method === "initialize")
+      return Response.json({ result: { _meta: { "pact/session-scope": "connection" } } });
+    if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
+    if (body.method === "tools/list")
+      return Response.json({
+        result: {
+          tools: [{ name: "pact_profile_v1", inputSchema: { type: "object" }, annotations: { readOnlyHint: true } }],
+        },
+      });
+    return Response.json({ result: { structuredContent: { id: f.agent.account_id } } });
+  });
+  const first = f.broker.game(f.agent.id);
+  await inInitialize;
+  const results = Promise.allSettled([first, f.broker.game(f.agent.id)]);
+  const timer = setTimeout(release, 250);
+  try {
+    expect((await results).map((r) => r.status)).toEqual(["fulfilled", "fulfilled"]);
+  } finally {
+    clearTimeout(timer);
+    release();
+  }
 });

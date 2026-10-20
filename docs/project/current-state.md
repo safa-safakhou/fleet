@@ -2,6 +2,8 @@
 
 **The execution platform is substantially implemented and locally verified. Reliable memory use, decision quality and live multi-engine gameplay remain unqualified.** This is a dated evidence checkpoint, not continuous monitoring of every host.
 
+The later [20 October local-world results](../reasoning-outcomes-20261020.md) cover a separate fresh twelve-actor world and supersede its earlier experiment checkpoints below. Its final four-profile pass committed four commands in nine reported allocations, with remaining legacy reasoning errors and no newly activated trade. The world is parked at 40 turns/64 allocations, retaining one previously reviewed unknown. See the [master publication record](local-world-publication-20261020.md) for integrated source and verification; the historical installed twenty-agent population below remains separate.
+
 ## Capability matrix
 
 | Area | Achieved | Remaining gate |
@@ -59,3 +61,20 @@ Publishing source does not switch the installed symlink, migrate a runtime, enab
 Stabilize one observation → retained memory → relevant delivered evidence → decision → verified outcome cycle. Improve query/candidate diversity, receipt-backed memory status and semantic diagnostics. Verify source changes offline, then propose a new exact model budget and small environment-matched run. Preserve free choice: no compulsory alliance, messaging, memory count, threshold reduction or reward for action volume. F6/new-world rollout stays separately gated.
 
 [Detailed findings](findings.md) · [Journey and budget lineage](journey.md) · [Original diagnostic](../cognition-diagnostics-20261019.md)
+
+
+## Local operability addendum — 19 October
+
+The separately authorized [local repair and four-profile single-turn check](../local-world-operability-20261019.md) is complete: all four original actors reached valid decisions,7 model calls fully reported,2 pre-inference legacy failures preserved before repair, zero new commands. The isolated local instance now uses connection-isolated MCP sessions and useful whole context; local input-only amendments are audited. Its clock/cohorts are paused and background worker stopped. Historical qualification windows, other installations and strategic-quality conclusions above remain distinct.
+
+## 20 October: isolated local-world repair
+
+The separate12-actor local world now has the [planning/interaction repair record](../interaction-planning-repair-20261020.md):694 checks pass, four initial profile turns plus one targeted C correction produced two building orders and one Spearman batch. Final143 turns/191 reported executions, groups/clock paused and no worker/unknown/pending blocker. C's training reason still falsely describes a Hall prerequisite; goal reasoning and live social competence remain unqualified. Other installations/populations in this historical checkpoint remain separate and unchanged.
+
+## 20 October: reactive-basic goal/stock checkpoint
+
+[Goal/stock repair](../reactive-goal-stock-20261020.md) delivers explicit completed prerequisites, queued stock shortage and active training. Final guard release da0277a passes699 tests and prevents the retained occupied-training proposal offline. The single actual C0 turn on eb8ea3e still invented a construction benefit for Spearman training and received INVALID_COMMAND,0 new commitments. Goal reasoning remains unaccepted. Final144 turns/192 reported executions,12 ready original actors, all cohorts/clock paused tick139, no worker/unknown/pending/blockers, encrypted restore verified. Additional-turn choice pending; no further inference is implied. Other installations/populations remain unchanged.
+
+## 20 October: explicitly approved additional C0 check
+
+The additional original reactive-basic turn on da0277a avoided occupied training but generated an invalid supply offer, mistaking outgoing Iron for incoming income; exact PACT-rule replay rejects its excessive bonds.0 effects,1 reported response, prior failure retained. [Full record](../reactive-goal-stock-20261020.md). Final145 turns/193 reported executions,12 original actors ready, all groups/clock paused tick139, no worker/unknown/pending/blockers, encrypted10-PACT/39-Fleet-table restore verified. No implementation/settings change in this step;699-test/1,628-artifact release unchanged. Goal reasoning remains unaccepted and the one additional-turn approval is consumed.

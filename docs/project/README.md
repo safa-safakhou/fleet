@@ -8,6 +8,8 @@ The platform has progressed further than demonstrated intelligence. We have mult
 
 ## Publication scope
 
+The [20 October local-world publication](local-world-publication-20261020.md) integrates the subsequent four-profile repairs and all observation/result reports. The [latest reasoning outcomes](../reasoning-outcomes-20261020.md) retain partial behavioral acceptance and distinguish actual native turns from later offline fixes. The independent specialist architecture proposal remains planning work.
+
 The founder subsequently authorized merging the implementation branches `feature/engine-baseline-20261017` (Fleet) and `feature/phase2-agent-events-20261017` (PACT) into master. The [merge verification report](merge-20261019.md) records the integrated source, checks and publication result. Original dated reports retain their pinned historical candidates. Source integration does not install a release, enable execution or establish live strategic quality.
 
 Read the [documentation publication and verification record](publication-20261019.md) for exactly what this publication includes and checks performed.

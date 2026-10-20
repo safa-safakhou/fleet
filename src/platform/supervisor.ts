@@ -134,13 +134,18 @@ export class PlatformHost {
           signal,
           schemas: adapter.schemas,
           goal: adapter.presentation.defaultGoal,
+          instructions: adapter.instructions,
+          accountObjective: adapter.accountObjective?.bind(adapter),
           trace: async (stage, label, detail) => {
             await this.tasks.check(claim);
             await new Observability(this.tasks.store).record(claim.turn, stage, label, detail);
           },
           capabilities: adapter.capabilities,
+          waitSchema: session?.waitSchema,
+          validateWait: session?.validateWait,
           validateProposal: session?.validateProposal,
           actionContracts: session?.actionContracts,
+          packObservation: session?.packObservation,
           catalog: async () => {
             if (!session) throw new FleetError("OBSERVATION_OWNED_BY_ENGINE");
             await this.tasks.check(claim);

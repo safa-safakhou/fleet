@@ -36,3 +36,11 @@ See [F4 intake and reactive profile](reactive-engine-20261017.md) for explicit n
 ## Adapter/profile qualification
 
 [F8](profile-qualification.md) reviews exact profile, environment instance, adapter descriptor, source/configuration digests and separate fake/real evidence. See the [compatibility matrix](multi-engine-compatibility-20261017.md). A capability preview alone is insufficient; another adapter needs actual handler/permission/receipt and failure-path acceptance. No provider route or live profile is certified by synthetic tests.
+
+## Trusted controller instructions and standing objectives
+
+A registered `EnvironmentAdapter` can supply optional static `instructions`. The host forwards these separately from observation/peer text into the engine's system instructions; reactive-basic and reactive-cognition consume them. An absent field preserves the existing packet. Do not promote tool output or another player's prose into this field. An optional `accountObjective(observation)` callback extracts only the authenticated current owner objective from the fresh owned view. The host forwards it separately; modern controllers refresh the actual assignment after reads rather than using only a generic default goal. Neither hook grants permission.
+
+PACT supplies the same controller contract used by the legacy integration: a current owner objective supplies standing guidance for already delegated actions, and Fleet handles the MCP write lease, command IDs and receipts. External MCP-client instructions about opening a lease describe a host responsibility in Fleet. Human-only actions, mandate bounds, freshness and server admission remain enforced.
+
+`agentBriefing` is a factual, protected observation component, retained by `compactFacts`/`compactEnvironment`. It exposes the fresh owned objective/status and observed construction queue/prerequisite/stock/busy facts, with unknowns explicit. It does not select an action/partner or establish a new authority system. Scoped reads retain surrounding fresh owner/world context and a separate requested answer, rather than replacing the model's owner goal with the answer alone. See [the autonomous-work repair](autonomous-work-repair-20261019.md).

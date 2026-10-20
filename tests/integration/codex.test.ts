@@ -28,6 +28,7 @@ async function setup(mode = "ok", continuous = false) {
   if (!claim) throw Error("missing claim");
   const game = new FakeGame(claim),
     model = new CodexModel(cli);
+  if (mode === "action") game.acceptedContacts = ["00000000-0000-4000-8000-000000000001"];
   return { ...f, cli, id, claim, game, model, engine: new Engine(f.store, model, async () => game, true) };
 }
 describe("Codex scheduling and accounting", () => {

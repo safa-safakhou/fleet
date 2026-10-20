@@ -28,3 +28,43 @@ it("rejects the two archived malformed payloads while preserving a legitimate ac
     validatePactProposal({ kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 1 }, {}).valid,
   ).toBe(true);
 });
+
+it("constrains generation to the observed free queue slot and excludes already busy building kinds", () => {
+  const facts = {
+    world: {
+      builders: [
+        { slot: 1, state: "waiting", kind: "hall", targetLevel: 2 },
+        { slot: 2, state: null },
+      ],
+    },
+  };
+  const check = new Ajv({ strict: false, validateFormats: false }).compile(pactActionContracts(facts)[0].payloadSchema);
+  const farm = { kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 2 };
+  expect(check(farm)).toBe(true);
+  expect(check({ ...farm, slot: 1 })).toBe(false);
+  expect(check({ ...farm, building: "hall" })).toBe(false);
+  // An active worker can accept a waiting item in that slot; only an existing waiting item blocks it.
+  const active = new Ajv({ strict: false, validateFormats: false }).compile(
+    pactActionContracts({ world: { builders: [{ slot: 1, state: "active", kind: "barracks", targetLevel: 2 }] } })[0]
+      .payloadSchema,
+  );
+  expect(active({ ...farm, slot: 1 })).toBe(true);
+  expect(active({ ...farm, building: "barracks" })).toBe(false);
+});
+
+it("removes building generation when both waiting slots are occupied, without inventing availability for missing observations", () => {
+  const compile = (facts: Record<string, unknown>) =>
+    new Ajv({ strict: false, validateFormats: false }).compile(pactActionContracts(facts)[0].payloadSchema);
+  const farm = { kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 2 };
+  const full = compile({
+    world: {
+      builders: [
+        { slot: 1, state: "waiting", kind: "hall" },
+        { slot: 2, state: "waiting", kind: "market" },
+      ],
+    },
+  });
+  expect(full(farm)).toBe(false);
+  // Incomplete observations retain the static shape and normal server validation.
+  expect(compile({})(farm)).toBe(true);
+});

@@ -3,6 +3,7 @@ import { afterEach, expect, it } from "vitest";
 import { Cognition } from "../../src/cognition.js";
 import { type Data, type ModelPort, object } from "../../src/domain.js";
 import { Engine } from "../../src/engine.js";
+import { expandFactTables } from "../../src/fact-table.js";
 import { pactAdapter } from "../../src/games/pact/adapter.js";
 import { FakeGame, fixture, ready } from "../helpers.js";
 
@@ -110,6 +111,7 @@ it("delivers requested forecasts over six growing-memory scheduled rounds and a 
       decide: async (input) => {
         calls++;
         const c = JSON.parse(input.messages[1].content);
+        c.environment = expandFactTables(c.environment);
         bodies.push(input.messages[1].content);
         expect(c.environment.authority.resources.iron.headroomUnits).toBe("480000");
         expect(

@@ -93,6 +93,7 @@ export const tools: Tool[] = [
 export class FakeGame implements GamePort {
   submits: { commandId: string; action: Data }[] = [];
   reads: { tool: string; args: Data }[] = [];
+  acceptedContacts: string[] = [];
   opened = 0;
   closed = 0;
   failSubmit = false;
@@ -120,7 +121,11 @@ export class FakeGame implements GamePort {
             ],
             next: null,
           }
-        : { contacts: [], contactRequests: [], openSupplyOffers: [] };
+        : {
+            contacts: this.acceptedContacts.map((kingdomId) => ({ kingdomId })),
+            contactRequests: [],
+            openSupplyOffers: [],
+          };
   }
   async open() {
     this.opened++;

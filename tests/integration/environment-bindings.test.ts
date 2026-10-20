@@ -1,5 +1,6 @@
 import { afterEach, expect, it } from "vitest";
 import { migrate } from "../../src/db.js";
+import { object } from "../../src/domain.js";
 import { createPactEnvironment, PactBindings } from "../../src/environments/pact.js";
 import { Bindings } from "../../src/platform/bindings.js";
 import { EnvironmentRegistry } from "../../src/platform/environment-registry.js";
@@ -115,6 +116,12 @@ it("preserves legacy vault identity and pending receipt", async () => {
       payload: { kind: "invalid.kind" },
     }),
   ).rejects.toMatchObject({ notDispatched: true });
+  const read = game.read.bind(game);
+  game.read = async (tool, args) =>
+    tool === "pact_world_read_v1" ? { ...(await read(tool, args)), asOfGameTimeMs: 1792419240000 } : read(tool, args);
+  const observed = await session.observe({});
+  expect(observed.environmentTime.value).toBe("1792419240000");
+  expect(observed.coverage.environmentTimeAvailable).toBe(true);
   expect(game.opened).toBe(0);
   expect(game.submits).toHaveLength(0);
   await expect(legacy.agentFor({ ...binding, actorRef: "forged" })).rejects.toThrow("BINDING_MISMATCH");
@@ -149,6 +156,9 @@ it("negotiates the optional P2 outlook and scopes facts and peer statements thro
     ),
     session = await registry.connect(binding, { continuity: true });
   const snapshot = await session.observe({ continuity: true });
+  expect(snapshot.payload.world).toBeDefined();
+  expect(snapshot.payload.guide).toBeDefined();
+  expect(session.packObservation).toBeTypeOf("function");
   expect(snapshot.continuity?.self.capabilities).toContain("pact_agent_outlook_v1");
   expect(snapshot.continuity?.facts.some((f) => f.kind === "outcome" && f.value === "lost")).toBe(true);
   expect(snapshot.continuity?.facts.every((f) => snapshot.sourceRefs.includes(f.sourceRef))).toBe(true);
@@ -176,4 +186,36 @@ it("negotiates the optional P2 outlook and scopes facts and peer statements thro
   expect(game.opened).toBe(0);
   expect(game.submits).toHaveLength(0);
   await session.close();
+});
+
+it("keeps the current owner objective and kingdom state alongside a scoped basic read", async () => {
+  const f = await setup();
+  await ready(f.store, 1);
+  const claim = await f.store.claim("goal-read");
+  if (!claim) throw Error("NO_CLAIM");
+  const ref = { id: "pact", version: "1", instanceId: "fixture:goal-read" },
+    bindings = new Bindings(f.store, ref),
+    legacy = new PactBindings(f.store, bindings),
+    binding = await legacy.attach(claim.agentId),
+    game = new FakeGame(claim);
+  const read = game.read.bind(game);
+  game.read = async (tool, args) =>
+    tool === "pact_world_read_v1"
+      ? { ...(await read(tool, args)), ambition: "Develop the kingdom autonomously", asOfGameTimeMs: 1000 }
+      : read(tool, args);
+  const registry = new EnvironmentRegistry(
+    [createPactEnvironment({ store: f.store, bindings: legacy, game: async () => game, now: f.now })],
+    ref,
+  );
+  const session = await registry.connect(binding);
+  try {
+    const snapshot = await session.observe({ tool: "pact_council_thread_v1", args: { kingdomId: "peer" } });
+    expect(object(snapshot.payload.world).ambition).toBe("Develop the kingdom autonomously");
+    expect(object(snapshot.payload.requestedRead).messages).toBeDefined();
+    expect(snapshot.environmentTime.value).toBe("1000");
+    expect(snapshot.coverage.requestedReadSeparateSnapshot).toBe(true);
+    expect(game.opened).toBe(0);
+  } finally {
+    await session.close();
+  }
 });

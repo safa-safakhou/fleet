@@ -1,43 +1,63 @@
 import { type Data, object, safeCode } from "../../domain.js";
-import { executableActionSchema } from "../../generation.js";
+import type { ActionContract, ProposalValidation } from "../../platform/contracts.js";
 import { validateTool } from "../../tools.js";
 import { pactAdapter } from "./adapter.js";
+import { observedActionSchema } from "./choices.js";
+import { goalActionOutcomeSchema, validateGoalAction } from "./goal-state.js";
+import { tradeExpectedOutcomeSchema, tradePreflight } from "./trade.js";
 
 /** Generation constraints describe conditional choices, never permission. */
-export function pactActionContracts(facts: Data) {
+export function pactActionContracts(facts: Data): ActionContract[] {
   const available = pactAdapter.availableActions?.(facts, null);
-  const version = object(object(facts.guide).mandate).version;
-  const mandate = Number.isSafeInteger(version) && Number(version) >= 0 ? { const: version } : undefined;
-  const exact = (available?.schemas ?? []).map((schema) => {
-    const shape = executableActionSchema(schema),
-      properties = object(shape.properties);
-    if (properties.mandateVersion) {
-      if (mandate) properties.mandateVersion = mandate;
-      else delete properties.mandateVersion;
-    }
-    return shape;
+  const variants = (available?.kinds ?? []).flatMap((kind) => {
+    const shape = observedActionSchema(kind, facts);
+    return shape ? [shape] : [];
   });
-  const detailed = new Set(exact.map((s) => object(object(s.properties).kind).const));
-  const remaining = [...new Set(available?.kinds ?? [])].filter((kind) => !detailed.has(kind));
-  const variants: Data[] = [...exact];
-  if (remaining.length)
-    variants.push({
-      type: "object",
-      properties: {
-        kind: { type: "string", enum: remaining },
-        ...(mandate ? { mandateVersion: mandate } : { mandateVersion: { not: {} } }),
-      },
-      required: ["kind"],
-      additionalProperties: true,
-    });
-  return variants.length ? [{ schemaId: "pact.action.v1", payloadSchema: { anyOf: variants } }] : [];
+  const trade = variants.filter((s) =>
+    ["game.supply.offer", "game.supply.counter", "game.supply.sign"].includes(
+      String(object(object(s.properties).kind).const),
+    ),
+  );
+  const other = variants.filter((s) => !trade.includes(s));
+  const kinds = (items: Data[]) => items.map((s) => String(object(object(s.properties).kind).const));
+  const otherOutcome = goalActionOutcomeSchema(facts, kinds(other));
+  return [
+    ...(other.length
+      ? [
+          {
+            schemaId: "pact.action.v1",
+            payloadSchema: { anyOf: other },
+            ...(otherOutcome ? { expectedOutcomeSchema: otherOutcome } : {}),
+          },
+        ]
+      : []),
+    ...(trade.length
+      ? [
+          {
+            schemaId: "pact.action.v1",
+            payloadSchema: { anyOf: trade },
+            expectedOutcomeSchema: goalActionOutcomeSchema(facts, kinds(trade), tradeExpectedOutcomeSchema()),
+          },
+        ]
+      : []),
+  ];
 }
 /** Pure local shape/reference check only. Never grants authority or opens a lease. */
-export function validatePactProposal(payload: Data, facts: Data): { valid: boolean; code: string } {
+export function validatePactProposal(payload: Data, facts: Data, expectedOutcome?: Data): ProposalValidation {
   try {
     validateTool({ name: "pact.action.v1", inputSchema: pactAdapter.actionSchema(String(payload.kind)) }, payload);
-    const denied = pactAdapter.preflight?.(payload, facts);
-    return denied ? { valid: false, code: String(denied.code) } : { valid: true, code: "VALID" };
+    const denied =
+      pactAdapter.preflight?.(payload, facts) ??
+      tradePreflight(payload, facts, expectedOutcome) ??
+      validateGoalAction(payload, facts, expectedOutcome);
+    return denied
+      ? {
+          valid: false,
+          code: String(denied.code),
+          ...(denied.guidance ? { guidance: String(denied.guidance) } : {}),
+          ...(denied.detail ? { detail: denied.detail as Data } : {}),
+        }
+      : { valid: true, code: "VALID" };
   } catch (error) {
     return { valid: false, code: safeCode(error) };
   }
@@ -48,7 +68,8 @@ export function pactProposalGuide(facts: Data): Data {
     schemaId: "pact.action.v1",
     payload:
       "A bare action object with kind and its exact arguments directly in payload. Fleet assigns commandId outside payload; do not nest another action/command envelope. Only a concrete supported kind is executable; intended outcomes are not action kinds.",
-    upfrontSchemas: pactAdapter.availableActions?.(facts, null)?.schemas ?? [],
+    kinds: pactAdapter.availableActions?.(facts, null)?.kinds ?? [],
+    schemaDelivery: "Exact argument shapes are in the decision output schema; they are not duplicated in this guide.",
     coverage:
       "Shapes are conditional advertisements, never authority; current server permissions and prerequisites still apply.",
   };

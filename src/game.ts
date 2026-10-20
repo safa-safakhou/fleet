@@ -13,6 +13,7 @@ export interface GameAdapter {
   readonly actionKinds: string[];
   validateCatalog?(tools: Tool[]): void;
   actionSchema(kind: string): Data;
+  proposalSchema?(kind: string, facts: Data): Data | undefined;
   isRead(tool: Tool): boolean;
   initial(
     game: GamePort,
@@ -22,10 +23,11 @@ export interface GameAdapter {
   nextDiscoveryCursor?(facts: Data): Data | undefined;
   accountObjective?(facts: Data): string | undefined;
   deliveredContextSummary?(context: Data): Data;
+  commandMeaning?(action: Data, receipt: Data): Data | undefined;
   availableActions?(
     facts: Data,
     ownerPolicy: Data | null,
-  ): { kinds: string[]; schemas: Data[]; humanOnly: string[]; matrix?: Data[] };
+  ): { kinds: string[]; schemas: Data[]; requiredSchemas?: Data[]; humanOnly: string[]; matrix?: Data[] };
   reviewableRejection?(code: string, action: Data): boolean;
   preflight?(action: Data, facts: Data): Data | undefined;
   preflightRead?(tool: string, args: Data, facts: Data): Data | undefined;

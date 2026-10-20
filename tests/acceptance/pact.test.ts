@@ -65,7 +65,7 @@ beforeAll(async () => {
     runtime.troops,
     runtime.buildings,
     permits,
-    undefined,
+    new kingdom.SupplyService("pact", runtime.ledger, new kingdom.ActionLimitService("pact"), social),
     undefined,
     exposure,
     runtime.scouting,
@@ -257,4 +257,123 @@ it("recovers the distinct Farm III / Storehouse III deadlock without cancelling 
   const prerequisite = { kind: "game.building.queue", building: "barracks", targetLevel: 2, slot: 2 };
   expect((await dispatch(o, prerequisite)).code).toBe("COMMITTED");
   expect(constructionRecovery(await views.readSelf(o.accountId)).status).toBe("waiting_or_unknown");
+});
+
+it("matches published canonical bond rules across resources, both sides and exact boundaries", async () => {
+  const { validatePactProposal } = await import("../../src/games/pact/proposals.js");
+  const rules = kingdom.supplyTermsRules(),
+    self = randomUUID(),
+    peer = randomUUID();
+  const facts = {
+    world: { profile: { kingdomId: self } },
+    guide: {},
+    diplomacy: { contractRules: { termsValidation: rules } },
+    discovery: { players: [{ kingdomId: peer }] },
+  };
+  let cases = 0;
+  for (const resource of ["iron", "silver", "grain"])
+    for (const bondResource of ["iron", "silver", "grain"])
+      for (const durationHours of rules.durationHours)
+        for (const side of ["a", "b"]) {
+          const maximum =
+            (5n *
+              BigInt(Math.min(durationHours, rules.maxBondFlowHours)) *
+              BigInt(rules.valueUnitsPerWhole[resource])) /
+            BigInt(rules.valueUnitsPerWhole[bondResource]);
+          for (const amount of [maximum, maximum + 1n]) {
+            if (amount === 0n) continue;
+            const terms = {
+              aToB: side === "a" ? { resource, wholePerHour: 5 } : null,
+              bToA: side === "b" ? { resource, wholePerHour: 5 } : null,
+              aBond: side === "a" ? { resource: bondResource, wholeAmount: Number(amount) } : null,
+              bBond: side === "b" ? { resource: bondResource, wholeAmount: Number(amount) } : null,
+              durationHours,
+              noticeHours: 0,
+            };
+            let accepted = true;
+            try {
+              kingdom.validateSupplyTerms(terms);
+            } catch {
+              accepted = false;
+            }
+            expect(
+              validatePactProposal({ kind: "game.supply.offer", counterpartyKingdomId: peer, terms }, facts, {
+                trade: { youSend: terms.aToB, youReceive: terms.bToA },
+              }).valid,
+            ).toBe(accepted);
+            cases++;
+          }
+        }
+  expect(cases).toBe(142);
+  for (const wholeAmount of [6755399441055741, 6755399441055742]) {
+    const terms = {
+      aToB: { resource: "grain", wholePerHour: 9007199254740989 },
+      bToA: null,
+      aBond: { resource: "silver", wholeAmount },
+      bBond: null,
+      durationHours: 6,
+      noticeHours: 0,
+    };
+    let accepted = true;
+    try {
+      kingdom.validateSupplyTerms(terms);
+    } catch {
+      accepted = false;
+    }
+    expect(
+      validatePactProposal({ kind: "game.supply.offer", counterpartyKingdomId: peer, terms }, facts, {
+        trade: { youSend: terms.aToB, youReceive: null },
+      }).valid,
+    ).toBe(accepted);
+  }
+});
+
+it("commits a valid creator-relative unsigned trade through real handlers without fabricating income or a contract", async () => {
+  const { validatePactProposal } = await import("../../src/games/pact/proposals.js");
+  const a = await owner(),
+    b = await owner(),
+    world = await views.readSelf(a.accountId);
+  const terms = {
+    aToB: { resource: "grain", wholePerHour: 1 },
+    bToA: { resource: "iron", wholePerHour: 1 },
+    aBond: null,
+    bBond: null,
+    durationHours: 1,
+    noticeHours: 0,
+  };
+  const action = { kind: "game.supply.offer", counterpartyKingdomId: b.kingdomId, terms };
+  const facts = {
+    world,
+    guide: {},
+    diplomacy: { contractRules: { termsValidation: kingdom.supplyTermsRules() } },
+    discovery: { players: [{ kingdomId: b.kingdomId }] },
+  };
+  expect(validatePactProposal(action, facts, { trade: { youSend: terms.aToB, youReceive: terms.bToA } }).valid).toBe(
+    true,
+  );
+  const receipt = await dispatch(a, action);
+  expect(receipt.code).toBe("COMMITTED");
+  expect(pactAdapter.commandMeaning?.(action, receipt)).toEqual({
+    stage: "unsigned_proposal_created",
+    ownSignatureRecorded: false,
+    contractActivated: false,
+    resourcesDelivered: false,
+  });
+  const row = (
+    await pool.query("SELECT terms,status FROM supply_offers WHERE kingdom_a=$1 AND kingdom_b=$2", [
+      a.kingdomId,
+      b.kingdomId,
+    ])
+  ).rows[0];
+  expect(row).toEqual({ terms, status: "open" });
+  expect((await views.readSelf(a.accountId)).balances).toEqual(world.balances);
+  const tooHigh = { ...action, terms: { ...terms, aToB: { resource: "grain", wholePerHour: 601 } } };
+  const withScale = { ...facts, guide: { resourceRules: { markedPerWhole: 600 } } };
+  expect(
+    validatePactProposal(tooHigh, withScale, { trade: { youSend: tooHigh.terms.aToB, youReceive: terms.bToA } }).code,
+  ).toBe("PACT_SUPPLY_RATE_TOO_HIGH");
+  await expect(dispatch(a, tooHigh)).rejects.toMatchObject({ code: "INVALID_COMMAND" });
+  expect(
+    (await pool.query("SELECT count(*)::int n FROM supply_contracts WHERE kingdom_a=$1", [a.kingdomId])).rows[0].n,
+  ).toBe(0);
 });

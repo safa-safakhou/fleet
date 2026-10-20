@@ -52,3 +52,7 @@ New tests cover grouping/separation, no implicit enrollment/inference, replay/re
 Local installed-state readback: all22 non-ephemeral table hashes match the preceding phase; same7093cb8 release, three services active,20 agents already `needs_owner`,40 historical unknown allocations totaling1,600,000 retained tokens, zero running turns. The read used a read-only repeatable transaction and recorded only aggregates/hashes. Server Fleet was not contacted.
 
 Limitations: deterministic fake providers prove plumbing, accounting and preservation, not strategy quality, real-provider behavior or live response latency. The basic engine has no F5 belief/relationship continuity or F6 specialists. Feed coverage is explicit and incomplete; events are triggers and references, never a replacement for current authorized reads. Installation and a concrete new run remain separate.
+
+## 20 October trade validation follow-up
+
+Optional `ActionContract.expectedOutcomeSchema` binds model assertions outside server action arguments. Reactive proposals forward the assertion, and adapter refusal guidance/detail reaches the next decision within the unchanged native allowance. Non-opt-in contracts retain their existing generation shape and legacy fixtures. PACT requires checked `trade.youSend/youReceive` for offers/counters and applies canonical observed bond rules. See [implementation and live evidence](reactive-trade-repair-20261020.md).

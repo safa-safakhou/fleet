@@ -88,7 +88,7 @@ it.each([
         validateTool({ name: "generated", inputSchema: input.schema }, wrapped);
         if (calls % 2 === 0 && lookup === "action") {
           expect(object(context.requestedRead).tool).toBe("fleet_action_schema");
-          expect(requestedResult.schema).toEqual(pactAdapter.actionSchema("game.building.queue"));
+          expect(requestedResult.schema).toEqual(pactAdapter.proposalSchema?.("game.building.queue", {}));
           const action = {
             kind: "action",
             action: { kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 1 },

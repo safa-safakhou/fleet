@@ -6,7 +6,8 @@ import { pactAdapter } from "../../src/games/pact/adapter.js";
 import { Observability } from "../../src/observability.js";
 import { legacyManifestFor, legacyProfileFor } from "../../src/platform/profiles.js";
 import type { Claim } from "../../src/store.js";
-import golden from "../fixtures/legacy-contract-correction-20261018.json" with { type: "json" };
+import priorGolden from "../fixtures/legacy-prompt-guidance-20261020.json" with { type: "json" };
+import golden from "../fixtures/legacy-reasoning-effects-20261020.json" with { type: "json" };
 import { FakeGame, FakeModel, fixture, ready } from "../helpers.js";
 import { modelInputDigest, normalizedModelInputs } from "../legacy-parity.js";
 
@@ -55,67 +56,76 @@ describe("versioned compatibility execution", () => {
     [false, false],
     [true, false],
     [false, true],
-  ])("preserves legacy inputs and accounting with cognition %s and action %s", async (cognition, action) => {
-    const f = await setup(cognition ? { cognition: "llm-centered-v1" } : undefined);
-    const before = (
-      await f.pool.query("SELECT model,budget,anchor_at,interval_minutes FROM cohorts WHERE id=$1", [f.cohortId])
-    ).rows[0];
-    const decisions = () =>
-      action
-        ? [
-            {
-              kind: "action",
-              action: { kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 1 },
-              summary: "Queue a farm",
-            },
-            { kind: "wait", summary: "Wait for actual changes" },
-          ]
-        : undefined;
-    const directModel = new FakeModel(decisions());
-    await new Engine(f.store, directModel, async () => f.game, true, pactAdapter).run(f.claim);
-    const direct = await outcomes(f);
-    const directInput = normalizedModelInputs(directModel, f.claim);
-    if (!action) expect(modelInputDigest(directModel, f.claim)).toBe(golden.cases[cognition ? 1 : 0].modelInputDigest);
-    const directReport = await new Observability(f.store).run(f.claim.id);
-    expect(directReport.engine.provenance).toBe("inferred_legacy");
+  ])(
+    "verifies reviewed proposal inputs and preserves accounting with cognition %s and action %s",
+    async (cognition, action) => {
+      const f = await setup(cognition ? { cognition: "llm-centered-v1" } : undefined);
+      const before = (
+        await f.pool.query("SELECT model,budget,anchor_at,interval_minutes FROM cohorts WHERE id=$1", [f.cohortId])
+      ).rows[0];
+      const decisions = () =>
+        action
+          ? [
+              {
+                kind: "action",
+                action: { kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 1 },
+                summary: "Queue a farm",
+              },
+              { kind: "wait", summary: "Wait for actual changes" },
+            ]
+          : undefined;
+      const directModel = new FakeModel(decisions());
+      await new Engine(f.store, directModel, async () => f.game, true, pactAdapter).run(f.claim);
+      const direct = await outcomes(f);
+      const directInput = normalizedModelInputs(directModel, f.claim);
+      if (!action) {
+        expect(golden.cases[cognition ? 1 : 0].priorModelInputDigest).toBe(
+          priorGolden.cases[cognition ? 1 : 0].modelInputDigest,
+        );
+        expect(modelInputDigest(directModel, f.claim)).toBe(golden.cases[cognition ? 1 : 0].modelInputDigest);
+      }
+      const directReport = await new Observability(f.store).run(f.claim.id);
+      expect(directReport.engine.provenance).toBe("inferred_legacy");
 
-    // Restore only this synthetic fixture to the same pre-turn state. Never use this on an installed fleet.
-    await f.pool.query("DELETE FROM cognitive_updates");
-    await f.pool.query("DELETE FROM cognitive_states");
-    await f.pool.query("DELETE FROM cognitive_episodes");
-    await f.pool.query("DELETE FROM decision_states");
-    await f.pool.query("DELETE FROM compute_ledger");
-    await f.pool.query("DELETE FROM turn_events");
-    await f.pool.query(
-      "UPDATE turns SET state='running',calls=0,actions=0,input_tokens=0,output_tokens=0,unknown_usage=false WHERE id=$1",
-      [f.claim.id],
-    );
-    await f.pool.query(
-      "UPDATE agents SET state=$2,notes='',read_memory_cipher=NULL,decision_feedback_cipher=NULL WHERE id=$1",
-      [f.claim.agentId, f.claim.agent.state],
-    );
-    const bridgedModel = new FakeModel(decisions());
-    const bridgedGame = new FakeGame(f.claim);
-    await new LegacyEngineBridge(f.store, bridgedModel, async () => bridgedGame, true, pactAdapter).run(f.claim);
-    expect(normalizedModelInputs(bridgedModel, f.claim)).toEqual(directInput);
-    if (!action) expect(modelInputDigest(bridgedModel, f.claim)).toBe(golden.cases[cognition ? 1 : 0].modelInputDigest);
-    expect(await outcomes(f)).toEqual(direct);
-    expect(bridgedGame.reads).toEqual(f.game.reads);
-    expect(bridgedGame.opened).toBe(action ? 1 : 0);
-    expect(bridgedGame.submits.map((item) => item.action)).toEqual(f.game.submits.map((item) => item.action));
-    expect(bridgedGame.submits).toHaveLength(action ? 1 : 0);
-    const report = await new Observability(f.store).run(f.claim.id);
-    expect(report.engine).toMatchObject({
-      provenance: "recorded",
-      profile: { id: cognition ? "legacy-cognition" : "legacy-loop", version: "1" },
-      baseline: { sourceRevision: "c212373ccca98d3e064d24ebd2a9398dd94e2a77", artifactKind: "source-snapshot" },
-    });
-    expect(JSON.stringify(normalizedModelInputs(bridgedModel, f.claim))).not.toContain("configurationDigest");
-    expect(
-      (await f.pool.query("SELECT model,budget,anchor_at,interval_minutes FROM cohorts WHERE id=$1", [f.cohortId]))
-        .rows[0],
-    ).toEqual(before);
-  });
+      // Restore only this synthetic fixture to the same pre-turn state. Never use this on an installed fleet.
+      await f.pool.query("DELETE FROM cognitive_updates");
+      await f.pool.query("DELETE FROM cognitive_states");
+      await f.pool.query("DELETE FROM cognitive_episodes");
+      await f.pool.query("DELETE FROM decision_states");
+      await f.pool.query("DELETE FROM compute_ledger");
+      await f.pool.query("DELETE FROM turn_events");
+      await f.pool.query(
+        "UPDATE turns SET state='running',calls=0,actions=0,input_tokens=0,output_tokens=0,unknown_usage=false WHERE id=$1",
+        [f.claim.id],
+      );
+      await f.pool.query(
+        "UPDATE agents SET state=$2,notes='',read_memory_cipher=NULL,decision_feedback_cipher=NULL WHERE id=$1",
+        [f.claim.agentId, f.claim.agent.state],
+      );
+      const bridgedModel = new FakeModel(decisions());
+      const bridgedGame = new FakeGame(f.claim);
+      await new LegacyEngineBridge(f.store, bridgedModel, async () => bridgedGame, true, pactAdapter).run(f.claim);
+      expect(normalizedModelInputs(bridgedModel, f.claim)).toEqual(directInput);
+      if (!action)
+        expect(modelInputDigest(bridgedModel, f.claim)).toBe(golden.cases[cognition ? 1 : 0].modelInputDigest);
+      expect(await outcomes(f)).toEqual(direct);
+      expect(bridgedGame.reads).toEqual(f.game.reads);
+      expect(bridgedGame.opened).toBe(action ? 1 : 0);
+      expect(bridgedGame.submits.map((item) => item.action)).toEqual(f.game.submits.map((item) => item.action));
+      expect(bridgedGame.submits).toHaveLength(action ? 1 : 0);
+      const report = await new Observability(f.store).run(f.claim.id);
+      expect(report.engine).toMatchObject({
+        provenance: "recorded",
+        profile: { id: cognition ? "legacy-cognition" : "legacy-loop", version: "1" },
+        baseline: { sourceRevision: "c212373ccca98d3e064d24ebd2a9398dd94e2a77", artifactKind: "source-snapshot" },
+      });
+      expect(JSON.stringify(normalizedModelInputs(bridgedModel, f.claim))).not.toContain("configurationDigest");
+      expect(
+        (await f.pool.query("SELECT model,budget,anchor_at,interval_minutes FROM cohorts WHERE id=$1", [f.cohortId]))
+          .rows[0],
+      ).toEqual(before);
+    },
+  );
 
   it("keeps legacy cognition and recall distinct", async () => {
     expect(legacyProfileFor({ route: "ollama", model: "fixture" })).toEqual({ id: "legacy-loop", version: "1" });

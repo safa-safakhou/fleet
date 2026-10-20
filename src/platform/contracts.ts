@@ -67,18 +67,25 @@ export type CapabilityRequirements = {
   coordination?: boolean;
 };
 export type SchemaRequirements = { observations?: string[]; actions?: string[] };
-export type ActionContract = { schemaId: string; payloadSchema: Data };
+export type AccountObjective = string | { intent: string; currentState: Data };
+export type ActionContract = { schemaId: string; payloadSchema: Data; expectedOutcomeSchema?: Data };
+export type ProposalValidation = { valid: boolean; code: string; guidance?: string; detail?: Data };
 export interface EnvironmentSession {
   observe(query: Data): Promise<Observation>;
   catalog(): Promise<Tool[]>;
   execute(intent: ActionIntent): Promise<ActionOutcome>;
   resolve(commandId: string): Promise<ActionOutcome>;
   events?(cursor: string | null): Promise<EventPage>;
-  validateProposal?(proposal: Proposal, observation: Observation): Promise<{ valid: boolean; code: string }>;
+  validateProposal?(proposal: Proposal, observation: Observation): Promise<ProposalValidation>;
+  waitSchema?(observation: Observation): Promise<Data | undefined>;
+  validateWait?(basis: Data, observation: Observation): Promise<ProposalValidation>;
   actionContracts?(observation: Observation): Promise<ActionContract[]>;
+  packObservation?(observation: Observation, byteLimit: number): Observation;
   close(): Promise<void>;
 }
 export interface EnvironmentAdapter {
+  instructions?: string;
+  accountObjective?(observation: Observation): AccountObjective | undefined;
   ref: { id: string; version: string };
   schemas: { observations: string[]; actions: string[] };
   presentation: { accountLabel: string; actorLabel: string; entityLabel: string; defaultGoal: string };

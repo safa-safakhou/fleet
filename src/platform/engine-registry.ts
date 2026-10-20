@@ -15,14 +15,19 @@ export interface EngineContext {
   eventRefs: string[];
   signal: AbortSignal;
   goal?: string;
+  instructions?: string;
+  accountObjective?: (observation: Observation) => import("./contracts.js").AccountObjective | undefined;
   trace?: (stage: "thinking" | "deciding", label: string, detail: Data) => Promise<void>;
   capabilities?: import("./contracts.js").Capabilities;
   validateProposal?: (
     proposal: import("./contracts.js").Proposal,
     observation: Observation,
-  ) => Promise<{ valid: boolean; code: string }>;
+  ) => Promise<import("./contracts.js").ProposalValidation>;
   schemas?: { observations: string[]; actions: string[] };
+  waitSchema?: (observation: Observation) => Promise<Data | undefined>;
+  validateWait?: (basis: Data, observation: Observation) => Promise<import("./contracts.js").ProposalValidation>;
   actionContracts?: (observation: Observation) => Promise<import("./contracts.js").ActionContract[]>;
+  packObservation?: (observation: Observation, byteLimit: number) => Observation;
   catalog?: () => Promise<Tool[]>;
   waitForEvent?: () => Promise<void>;
 }

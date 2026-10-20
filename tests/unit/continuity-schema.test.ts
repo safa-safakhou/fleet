@@ -66,7 +66,14 @@ it.each([false, true, "empty"] as const)(
       return { decision: { decision }, inputTokens: 10, outputTokens: 2 };
     });
     ctx.observation.continuity = {} as never;
-    if (fit === true) ctx.observation.payload = { huge: "x".repeat(40000) };
+    if (fit === true) {
+      ctx.observation.payload = { position: "a2", optionalHistory: "x".repeat(40000) };
+      ctx.packObservation = (o) => ({
+        ...o,
+        payload: { position: o.payload.position },
+        coverage: { omitted: ["optionalHistory"] },
+      });
+    }
     const module = {
       context: async () => ({
         version: 0,
@@ -147,3 +154,45 @@ it.each(["correct", "reject-again", "no-budget", "turn-limit", "fenced", "unknow
     expect(traces).toHaveLength(mode === "fenced" || mode === "unknown" ? 0 : mode === "correct" ? 1 : calls);
   },
 );
+it("withholds citations and subjective entries whose evidence is removed by adaptive pressure", async () => {
+  const evidence = ids.slice(0, 4).map((id) => ({ id, fact: { value: "f".repeat(5000) } }));
+  const ctx = reactiveProbe(async (_claim, input) => {
+    const packet = JSON.parse(input.messages[1].content);
+    const kept = packet.continuity.evidence.map((e: { id: string }) => e.id);
+    expect(kept.length).toBeLessThan(evidence.length);
+    expect(
+      packet.continuity.memories.every((m: { evidenceRefs: string[] }) =>
+        m.evidenceRefs.every((id) => kept.includes(id)),
+      ),
+    ).toBe(true);
+    const check = new Ajv({ strict: false }).compile(input.schema);
+    for (const e of evidence)
+      expect(check({ decision, continuity: { memories: [{ text: "Observed", evidenceRefs: [e.id] }] } })).toBe(
+        kept.includes(e.id),
+      );
+    return { decision: { decision }, inputTokens: 1, outputTokens: 1 };
+  });
+  const budget = ctx.claim.turn.cohort.budget;
+  if (!budget) throw Error("Fixture budget required");
+  budget.inputByteLimit = 48000;
+  ctx.observation.continuity = {} as never;
+  ctx.observation.payload = { core: "current authority and resources ".repeat(800), optional: "x".repeat(50000) };
+  ctx.packObservation = (o, n) => {
+    const v = { ...o, payload: { core: o.payload.core } };
+    if (Buffer.byteLength(JSON.stringify(v)) > n) throw new FleetError("CONTEXT_LIMIT", true);
+    return v;
+  };
+  await new ContinuityEngine({
+    context: async () => ({
+      version: 0,
+      self: {},
+      evidence,
+      beliefs: [],
+      predictions: [],
+      reflections: [],
+      plan: null,
+      memories: evidence.map((e) => ({ text: "Grounded", evidenceRefs: [e.id] })),
+    }),
+    restrict: () => {},
+  } as never).run(ctx);
+});

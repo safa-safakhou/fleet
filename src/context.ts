@@ -2,6 +2,7 @@ import { beliefCue, deliveredCognition, type Episode, utf8Prefix } from "./cogni
 import { analysisOpportunities } from "./cognitive-analysis.js";
 import { type Data, FleetError, object } from "./domain.js";
 import { factTable } from "./fact-table.js";
+import { ownerDecisionContext } from "./owner-guidance.js";
 import { referenceOpportunityText, referenceSchemaFeedback } from "./schema-feedback.js";
 
 // Count the serialized transport envelope plus the separately supplied output schema.
@@ -79,7 +80,7 @@ function fitAcceptedMessages(
   let compactTransport = false;
   const messages = (c: Data) => {
     const encode = (value: Data) => {
-      if (!compactTransport) return value;
+      if (!compactTransport) return ownerDecisionContext(value);
       const actualSchema = schemaForContext ? schemaForContext(value) : schema;
       let encoded = referenceSchemaFeedback(value, actualSchema);
       if (String(value.schemaCoverage).includes("sameTextAs"))
@@ -110,7 +111,7 @@ function fitAcceptedMessages(
             requestedRead: { ...read, result: { ...result, state: { ...state, outcomes: table } } },
           };
       }
-      return encoded;
+      return ownerDecisionContext(encoded);
     };
     return [
       { role: "system", content: instructions },
@@ -240,7 +241,18 @@ function fitAcceptedMessages(
         // Dense authority/core state can require more than 4 KB while optional
         // pages make 6 KB too large for the complete provider envelope. Search
         // that interval as well; never infer that a failed coarse bucket cannot fit.
-        for (const allowance of Array.from({ length: 201 }, (_, index) => 12000 - index * 50)) {
+        const larger = Math.max(
+          0,
+          Math.ceil((Math.min(Buffer.byteLength(JSON.stringify(context.environment)), limit) - 12000) / 500),
+        );
+        // Preserve existing small-envelope choices first. A post-command core
+        // can exceed 12KB while still fitting the complete request; never treat
+        // that historical search bucket as the environment's hard ceiling.
+        const allowances = [
+          ...Array.from({ length: 201 }, (_, index) => 12000 - index * 50),
+          ...Array.from({ length: larger }, (_, index) => 12500 + index * 500),
+        ];
+        for (const allowance of allowances) {
           let environment: Data;
           try {
             environment = compactEnvironment(object(context.environment), allowance);

@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "fleet.legacy-reasoning-effects.v1",
+  "reason": "Founder-authorized reasoning repair: optional bookkeeping is not a gameplay prerequisite, confirmed operations have adapter-owned immediate-effect meaning, and PACT production roles remain factual. Original controller digest and prior goldens remain preserved with narrow reviewed exceptions; direct/bridge parity and allocation checks remain required.",
+  "archivedGolden": "legacy-prompt-guidance-20261020.json",
+  "cases": [
+    {
+      "priorModelInputDigest": "b0c13a5bb7d80033fd4856c7a80687ae525a50e9a5f631e7dc911701681e0197",
+      "modelInputDigest": "4b625a180ebc057c9aa056f08fc3866239004e49451d86234dd29865c23a47d8"
+    },
+    {
+      "priorModelInputDigest": "5f30017193b85697488da1a3b6798af2f7500a27574044c255987b239e09c6f9",
+      "modelInputDigest": "41f05b826de91675093d217e1de4f343bf5b6a77ec0c057c5bed7c7840dd740d"
+    }
+  ]
+}

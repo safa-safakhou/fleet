@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "fleet.legacy-interaction-guidance.v1",
+  "reason": "Explicit founder planning/interaction repair: shared observed proposal schemas remove busy construction, uncontacted messages and stale mandate alternatives; exact supply.offer is upfront; self/peer roles and schema-versus-state guidance are delivered. Historical controller source pin and all prior golden files remain unchanged. Behavioral negative/positive tests separately verify these intended changes; bridge equality and original accounting remain required.",
+  "archivedGolden": "legacy-autonomy-guidance-20261019.json",
+  "cases": [
+    {
+      "priorModelInputDigest": "320519f47ae4b280275ee4b7919fbd322c4adbb8210ae092aef2b49373084592",
+      "modelInputDigest": "8aecef9ce4ee491d828054f12c582c48efe18c193d1d22a32a0dcf3eca947de7"
+    },
+    {
+      "priorModelInputDigest": "307930f00d0f304123f7584604af8959324497c8a35773cceb18557135e0d672",
+      "modelInputDigest": "7fe5d5c33c54ddc0e91a615ae3194e8c14ddd7e41764d96d2888117ed07f0384"
+    }
+  ]
+}

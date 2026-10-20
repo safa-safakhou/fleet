@@ -103,6 +103,11 @@ it("resyncs expired cursor without fabricated history", async () => {
     const s = await connect(b);
     return {
       ...s,
+      packObservation: (o) => ({
+        ...o,
+        payload: { current: o.payload.current },
+        coverage: { ...o.coverage, budgetOmittedKeys: ["huge"] },
+      }),
       observe: async (q) => {
         snapshots++;
         return s.observe(q);
@@ -239,6 +244,11 @@ it("uses current snapshots after out-of-order events and discloses omitted input
     const s = await connect(b);
     return {
       ...s,
+      packObservation: (o) => ({
+        ...o,
+        payload: { current: o.payload.current },
+        coverage: { ...o.coverage, budgetOmittedKeys: ["huge"] },
+      }),
       observe: async (q) => ({
         ...(await s.observe(q)),
         revision: "100",

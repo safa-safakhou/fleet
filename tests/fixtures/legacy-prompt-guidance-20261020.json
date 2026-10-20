@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "fleet.legacy-prompt-guidance.v1",
+  "reason": "Founder-authorized prompt review: current construction readiness and negotiation lifecycle are explicit, fresh facts outrank stale notes, and memory citations do not certify interpretation. Native legacy controller source and all historical goldens are retained; direct/bridge equality, useful-action regressions and accounting checks remain required.",
+  "archivedGolden": "legacy-interaction-guidance-20261020.json",
+  "cases": [
+    {
+      "priorModelInputDigest": "8aecef9ce4ee491d828054f12c582c48efe18c193d1d22a32a0dcf3eca947de7",
+      "modelInputDigest": "b0c13a5bb7d80033fd4856c7a80687ae525a50e9a5f631e7dc911701681e0197"
+    },
+    {
+      "priorModelInputDigest": "7fe5d5c33c54ddc0e91a615ae3194e8c14ddd7e41764d96d2888117ed07f0384",
+      "modelInputDigest": "5f30017193b85697488da1a3b6798af2f7500a27574044c255987b239e09c6f9"
+    }
+  ]
+}
