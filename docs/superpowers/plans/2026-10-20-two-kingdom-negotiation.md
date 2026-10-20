@@ -10,7 +10,9 @@
 
 **Spec:** [Milestone design, scenarios, budgets and gates](../specs/2026-10-20-two-kingdom-negotiation-design.md). [PACT ownership companion](../../../../pact/docs/superpowers/plans/2026-10-20-two-kingdom-negotiation.md).
 
-**Status:** Planning only, 20 October 2026. All eight tasks are unstarted. No source fixes, tests, fixture/model/game runs or installation are authorized by saving this plan. E1–E4 are separate future proposals. Baselines: Fleet `a6ef729`, PACT `41e8bcd`.
+**Original status:** Planning only, 20 October 2026. All eight tasks are unstarted. No source fixes, tests, fixture/model/game runs or installation are authorized by saving this plan. E1–E4 are separate future proposals. Baselines: Fleet `a6ef729`, PACT `41e8bcd`.
+
+**Implementation checkpoint (20 October 2026):** F00/F01 and N01/N02 are implemented and verified in the isolated `codex/two-kingdom-offline` worktrees. F02–F06 and N03–N08 remain open. Earlier planning-only wording below records the original assignment; the founder subsequently authorized offline implementation. No real-provider stage is authorized or started.
 
 ## Global Constraints
 
@@ -81,11 +83,11 @@ All new files/symbols are proposed. Each task owns runtime schemas/tests as well
 
 `NegotiationWorld` exposes fixture world identity, two actor bindings, `advanceTo(gameMinute)`, scoped read/dispatch adapters and owned cleanup. Adapters use real onboarding/authentication/lease/mandate checks. Evaluator access to both actors never reaches model packets.
 
-- [ ] Assert exact 60 installments/flow, terminal `expired`, A +1 Silver and B +2 Iron versus isolated solo at the matched refill boundary. Add C02 counter-version invalidation, C03 negative actual stock delta, C04 stale/expiry/revoked-authority refusal, C05 actual default/fulfillment, and cross-world identity/cursor/receipt rejection.
-- [ ] Run `npm run test:architecture -- --repo pact tests/integration/negotiation-worlds.test.ts tests/integration/negotiation-lifecycle.test.ts`; expect missing new fixture/outcome behavior to fail.
-- [ ] Implement with dispatcher, social/supply services and full rules ticks. No handwritten settlement subset or SQL-inserted signature/contract/default. Stock credits are pre-decision and journalled. Create C02's seed under its initial synthetic owner goal, then record the normal current-goal amendment before agent decisions. Prove agent-only contact answers under explicit delegation.
-- [ ] Rerun new tests and PACT `social-material.test.ts`, `supply-offers.test.ts`, `supply-settlement.test.ts`, `game-command-social.test.ts`, `game-command-faults.test.ts`. Include lost response after committed signature with same-ID readback, insufficient future funds and exact bond arithmetic.
-- [ ] Commit N02 files: `test: verify independent negotiation worlds and supply outcomes`. Any newly reproduced production handler defect needs its own minimal regression/fix/report; no rule or authority adjustment to obtain success.
+- [x] Assert exact 60 installments/flow, terminal `expired`, A +1 Silver and B +2 Iron versus isolated solo at the matched refill boundary. Add C02 counter-version invalidation, C03 negative actual stock delta, C04 stale/expiry/revoked-authority refusal, C05 actual default/fulfillment, and cross-world identity/cursor/receipt rejection.
+- [x] Run `npm run test:architecture -- --repo pact tests/integration/negotiation-worlds.test.ts tests/integration/negotiation-lifecycle.test.ts`; expect missing new fixture/outcome behavior to fail.
+- [x] Implement with dispatcher, social/supply services and full rules ticks. No handwritten settlement subset or SQL-inserted signature/contract/default. Stock credits are pre-decision and journalled. Create C02's seed under its initial synthetic owner goal, then record the normal current-goal amendment before agent decisions. Prove agent-only contact answers under explicit delegation.
+- [x] Rerun new tests and PACT `social-material.test.ts`, `supply-offers.test.ts`, `supply-settlement.test.ts`, `game-command-social.test.ts`, `game-command-faults.test.ts`. Include lost response after committed signature with same-ID readback, insufficient future funds and exact bond arithmetic.
+- [x] Commit N02 files: `test: verify independent negotiation worlds and supply outcomes`. Any newly reproduced production handler defect needs its own minimal regression/fix/report; no rule or authority adjustment to obtain success.
 
 ## N03 — Deliver complete current negotiation facts
 
