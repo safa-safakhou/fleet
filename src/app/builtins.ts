@@ -1,5 +1,6 @@
 import { FleetError } from "../domain.js";
 import { definition as continuity } from "../engines/continuity/engine.js";
+import { definition as continuityV2 } from "../engines/continuity/engine-v2.js";
 import { legacyManifest, prepareLegacyModel, validateLegacy } from "../engines/legacy/manifest.js";
 import { definition as reactive } from "../engines/reactive/engine.js";
 import { definition as specialists } from "../engines/specialists/coordinator.js";
@@ -21,6 +22,7 @@ export function builtinArchitectures(
     })),
     reactive,
     continuity,
+    continuityV2,
     specialists,
     ...additional,
   ];

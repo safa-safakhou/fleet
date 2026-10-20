@@ -107,11 +107,11 @@ State binds self/peer/conversation/offer/version to known/unknown coverage, game
 
 `EvidenceSelection` supplies current goal/entity/conversation refs, scoped originals/interpretations, current time and byte budget. The result supplies ordered causal bundles, candidate/selected/delivered/omitted IDs, missing-support reasons and policy digest. Each bundle links promise/obligation, outcome and optional interpretation. Foreign or unsupported sources are inadmissible.
 
-- [ ] Test `missed_delivery_survives_ten_stock_updates`, `fulfilled_differs_from_default`, `originals_and_interpretation_fit_together`, `source_expiry_removes_support`, `narration_is_not_a_memory_write`, `accepted_memory_survives_restart`, `no_write_retains_original_receipt`, `v1_rank_and_packets_unchanged`, `oversize_bundle_reports_unavailable`. Verify final serialized packets and a later actual engine turn.
-- [ ] Run `npm run test:architecture -- tests/unit/negotiation-evidence.test.ts tests/integration/negotiation-continuity.test.ts`; the new outcome-delivery assertion must fail before implementation.
-- [ ] Implement bounded goal/peer/causal relevance, repeated-observation deduplication, whole support bundles and omission reasons. Use scoped versioned persistence and an explicit v2 codec/namespace for accepted/rejected/no-op memory-write acknowledgments; never reinterpret or backfill v1 state. Deterministic original receipts are not model-authored learning. Register v2 through F02 and compose F05 shared modules; no sibling-engine imports or changed v1 `rankEpisodes`/selection.
-- [ ] Rerun selection/continuity/restart/consent/deletion suites and F01 parity. Verify no additional call/allowance/compulsory memory update. Never reconstruct a missing original from a summary. Future specialist A04 selects this policy explicitly.
-- [ ] Commit: `feat: add outcome-grounded cognition version two`.
+- [x] Test `missed_delivery_survives_ten_stock_updates`, `fulfilled_differs_from_default`, `originals_and_interpretation_fit_together`, `source_expiry_removes_support`, `narration_is_not_a_memory_write`, `accepted_memory_survives_restart`, `no_write_retains_original_receipt`, `v1_rank_and_packets_unchanged`, `oversize_bundle_reports_unavailable`. Verify final serialized packets and a later actual engine turn.
+- [x] Run `npm run test:architecture -- tests/unit/negotiation-evidence.test.ts tests/integration/negotiation-continuity.test.ts`; the new outcome-delivery assertion must fail before implementation.
+- [x] Implement bounded goal/peer/causal relevance, repeated-observation deduplication, whole support bundles and omission reasons. Use scoped versioned persistence and an explicit v2 codec/namespace for accepted/rejected/no-op memory-write acknowledgments; never reinterpret or backfill v1 state. Deterministic original receipts are not model-authored learning. Register v2 through F02 and compose F05 shared modules; no sibling-engine imports or changed v1 `rankEpisodes`/selection.
+- [x] Rerun selection/continuity/restart/consent/deletion suites and F01 parity. Verify no additional call/allowance/compulsory memory update. Never reconstruct a missing original from a summary. Future specialist A04 selects this policy explicitly.
+- [x] Commit: `feat: add outcome-grounded cognition version two`.
 
 ## N05 — Assess outcomes and claims
 

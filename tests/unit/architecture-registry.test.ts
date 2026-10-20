@@ -59,7 +59,8 @@ it("publishes immutable metadata without exposing factories and refuses malforme
 });
 it("preserves all five existing requirements and exact unsupported versions without making connections", () => {
   const r = builtinArchitectures();
-  expect(r.list()).toHaveLength(5);
+  expect(r.list()).toHaveLength(6);
+  expect(new Set(r.list().map((m) => m.ref.id)).size).toBe(5);
   const expected = [
     [
       "legacy-loop",
@@ -80,6 +81,9 @@ it("preserves all five existing requirements and exact unsupported versions with
     ["specialist-coordinator", { capabilities: { continuity: true, coordination: true } }],
   ] as const;
   for (const [id, requirements] of expected) expect(profileRequirements({ id, version: "1" })).toEqual(requirements);
-  expect(profileRequirements({ id: "reactive-cognition", version: "2" })).toBeUndefined();
+  expect(profileRequirements({ id: "reactive-cognition", version: "2" })).toEqual({
+    capabilities: { continuity: true },
+  });
+  expect(profileRequirements({ id: "reactive-cognition", version: "3" })).toBeUndefined();
   expect(r.validate({ id: "reactive-basic", version: "1" }, { code: "uploaded" }, {}).length).toBeGreaterThan(0);
 });
