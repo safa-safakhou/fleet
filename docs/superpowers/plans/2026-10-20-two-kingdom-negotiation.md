@@ -127,11 +127,11 @@ State binds self/peer/conversation/offer/version to known/unknown coverage, game
 
 **Depends on:** N02–N05. **Produces:** `runNegotiationFixture(cell,providers):Promise<NegotiationAssessment>` using actual selected engines, host tasks, adapters and PACT handlers. `providers` are fake in this task.
 
-- [ ] Write C01–C06 tests for contact, dialogue, same-version consent, settlement, independent controls, restart and both later decisions. Inject faults before/after model dispatch, state save, game commit and result delivery; duplicate events; lease revocation; cutoff during response; unsupported F6; packet omissions and false claims.
-- [ ] Run `npm run test:architecture -- tests/acceptance/negotiation.test.ts tests/integration/negotiation-recovery.test.ts`; the red assertion must concern missing lifecycle behavior, not a missing build/fixture.
-- [ ] Implement per-actor adapters/evidence capture with no private historical traces, global model-visible oracle or scripted replacement action. Fake outputs cover success and detection of bad behavior. Keep scripted diagnostic prefixes labelled; the driver never repairs model terms into the desired trade.
-- [ ] Rerun new suites, existing paired PACT acceptance and affected recovery/engine tests. Mutate peer/version/delivery/goal/usage in a passing exported fixture and require rejection. Record any expected frozen-baseline weakness separately; fake-provider success proves plumbing, not strategy.
-- [ ] Commit: `test: qualify two-kingdom lifecycle and recovery offline`.
+- [x] Write C01–C06 tests for contact, dialogue, same-version consent, settlement, independent controls, restart and both later decisions. Inject faults before/after model dispatch, state save, game commit and result delivery; duplicate events; lease revocation; cutoff during response; unsupported F6; packet omissions and false claims.
+- [x] Run `npm run test:architecture -- tests/acceptance/negotiation.test.ts tests/integration/negotiation-recovery.test.ts`; the red assertion must concern missing lifecycle behavior, not a missing build/fixture.
+- [x] Implement per-actor adapters/evidence capture with no private historical traces, global model-visible oracle or scripted replacement action. Fake outputs cover success and detection of bad behavior. Keep scripted diagnostic prefixes labelled; the driver never repairs model terms into the desired trade.
+- [x] Rerun new suites, existing paired PACT acceptance and affected recovery/engine tests. Mutate peer/version/delivery/goal/usage in a passing exported fixture and require rejection. Record any expected frozen-baseline weakness separately; fake-provider success proves plumbing, not strategy.
+- [x] Commit: `test: qualify two-kingdom lifecycle and recovery offline`.
 
 ## N07 — Disarmed preview and bounded execution capability
 
