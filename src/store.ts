@@ -185,10 +185,11 @@ export class Store {
       const row = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];
       if (!row) throw new FleetError("NOT_FOUND");
       if (!["draft", "paused"].includes(row.state)) throw new FleetError("COHORT_NOT_EDITABLE");
+      const hasTasks = Boolean((await c.query("SELECT to_regclass('platform_tasks') AS relation")).rows[0].relation);
       if (
         (
           await c.query(
-            "SELECT 1 FROM compute_ledger WHERE cohort_id=$1 UNION ALL SELECT 1 FROM turns WHERE cohort_id=$1 UNION ALL SELECT 1 FROM platform_tasks WHERE cohort_id=$1 LIMIT 1",
+            `SELECT 1 FROM compute_ledger WHERE cohort_id=$1 UNION ALL SELECT 1 FROM turns WHERE cohort_id=$1 ${hasTasks ? "UNION ALL SELECT 1 FROM platform_tasks WHERE cohort_id=$1" : ""} LIMIT 1`,
             [id],
           )
         ).rowCount
@@ -706,6 +707,15 @@ export class Store {
       ]);
     });
   }
+  private async architectureMetadataAvailable(c: PoolClient) {
+    const row = (
+      await c.query(
+        "SELECT to_regclass('architecture_operations') AS operations,to_regclass('architecture_allocations') AS allocations",
+      )
+    ).rows[0];
+    if (Boolean(row.operations) !== Boolean(row.allocations)) throw new FleetError("ARCHITECTURE_MIGRATION_INCOMPLETE");
+    return Boolean(row.operations);
+  }
   async reserveCall(claim: Claim, reserveCalls = 0) {
     if (!Number.isSafeInteger(reserveCalls) || reserveCalls < 0 || reserveCalls > 2)
       throw new FleetError("MODEL_RETRY_BUDGET", true);
@@ -748,10 +758,11 @@ export class Store {
         "INSERT INTO compute_ledger(id,cohort_id,turn_id,period,tokens,created_at) VALUES($1,$2,$3,$4,$5,$6)",
         [id, claim.cohortId, claim.id, period, b.perCallTokenLimit, now],
       );
-      await c.query(
-        "INSERT INTO architecture_allocations(allocation_id,turn_id,updated_at) SELECT $1,turn_id,$3 FROM architecture_operations WHERE turn_id=$2",
-        [id, claim.id, now],
-      );
+      if (await this.architectureMetadataAvailable(c))
+        await c.query(
+          "INSERT INTO architecture_allocations(allocation_id,turn_id,updated_at) SELECT $1,turn_id,$3 FROM architecture_operations WHERE turn_id=$2",
+          [id, claim.id, now],
+        );
       await c.query("UPDATE turns SET calls=calls+1 WHERE id=$1", [claim.id]);
       return id;
     });
@@ -767,11 +778,12 @@ export class Store {
           [id, input, output, this.now()],
         );
       if (row?.status !== "reserved") return;
-      await c.query("UPDATE architecture_allocations SET dispatch_state=$2,updated_at=$3 WHERE allocation_id=$1", [
-        id,
-        input === null || output === null ? "unknown" : "settled",
-        this.now(),
-      ]);
+      if (await this.architectureMetadataAvailable(c))
+        await c.query("UPDATE architecture_allocations SET dispatch_state=$2,updated_at=$3 WHERE allocation_id=$1", [
+          id,
+          input === null || output === null ? "unknown" : "settled",
+          this.now(),
+        ]);
       const reported = input !== null && output !== null;
       if (reported)
         await c.query("UPDATE compute_ledger SET tokens=greatest(tokens,$2) WHERE id=$1", [id, input + output]);
