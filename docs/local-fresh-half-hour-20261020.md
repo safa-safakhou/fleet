@@ -50,7 +50,9 @@ A had one TICK_PENDING turn; B had one PACT_DUPLICATE_NEGOTIATION turn containin
 
 All 48 model executions were reported: **421,134 input / 28,634 output tokens (449,768 total)**. The 1,920,000 reserved tokens are allocations, not reported consumption. A/B/C/D input/output respectively: 78,234/5,851;110,167/11,040;106,739/5,068;125,994/6,675. B recorded 10 helper requests, 3 legacy interpretations and 15 continuity-update events; D recorded 6 modern continuity updates. Counters do not establish learning quality.
 
-Largest complete serialized requests A/B/C/D: 33,211/35,149/46,555/47,997 bytes, within 48,000. All 48 responses returned without context/session/truncation failure. D's proximity to the envelope means this bounded run is not unlimited-history certification.
+Largest complete serialized requests A/B/C/D: 34,855/36,861/46,555/47,997 bytes, within 48,000. All 48 responses returned without context/session/truncation failure. D's proximity to the envelope means this bounded run is not unlimited-history certification.
+
+The later prompt review corrected the legacy serialized sizes above using their original measured inputBytes (matching string-encoded wire reconstruction for all27 legacy calls). The first report calculated legacy sizes from the debugger's decoded user-content objects, understating escaped wire bytes. Modern sizes were unchanged. Original private evidence and report hashes are retained; this correction changes no gameplay, usage or overflow conclusion.
 
 The observer saved 60 samples with zero read failures. No turn started at/after the deadline. All 30 committed commands matched independently authenticated original receipts and server rows; none committed late. The gate file closed 1 ms after the deadline; admission checks enforce the timestamp itself. The last in-flight turn finished 886 ms after cutoff without cancellation/replay. Controller completion was 3.189 s after cutoff, separate from the thirty-minute admission period.
 
