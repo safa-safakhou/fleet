@@ -139,11 +139,11 @@ State binds self/peer/conversation/offer/version to known/unknown coverage, game
 
 Preview records source/model/settings digests, cells/roles/clock modes, native limits, maxima, unique batch nonce and missing readiness items. Preview/validation have no provider/game-write capability. `grant` is a separate explicitly approved private manifest with exact fixture/world IDs, UTC start/cutoff and evidence/key references. Reuse existing ledger/window/recovery machinery, not a second spend counter.
 
-- [ ] Test preview makes zero provider/game/database mutation calls; missing grant, changed source/model, reused/expired nonce, unsupported version, extra cells and exhausted caps fail before dispatch. Exercise every batch/cell stop condition in design §7, including a semantic failure stopping E3 but not creating replacement cells in E1. Unknown usage retains its allocation; no failed-cell replacement, grading-triggered turn or unmetered warmup. Compute batch maxima from cell classes.
-- [ ] Run `npm run test:architecture -- tests/unit/negotiation-run.test.ts tests/integration/negotiation-run.test.ts` using fake ports; missing fail-closed behavior must fail.
-- [ ] Implement the CLI with preview default; execution requires `--execute-approved <private-manifest>` and immediate revalidation. Controlled time advances only when no operation is in flight, executing every intervening tick. Native time follows elapsed wall time. Preserve cutoff/late answers/original IDs/actual costs; no automatic next stage or unused-budget reuse.
-- [ ] Rerun gate/fault tests and current window/qualification suites. Generate an E1-only non-executable preview, with actual source/model/start fields still missing where unknown. Do not invoke providers, start a world or pass an execution flag during source work.
-- [ ] Commit: `feat: prepare disarmed negotiation qualification protocols`.
+- [x] Test preview makes zero provider/game/database mutation calls; missing grant, changed source/model, reused/expired nonce, unsupported version, extra cells and exhausted caps fail before dispatch. Exercise every batch/cell stop condition in design §7, including a semantic failure stopping E3 but not creating replacement cells in E1. Unknown usage retains its allocation; no failed-cell replacement, grading-triggered turn or unmetered warmup. Compute batch maxima from cell classes.
+- [x] Run `npm run test:architecture -- tests/unit/negotiation-run.test.ts tests/integration/negotiation-run.test.ts` using fake ports; missing fail-closed behavior must fail.
+- [x] Implement the CLI with preview default; execution requires `--execute-approved <private-manifest>` and immediate revalidation. Controlled time advances only when no operation is in flight, executing every intervening tick. Native time follows elapsed wall time. Preserve cutoff/late answers/original IDs/actual costs; no automatic next stage or unused-budget reuse.
+- [x] Rerun gate/fault tests and current window/qualification suites. Generate an E1-only non-executable preview, with actual source/model/start fields still missing where unknown. Do not invoke providers, start a world or pass an execution flag during source work.
+- [x] Commit: `feat: prepare disarmed negotiation qualification protocols`.
 
 ## N08 — Source acceptance and handoff
 
