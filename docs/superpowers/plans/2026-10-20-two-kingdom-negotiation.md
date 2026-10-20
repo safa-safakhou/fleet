@@ -69,11 +69,11 @@ All new files/symbols are proposed. Each task owns runtime schemas/tests as well
 
 **Depends on:** F00/F01. **Produces:** definitions above, `designDigest(manifest):string` and matching manifests/JSON Schemas in both repos. **Tests:** new `tests/unit/negotiation-plan.test.ts` in both repos.
 
-- [ ] Write assertions E1=2P/144 calls, E2=8P+4R/672, E3=10P+15N+10R/1,230, E4=2P/144; 40,000 maximum reservation/call; disjoint split IDs; fixed role rotation; no baseline relabelling. Check missing/extra/private fields and exact integer quantities.
-- [ ] Run `npm run test:architecture -- --repo pact tests/unit/negotiation-plan.test.ts`, then its Fleet equivalent. Expect missing manifest/contract assertions to fail, not infrastructure.
-- [ ] Implement the separate manifest, strict schemas, cell order and source/config digests. Include every initial-state, private-goal and allowed-action declaration; evaluator-only data is excluded from actor packets. Previews contain no credentials or implicit grant.
-- [ ] Rerun both new tests and existing evaluation-plan/evaluation suites. Require mirrored bytes/digests and rejection of wrong world/schema, altered goals, split overlap and increased limits. Historical manifests remain identical.
-- [ ] Commit only N01 files in each repo: `test: freeze two-kingdom negotiation protocol`.
+- [x] Write assertions E1=2P/144 calls, E2=8P+4R/672, E3=10P+15N+10R/1,230, E4=2P/144; 40,000 maximum reservation/call; disjoint split IDs; fixed role rotation; no baseline relabelling. Check missing/extra/private fields and exact integer quantities.
+- [x] Run `npm run test:architecture -- --repo pact tests/unit/negotiation-plan.test.ts`, then its Fleet equivalent. Expect missing manifest/contract assertions to fail, not infrastructure.
+- [x] Implement the separate manifest, strict schemas, cell order and source/config digests. Include every initial-state, private-goal and allowed-action declaration; evaluator-only data is excluded from actor packets. Previews contain no credentials or implicit grant.
+- [x] Rerun both new tests and existing evaluation-plan/evaluation suites. Require mirrored bytes/digests and rejection of wrong world/schema, altered goals, split overlap and increased limits. Historical manifests remain identical.
+- [x] Commit only N01 files in each repo: `test: freeze two-kingdom negotiation protocol`.
 
 ## N02 — Prove economics and communication through PACT
 
