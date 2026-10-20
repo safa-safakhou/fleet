@@ -241,7 +241,9 @@ it("exposes authenticated launch DTOs with existing origin and CSRF fencing", as
         cookie: String(login.headers["set-cookie"]).split(";")[0],
         "x-csrf-token": login.json().csrf,
       };
-    expect((await app.inject({ url: "/api/architectures", headers })).json().architectures).toHaveLength(7);
+    expect((await app.inject({ url: "/api/architectures", headers })).json().architectures).toHaveLength(
+      f.architectures.list().length,
+    );
     expect(
       (
         await app.inject({

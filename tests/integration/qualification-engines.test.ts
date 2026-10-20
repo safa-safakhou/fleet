@@ -8,13 +8,13 @@ import {
   qualificationModelDigest,
   runQualification,
 } from "../../src/qualification-run.js";
+import { openQualificationFixture } from "../qualification-helpers.js";
 
-const url = "postgres://fleet_qualification:qualification_fixture@127.0.0.1:5436/fleet_qualification";
 it.each([false, true])(
   "runs all four shipped engines over twelve frozen trials each with every command withheld (recovery=%s)",
   async (recovery) => {
     const network = vi.spyOn(globalThis, "fetch").mockRejectedValue(new Error("NO_NETWORK_IN_FIXTURES"));
-    const ledger = await QualificationLedger.open(url, Buffer.alloc(32, 18).toString("base64"));
+    const ledger = await openQualificationFixture(Buffer.alloc(32, 18).toString("base64"));
     const p = prepareQualification({
       schemaVersion: recovery ? "fleet.local-qualification.v2" : "fleet.local-qualification.v1",
       id: randomUUID(),

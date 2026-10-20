@@ -2,16 +2,14 @@ import { randomBytes, randomUUID } from "node:crypto";
 import { afterEach, expect, it } from "vitest";
 import { prepareQualification, QualificationLedger, runQualification } from "../../src/qualification-run.js";
 import { FakeModel } from "../helpers.js";
+import { openQualificationFixture } from "../qualification-helpers.js";
 
-const url =
-  process.env.QUALIFICATION_TEST_DATABASE_URL ??
-  "postgres://fleet_qualification:qualification_fixture@127.0.0.1:5436/fleet_qualification";
 const closes: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const close of closes.splice(0)) await close();
 });
 async function setup() {
-  const l = await QualificationLedger.open(url, randomBytes(32).toString("base64"));
+  const l = await openQualificationFixture(randomBytes(32).toString("base64"));
   closes.push(() => l.close());
   const p = prepareQualification({
     schemaVersion: "fleet.local-qualification.v1",
@@ -210,7 +208,7 @@ it("rejects expired stages, aborted inputs, wrong settings and the third trial c
 it.each(["fleet.local-qualification.v1", "fleet.local-qualification.v2"])(
   "halts %s on unknown calibration usage before any fixture trial",
   async (schemaVersion) => {
-    const l = await QualificationLedger.open(url, randomBytes(32).toString("base64"));
+    const l = await openQualificationFixture(randomBytes(32).toString("base64"));
     closes.push(() => l.close());
     const p = prepareQualification({
       schemaVersion,
