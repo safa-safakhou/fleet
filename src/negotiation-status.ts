@@ -19,6 +19,7 @@ export function buildNegotiationStatus(sourcePassed: boolean, runs: NativeNegoti
     worlds = new Set<string>(),
     cellIds = new Set<string>();
   const byStage = new Map<string, NegotiationAssessment[]>();
+  let qualificationArm: string | undefined;
   for (const run of runs) {
     if (
       Object.keys(run).some(
@@ -42,6 +43,12 @@ export function buildNegotiationStatus(sourcePassed: boolean, runs: NativeNegoti
     nonces.add(batch.batchNonce);
     if (stages.has(protocol.selection.stage)) throw Error("DUPLICATE_NATIVE_STAGE");
     stages.add(protocol.selection.stage);
+    if (["E3", "E4"].includes(protocol.selection.stage)) {
+      const { sources, modelDigest, policyDigest, settingsDigest, selectedProfile } = protocol.selection;
+      const arm = designDigest({ sources, modelDigest, policyDigest, settingsDigest, selectedProfile });
+      if (qualificationArm && qualificationArm !== arm) throw Error("MIXED_QUALIFICATION_ARM");
+      qualificationArm = arm;
+    }
     const planned = negotiationPlan(protocol.selection.stage, {
       sources: protocol.selection.sources,
       modelDigest: protocol.selection.modelDigest,

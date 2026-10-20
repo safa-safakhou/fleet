@@ -73,3 +73,26 @@ it("assessment success cannot contradict the native cell terminal status", () =>
   r.nonceRecord.resultDigest = designDigest(r.batch);
   expect(() => buildNegotiationStatus(true, [r])).toThrow("NATIVE_CELL_STATUS_MISMATCH");
 });
+
+it("E3 and E4 cannot qualify different model or policy arms as one candidate", () => {
+  const a = record(),
+    b = record();
+  const protocol = prepareNegotiationProtocol({
+    ...b.protocol.selection,
+    stage: "E4",
+    modelDigest: "9".repeat(64),
+    batchNonce: undefined,
+  });
+  b.protocol = protocol;
+  b.batch = {
+    schemaVersion: "fleet.negotiation-batch.v1",
+    protocolDigest: protocol.digest,
+    batchNonce: protocol.batchNonce,
+    status: "stopped",
+    cells: protocol.cells.map((c) => ({ cellId: c.id, status: "not_started" })),
+  };
+  b.nonceRecord = { ...b.nonceRecord, protocolDigest: protocol.digest, resultDigest: designDigest(b.batch) };
+  a.batch.cells[0].assessment!.evidenceLevel = "real-provider";
+  a.nonceRecord.resultDigest = designDigest(a.batch);
+  expect(() => buildNegotiationStatus(true, [a, b])).toThrow("MIXED_QUALIFICATION_ARM");
+});
