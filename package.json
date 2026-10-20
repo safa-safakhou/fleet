@@ -12,6 +12,7 @@
     "build": "tsc -p tsconfig.server.json && vite build",
     "check": "tsc --noEmit && biome check .",
     "test": "vitest run tests/unit",
+    "test:architecture": "node --import tsx scripts/test-architecture-offline.ts",
     "test:integration": "vitest run tests/integration --maxWorkers=1",
     "db:migrate": "tsx scripts/migrate.ts",
     "start": "node dist/server/main.js",

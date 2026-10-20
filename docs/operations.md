@@ -102,3 +102,8 @@ Generic engine admission permits one corrective model attempt for known, complet
 ## Bounded mode qualification —18 October2026
 
 The explicitly approved continuation uses `scripts/qualify-retries.ts` (review-only by default), one immutable recovery grant attached to the original qualification ledger, and43 executions per mode within the remaining86/3440000 ceiling. Original failed Q1 and closed diagnostics are not reopened. All game ports are synthetic command sinks, original provider pins/deadline remain, and installed execution stays disabled. See [protocol and evidence](retry-mode-qualification-20261018.md). Approval is specific to this one bounded continuation; it is not deployment, population or permission to replay unknown work.
+# Owned architecture fixtures
+
+`npm run test:architecture -- <test paths>` creates a fresh labelled PostgreSQL 17 container from the already installed `postgres:17-alpine` image, publishes only a random loopback port, initializes `fleet_test` and `pact_test` with an ownership nonce, and removes only that labelled container afterward. It does not pull an image or read runtime credentials. It rejects retained ports and verifies markers before test setup/migrations. The child receives no inherited provider endpoints, API keys or Node startup hooks.
+
+Use `--suite unit|integration|acceptance` for Fleet suites or `--repo pact --suite unit|integration` for the adjacent PACT checkout. Explicit mixed PACT unit/integration paths are routed through their own configurations serially. No discovered tests is a failure. Paired acceptance requires built PACT packages and `@pact/rules-worker`; these builds perform no game/model execution. Existing unowned test services must never be selected for this work.

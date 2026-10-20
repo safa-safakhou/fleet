@@ -34,11 +34,11 @@ Exact-version selection, concurrent edit/start, missing capabilities, wrong fixt
 
 **Interfaces:** `OwnedFixture = {fleetUrl,pactUrl,nonce,close():Promise<void>}`; `createOwnedFixture():Promise<OwnedFixture>` in the script; `assertOwnedFixture(url,nonce):Promise<void>` in the test helper. Child environment marks architecture testing and carries the nonce; verify a marker in the newly created database before migrations/truncation.
 
-- [ ] Write tests `rejects retained ports and foreign ownership`, `exports only child fixture URLs`, `cleans only its own container on failure`. Assert a database with wrong nonce cannot reach `TRUNCATE`; an already occupied port is not reused; cleanup does not stop another PostgreSQL process.
-- [ ] Run the pure F00 unit command in the master plan; expect the new ownership assertions to fail before implementation.
-- [ ] Implement a loopback-only, random-port fixture runner using an already-present PostgreSQL 17 image/tooling. Generate temporary fixture credentials and nonce, create databases named `fleet_test`/`pact_test`, seed ownership markers, forward child exit status and handle SIGINT/finally cleanup. Do not pull images, expose credentials in logs, read private runtime configuration or inherit live provider endpoints. Add the package script and master-plan suite/config routing; architecture-mode helpers require the marker before destructive setup. Missing local fixture tooling is a reported prerequisite, not authority to install it.
-- [ ] Run F00 unit tests, then `npm run test:architecture -- tests/integration/environment-bindings.test.ts`; require passing tests, owned fixture cleanup and no fallback to the legacy default port.
-- [ ] Commit: `test: isolate architecture acceptance databases`.
+- [x] Write tests `rejects retained ports and foreign ownership`, `exports only child fixture URLs`, `cleans only its own container on failure`. Assert a database with wrong nonce cannot reach `TRUNCATE`; an already occupied port is not reused; cleanup does not stop another PostgreSQL process.
+- [x] Run the pure F00 unit command in the master plan; expect the new ownership assertions to fail before implementation.
+- [x] Implement a loopback-only, random-port fixture runner using an already-present PostgreSQL 17 image/tooling. Generate temporary fixture credentials and nonce, create databases named `fleet_test`/`pact_test`, seed ownership markers, forward child exit status and handle SIGINT/finally cleanup. Do not pull images, expose credentials in logs, read private runtime configuration or inherit live provider endpoints. Add the package script and master-plan suite/config routing; architecture-mode helpers require the marker before destructive setup. Missing local fixture tooling is a reported prerequisite, not authority to install it.
+- [x] Run F00 unit tests, then `npm run test:architecture -- tests/integration/environment-bindings.test.ts`; require passing tests, owned fixture cleanup and no fallback to the legacy default port.
+- [x] Commit: `test: isolate architecture acceptance databases`.
 
 ## F01 — Record current behavior before extraction
 

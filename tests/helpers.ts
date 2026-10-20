@@ -3,6 +3,7 @@ import { connect, migrate } from "../src/db.js";
 import type { Data, GamePort, ModelPort, Tool } from "../src/domain.js";
 import { type Claim, Store } from "../src/store.js";
 import { Vault } from "../src/vault.js";
+import { assertOwnedFixture } from "./architecture-fixture.js";
 export const key = Buffer.alloc(32, 7).toString("base64");
 export const testUrl =
   process.env.FLEET_TEST_DATABASE_URL ?? "postgres://fleet_test:isolated_fixture@127.0.0.1:5437/fleet_test";
@@ -29,6 +30,8 @@ export const continuousBudget = {
   executionAccountingAccepted: true,
 };
 export async function fixture() {
+  if (process.env.FLEET_ARCHITECTURE_TEST === "1")
+    await assertOwnedFixture(testUrl, process.env.FLEET_ARCHITECTURE_NONCE ?? "");
   const target = new URL(testUrl);
   if (!["127.0.0.1", "localhost"].includes(target.hostname) || target.pathname !== "/fleet_test")
     throw new Error("ISOLATED_TEST_DATABASE_REQUIRED");
