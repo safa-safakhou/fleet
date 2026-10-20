@@ -64,11 +64,11 @@ Exact-version selection, concurrent edit/start, missing capabilities, wrong fixt
 
 **Interfaces:** Produce `ArchitectureDefinition`/`ArchitectureManifest` and the type-only scoped ports from the master plan, plus `ArchitectureRegistry.register(definition)`, `list()`, `resolve(ref)`. A temporary old-`AgentEngine` adapter lives in composition. Keep the existing operational engine registry intact until F04 wires scoped factories; manifests can drive catalog/validation immediately without replacing the executing engine instances. `profileRequirements(ref)` delegates to registered metadata; old callers retain the same result.
 
-- [ ] Write tests for duplicate exact refs, same ID/two versions, unknown version, declarative schema rejection, manifest validation without connections, and unchanged five-profile requirements. Assert resolving `{id:"fixture",version:"2"}` never returns version `1`.
-- [ ] Run `npm run test:architecture -- tests/unit/architecture-registry.test.ts tests/unit/profile-qualification.test.ts`; expect missing registry/new version assertions red.
-- [ ] Implement static trusted registration and manifest schemas. Separate public display metadata from private configuration; configs cannot supply factories/code. Keep all existing manifest requirements unchanged. Move generic profile identity away from legacy baseline data; retain compatibility re-exports only outside generic platform dependencies.
-- [ ] Rerun F02 tests and `tests/acceptance/environment-profiles.test.ts`; initial registration count remains five and PACT coordinator remains incompatible.
-- [ ] Commit: `refactor: register architectures with versioned manifests`.
+- [x] Write tests for duplicate exact refs, same ID/two versions, unknown version, declarative schema rejection, manifest validation without connections, and unchanged five-profile requirements. Assert resolving `{id:"fixture",version:"2"}` never returns version `1`.
+- [x] Run `npm run test:architecture -- tests/unit/architecture-registry.test.ts tests/unit/profile-qualification.test.ts`; expect missing registry/new version assertions red.
+- [x] Implement static trusted registration and manifest schemas. Separate public display metadata from private configuration; configs cannot supply factories/code. Keep all existing manifest requirements unchanged. Move generic profile identity away from legacy baseline data; retain compatibility re-exports only outside generic platform dependencies.
+- [x] Rerun F02 tests and `tests/acceptance/environment-profiles.test.ts`; initial registration count remains five and PACT coordinator remains incompatible.
+- [x] Commit: `refactor: register architectures with versioned manifests`.
 
 ## F03 — Common draft, configuration and start service
 

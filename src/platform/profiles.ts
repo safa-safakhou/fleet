@@ -5,10 +5,9 @@ import type { ModelSettings } from "../domain.js";
 import baseline from "../engines/legacy/baseline.json" with { type: "json" };
 import type { Claim } from "../store.js";
 
-export interface EngineProfileRef {
-  id: string;
-  version: string;
-}
+import type { EngineProfileRef } from "./architecture.js";
+
+export type { EngineProfileRef } from "./architecture.js";
 
 export function legacyProfileFor(model: ModelSettings): EngineProfileRef {
   return { id: model.cognition ? "legacy-cognition" : "legacy-loop", version: "1" };

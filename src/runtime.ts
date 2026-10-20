@@ -1,3 +1,4 @@
+import { builtinArchitectures } from "./app/builtins.js";
 import { CodexModel } from "./codex.js";
 import { Cognition } from "./cognition.js";
 import { config } from "./config.js";
@@ -112,6 +113,7 @@ export function runtime() {
     environments,
     tasks,
     engines,
+    architectures: builtinArchitectures(),
     admission,
     commands,
     host,

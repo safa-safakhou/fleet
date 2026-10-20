@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { builtinArchitectures } from "./app/builtins.js";
 import type { Data } from "./domain.js";
 import { safeCode } from "./domain.js";
 import { compileGenerationSchema } from "./model-schema.js";
@@ -36,25 +37,15 @@ export function qualifyOutput(schema: Data, messages: unknown[], output: unknown
   };
 }
 
-// Reviewed static metadata, checked against the composed runtime by acceptance tests.
-// No constructors, connections or inference are used by qualification.
+const architectures = builtinArchitectures();
+/** Pure static metadata; no connections, provider calls or engine construction. */
 export function profileRequirements(
   profile: EngineProfileRef,
 ): { capabilities: CapabilityRequirements; schemas?: SchemaRequirements } | undefined {
-  if (profile.version !== "1") return;
-  switch (profile.id) {
-    case "legacy-loop":
-    case "legacy-cognition":
-      return {
-        capabilities: { timing: ["realtime"] },
-        schemas: { observations: ["pact.observation.v1"], actions: ["pact.action.v1"] },
-      };
-    case "reactive-basic":
-      return { capabilities: { eventDelivery: ["native", "poll"] } };
-    case "reactive-cognition":
-      return { capabilities: { eventDelivery: ["native", "poll"], continuity: true } };
-    case "specialist-coordinator":
-      return { capabilities: { continuity: true, coordination: true } };
+  try {
+    return architectures.resolve(profile).manifest.requirements;
+  } catch {
+    return undefined;
   }
 }
 export const QualificationProfile = z
