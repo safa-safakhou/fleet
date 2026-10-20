@@ -16,7 +16,7 @@ export interface EngineContext {
   signal: AbortSignal;
   goal?: string;
   instructions?: string;
-  accountObjective?: (observation: Observation) => string | undefined;
+  accountObjective?: (observation: Observation) => import("./contracts.js").AccountObjective | undefined;
   trace?: (stage: "thinking" | "deciding", label: string, detail: Data) => Promise<void>;
   capabilities?: import("./contracts.js").Capabilities;
   validateProposal?: (
@@ -24,6 +24,8 @@ export interface EngineContext {
     observation: Observation,
   ) => Promise<import("./contracts.js").ProposalValidation>;
   schemas?: { observations: string[]; actions: string[] };
+  waitSchema?: (observation: Observation) => Promise<Data | undefined>;
+  validateWait?: (basis: Data, observation: Observation) => Promise<import("./contracts.js").ProposalValidation>;
   actionContracts?: (observation: Observation) => Promise<import("./contracts.js").ActionContract[]>;
   packObservation?: (observation: Observation, byteLimit: number) => Observation;
   catalog?: () => Promise<Tool[]>;

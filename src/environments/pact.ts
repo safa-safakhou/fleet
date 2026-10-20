@@ -2,6 +2,7 @@ import { type Data, FleetError, type GamePort, object, safeCode } from "../domai
 import { pactAdapter } from "../games/pact/adapter.js";
 import { pactAgentBriefing } from "../games/pact/briefing.js";
 import { pactEvents } from "../games/pact/events.js";
+import { pactCurrentObjective, pactWaitSchema, validatePactWait } from "../games/pact/goal-state.js";
 import { pactContinuity } from "../games/pact/outlook.js";
 import { packPactObservation } from "../games/pact/packing.js";
 import { pactActionContracts, pactProposalGuide, validatePactProposal } from "../games/pact/proposals.js";
@@ -71,7 +72,7 @@ export function createPactEnvironment(ports: {
   return {
     ref: { id: "pact", version: "1" },
     instructions: pactAdapter.instructions,
-    accountObjective: (observation) => pactAdapter.accountObjective?.(observation.payload),
+    accountObjective: (observation) => pactCurrentObjective(observation.payload),
     schemas: { observations: ["pact.observation.v1"], actions: ["pact.action.v1"] },
     presentation: {
       accountLabel: "Account",
@@ -211,6 +212,8 @@ export function createPactEnvironment(ports: {
         packObservation: packPactObservation,
         validateProposal: async (proposal, observation) =>
           validatePactProposal(proposal.intent.payload, observation.payload, proposal.expectedOutcome),
+        waitSchema: async (observation) => pactWaitSchema(observation.payload),
+        validateWait: async (basis, observation) => validatePactWait(basis, observation.payload),
         actionContracts: async (observation) => pactActionContracts(observation.payload),
         async execute(intent) {
           try {

@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { object } from "../../src/domain.js";
 import { compactFacts } from "../../src/games/pact/adapter.js";
-import { compactEnvironment } from "../../src/games/pact/environment.js";
+import { compactEnvironment, expandFactTables } from "../../src/games/pact/environment.js";
 
 const facts = {
   world: {
@@ -68,7 +68,7 @@ it("makes a standing owner objective and observed prerequisite options survive p
     ]),
   );
   const packed = compactEnvironment({ ...full, optionalHistory: "x".repeat(40000) }, 12000);
-  expect(packed.agentBriefing).toEqual(brief);
+  expect(object(expandFactTables(packed)).agentBriefing).toEqual(brief);
   expect(object(brief.execution).humanOnly).toContain(
     "Explicit human-only actions still require their existing owner approval.",
   );
@@ -230,7 +230,7 @@ it("reconciles stale goal assumptions against completed prerequisites and separa
   );
   expect(full.training).toEqual(stockBlocked.world.training);
   const packed = compactEnvironment({ ...full, optionalHistory: "x".repeat(30000) }, 12000);
-  expect(packed.agentBriefing).toEqual(full.agentBriefing);
+  expect(object(expandFactTables(packed)).agentBriefing).toEqual(full.agentBriefing);
   expect(packed.training).toEqual(stockBlocked.world.training);
   expect(full.ambition).toBe(stockBlocked.world.ambition);
 });

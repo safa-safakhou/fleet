@@ -5,7 +5,14 @@ import { currentOwnerObjectiveInstruction } from "../../owner-guidance.js";
 import type { AgentEngine, EngineContext } from "../../platform/engine-registry.js";
 
 export const ReactiveDecision = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("wait"), summary: z.string().max(400), untilNextEvent: z.boolean().optional() }).strict(),
+  z
+    .object({
+      kind: z.literal("wait"),
+      summary: z.string().max(400),
+      untilNextEvent: z.boolean().optional(),
+      basis: z.record(z.string(), z.unknown()).optional(),
+    })
+    .strict(),
   z
     .object({ kind: z.literal("read"), query: z.record(z.string(), z.unknown()), summary: z.string().max(400) })
     .strict(),
@@ -74,6 +81,7 @@ export class ReactiveEngine implements AgentEngine {
         this.decisionSchema,
         ctx.schemas?.actions ?? [],
         await ctx.actionContracts?.(observation),
+        await ctx.waitSchema?.(observation),
       );
       const ownerObjective = ctx.accountObjective?.(observation);
       const system =
@@ -155,6 +163,19 @@ export class ReactiveEngine implements AgentEngine {
       if (!parsed.success) throw new FleetError("INVALID_MODEL_OUTPUT");
       const d = parsed.data;
       if (d.kind === "wait") {
+        const validation = await ctx.validateWait?.(d.basis ?? {}, observation);
+        if (validation && !validation.valid) {
+          previousDecision = {
+            code: validation.code,
+            submitted: false,
+            committed: false,
+            guidance: validation.guidance,
+            ...(validation.detail ? { detail: validation.detail } : {}),
+          };
+          await ctx.trace?.("deciding", "Wait rejected before completion", previousDecision);
+          if (call + 1 >= budget.maxCallsPerTurn) throw new FleetError("MODEL_WAIT_REJECTED", true);
+          continue;
+        }
         if (d.untilNextEvent) await ctx.waitForEvent?.();
         return;
       }
@@ -206,6 +227,7 @@ function bindActionContracts(
   base: Data,
   allowed: string[],
   contracts?: import("../../platform/contracts.js").ActionContract[],
+  waitSchema?: Data,
 ) {
   const schema = structuredClone(base),
     inner = object(object(schema.properties).decision);
@@ -215,6 +237,16 @@ function bindActionContracts(
     if (!Array.isArray(root[key])) continue;
     root[key] = (root[key] as Data[]).flatMap((branch) => {
       const properties = object(branch.properties);
+      if (object(properties.kind).const === "wait") {
+        const { basis: _basis, ...waitProperties } = properties;
+        return [
+          {
+            ...branch,
+            properties: { ...waitProperties, ...(waitSchema ? { basis: waitSchema } : {}) },
+            ...(waitSchema ? { required: [...new Set([...(branch.required as string[]), "basis"])] } : {}),
+          },
+        ];
+      }
       if (object(properties.kind).const !== "action") return [branch];
       // Existing environments keep their archived contract unless they opt in.
       const { expectedOutcome: _outcome, ...operationProperties } = properties;

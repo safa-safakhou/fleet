@@ -1,3 +1,7 @@
+# Current stale-goal repair —20 October2026
+
+Founder explicitly requests fixing reactive-basic stale prerequisite reasoning and one new C0 turn. Work inline under docs/superpowers/plans/2026-10-20-reactive-stale-goal.md. Preserve146/194 history and all original identities/settings/goals/queues. Cover structured current-state reconciliation, checked waits, verified local Fleet installation/commits and exactly that one task, then park/restore/report honestly. No other actor/worker, extra attempt, reset/cancel/replay, server change or push.
+
 # Local reactive trade repair checkpoint complete —20 October2026
 
 PACT fb7a1ba / Fleet a906488 are installed locally with710 Fleet tests and408 PACT unit/18 supply integration checks passed. One original C0 turn returned WAIT (1 reported execution,0 actions), incorrectly calling completed FarmII/BarracksII missing despite complete Hall stock/trade facts. Trade guards pass offline/real-handler checks; live useful Hall/trade reasoning remains unverified. Final146 turns/194 reported executions,12 ready actors, four groups/clock paused tick139, no active/pending/unknown/blockers/worker, all gates closed. All prior145/193 history, identities/goals/mandates/models/budgets/anchors/queues are retained; encrypted10-PACT/39-Fleet-table restore verified. Read docs/reactive-trade-repair-20261020.md. This consumes this assignment's single live turn; no extra attempt, population/server change, push or delegation is implied.

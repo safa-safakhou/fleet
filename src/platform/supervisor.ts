@@ -141,6 +141,8 @@ export class PlatformHost {
             await new Observability(this.tasks.store).record(claim.turn, stage, label, detail);
           },
           capabilities: adapter.capabilities,
+          waitSchema: session?.waitSchema,
+          validateWait: session?.validateWait,
           validateProposal: session?.validateProposal,
           actionContracts: session?.actionContracts,
           packObservation: session?.packObservation,

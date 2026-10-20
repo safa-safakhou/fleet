@@ -118,6 +118,8 @@ export class EnvironmentRegistry {
       },
       catalog: () => session.catalog(),
       ...(session.packObservation ? { packObservation: session.packObservation.bind(session) } : {}),
+      ...(session.waitSchema ? { waitSchema: session.waitSchema.bind(session) } : {}),
+      ...(session.validateWait ? { validateWait: session.validateWait.bind(session) } : {}),
       ...(session.validateProposal ? { validateProposal: session.validateProposal.bind(session) } : {}),
       ...(session.actionContracts
         ? {

@@ -23,7 +23,11 @@ export function ownerRecallQuery(mode: string | undefined, strategy: Strategy, o
 }
 
 /** Only the reviewed adapter supplies this value from its authenticated owner view. */
-export function currentOwnerObjectiveInstruction(objective: string | undefined) {
+export function currentOwnerObjectiveInstruction(
+  objective: import("./platform/contracts.js").AccountObjective | undefined,
+) {
+  if (objective && typeof objective === "object")
+    return " Owner intent and fresh currentState are in goal. Intent sets priorities/constraints, not current facts. Completed levels override old missing-prerequisite descriptions; queued stock_shortage requires resources, not duplicate work. Choose a useful permitted step toward the current blocker, or a fact-grounded stock/risk wait. Preserve existing jobs and permissions.";
   const actual = currentObjective(objective);
   return actual
     ? ` Current owner objective: ${JSON.stringify(actual)}. Pursue this assignment this turn within existing permissions. Choose and execute a useful step, or explain a concrete current reason to wait. An empty authored plan or old wait is not missing owner direction. For a blocked target, consider ready missing prerequisites; waiting does not construct them. Already active work, current constraints and justified risk can warrant waiting.`

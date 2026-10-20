@@ -41,6 +41,25 @@ export function compactEnvironment(environment: Data, limit: number): Data {
       encoded = true;
     }
   }
+  const briefing = structuredClone(object(output.agentBriefing));
+  for (const [section, field, path, source] of [
+    ["ownerIntent", "objective", "ambition", output.ambition],
+    ["construction", "completedBuildings", "buildings", environment.buildings],
+    ["execution", "allowedActions", "authority.allowedActions", object(output.authority).allowedActions],
+  ] as const) {
+    const part = object(briefing[section]),
+      reference = { sameFact: path };
+    if (
+      source !== undefined &&
+      JSON.stringify(part[field]) === JSON.stringify(source) &&
+      bytes(source) > bytes(reference) + 32
+    ) {
+      part[field] = reference;
+      briefing[section] = part;
+      encoded = true;
+    }
+  }
+  if (output.agentBriefing !== undefined) output.agentBriefing = briefing;
   const authority = object(output.authority),
     resources = factTable(authority.resources);
   if (resources !== authority.resources) {

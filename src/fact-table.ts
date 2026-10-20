@@ -103,6 +103,15 @@ export function expandFactTables(value: unknown, scope: unknown = value): unknow
   )
     return structuredClone(object(object(scope).authority).allowedActions);
 
+  if (["ambition", "buildings"].includes(String(table.sameFact)) && Object.keys(table).length === 1) {
+    const source = object(scope)[String(table.sameFact)];
+    if (
+      (table.sameFact === "ambition" && typeof source === "string") ||
+      (table.sameFact === "buildings" && (Array.isArray(source) || object(source).factTable === "list"))
+    )
+      return expandFactTables(structuredClone(source), scope);
+  }
+
   if (["map", "list"].includes(String(table.factTable)) && Array.isArray(table.columns) && Array.isArray(table.rows)) {
     const columns = table.columns as string[];
     const decoded = table.rows.map((raw, rowIndex) => {

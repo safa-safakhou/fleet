@@ -16,6 +16,8 @@ Fleet never connects to PACT's database. The adapter uses authenticated game int
 
 Reactive action contracts may optionally require a structured `expectedOutcome` alongside the bare action payload. The environment validates this assertion before preparation and may return factual guidance/details for a correction within the existing turn budget. PACT uses this for creator-relative supply send/receive claims and validates bonds from its observed versioned rule descriptor. The core has no PACT rule imports; outcome claims grant no authority and are never receipts. See [the trade repair](../reactive-trade-repair-20261020.md).
 
+Modern objectives may separate verbatim owner `intent` from adapter-derived `currentState`. Optional environment wait schemas and validation check a structured factual basis before completing a wait, with bounded corrective feedback. PACT uses these only when current queued stock coverage is established; truthful waiting remains available. See [stale-goal reconciliation](../reactive-stale-goal-20261020.md).
+
 ```mermaid
 flowchart TB
     subgraph Game[PACT: separate repository and database]

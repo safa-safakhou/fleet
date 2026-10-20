@@ -24,6 +24,7 @@ import type {
 import { Store } from "../../store.js";
 import { pactAdapter } from "./adapter.js";
 import { actionContract } from "./contracts.js";
+import { pactCurrentObjective, pactWaitSchema, validatePactWait } from "./goal-state.js";
 import { packPactObservation } from "./packing.js";
 import { pactActionContracts, pactProposalGuide, validatePactProposal } from "./proposals.js";
 
@@ -312,12 +313,20 @@ export class PactQualificationFixtures implements QualificationFixtures {
             simulationControls: false,
             continuity: true,
           },
+          accountObjective: (observed) => {
+            // Frozen cases already carry raw intent in defaultGoal. Opt into the
+            // new structured checkpoint only when construction facts establish it.
+            const current = pactCurrentObjective(observed.payload);
+            return typeof current === "object" ? current : undefined;
+          },
           connect: async () => ({
             observe: async () => structuredClone(observation),
             catalog: async () => structuredClone(tools),
             packObservation: packPactObservation,
             validateProposal: async (proposal, observed) =>
               validatePactProposal(proposal.intent.payload, observed.payload, proposal.expectedOutcome),
+            waitSchema: async (observed) => pactWaitSchema(observed.payload),
+            validateWait: async (basis, observed) => validatePactWait(basis, observed.payload),
             actionContracts: async (observed) => pactActionContracts(observed.payload),
             execute: async (intent) => capture(intent.commandId, intent.payload) as ActionOutcome,
             resolve: async (commandId) =>
