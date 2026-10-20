@@ -69,6 +69,7 @@ export interface ScopedServices {
     waitSchema?(observation: Observation): Promise<Data | undefined>;
     validateWait?(basis: Data, observation: Observation): Promise<ProposalValidation>;
     actionContracts?(observation: Observation): Promise<ActionContract[]>;
+    projectObservation?(observation: Observation, policy: { id: string; version: string }): Observation;
     packObservation?(observation: Observation, byteLimit: number): Observation;
   };
 }

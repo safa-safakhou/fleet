@@ -361,6 +361,7 @@ export async function createScopedServices(
             return result;
           }
         : undefined,
+      projectObservation: context.projectObservation,
       packObservation: context.packObservation,
     },
   };

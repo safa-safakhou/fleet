@@ -27,6 +27,7 @@ export interface EngineContext {
   waitSchema?: (observation: Observation) => Promise<Data | undefined>;
   validateWait?: (basis: Data, observation: Observation) => Promise<import("./contracts.js").ProposalValidation>;
   actionContracts?: (observation: Observation) => Promise<import("./contracts.js").ActionContract[]>;
+  projectObservation?: (observation: Observation, policy: { id: string; version: string }) => Observation;
   packObservation?: (observation: Observation, byteLimit: number) => Observation;
   catalog?: () => Promise<Tool[]>;
   waitForEvent?: () => Promise<void>;

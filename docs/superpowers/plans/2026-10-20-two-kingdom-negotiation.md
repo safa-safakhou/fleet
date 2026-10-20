@@ -95,11 +95,11 @@ All new files/symbols are proposed. Each task owns runtime schemas/tests as well
 
 State binds self/peer/conversation/offer/version to known/unknown coverage, game time and source refs. It includes self-relative flows, both consent states, expiry, authority/stock constraints, active contract identity, due/observed deliveries and outstanding commands. A projection selects no preferred offer.
 
-- [ ] Test `second_offer_cannot_change_first_peer`, `missing_signatures_are_unknown`, `counter_invalidates_both_signatures`, `first_signature_is_not_income`, `closure_requires_installment_evidence`, `whole_terms_survive_serialization`, `fresh_read_invalidates_old_wait`, and `expired_offer_cannot_inherit_new_consent`. Cover both perspectives, units/bonds, pages and oversized contexts.
-- [ ] Run `npm run test:architecture -- tests/unit/pact-negotiation-state.test.ts tests/unit/pact-negotiation.test.ts`; new candidate assertions must fail while existing regressions remain green.
-- [ ] Reuse existing negotiation/trade validation and canonical PACT facts; add the candidate projection/packing path selected by trusted version-2 configuration. Preserve v1 output. Whole protected records either fit or produce explicit narrowing/coverage failure; no dangling ID or invented absence. Incomplete facts require a normal scoped read.
-- [ ] Rerun new suites, candidate packet snapshots and F01 parity transcripts. Confirm old packets/accounting remain unchanged; guards retain rejected attempts instead of relabelling them successful WAITs. A schema read cannot be represented as a current state read.
-- [ ] Commit: `feat: version complete negotiation facts for cognition`.
+- [x] Test `second_offer_cannot_change_first_peer`, `missing_signatures_are_unknown`, `counter_invalidates_both_signatures`, `first_signature_is_not_income`, `closure_requires_installment_evidence`, `whole_terms_survive_serialization`, `fresh_read_invalidates_old_wait`, and `expired_offer_cannot_inherit_new_consent`. Cover both perspectives, units/bonds, pages and oversized contexts.
+- [x] Run `npm run test:architecture -- tests/unit/pact-negotiation-state.test.ts tests/unit/pact-negotiation.test.ts`; new candidate assertions must fail while existing regressions remain green.
+- [x] Reuse existing negotiation/trade validation and canonical PACT facts; add the candidate projection/packing path selected by trusted version-2 configuration. Preserve v1 output. Whole protected records either fit or produce explicit narrowing/coverage failure; no dangling ID or invented absence. Incomplete facts require a normal scoped read.
+- [x] Rerun new suites, candidate packet snapshots and F01 parity transcripts. Confirm old packets/accounting remain unchanged; guards retain rejected attempts instead of relabelling them successful WAITs. A schema read cannot be represented as a current state read.
+- [x] Commit: `feat: version complete negotiation facts for cognition`.
 
 ## N04 — Retain and deliver outcomes for later decisions
 

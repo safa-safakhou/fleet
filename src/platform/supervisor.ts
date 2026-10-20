@@ -155,6 +155,7 @@ export class PlatformHost {
           validateWait: session?.validateWait,
           validateProposal: session?.validateProposal,
           actionContracts: session?.actionContracts,
+          projectObservation: session?.projectObservation,
           packObservation: session?.packObservation,
           catalog: async () => {
             if (!session) throw new FleetError("OBSERVATION_OWNED_BY_ENGINE");
