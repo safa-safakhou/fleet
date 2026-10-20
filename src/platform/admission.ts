@@ -123,7 +123,38 @@ export class RouteCapacity {
       decide: async (request) => {
         const claim = current();
         if (!claim) throw new FleetError("MODEL_CLAIM_REQUIRED", true);
-        return this.run(claim, request, () => model.decide(request));
+        return this.run(claim, request, async () => {
+          const allocations = (
+            await this.store.pool.query(
+              "SELECT a.allocation_id FROM architecture_allocations a JOIN compute_ledger l ON l.id=a.allocation_id WHERE a.turn_id=$1 AND l.status='reserved' ORDER BY l.created_at LIMIT 2",
+              [claim.id],
+            )
+          ).rows;
+          if (!allocations.length) return model.decide(request);
+          if (allocations.length !== 1) throw new FleetError("MODEL_ALLOCATION_SCOPE_MISMATCH", true);
+          const id = allocations[0].allocation_id;
+          await this.store.active(claim);
+          await this.store.pool.query(
+            "UPDATE architecture_allocations SET tracked=$2,dispatch_state=$3,updated_at=$4 WHERE allocation_id=$1",
+            [
+              id,
+              Boolean(model.tracksDispatch),
+              model.tracksDispatch ? "prepared" : "invoking_untracked",
+              this.store.now(),
+            ],
+          );
+          return model.decide({
+            ...request,
+            onDispatch: async () => {
+              await this.store.active(claim);
+              await request.onDispatch?.();
+              await this.store.pool.query(
+                "UPDATE architecture_allocations SET dispatch_state='dispatched',updated_at=$2 WHERE allocation_id=$1",
+                [id, this.store.now()],
+              );
+            },
+          });
+        });
       },
     };
   }

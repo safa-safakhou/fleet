@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { afterEach, expect, it } from "vitest";
 import { builtinArchitectures } from "../../src/app/builtins.js";
 import { createScopedServices, scopedOperationFor } from "../../src/app/host-services.js";
+import { FleetError } from "../../src/domain.js";
 import type { ScopedServices } from "../../src/platform/engine-context.js";
 import { FakeModel } from "../helpers.js";
 import { platformFixture } from "../platform-helpers.js";
@@ -264,3 +265,32 @@ it.each([
     await h.host.run(claim);
   },
 );
+
+it("retains unknown spend when the legacy raw-provider bridge dispatches before crashing", async () => {
+  const f = await setup(),
+    claim = await f.claim();
+  let allocation = "";
+  const provider = {
+    tracksDispatch: true,
+    decide: async (request: Parameters<import("../../src/domain.js").ModelPort["decide"]>[0]) => {
+      await request.onDispatch?.();
+      throw new FleetError("TRANSPORT_UNCERTAIN");
+    },
+  };
+  const h = f.host(new FakeModel(), async (ctx) => {
+    await createScopedServices(ctx.claim, definition(), undefined, {
+      context: ctx,
+      store: f.store,
+      tasks: f.tasks,
+      bindings: f.bindings,
+      model: h.admission,
+      commands: h.commands,
+    });
+    allocation = await f.store.reserveCall(ctx.claim.turn);
+    await f.route.wrap(provider, () => ctx.claim.turn).decide(f.request(ctx.signal));
+  });
+  await expect(h.host.run(claim)).rejects.toThrow("TRANSPORT_UNCERTAIN");
+  expect((await f.pool.query("SELECT status FROM compute_ledger WHERE id=$1", [allocation])).rows[0].status).toBe(
+    "unknown",
+  );
+});
