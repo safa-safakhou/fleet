@@ -1,10 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { AwakeGuard } from "./awake.js";
-import { Cognition } from "./cognition.js";
-import { Communications } from "./communications.js";
-import { Continuation } from "./continuation.js";
 import { safeCode } from "./domain.js";
-import { enoughDisk } from "./engine.js";
+import { enoughDisk } from "./platform/disk.js";
+import { DispatchScheduler } from "./platform/scheduling.js";
 import { runtime } from "./runtime.js";
 
 const r = runtime(),
@@ -17,12 +15,12 @@ let stop = false,
   recoveryInFlight: Promise<unknown> | undefined,
   intakeInFlight: Promise<unknown> | undefined;
 const platformInFlight = new Set<Promise<unknown>>();
-let preferPlatform = true;
+const scheduler = new DispatchScheduler();
 r.pool.on("error", () => console.error("fleet database connection unavailable"));
 for (const signal of ["SIGTERM", "SIGINT"] as const)
   process.once(signal, () => {
     stop = true;
-    r.engine.stop();
+    r.legacy.stop();
     void r.host.stop().catch((error) => console.error("fleet stop deferred", safeCode(error)));
   });
 try {
@@ -64,7 +62,7 @@ try {
               ).rowCount;
               const receipt = isPlatform
                 ? await r.commands.reconcile(task.turn_id)
-                : await r.engine.reconcile(task.turn_id);
+                : await r.legacy.reconcile(task.turn_id);
               code = String(receipt.code);
             } catch (error) {
               code = safeCode(error);
@@ -100,9 +98,9 @@ try {
         };
         const legacy = async () => {
           if (inFlight || platformInFlight.size >= r.settings.maxConcurrency) return;
-          const claim = await r.store.claim(worker, r.settings.maxConcurrency);
+          const claim = await r.legacy.claim(worker, r.settings.maxConcurrency);
           if (!claim) return;
-          inFlight = r.engine
+          inFlight = r.legacy
             .run(claim)
             .then(progress)
             .catch((error) => console.error("fleet turn deferred", safeCode(error)))
@@ -124,18 +122,14 @@ try {
           platformInFlight.add(promise);
           return true;
         };
-        if (preferPlatform) {
-          await platform();
-          await legacy();
-        } else {
-          await legacy();
-          await platform();
-        }
-        preferPlatform = !preferPlatform;
-        while (platformInFlight.size + Number(Boolean(inFlight)) < r.settings.maxConcurrency && (await platform())) {}
+        await scheduler.dispatch({
+          legacy,
+          platform,
+          hasCapacity: () => platformInFlight.size + Number(Boolean(inFlight)) < r.settings.maxConcurrency,
+        });
       } else {
         if (admissionOpen && disk && !inFlight) {
-          inFlight = r.engine
+          inFlight = r.legacy
             .tick(worker, r.settings.maxConcurrency)
             .then(async (claim) => {
               if (claim) await r.pool.query("UPDATE worker_health SET last_progress_at=now() WHERE id=$1", [worker]);
@@ -147,21 +141,9 @@ try {
         }
       }
       if (Date.now() - lastPrune > 3600000) {
-        await r.pool.query("DELETE FROM environment_event_receipts WHERE received_at<$1", [
-          new Date(r.store.now().getTime() - 30 * 86400000),
-        ]);
-        await r.pool.query("DELETE FROM environment_event_gaps WHERE observed_at<$1", [
-          new Date(r.store.now().getTime() - 30 * 86400000),
-        ]);
-        await new Communications(r.store).prune();
-        await new Cognition(r.store).prune();
-        await new Continuation(r.store).prune();
-        await r.pool.query("DELETE FROM operator_sessions WHERE expires_at<now()");
-        await r.pool.query("DELETE FROM oauth_attempts WHERE expires_at<now()");
-        await r.pool.query("DELETE FROM decision_choices WHERE created_at<now()-interval '30 days'");
-        await r.pool.query(
-          "UPDATE agents SET decision_feedback_cipher=NULL,decision_feedback_at=NULL WHERE decision_feedback_at<now()-interval '30 days'",
-        );
+        const maintenance = await r.maintenance.run(500, AbortSignal.timeout(20000));
+        for (const result of maintenance)
+          if (result.code !== "OK") console.error("fleet maintenance deferred", result.id, result.code);
         lastPrune = Date.now();
       }
       failures = 0;

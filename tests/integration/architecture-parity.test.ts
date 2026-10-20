@@ -61,25 +61,8 @@ it("detects changed decision packets and missing or refunded accounting", () => 
 });
 
 it("has no dependency from one architecture implementation to a sibling", async () => {
-  const { readFile, readdir } = await import("node:fs/promises"),
-    { resolve, dirname } = await import("node:path");
-  const violations: string[] = [];
-  async function scan(dir: string) {
-    for (const e of await readdir(dir, { withFileTypes: true })) {
-      const path = resolve(dir, e.name);
-      if (e.isDirectory()) await scan(path);
-      else if (e.name.endsWith(".ts") && !e.name.endsWith("manifest.ts")) {
-        const own = path.split("/engines/")[1]?.split("/")[0];
-        for (const m of (await readFile(path, "utf8")).matchAll(/(?:from|import\s*\()\s*["']([^"']+)["']/g)) {
-          const target = resolve(dirname(path), m[1]);
-          const other = target.split("/engines/")[1]?.split("/")[0];
-          if (other && own !== other) violations.push(`${own}->${other}`);
-        }
-      }
-    }
-  }
-  await scan(resolve("src/engines"));
-  expect(violations).toEqual([]);
+  const { scanArchitectureGraph } = await import("../../scripts/check-boundaries.mjs");
+  expect(await scanArchitectureGraph(process.cwd())).toEqual([]);
 });
 it("never transfers one binding's delivered continuity evidence to another binding", async () => {
   const { platformFixture } = await import("../platform-helpers.js"),

@@ -38,8 +38,10 @@ export class EventIntake {
       if (!["draft", "paused"].includes(c.state)) throw new FleetError("COHORT_NOT_EDITABLE");
       const profile = (await db.query("SELECT * FROM cohort_engine_profiles WHERE cohort_id=$1", [cohortId])).rows[0];
       if (
-        !["reactive-basic", "reactive-cognition", "specialist-coordinator"].includes(profile?.profile_id) ||
-        profile.profile_version !== "1"
+        !profile ||
+        !this.tasks.store.architectures
+          .resolve({ id: profile.profile_id, version: profile.profile_version })
+          .manifest.triggers.includes("event")
       )
         throw new FleetError("UNSUPPORTED_ENGINE");
       await db.query(

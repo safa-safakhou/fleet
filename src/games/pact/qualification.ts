@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { builtinArchitectures } from "../../app/builtins.js";
 import { hostScopeFactory } from "../../app/host-services.js";
 import type { RecallPort } from "../../cognition.js";
 import { Cognition } from "../../cognition.js";
@@ -98,7 +99,7 @@ export class PactQualificationFixtures implements QualificationFixtures {
     const scenario = trial.split(":")[0];
     if (!this.scenarios.includes(scenario as (typeof this.scenarios)[number]))
       throw new FleetError("QUALIFICATION_FIXTURE_COVERAGE");
-    const store = new Store(this.ledger.pool, this.ledger.vault),
+    const store = new Store(this.ledger.pool, this.ledger.vault, undefined, builtinArchitectures()),
       { id } = await store.create({
         name: `Qualification ${profile}`,
         count: 1,

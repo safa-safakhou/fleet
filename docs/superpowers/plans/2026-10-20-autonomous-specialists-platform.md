@@ -112,11 +112,11 @@ Exact-version selection, concurrent edit/start, missing capabilities, wrong fixt
 
 **Interfaces:** `composeRuntime(settings)` retains the public runtime result needed by existing clients. `LegacyRunner.claim/run/reconcile/stop` wraps the historical lane. `MaintenanceRegistry.register({id,run(limit,signal)})` bounds shared cleanup; disk checks move mechanically with a compatibility re-export.
 
-- [ ] Write forbidden-import fixtures for sibling engines, engine→SQL/vault/provider, platform→engine and UI→engine, including re-exports/dynamic imports and alias paths. Allow only composition and the enumerated legacy bridge exceptions. Add scheduler parity and bounded-maintenance-failure tests.
-- [ ] Run `npm run test:architecture -- tests/unit/architecture-boundaries.test.ts`; expect new forbidden imports to be missed by the current game-only scanner.
-- [ ] Extend import checking using an isolated adapter to installed TypeScript 7's `typescript/unstable/sync`/AST APIs rather than regex-only path matching. Its top-level export is not the old TypeScript 5 compiler API; do not assume top-level `createSourceFile` exists. Test resolution against the current package/tsconfig and keep game-independence checks. Make worker orchestration consume registered runners/hooks; retain old due-time/fairness behavior. Explicitly list compatibility exceptions and add no broad directory exemption. New engine registration requires only its own descriptor and one composition entry.
-- [ ] Run boundary tests, `npm run check:boundaries`, F01 parity and `tests/integration/worker-liveness.test.ts`.
-- [ ] Commit: `refactor: enforce architecture ownership and isolate runtime wiring`.
+- [x] Write forbidden-import fixtures for sibling engines, engine→SQL/vault/provider, platform→engine and UI→engine, including re-exports/dynamic imports and alias paths. Allow only composition and the enumerated legacy bridge exceptions. Add scheduler parity and bounded-maintenance-failure tests.
+- [x] Run `npm run test:architecture -- tests/unit/architecture-boundaries.test.ts`; expect new forbidden imports to be missed by the current game-only scanner.
+- [x] Extend import checking using an isolated adapter to installed TypeScript 7's `typescript/unstable/sync`/AST APIs rather than regex-only path matching. Its top-level export is not the old TypeScript 5 compiler API; do not assume top-level `createSourceFile` exists. Test resolution against the current package/tsconfig and keep game-independence checks. Make worker orchestration consume registered runners/hooks; retain old due-time/fairness behavior. Explicitly list compatibility exceptions and add no broad directory exemption. New engine registration requires only its own descriptor and one composition entry.
+- [x] Run boundary tests, `npm run check:boundaries`, F01 parity and `tests/integration/worker-liveness.test.ts`.
+- [x] Commit: `refactor: enforce architecture ownership and isolate runtime wiring`.
 
 ## F07 — Exact-version guided console launch
 

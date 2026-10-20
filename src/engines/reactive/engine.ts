@@ -1,7 +1,7 @@
 import { type DecisionContext, decisionContext } from "../../modules/decision-step/v1/context.js";
 import { BoundedDecisionStep } from "../../modules/decision-step/v1/engine.js";
 import type { ScopedServices } from "../../platform/engine-context.js";
-import { manifest } from "./manifest.js";
+import { manifest, validate } from "./manifest.js";
 
 export { ReactiveDecision, RejectedDecision } from "../../modules/decision-step/v1/engine.js";
 export class ReactiveEngine {
@@ -18,3 +18,9 @@ export class ReactiveEngine {
     return new BoundedDecisionStep().runContext(ctx);
   }
 }
+
+export const definition: import("../../platform/architecture.js").ArchitectureDefinition = {
+  manifest,
+  validate,
+  create: (services) => new ReactiveEngine().create(services),
+};

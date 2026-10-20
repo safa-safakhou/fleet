@@ -1,6 +1,5 @@
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
-import { builtinArchitectures } from "./app/builtins.js";
 import { type Pool, transaction } from "./db.js";
 import {
   Budget,
@@ -17,7 +16,7 @@ import {
 } from "./domain.js";
 import { legacyUndispatchedPhase } from "./engines/legacy/execution.js";
 import { Observability } from "./observability.js";
-import type { ArchitectureRegistry } from "./platform/architecture.js";
+import { ArchitectureRegistry } from "./platform/architecture.js";
 import type { Vault } from "./vault.js";
 
 export interface AgentRow {
@@ -78,7 +77,7 @@ export class Store {
     readonly pool: Pool,
     readonly vault: Vault,
     readonly now: () => Date = () => new Date(),
-    readonly architectures: ArchitectureRegistry = builtinArchitectures(),
+    readonly architectures: ArchitectureRegistry = new ArchitectureRegistry(),
   ) {}
   async cohort(id: string, client: Pool | PoolClient = this.pool): Promise<CohortRow> {
     const r = await client.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1", [id]);

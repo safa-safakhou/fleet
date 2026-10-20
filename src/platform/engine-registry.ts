@@ -52,6 +52,21 @@ export class EngineRegistry {
     readonly architectures?: import("./architecture.js").ArchitectureRegistry,
   ) {
     for (const engine of engines) this.register(engine);
+    for (const manifest of architectures?.list() ?? []) {
+      if (this.engines.has(JSON.stringify([manifest.ref.id, manifest.ref.version]))) continue;
+      this.register({
+        manifest,
+        ref: manifest.ref,
+        requiredCapabilities: manifest.requirements.capabilities,
+        requiredSchemas: manifest.requirements.schemas,
+        observationOwner: manifest.observationOwner,
+        executionModes: manifest.executionModes,
+        create: (services) => {
+          if (!architectures) throw new FleetError("UNSUPPORTED_ARCHITECTURE");
+          return architectures.resolve(manifest.ref).create(services);
+        },
+      });
+    }
   }
   register(engine: AgentEngine): void;
   register(engine: ScopedAgentEngine): void;

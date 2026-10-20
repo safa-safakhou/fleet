@@ -7,7 +7,7 @@ import { ContinuityUpdateSchema, ContinuityV1 } from "../../modules/continuity/v
 import { type DecisionContext, decisionContext } from "../../modules/decision-step/v1/context.js";
 import type { ActionIntent, Observation, Proposal } from "../../platform/contracts.js";
 import type { ScopedServices } from "../../platform/engine-context.js";
-import { manifest } from "./manifest.js";
+import { manifest, validate } from "./manifest.js";
 import { CoordinationFrameSchema, checkProposals, WorkerResultSchema } from "./proposals.js";
 
 const Selection = z
@@ -309,3 +309,9 @@ export class SpecialistCoordinatorEngine {
     return { proposals, state };
   }
 }
+
+export const definition: import("../../platform/architecture.js").ArchitectureDefinition = {
+  manifest,
+  validate,
+  create: (services) => new SpecialistCoordinatorEngine().create(services),
+};

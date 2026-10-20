@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { builtinArchitectures } from "../src/app/builtins.js";
 import { connect, migrate } from "../src/db.js";
 import type { Data, GamePort, ModelPort, Tool } from "../src/domain.js";
 import { type Claim, Store } from "../src/store.js";
@@ -41,7 +42,7 @@ export async function fixture() {
     "TRUNCATE platform_comparisons,cohorts,agents,turns,turn_events,command_resolutions,communications,compute_ledger,operator_sessions,owner_decisions,oauth_attempts,audit_events,worker_heartbeats,worker_health CASCADE",
   );
   let time = new Date("2026-10-11T12:00:00.000Z");
-  const store = new Store(pool, new Vault(key), () => time);
+  const store = new Store(pool, new Vault(key), () => time, builtinArchitectures());
   return {
     pool,
     store,
