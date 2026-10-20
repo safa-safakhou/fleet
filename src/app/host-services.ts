@@ -186,11 +186,12 @@ export async function createScopedServices(
         if (!(await live())) return null;
         const row = (
           await store.pool.query(
-            "SELECT * FROM architecture_scoped_state WHERE instance_id=$1 AND binding_id=$2 AND codec=$3 AND updated_at>$4",
-            [instanceId, binding.id, codec, cutoff()],
+            "SELECT * FROM architecture_scoped_state WHERE instance_id=$1 AND binding_id=$2 AND codec=$3",
+            [instanceId, binding.id, codec],
           )
         ).rows[0];
         await guard();
+        if (row && new Date(row.updated_at).getTime() <= cutoff().getTime()) return { version: row.version, value: {} };
         return row
           ? {
               version: row.version,

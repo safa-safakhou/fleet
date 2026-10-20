@@ -294,3 +294,32 @@ it("retains unknown spend when the legacy raw-provider bridge dispatches before 
     "unknown",
   );
 });
+
+it("expired scoped memory withholds plaintext but preserves the CAS version for a fresh write", async () => {
+  const f = await setup(),
+    claim = await f.claim();
+  const h = f.host(new FakeModel(), async (ctx) => {
+    const services = await createScopedServices(ctx.claim, definition(), undefined, {
+      context: ctx,
+      store: f.store,
+      tasks: f.tasks,
+      bindings: f.bindings,
+      model: h.admission,
+      commands: h.commands,
+    });
+    await services.state.accept({
+      codec: "fixture.v1",
+      expectedVersion: 0,
+      value: { expiredPrivateText: "must not return" },
+    });
+    await f.pool.query("UPDATE architecture_scoped_state SET updated_at=$1", [
+      new Date(f.now().getTime() - 31 * 86400000),
+    ]);
+    expect(await services.state.load("fixture.v1")).toEqual({ version: 1, value: {} });
+    expect(await services.state.accept({ codec: "fixture.v1", expectedVersion: 1, value: { fresh: true } })).toEqual({
+      version: 2,
+      accepted: true,
+    });
+  });
+  await h.host.run(claim);
+});
