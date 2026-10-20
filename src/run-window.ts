@@ -18,7 +18,7 @@ export class RunWindow {
         value.status === "running" &&
         Number.isSafeInteger(value.startsAt) &&
         Number.isSafeInteger(value.endsAt) &&
-        value.endsAt - value.startsAt === 3_600_000 &&
+        [1_800_000, 3_600_000].includes(value.endsAt - value.startsAt) &&
         now >= value.startsAt &&
         now < value.endsAt
       );

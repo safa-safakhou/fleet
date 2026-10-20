@@ -57,6 +57,22 @@ it("blocks model dispatch and game submissions but allows original receipt recov
   expect(await game.receipt("id")).toEqual({ code: "COMMITTED" });
   expect(calls).toBe(0);
 });
+it("admits a half-hour window and refuses dispatch at its exact cutoff", async () => {
+  let now = 1000;
+  const { file } = fixture({ status: "running", startsAt: 1000, endsAt: 1801000 });
+  const window = new RunWindow(file, () => now);
+  expect(window.isOpen()).toBe(true);
+  now = 1800999;
+  window.assertOpen();
+  now = 1801000;
+  expect(window.isOpen()).toBe(false);
+  await expect(window.game({} as GamePort).submit("id", {})).rejects.toThrow("RUN_WINDOW_CLOSED");
+  now = 1000;
+  for (const endsAt of [1000, 999, 1800999, 1801001, 3601001]) {
+    writeFileSync(file, JSON.stringify({ status: "running", startsAt: 1000, endsAt }));
+    expect(window.isOpen()).toBe(false);
+  }
+});
 it("checks again at actual provider dispatch and does not abort a dispatched response", async () => {
   let now = 1000;
   const { file } = fixture({ status: "running", startsAt: 1000, endsAt: 3601000 });
