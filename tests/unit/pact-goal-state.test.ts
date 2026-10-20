@@ -194,3 +194,102 @@ it("fails a stale wait without dispatch when the existing turn allowance is exha
     await session.close();
   }
 });
+
+it("checks current goal facts and actual command kind on actions, not only waits", async () => {
+  const { validatePactProposal, pactActionContracts } = await import("../../src/games/pact/proposals.js");
+  const action = { kind: "game.training.queue", type: "spearman", count: 1 };
+  expect(validatePactProposal(action, facts, { actionKind: action.kind, basis: stale })).toMatchObject({
+    valid: false,
+    code: "PACT_ACTION_STATE_MISMATCH",
+  });
+  expect(validatePactProposal(action, facts, { actionKind: "game.building.queue", basis: correct })).toMatchObject({
+    valid: false,
+    code: "PACT_ACTION_EFFECT_MISMATCH",
+  });
+  expect(validatePactProposal(action, facts, { actionKind: action.kind, basis: correct })).toMatchObject({
+    valid: true,
+  });
+  const schema = {
+    anyOf: pactActionContracts(facts).map((c) => ({
+      type: "object",
+      properties: { payload: c.payloadSchema, expectedOutcome: c.expectedOutcomeSchema },
+      required: ["payload", "expectedOutcome"],
+    })),
+  };
+  const check = new Ajv({ strict: false }).compile(schema);
+  expect(check({ payload: action, expectedOutcome: {} })).toBe(false);
+  expect(check({ payload: action, expectedOutcome: { actionKind: action.kind, basis: correct } })).toBe(true);
+  expect(check({ payload: action, expectedOutcome: { actionKind: action.kind, basis: stale } })).toBe(false);
+});
+it("corrects a stale action premise before proposing actual Hall resource acquisition", async () => {
+  const peer = "22222222-2222-4222-8222-222222222222";
+  const current = { ...facts, discovery: { players: [{ kingdomId: peer }] } };
+  const observation = { payload: current, sourceRefs: [], schemaId: "pact.observation.v1" };
+  const { validatePactProposal } = await import("../../src/games/pact/proposals.js");
+  const session = await environment().connect({ accountRef: "owner" } as never);
+  let calls = 0;
+  const commands: Data[] = [];
+  const action = {
+    kind: "game.supply.offer",
+    counterpartyKingdomId: peer,
+    terms: {
+      aToB: { resource: "grain", wholePerHour: 2 },
+      bToA: { resource: "iron", wholePerHour: 1 },
+      aBond: null,
+      bBond: null,
+      durationHours: 1,
+      noticeHours: 0,
+    },
+  };
+  try {
+    await new ReactiveEngine().run({
+      claim: {
+        taskId: "goal-fix",
+        turn: { cohort: { model: { route: "fixture" }, budget: { maxCallsPerTurn: 3, inputByteLimit: 48000 } } },
+      },
+      binding: { id: "binding" },
+      task: { key: "stock", sourceCount: 1, sourceRefsOmitted: 0 },
+      eventRefs: [],
+      observation,
+      schemas: { actions: ["pact.action.v1"] },
+      signal: new AbortController().signal,
+      accountObjective: () => environment().accountObjective?.(observation as never),
+      actionContracts: session.actionContracts?.bind(session),
+      validateProposal: async (proposal: Data) =>
+        validatePactProposal(object(proposal.intent).payload as Data, current, proposal.expectedOutcome as Data),
+      model: {
+        decide: async (_claim: unknown, input: Data) => {
+          calls++;
+          const packet = JSON.parse((input.messages as { content: string }[])[1].content);
+          if (calls === 2) expect(packet.previousProposal.code).toBe("PACT_ACTION_STATE_MISMATCH");
+          return {
+            decision: {
+              kind: "action",
+              schemaId: "pact.action.v1",
+              payload: action,
+              expectedOutcome: {
+                actionKind: action.kind,
+                basis: calls === 1 ? stale : correct,
+                trade: { youSend: action.terms.aToB, youReceive: action.terms.bToA },
+              },
+              summary: "Propose grain for needed Hall iron; no delivery until consent and settlement",
+            },
+            inputTokens: 1,
+            outputTokens: 1,
+          };
+        },
+      },
+      commands: {
+        submit: async (_claim: unknown, intent: Data) => {
+          commands.push(intent);
+          return { status: "confirmed", code: "COMMITTED" };
+        },
+      },
+    } as never);
+    expect(calls).toBe(2);
+    expect(commands).toHaveLength(1);
+    expect(object(commands[0].payload).kind).toBe("game.supply.offer");
+  } finally {
+    await session.close();
+  }
+});

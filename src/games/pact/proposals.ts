@@ -3,6 +3,7 @@ import type { ActionContract, ProposalValidation } from "../../platform/contract
 import { validateTool } from "../../tools.js";
 import { pactAdapter } from "./adapter.js";
 import { observedActionSchema } from "./choices.js";
+import { goalActionOutcomeSchema, validateGoalAction } from "./goal-state.js";
 import { tradeExpectedOutcomeSchema, tradePreflight } from "./trade.js";
 
 /** Generation constraints describe conditional choices, never permission. */
@@ -13,17 +14,29 @@ export function pactActionContracts(facts: Data): ActionContract[] {
     return shape ? [shape] : [];
   });
   const trade = variants.filter((s) =>
-    ["game.supply.offer", "game.supply.counter"].includes(String(object(object(s.properties).kind).const)),
+    ["game.supply.offer", "game.supply.counter", "game.supply.sign"].includes(
+      String(object(object(s.properties).kind).const),
+    ),
   );
   const other = variants.filter((s) => !trade.includes(s));
+  const kinds = (items: Data[]) => items.map((s) => String(object(object(s.properties).kind).const));
+  const otherOutcome = goalActionOutcomeSchema(facts, kinds(other));
   return [
-    ...(other.length ? [{ schemaId: "pact.action.v1", payloadSchema: { anyOf: other } }] : []),
+    ...(other.length
+      ? [
+          {
+            schemaId: "pact.action.v1",
+            payloadSchema: { anyOf: other },
+            ...(otherOutcome ? { expectedOutcomeSchema: otherOutcome } : {}),
+          },
+        ]
+      : []),
     ...(trade.length
       ? [
           {
             schemaId: "pact.action.v1",
             payloadSchema: { anyOf: trade },
-            expectedOutcomeSchema: tradeExpectedOutcomeSchema(),
+            expectedOutcomeSchema: goalActionOutcomeSchema(facts, kinds(trade), tradeExpectedOutcomeSchema()),
           },
         ]
       : []),
@@ -33,7 +46,10 @@ export function pactActionContracts(facts: Data): ActionContract[] {
 export function validatePactProposal(payload: Data, facts: Data, expectedOutcome?: Data): ProposalValidation {
   try {
     validateTool({ name: "pact.action.v1", inputSchema: pactAdapter.actionSchema(String(payload.kind)) }, payload);
-    const denied = pactAdapter.preflight?.(payload, facts) ?? tradePreflight(payload, facts, expectedOutcome);
+    const denied =
+      pactAdapter.preflight?.(payload, facts) ??
+      tradePreflight(payload, facts, expectedOutcome) ??
+      validateGoalAction(payload, facts, expectedOutcome);
     return denied
       ? {
           valid: false,

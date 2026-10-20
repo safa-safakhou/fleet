@@ -2,12 +2,14 @@ import { type Data, object } from "../../domain.js";
 import { executableActionSchema } from "../../generation.js";
 import type { ProposalValidation } from "../../platform/contracts.js";
 import { actionSchema } from "./contracts.js";
+import { negotiationBriefing } from "./negotiation.js";
 
 const resources = ["iron", "silver", "grain"];
 const rows = (v: unknown): Data[] => (Array.isArray(v) ? v.map(object) : []);
 const positive = (v: unknown): v is number => Number.isSafeInteger(v) && Number(v) > 0;
 const units = (v: unknown) => (typeof v === "string" && /^\d+$/.test(v) ? BigInt(v) : undefined);
-const isTrade = (action: Data) => ["game.supply.offer", "game.supply.counter"].includes(String(action.kind));
+const isTrade = (action: Data) =>
+  ["game.supply.offer", "game.supply.counter", "game.supply.sign"].includes(String(action.kind));
 
 function observedRules(facts: Data): Data | undefined {
   const rules = object(object(object(facts.diplomacy).contractRules).termsValidation);
@@ -49,7 +51,11 @@ function rateCap(facts: Data, resource: unknown): bigint | undefined {
 /** Local factual checks only; the game still owns permissions, stock and admission. */
 export function tradePreflight(action: Data, facts: Data, expectedOutcome?: Data): ProposalValidation | undefined {
   if (!isTrade(action)) return;
-  const terms = object(action.terms),
+  const terms = object(
+      action.kind === "game.supply.sign"
+        ? rows(object(facts.guide).openSupplyOffers).find((o) => o.id === action.offerId)?.terms
+        : action.terms,
+    ),
     rules = observedRules(facts),
     ownerRole = role(action, facts);
   const issues: string[] = [],
@@ -206,6 +212,7 @@ export function tradeBriefing(facts: Data): Data | undefined {
   const balances = object(object(facts.world).balances),
     scale = object(object(facts.guide).resourceRules).markedPerWhole;
   return {
+    negotiations: negotiationBriefing(facts),
     offerDirections: { aToB: "youSend", bToA: "youReceive", aBond: "yourBond", bBond: "peerBond" },
     counterDirections: "Keep original kingdomA/kingdomB; as B you send bToA and receive aToB.",
     rules: observedRules(facts) ?? { status: "unknown", read: "pact_agent_guide_v1 topic diplomacy" },
@@ -220,6 +227,6 @@ export function tradeBriefing(facts: Data): Data | undefined {
         )
       : null,
     guidance:
-      "Set expectedOutcome.trade.youSend/youReceive outside payload to the actual flows/null. Seek scarce Hall stock in YOU RECEIVE; exporting it or bonding it may delay Hall. Use ordinary stock/production, never allowances. Bonds optional (null); value <= side hourly flow value * min(duration,maxBondFlowHours). Use modest supportable terms. Unsigned earns nothing; both sign returned ID/version before settlement. Peer stock/interest/authority unknown. Introductions can discuss supply.",
+      "Set expectedOutcome.trade.youSend/youReceive outside payload to the actual flows/null. Seek scarce Hall stock in YOU RECEIVE; exporting it or bonding it may delay Hall. Use ordinary stock/production, never allowances. Bonds optional (null); value <= side hourly flow value * min(duration,maxBondFlowHours). Use modest supportable terms. Unsigned earns nothing; sign the returned ID/version once, then await the peer and settlement. Review existing obligations before adding another; repeated signatures add nothing. Peer stock/interest/authority unknown. Introductions can discuss supply.",
   };
 }

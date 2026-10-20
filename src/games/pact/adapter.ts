@@ -11,6 +11,7 @@ import { boundedReads, mergeReads, narrowRead } from "./context.js";
 import { actionKinds, actionSchema, isRead } from "./contracts.js";
 import { decisionObservation } from "./decision.js";
 import { compactEnvironment } from "./environment.js";
+import { negotiationPreflight } from "./negotiation.js";
 import { referencePreflight, referenceReadPreflight } from "./references.js";
 import { applySocialAttention, attentionRecords, deliveredSocialSummary, socialSignals } from "./social-attention.js";
 import { tradePreflight } from "./trade.js";
@@ -321,6 +322,8 @@ export const pactAdapter: GameAdapter = {
       };
     const reference = referencePreflight(action, facts);
     if (reference) return reference;
+    const negotiation = negotiationPreflight(action, facts);
+    if (negotiation) return negotiation;
     const trade = tradePreflight(action, facts);
     if (trade) return trade;
     if (action.kind !== "game.building.queue") return;

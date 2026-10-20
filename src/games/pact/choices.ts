@@ -2,6 +2,7 @@ import { type Data, object } from "../../domain.js";
 import { executableActionSchema } from "../../generation.js";
 import { constructionRecovery } from "./construction.js";
 import { actionSchema } from "./contracts.js";
+import { constrainNegotiationSchema } from "./negotiation.js";
 import { constrainTradeSchema } from "./trade.js";
 
 const rows = (v: unknown): Data[] => (Array.isArray(v) ? v.map(object) : []);
@@ -219,5 +220,6 @@ export function observedActionSchema(kind: string, facts: Data): Data | undefine
     if (kind === "game.message.send" && Array.isArray(guide.contacts) && !peers.length) return;
     if (peers.length) properties[field] = { ...object(properties[field]), enum: peers };
   }
-  return constrainTradeSchema(shape, kind, facts);
+  const negotiation = constrainNegotiationSchema(shape, kind, facts);
+  return negotiation ? constrainTradeSchema(negotiation, kind, facts) : undefined;
 }

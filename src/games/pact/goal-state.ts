@@ -78,3 +78,43 @@ export function validatePactWait(basis: Data, facts: Data): ProposalValidation {
       "Wait not accepted. Completed levels are current facts, not missing work. Reconcile owner intent against currentState: stock_shortage needs resources. Choose useful permitted work/read, or a wait based on the actual stock/risk constraint; include an accurate basis. Do not duplicate queued work, cancel jobs or invent resource effects.",
   };
 }
+
+/** Modern action claims reconcile the same current checkpoint as waits. Bare legacy arguments stay unchanged. */
+export function goalActionOutcomeSchema(facts: Data, kinds: string[], base?: Data): Data | undefined {
+  if (!pactWaitSchema(facts)) return base;
+  const current = checkpoint(facts);
+  if (!current) return base;
+  return {
+    ...(base ?? { type: "object", additionalProperties: false }),
+    properties: {
+      ...object(base?.properties),
+      actionKind: {
+        type: "string",
+        enum: kinds,
+        description: "Must equal actual payload.kind. An offer or signature is not construction or delivery.",
+      },
+      basis: { const: current.basis },
+    },
+    required: [
+      ...new Set([...(Array.isArray(base?.required) ? (base.required as string[]) : []), "actionKind", "basis"]),
+    ],
+  };
+}
+export function validateGoalAction(action: Data, facts: Data, outcome?: Data): ProposalValidation | undefined {
+  if (!pactWaitSchema(facts)) return;
+  const validation = validatePactWait(object(outcome?.basis), facts);
+  if (!validation.valid)
+    return {
+      ...validation,
+      code: "PACT_ACTION_STATE_MISMATCH",
+      guidance: `No command prepared. The action must use the same fresh construction facts as a wait. ${validation.guidance}`,
+    };
+  if (outcome?.actionKind !== action.kind)
+    return {
+      valid: false,
+      code: "PACT_ACTION_EFFECT_MISMATCH",
+      guidance:
+        "No command prepared. expectedOutcome.actionKind must equal the actual payload.kind. A supply offer/signature is not construction or resource delivery. Reconcile the current resource blocker before choosing useful work/read or a justified wait.",
+      detail: { actualActionKind: action.kind },
+    };
+}

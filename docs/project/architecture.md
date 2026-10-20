@@ -126,3 +126,8 @@ The HTTP model adapter makes one execution. Admission can perform one corrective
 ## What another adapter needs
 
 A synthetic board proves contract separation, not universal compatibility. Each real integration needs authenticated enrollment, authorized views, world/source identity, action validation, time semantics, idempotency/outcome lookup and acceptance. Registry entries are reviewed/static, not arbitrary uploaded plugins. Reusing a URL for a new world requires trustworthy game-owned incarnation identity; changing a Fleet string alone is insufficient.
+
+
+### Current packet and PACT proposal checks, 20 October 2026
+
+Modern packets reserve the measured non-observation bytes and shrink optional continuity records under pressure, with explicit omission coverage and citation rebinding. Current authoritative facts remain whole. PACT's negotiation helper compares self-relative existing commitments before adding/signing equivalent terms, and modern expectedOutcome checks the current construction basis plus the actual command kind. These are local generation/proposal checks; the PACT server still owns authority, stock, atomic commands and receipts. See [the repair report](../packing-negotiation-goal-20261020.md).

@@ -52,6 +52,9 @@ export class ReactiveEngine implements AgentEngine {
     return observation;
   }
   protected fitExtension(_payload: Data): void {}
+  protected reduceExtension(_payload: Data): boolean {
+    return false;
+  }
   protected generationSchema(_payload: Data, base: Data): Data {
     return base;
   }
@@ -124,12 +127,29 @@ export class ReactiveEngine implements AgentEngine {
         const packetBytes = () =>
           Buffer.byteLength(JSON.stringify(messages())) +
           Buffer.byteLength(JSON.stringify(this.generationSchema(payload, baseSchema)));
-        let allowance = Math.min(Buffer.byteLength(JSON.stringify(original)), Math.floor(budget.inputByteLimit / 2));
-        payload.observation = ctx.packObservation(original, allowance);
-        for (let pass = 0; pass < 12 && !fits(); pass++) {
-          allowance -= Math.max(128, packetBytes() - budget.inputByteLimit + 128);
-          if (allowance <= 0) throw new FleetError("CONTEXT_LIMIT", true);
-          payload.observation = ctx.packObservation(original, allowance);
+        for (;;) {
+          // Reserve measured non-observation bytes, not a fixed half envelope.
+          payload.observation = null;
+          let allowance = Math.min(
+            Buffer.byteLength(JSON.stringify(original)),
+            budget.inputByteLimit - packetBytes() + 4,
+          );
+          try {
+            if (allowance <= 0) throw new FleetError("CONTEXT_LIMIT", true);
+            payload.observation = ctx.packObservation(original, allowance);
+            for (let pass = 0; pass < 12 && !fits(); pass++) {
+              allowance -= Math.max(128, packetBytes() - budget.inputByteLimit + 128);
+              if (allowance <= 0) throw new FleetError("CONTEXT_LIMIT", true);
+              payload.observation = ctx.packObservation(original, allowance);
+            }
+            if (!fits()) throw new FleetError("CONTEXT_LIMIT", true);
+            break;
+          } catch (error) {
+            // Retry only a known packing failure after removing an optional
+            // extension record. The original authorized observation never changes.
+            if (!(error instanceof FleetError) || error.code !== "CONTEXT_LIMIT" || !this.reduceExtension(payload))
+              throw error;
+          }
         }
       }
       if (!fits()) throw new FleetError("MODEL_REQUEST_NOT_ADMITTED", true);
