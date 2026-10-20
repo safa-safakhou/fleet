@@ -12,6 +12,8 @@
 
 **Approval and status:** Founder approved the design and requested this plan on 20 October 2026. Design approval does not mean implementation has run. All 26 tasks in the linked parts start unchecked. Planning baselines: Fleet `c2f7bbd` (application source remains the reviewed `421ad90` source) and PACT `1d93da690cd1a2ae4821b799ca79e5961252e3c8`. The [source review](../../architecture-review-20261020.md) records evidence and existing coupling.
 
+**Related proposed milestone — 20 October:** The [two-kingdom negotiation plan](2026-10-20-two-kingdom-negotiation.md) defines a behavioral benchmark before persistent specialists: exact consent, fulfilled supply, verified benefit and later history use. It reuses F00/F01 and proposes `reactive-cognition@2` after F02–F06, preserving the five current `@1` controls. A04 can consume its versioned evidence selector; A07/A08 remain mandatory before autonomous specialists enter PACT comparisons. This planning addition starts no implementation or run. At execution, F01 must capture the later merged repairs as well as the pinned historical baseline. If the extra version is adopted, catalog tests derive version-option counts from registered descriptors; the six architecture families and all original 26 tasks remain in scope.
+
 ## Global Constraints
 
 - Preserve `legacy-loop@1`, `legacy-cognition@1`, `reactive-basic@1`, `reactive-cognition@1`, and `specialist-coordinator@1`. Add `autonomous-specialists@1`; do not turn the old profiles into modes of it.
