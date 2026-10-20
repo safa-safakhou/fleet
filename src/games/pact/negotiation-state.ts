@@ -23,7 +23,9 @@ export function negotiationState(facts: Data): NegotiationState {
   const sourceRefs = refs(facts.sourceRefs);
   if (!sourceRefs.length) omitted.push("source_refs_unavailable");
   const page = object(section.coverage ?? guide.agreementCoverage);
-  if (page.hasMore !== false || section.next) omitted.push("agreements_not_exhaustive; use scoped agreements read");
+  if ((page.hasMore !== false && page.complete !== true) || section.next)
+    omitted.push("agreements_not_exhaustive; use scoped agreements read");
+  if (!Array.isArray(facts.outstandingCommands)) omitted.push("outstanding_commands_unknown");
   const collected = new Map<string, Data>();
   // A current scoped page overrides the shorter guide summary of the same record.
   for (const raw of [
@@ -167,7 +169,7 @@ export function negotiationState(facts: Data): NegotiationState {
       mandate: guide.mandate ?? null,
       socialDelegation: guide.socialDelegation ?? null,
     },
-    outstandingCommands: structuredClone(facts.outstandingCommands ?? []),
+    outstandingCommands: Array.isArray(facts.outstandingCommands) ? structuredClone(facts.outstandingCommands) : null,
     units: { stock: "internal", flow: "whole/hour", bond: "whole", internalPerWhole: 600 },
     sourceRefs,
     coverage: { complete: omitted.length === 0, omitted },

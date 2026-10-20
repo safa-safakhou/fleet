@@ -177,3 +177,11 @@ it("oversized duplicated authority is explicitly unavailable while whole offer s
   expect(fitted.state.constraints).toBeNull();
   expect(fitted.coverage.omitted).toContain("constraints_unavailable; read current scoped authority/stock");
 });
+
+it("missing outstanding-command facts stay unknown instead of inventing an empty queue", () => {
+  const f = facts();
+  expect(negotiationState(f).outstandingCommands).toBeNull();
+  expect(negotiationState(f).coverage.omitted).toContain("outstanding_commands_unknown");
+  f.outstandingCommands = [];
+  expect(negotiationState(f).outstandingCommands).toEqual([]);
+});
