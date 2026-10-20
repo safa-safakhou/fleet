@@ -1,4 +1,5 @@
 import { type Data, FleetError, object } from "../../domain.js";
+import { factTable } from "../../fact-table.js";
 import type { Observation } from "../../platform/contracts.js";
 import { compactFacts } from "./adapter.js";
 import { compactEnvironment } from "./environment.js";
@@ -26,6 +27,11 @@ export function packPactObservation(observation: Observation, byteLimit: number)
     const environment = Object.fromEntries(keys.filter((k) => compact[k] !== undefined).map((k) => [k, compact[k]]));
     // The trusted candidate policy is a negotiation view. Other game detail is
     // available by ordinary scoped reads; omitted construction is never absence.
+    environment.balances = factTable(environment.balances);
+    environment.authority = {
+      ...object(environment.authority),
+      resources: factTable(object(environment.authority).resources),
+    };
     environment.contacts = guide.contacts;
     environment.contactRequests = guide.contactRequests;
     environment.publicDiscovery = observation.payload.discovery;
@@ -38,7 +44,20 @@ export function packPactObservation(observation: Observation, byteLimit: number)
     };
     const base: Observation = {
       ...observation,
-      payload: { environment, ...(requestedRead === undefined ? {} : { requestedRead }), negotiation: null },
+      payload: {
+        environment,
+        ...(requestedRead === undefined
+          ? {}
+          : {
+              requestedRead: {
+                ...object(requestedRead),
+                ...(Array.isArray(object(requestedRead).records)
+                  ? { records: factTable(object(requestedRead).records) }
+                  : {}),
+              },
+            }),
+        negotiation: null,
+      },
       coverage: {
         ...observation.coverage,
         packed: true,
@@ -52,7 +71,19 @@ export function packPactObservation(observation: Observation, byteLimit: number)
       delete environment.publicDiscovery;
       (base.coverage.omitted as string[]).push("discovery page unavailable; use scoped discovery read");
     }
-    const fitted = fitNegotiationState(negotiation as NegotiationState, byteLimit - bytes() - 32);
+    const state = structuredClone(negotiation) as NegotiationState;
+    state.constraints = null;
+    state.constraintRefs = {
+      stock: "environment.balances",
+      authority: "environment.authority",
+      mandate: "environment.mandate",
+      socialDelegation: "environment.socialDelegation",
+    };
+    state.coverage.complete = false;
+    state.coverage.omitted.push(
+      "constraint totals supplied at constraintRefs; exposure schedule/detail requires scoped read",
+    );
+    const fitted = fitNegotiationState(state, byteLimit - bytes() - 32);
     base.payload.negotiation = fitted.state;
     if (Buffer.byteLength(JSON.stringify(base)) > byteLimit) throw new FleetError("CONTEXT_LIMIT", true);
     return base;

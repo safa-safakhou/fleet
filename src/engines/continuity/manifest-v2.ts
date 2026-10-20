@@ -14,6 +14,7 @@ export const manifest: ArchitectureManifest = {
   modules: [
     { id: "decision-step", version: "1" },
     { id: "negotiation-evidence", version: "1" },
+    { id: "generation-schema-sharing", version: "1" },
   ],
   stateCodecs: [{ id: "negotiation-memory", version: "2" }],
   skillModes: ["off"],

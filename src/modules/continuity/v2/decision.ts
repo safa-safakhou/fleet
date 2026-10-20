@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { type Data, FleetError, object } from "../../../domain.js";
+import { expandFactTables, factTable } from "../../../fact-table.js";
 import type { ActionOutcome, Observation } from "../../../platform/contracts.js";
 import type { DecisionContext } from "../../decision-step/v1/context.js";
 import { BoundedDecisionStep, ReactiveDecision, RejectedDecision } from "../../decision-step/v1/engine.js";
@@ -10,6 +11,7 @@ import {
   type Original,
   selectNegotiationEvidence,
 } from "../../evidence/negotiation/v1.js";
+import { shareGenerationSchema } from "../../generation-schema/v1.js";
 
 const Memory = z
   .object({
@@ -28,6 +30,13 @@ const Memory = z
   .strict();
 const Envelope = z.object({ decision: ReactiveDecision, memory: Memory.optional() }).strict();
 const codec = "negotiation-memory.2";
+function packetEvidence(value: ReturnType<typeof selectNegotiationEvidence>) {
+  return {
+    ...value,
+    encoding: "fleet.fact-table.v1",
+    bundles: value.bundles.map((bundle) => ({ ...bundle, originals: factTable(bundle.originals) })),
+  };
+}
 type Index = { key: string; id: string; kind: Original["kind"]; createdAt: string };
 type State = { index: Index[]; memories: Interpretation[]; ack: Data };
 const rows = (v: unknown): Data[] => (Array.isArray(v) ? v.map(object) : []);
@@ -36,6 +45,15 @@ const rows = (v: unknown): Data[] => (Array.isArray(v) ? v.map(object) : []);
  */
 export class NegotiationDecisionStep extends BoundedDecisionStep {
   protected decisionSchema: Data = z.toJSONSchema(Envelope, { target: "draft-7" });
+  private schemaCache = new WeakMap<Data, Data>();
+  protected generationSchema(_payload: Data, base: Data) {
+    let shared = this.schemaCache.get(base);
+    if (!shared) {
+      shared = shareGenerationSchema(base);
+      this.schemaCache.set(base, shared);
+    }
+    return shared;
+  }
   private version = 0;
   private saved: State = { index: [], memories: [], ack: { status: "no_op", reason: "no_prior_write" } };
   private selection?: EvidenceSelection;
@@ -137,7 +155,7 @@ export class NegotiationDecisionStep extends BoundedDecisionStep {
       .map((e) => ({ ...e.detail, id: e.id }) as Original);
     this.selection = {
       bindingId: ctx.binding.id,
-      goalRefs: [JSON.stringify(ctx.goal ?? ctx.accountObjective?.(observation) ?? "")],
+      goalRefs: [JSON.stringify(ctx.accountObjective?.(observation) ?? ctx.goal ?? "")],
       entityRefs: [...rows(negotiation.offers), ...rows(negotiation.contracts)].map((o) => String(o.peerId)),
       conversationRefs: [],
       originals,
@@ -146,17 +164,18 @@ export class NegotiationDecisionStep extends BoundedDecisionStep {
       maxBytes: Math.min(10000, Math.floor(ctx.configuration.budget.inputByteLimit / 2)),
     };
     await this.save(ctx);
-    return { negotiationMemory: selectNegotiationEvidence(this.selection), memoryWriteAck: this.saved.ack };
+    return {
+      negotiationMemory: packetEvidence(selectNegotiationEvidence(this.selection)),
+      memoryWriteAck: this.saved.ack,
+    };
   }
-  protected fitExtension(payload: Data) {
-    if (this.selection) {
-      this.selection.maxBytes = Math.max(1200, Math.floor(this.selection.maxBytes * 0.7));
-      payload.negotiationMemory = selectNegotiationEvidence(this.selection);
-    }
+  protected fitExtension(_payload: Data) {
+    /* Already losslessly encoded; retain whole causal bundles first. */
   }
   protected reduceExtension(payload: Data) {
     if (!this.selection || this.selection.maxBytes <= 1200) return false;
-    this.fitExtension(payload);
+    this.selection.maxBytes = Math.max(1200, Math.floor(this.selection.maxBytes * 0.7));
+    payload.negotiationMemory = packetEvidence(selectNegotiationEvidence(this.selection));
     return true;
   }
   protected async decode(ctx: DecisionContext, raw: unknown, payload: Data) {
@@ -165,7 +184,9 @@ export class NegotiationDecisionStep extends BoundedDecisionStep {
     const memory = parsed.data.memory;
     const delivered = new Set((object(payload.negotiationMemory).deliveredIds ?? []) as string[]);
     const originals = new Set(
-      rows(object(payload.negotiationMemory).bundles).flatMap((b) => rows(b.originals).map((o) => String(o.id))),
+      rows(object(expandFactTables(payload.negotiationMemory)).bundles).flatMap((b) =>
+        rows(b.originals).map((o) => String(o.id)),
+      ),
     );
     if (!memory) {
       this.saved.ack = { status: "no_op", reason: "no_authored_update" };
