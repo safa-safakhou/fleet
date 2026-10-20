@@ -14,6 +14,8 @@
 
 **Implementation checkpoint (21 October 2026):** F00–F06 and N01–N08 are complete and verified inline in the isolated `codex/two-kingdom-offline` worktrees. See the [paired source/offline acceptance report](../../two-kingdom-negotiation-source-acceptance-20261020.md). F07/F08, persistent specialists and skills remain open. Original planning-only wording is historical; later source authorization covers offline implementation only. E1–E4 remain unstarted and real-model quality is unqualified.
 
+**E1 proposal checkpoint (21 October 2026):** The [approval package](2026-10-21-negotiation-E1-approval.md) now pins a proposed existing model, settings, fixture definition, budget and stop conditions. It is disarmed and starts no test/fixture/provider/game run. Owned execution composition, baseline operational preflight and same-live-lease renewal remain unimplemented preparation work; exact execution sources/UUIDs/private grant and launch approval are still required.
+
 ## Global Constraints
 
 - Preserve installed/archived identities, source histories, goals, mandates, schedules, budgets, closed windows, private evidence and original unknown allocations. Use no retained runtime database or fixture.
