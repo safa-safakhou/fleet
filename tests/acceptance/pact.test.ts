@@ -351,7 +351,14 @@ it("commits a valid creator-relative unsigned trade through real handlers withou
   expect(validatePactProposal(action, facts, { trade: { youSend: terms.aToB, youReceive: terms.bToA } }).valid).toBe(
     true,
   );
-  expect((await dispatch(a, action)).code).toBe("COMMITTED");
+  const receipt = await dispatch(a, action);
+  expect(receipt.code).toBe("COMMITTED");
+  expect(pactAdapter.commandMeaning?.(action, receipt)).toEqual({
+    stage: "unsigned_proposal_created",
+    ownSignatureRecorded: false,
+    contractActivated: false,
+    resourcesDelivered: false,
+  });
   const row = (
     await pool.query("SELECT terms,status FROM supply_offers WHERE kingdom_a=$1 AND kingdom_b=$2", [
       a.kingdomId,

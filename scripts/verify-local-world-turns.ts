@@ -5,7 +5,7 @@ import { resolve } from "node:path";
 import { safeCode } from "../src/domain.js";
 import { runtime } from "../src/runtime.js";
 import { parseTurnSelection } from "./local-turn-selection.js";
-import { turnVerificationFailure } from "./local-turn-verification.js";
+import { turnVerificationFailure, unresolvedLocalWork } from "./local-turn-verification.js";
 
 // Explicit local operator command: no scheduler, retries, new accounts or history reset.
 const [root, id, selection, actors] = process.argv.slice(2);
@@ -44,11 +44,7 @@ try {
     ["legacy-loop", "legacy-cognition", "reactive-basic", "reactive-cognition"],
   );
   assert.ok(groups.every((g) => g.state === "paused"));
-  const dirty = (
-    await r.pool.query(
-      "SELECT (SELECT count(*)::int FROM turns WHERE state IN('running','pending','needs_owner') OR pending_command IS NOT NULL)+(SELECT count(*)::int FROM compute_ledger WHERE status IN('unknown','reserved')) n",
-    )
-  ).rows[0].n;
+  const dirty = await unresolvedLocalWork(r.pool);
   assert.equal(dirty, 0, "Reconcile existing uncertainty before a pass");
   const selected = [];
   for (const { profile, ordinal } of selectedActors) {

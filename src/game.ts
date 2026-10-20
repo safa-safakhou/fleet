@@ -23,6 +23,7 @@ export interface GameAdapter {
   nextDiscoveryCursor?(facts: Data): Data | undefined;
   accountObjective?(facts: Data): string | undefined;
   deliveredContextSummary?(context: Data): Data;
+  commandMeaning?(action: Data, receipt: Data): Data | undefined;
   availableActions?(
     facts: Data,
     ownerPolicy: Data | null,

@@ -139,6 +139,8 @@ export function pactAgentBriefing(facts: Data): Data {
         }
       : {}),
     construction: {
+      productionBuildings: object(facts.development).productionBuildings,
+      effect: object(facts.development).constructionEffect,
       completedBuildings: world.buildings,
       ...(queuedProgress.length
         ? {

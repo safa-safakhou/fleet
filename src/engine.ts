@@ -264,6 +264,15 @@ export class Engine {
         });
         const decisionState = await continuation.reconcile(claim, signals, ownerFingerprint);
         const capability = this.adapter.availableActions?.(facts, claim.cohort.synthetic_owner_policy);
+        const priorContinuation = continuation.context(decisionState);
+        if (Array.isArray(priorContinuation.outcomes))
+          priorContinuation.outcomes = priorContinuation.outcomes.map((raw) => {
+            const entry = object(raw);
+            return {
+              ...entry,
+              operationMeaning: this.adapter.commandMeaning?.({ kind: entry.actionKind }, { code: entry.code }),
+            };
+          });
         const context = {
           ownerValues: ownerValues(
             claim.cohort.owner_guidance,
@@ -286,9 +295,13 @@ export class Engine {
               }
             : {}),
           ...(strategicFocus ? { strategicFocus } : {}),
-          continuation: continuation.context(decisionState),
-          continuationGuide:
-            "Optional structured goal/steps/wait: use fleet_continuation_schema for the exact current contract and plan. It is your authored bookkeeping, never authority. Fresh facts, recorded outcomes and current owner intent prevail over old waits or prose.",
+          continuation: priorContinuation,
+          continuationGuide: {
+            requiredForAction: false,
+            schemaLookup: "fleet_continuation_schema",
+            meaning:
+              "Optional authored plan format only; no gameplay, signature or resource effect. Use only when editing that plan. Choose a game action directly when its facts and shape are already known.",
+          },
           privateNotes: claim.agent.notes,
           lastOutcome: claim.agent.reason,
           lastIntent,
@@ -313,6 +326,7 @@ export class Engine {
               actionKind: object(r.action).kind,
               outcomeSource: r.source,
               receipt: r.receipt,
+              meaning: this.adapter.commandMeaning?.(object(r.action), object(r.receipt)),
             })),
           readHistoryCoverage:
             "Historical facts may be stale. The environment is fresh; re-read current facts before dependent commitments.",

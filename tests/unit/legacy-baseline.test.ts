@@ -10,6 +10,17 @@ it("preserves the recorded controller except the explicit context, owner-assignm
   // any other controller drift still fails against the original source digest.
   let historical = source.toString();
   const reviewed: [string, string][] = [
+    // Reasoning repair: optional bookkeeping and adapter-owned receipt meaning.
+    [
+      "        const priorContinuation = continuation.context(decisionState);\n        if (Array.isArray(priorContinuation.outcomes))\n          priorContinuation.outcomes = priorContinuation.outcomes.map((raw) => {\n            const entry = object(raw);\n            return {\n              ...entry,\n              operationMeaning: this.adapter.commandMeaning?.({ kind: entry.actionKind }, { code: entry.code }),\n            };\n          });\n",
+      "",
+    ],
+    ["          continuation: priorContinuation,", "          continuation: continuation.context(decisionState),"],
+    [
+      '          continuationGuide: {\n            requiredForAction: false,\n            schemaLookup: "fleet_continuation_schema",\n            meaning:\n              "Optional authored plan format only; no gameplay, signature or resource effect. Use only when editing that plan. Choose a game action directly when its facts and shape are already known.",\n          },\n',
+      '          continuationGuide:\n            "Optional structured goal/steps/wait: use fleet_continuation_schema for the exact current contract and plan. It is your authored bookkeeping, never authority. Fresh facts, recorded outcomes and current owner intent prevail over old waits or prose.",\n',
+    ],
+    ["              meaning: this.adapter.commandMeaning?.(object(r.action), object(r.receipt)),\n", ""],
     // Prompt review: preserve observed follow-up shapes through correction/paging.
     [
       "        const requiredShapes = capability?.requiredSchemas ?? [];\n        const actionShapes = [\n          ...new Set([...requiredShapes, ...(correctionShapes.length ? correctionShapes : initialShapes)]),\n        ];\n",
