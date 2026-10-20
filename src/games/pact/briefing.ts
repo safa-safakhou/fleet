@@ -1,6 +1,7 @@
 import { type Data, object } from "../../domain.js";
 import { observedHall, observedPeerIds } from "./choices.js";
 import { queuedConstructionProgress } from "./construction-progress.js";
+import { tradeBriefing } from "./trade.js";
 
 const rows = (value: unknown): Data[] => (Array.isArray(value) ? value.map(object) : []);
 /** Clarify the controller handoff using only current owner-authorized observations. */
@@ -25,6 +26,7 @@ export function pactAgentBriefing(facts: Data): Data {
     .sort((a, b) => a - b);
   const stock = rows(guide.constructionStockChecks);
   const queuedProgress = queuedConstructionProgress(facts);
+  const trade = tradeBriefing(facts);
   const allowed = Array.isArray(authority.allowedActions)
     ? authority.allowedActions
     : object(guide.mandate).allowedActions;
@@ -82,6 +84,7 @@ export function pactAgentBriefing(facts: Data): Data {
       };
     });
   return {
+    ...(trade ? { trade } : {}),
     ownerIntent: { status: objective ? "provided" : "absent", objective: objective || null },
     execution: {
       objectiveIsStandingGuidance: Boolean(objective),

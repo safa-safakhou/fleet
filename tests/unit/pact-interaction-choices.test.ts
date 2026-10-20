@@ -20,7 +20,9 @@ const facts = {
   development: { hallUnlocks: { archers: 2, riders: 3, rams: 4, lending: 3 } },
 };
 const compile = (f: Data) =>
-  new Ajv({ strict: false, validateFormats: false }).compile(pactActionContracts(f)[0].payloadSchema);
+  new Ajv({ strict: false, validateFormats: false }).compile({
+    anyOf: pactActionContracts(f).map((c) => c.payloadSchema),
+  });
 const terms = {
   aToB: { resource: "grain", wholePerHour: 2 },
   bToA: null,
@@ -241,7 +243,7 @@ it("excludes another training batch when observed owned training is occupied, wi
     world: { ...facts.world, training: [{ batchId: peer, type: "spearman", requestedCount: 1, completedCount: 0 }] },
   };
   expect(compile(busy)(action)).toBe(false);
-  expect(validatePactProposal(action, busy)).toEqual({ valid: false, code: "OBSERVED_TRAINING_BUSY" });
+  expect(validatePactProposal(action, busy)).toMatchObject({ valid: false, code: "OBSERVED_TRAINING_BUSY" });
   expect(compile({ ...facts, world: { ...facts.world, training: [] } })(action)).toBe(true);
   expect(compile(facts)(action)).toBe(true);
   expect(validatePactProposal(action, facts).valid).toBe(true);

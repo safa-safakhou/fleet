@@ -286,7 +286,7 @@ export class DiagnosticEpisodes {
             catalog: async () => structuredClone(tools),
             packObservation: packPactObservation,
             validateProposal: async (proposal, observed) =>
-              validatePactProposal(proposal.intent.payload, observed.payload),
+              validatePactProposal(proposal.intent.payload, observed.payload, proposal.expectedOutcome),
             actionContracts: async (observed) => pactActionContracts(observed.payload),
             execute: async (intent) => capture(intent.commandId, intent.payload) as ActionOutcome,
             resolve: async (commandId) =>

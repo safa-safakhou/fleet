@@ -210,7 +210,7 @@ export function createPactEnvironment(ports: {
         },
         packObservation: packPactObservation,
         validateProposal: async (proposal, observation) =>
-          validatePactProposal(proposal.intent.payload, observation.payload),
+          validatePactProposal(proposal.intent.payload, observation.payload, proposal.expectedOutcome),
         actionContracts: async (observation) => pactActionContracts(observation.payload),
         async execute(intent) {
           try {

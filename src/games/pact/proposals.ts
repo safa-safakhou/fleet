@@ -1,23 +1,47 @@
-import { type Data, safeCode } from "../../domain.js";
+import { type Data, object, safeCode } from "../../domain.js";
+import type { ActionContract, ProposalValidation } from "../../platform/contracts.js";
 import { validateTool } from "../../tools.js";
 import { pactAdapter } from "./adapter.js";
 import { observedActionSchema } from "./choices.js";
+import { tradeExpectedOutcomeSchema, tradePreflight } from "./trade.js";
 
 /** Generation constraints describe conditional choices, never permission. */
-export function pactActionContracts(facts: Data) {
+export function pactActionContracts(facts: Data): ActionContract[] {
   const available = pactAdapter.availableActions?.(facts, null);
   const variants = (available?.kinds ?? []).flatMap((kind) => {
     const shape = observedActionSchema(kind, facts);
     return shape ? [shape] : [];
   });
-  return variants.length ? [{ schemaId: "pact.action.v1", payloadSchema: { anyOf: variants } }] : [];
+  const trade = variants.filter((s) =>
+    ["game.supply.offer", "game.supply.counter"].includes(String(object(object(s.properties).kind).const)),
+  );
+  const other = variants.filter((s) => !trade.includes(s));
+  return [
+    ...(other.length ? [{ schemaId: "pact.action.v1", payloadSchema: { anyOf: other } }] : []),
+    ...(trade.length
+      ? [
+          {
+            schemaId: "pact.action.v1",
+            payloadSchema: { anyOf: trade },
+            expectedOutcomeSchema: tradeExpectedOutcomeSchema(),
+          },
+        ]
+      : []),
+  ];
 }
 /** Pure local shape/reference check only. Never grants authority or opens a lease. */
-export function validatePactProposal(payload: Data, facts: Data): { valid: boolean; code: string } {
+export function validatePactProposal(payload: Data, facts: Data, expectedOutcome?: Data): ProposalValidation {
   try {
     validateTool({ name: "pact.action.v1", inputSchema: pactAdapter.actionSchema(String(payload.kind)) }, payload);
-    const denied = pactAdapter.preflight?.(payload, facts);
-    return denied ? { valid: false, code: String(denied.code) } : { valid: true, code: "VALID" };
+    const denied = pactAdapter.preflight?.(payload, facts) ?? tradePreflight(payload, facts, expectedOutcome);
+    return denied
+      ? {
+          valid: false,
+          code: String(denied.code),
+          ...(denied.guidance ? { guidance: String(denied.guidance) } : {}),
+          ...(denied.detail ? { detail: denied.detail as Data } : {}),
+        }
+      : { valid: true, code: "VALID" };
   } catch (error) {
     return { valid: false, code: safeCode(error) };
   }

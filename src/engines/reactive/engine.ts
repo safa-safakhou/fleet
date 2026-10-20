@@ -14,6 +14,7 @@ export const ReactiveDecision = z.discriminatedUnion("kind", [
       kind: z.literal("action"),
       schemaId: z.string().max(100),
       payload: z.record(z.string(), z.unknown()),
+      expectedOutcome: z.record(z.string(), z.unknown()).optional(),
       summary: z.string().max(400),
     })
     .strict(),
@@ -35,7 +36,7 @@ export class ReactiveEngine implements AgentEngine {
     return "";
   }
   protected formatInstructions() {
-    return ' Return an outer decision: {"kind":"action","schemaId":"<advertised schema>","payload":<bare domain action>,"summary":"<intent>"}. A read uses {"kind":"read","query":{},"summary":"<reason>"}. A wait records no action even if its summary describes an intended command. Choose the correct outer kind; do not put session operations or an action only in summary.';
+    return ' Return an outer decision: {"kind":"action","schemaId":"<advertised schema>","payload":<bare domain action>,"summary":"<intent>"}. Include expectedOutcome when the action contract requires it; it is a checked effect statement, not a receipt. A read uses {"kind":"read","query":{},"summary":"<reason>"}. A wait records no action even if its summary describes an intended command. Choose the correct outer kind; do not put session operations or an action only in summary.';
   }
   protected async extension(_ctx: EngineContext, _observation: EngineContext["observation"]): Promise<Data> {
     return {};
@@ -174,7 +175,7 @@ export class ReactiveEngine implements AgentEngine {
             taskId: ctx.claim.taskId,
             intent,
             evidenceRefs: observation.sourceRefs,
-            expectedOutcome: {},
+            expectedOutcome: d.expectedOutcome ?? {},
             claims: [],
             conflicts: [],
           },
@@ -185,7 +186,9 @@ export class ReactiveEngine implements AgentEngine {
             code: validation.code,
             submitted: false,
             committed: false,
+            ...(validation.detail ? { detail: validation.detail } : {}),
             guidance:
+              validation.guidance ??
               "Local validation rejected this proposal before command preparation. Replan from the delivered facts and exact environment contract, or wait. Never guess IDs or replay uncertain commands.",
           };
           await ctx.trace?.("deciding", "Proposal rejected before command preparation", previousProposal);
@@ -213,14 +216,27 @@ function bindActionContracts(
     root[key] = (root[key] as Data[]).flatMap((branch) => {
       const properties = object(branch.properties);
       if (object(properties.kind).const !== "action") return [branch];
+      // Existing environments keep their archived contract unless they opt in.
+      const { expectedOutcome: _outcome, ...operationProperties } = properties;
       if (!allowed.length) return [];
       if (contracts !== undefined)
         return contracts.map((c) => ({
           ...branch,
-          properties: { ...properties, schemaId: { const: c.schemaId }, payload: c.payloadSchema },
+          properties: {
+            ...operationProperties,
+            schemaId: { const: c.schemaId },
+            payload: c.payloadSchema,
+            ...(c.expectedOutcomeSchema ? { expectedOutcome: c.expectedOutcomeSchema } : {}),
+          },
+          ...(c.expectedOutcomeSchema
+            ? { required: [...new Set([...(branch.required as string[]), "expectedOutcome"])] }
+            : {}),
         }));
       return [
-        { ...branch, properties: { ...properties, schemaId: { type: "string", maxLength: 100, enum: allowed } } },
+        {
+          ...branch,
+          properties: { ...operationProperties, schemaId: { type: "string", maxLength: 100, enum: allowed } },
+        },
       ];
     });
   }

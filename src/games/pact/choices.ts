@@ -2,6 +2,7 @@ import { type Data, object } from "../../domain.js";
 import { executableActionSchema } from "../../generation.js";
 import { constructionRecovery } from "./construction.js";
 import { actionSchema } from "./contracts.js";
+import { constrainTradeSchema } from "./trade.js";
 
 const rows = (v: unknown): Data[] => (Array.isArray(v) ? v.map(object) : []);
 /** An unfinished owned batch occupies PACT's single training queue. Missing pages stay unknown. */
@@ -218,5 +219,5 @@ export function observedActionSchema(kind: string, facts: Data): Data | undefine
     if (kind === "game.message.send" && Array.isArray(guide.contacts) && !peers.length) return;
     if (peers.length) properties[field] = { ...object(properties[field]), enum: peers };
   }
-  return shape;
+  return constrainTradeSchema(shape, kind, facts);
 }

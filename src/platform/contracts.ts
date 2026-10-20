@@ -67,14 +67,15 @@ export type CapabilityRequirements = {
   coordination?: boolean;
 };
 export type SchemaRequirements = { observations?: string[]; actions?: string[] };
-export type ActionContract = { schemaId: string; payloadSchema: Data };
+export type ActionContract = { schemaId: string; payloadSchema: Data; expectedOutcomeSchema?: Data };
+export type ProposalValidation = { valid: boolean; code: string; guidance?: string; detail?: Data };
 export interface EnvironmentSession {
   observe(query: Data): Promise<Observation>;
   catalog(): Promise<Tool[]>;
   execute(intent: ActionIntent): Promise<ActionOutcome>;
   resolve(commandId: string): Promise<ActionOutcome>;
   events?(cursor: string | null): Promise<EventPage>;
-  validateProposal?(proposal: Proposal, observation: Observation): Promise<{ valid: boolean; code: string }>;
+  validateProposal?(proposal: Proposal, observation: Observation): Promise<ProposalValidation>;
   actionContracts?(observation: Observation): Promise<ActionContract[]>;
   packObservation?(observation: Observation, byteLimit: number): Observation;
   close(): Promise<void>;

@@ -22,7 +22,7 @@ export interface EngineContext {
   validateProposal?: (
     proposal: import("./contracts.js").Proposal,
     observation: Observation,
-  ) => Promise<{ valid: boolean; code: string }>;
+  ) => Promise<import("./contracts.js").ProposalValidation>;
   schemas?: { observations: string[]; actions: string[] };
   actionContracts?: (observation: Observation) => Promise<import("./contracts.js").ActionContract[]>;
   packObservation?: (observation: Observation, byteLimit: number) => Observation;
