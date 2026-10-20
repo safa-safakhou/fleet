@@ -59,7 +59,8 @@ it("blocks economically identical pending offers with reversed A/B, while retain
   const f = facts();
   (f.guide as Data).openSupplyOffers = [offer];
   expect(valid(propose, f).code).toBe("PACT_DUPLICATE_NEGOTIATION");
-  expect(generated("game.supply.offer", propose, f)).toBe(false);
+  // A valid wire shape reaches the factual proposal guard, with precise feedback.
+  expect(generated("game.supply.offer", propose, f)).toBe(true);
   expect(valid({ ...propose, counterpartyKingdomId: other }, f).valid).toBe(true);
   expect(generated("game.supply.offer", { ...propose, counterpartyKingdomId: other }, f)).toBe(true);
   expect(valid({ ...propose, terms: { ...terms, durationHours: 6 } }, f).valid).toBe(true);
@@ -95,4 +96,41 @@ it("does not infer live duplicates from expired records or a stale view, and com
   const bonded = { ...propose, terms: { ...terms, aBond: { resource: "iron", wholeAmount: 1 } } };
   // A materially changed bond is not the observed unbonded agreement. Missing canonical bond rules still fail separately.
   expect(valid(bonded, f).code).not.toBe("PACT_DUPLICATE_NEGOTIATION");
+});
+it("delivers a factual duplicate correction to the engine instead of consuming a generic schema retry", async () => {
+  const { ReactiveEngine } = await import("../../src/engines/reactive/engine.js");
+  const { reactiveProbe } = await import("../reactive-probe-context.js");
+  const { pactActionContracts } = await import("../../src/games/pact/proposals.js");
+  const f = facts();
+  (f.guide as Data).openSupplyOffers = [offer];
+  let calls = 0;
+  const submitted: Data[] = [];
+  const ctx = reactiveProbe(async (_claim, input) => {
+    calls++;
+    const payload = calls === 1 ? propose : { ...propose, counterpartyKingdomId: other };
+    const decision = {
+      kind: "action",
+      schemaId: "pact.action.v1",
+      payload,
+      expectedOutcome: outcome,
+      summary: "Propose a distinct economic agreement",
+    };
+    expect(new Ajv({ strict: false, validateFormats: false }).compile(input.schema)(decision)).toBe(true);
+    if (calls === 2)
+      expect(JSON.parse(input.messages[1].content).previousProposal.code).toBe("PACT_DUPLICATE_NEGOTIATION");
+    return { decision, inputTokens: 1, outputTokens: 1 };
+  });
+  ctx.observation.payload = f;
+  ctx.schemas = { observations: ["pact.observation.v1"], actions: ["pact.action.v1"] };
+  ctx.actionContracts = async () => pactActionContracts(f);
+  ctx.validateProposal = async (p) => validatePactProposal(p.intent.payload, f, p.expectedOutcome);
+  ctx.commands = {
+    submit: async (_c: unknown, intent: Data) => {
+      submitted.push(intent);
+      return { status: "confirmed", code: "COMMITTED" };
+    },
+  } as never;
+  await new ReactiveEngine().run(ctx);
+  expect(calls).toBe(2);
+  expect(submitted).toHaveLength(1);
 });

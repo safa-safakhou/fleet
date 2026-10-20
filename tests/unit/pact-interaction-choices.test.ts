@@ -253,3 +253,21 @@ it("excludes another training batch when observed owned training is occupied, wi
     ),
   ).toBe(true);
 });
+it("rejects own-kingdom military targets before dispatch without expanding the shared wire schema", () => {
+  for (const kind of ["game.raid.declare", "game.scout.start"]) {
+    expect(pactAdapter.preflight?.({ kind, targetKingdomId: self }, facts)?.code).toBe("OBSERVED_SELF_TARGET");
+    const shape = compile(facts);
+    const raid = {
+      kind: "game.raid.declare",
+      targetKingdomId: self,
+      units: [{ type: "spearman", count: 1, explicitIds: ["44444444-4444-4444-8444-444444444444"] }],
+      lootPriority: ["iron", "silver", "grain"],
+      nominees: [],
+    };
+    if (kind === "game.raid.declare") {
+      // Identity is a semantic preflight check, so the corrective loop sees its factual reason.
+      expect(shape(raid)).toBe(true);
+      expect(shape({ ...raid, targetKingdomId: peer })).toBe(true);
+    }
+  }
+});

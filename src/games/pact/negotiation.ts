@@ -114,42 +114,14 @@ export function constrainNegotiationSchema(shape: Data, kind: string, facts: Dat
       p.offerId = { ...field, enum: ids };
     }
   }
-  if (kind === "game.supply.offer") {
-    const seen = new Set<string>(),
-      exclusions: Data[] = [];
-    for (const r of records(facts)) {
-      const key = perspective(r, facts);
-      if (!key || seen.has(JSON.stringify(key))) continue;
-      seen.add(JSON.stringify(key));
-      const [peer, send, receive, bond, peerBond, duration, notice] = key;
-      const flow = (v: unknown, amount: string) =>
-        v === null ? null : { resource: (v as unknown[])[0], [amount]: (v as unknown[])[1] };
-      const values = {
-        aToB: flow(send, "wholePerHour"),
-        bToA: flow(receive, "wholePerHour"),
-        aBond: flow(bond, "wholeAmount"),
-        bBond: flow(peerBond, "wholeAmount"),
-        durationHours: duration,
-        noticeHours: notice,
-      };
-      exclusions.push({
-        not: {
-          properties: {
-            counterpartyKingdomId: { const: peer },
-            terms: {
-              properties: Object.fromEntries(Object.entries(values).map(([k, v]) => [k, { const: v }])),
-              required: Object.keys(values),
-            },
-          },
-          required: ["counterpartyKingdomId", "terms"],
-        },
-      });
-    }
-    if (exclusions.length) shape.allOf = [...(Array.isArray(shape.allOf) ? shape.allOf : []), ...exclusions];
-  }
+  // Economic equivalence is semantic validation, not malformed JSON. Keep a
+  // well-shaped offer available so the engine can deliver precise factual
+  // rejection guidance instead of the broker's generic schema-output retry.
+
   return shape;
 }
-export function negotiationBriefing(facts: Data): Data {
+export function negotiationBriefing(facts: Data): Data | undefined {
+  if (!records(facts).length) return;
   const self = object(object(facts.world).profile).kingdomId;
   return {
     observedLive: records(facts).map((r) => ({

@@ -37,6 +37,8 @@ export function referencePreflight(action: Data, facts: Data): Data | undefined 
       "game.message.send": "recipientKingdomId",
       "game.supply.offer": "counterpartyKingdomId",
       "game.garrison.offer": "hostKingdomId",
+      "game.raid.declare": "targetKingdomId",
+      "game.scout.start": "targetKingdomId",
     } as Record<string, string>
   )[String(action.kind)];
   if (targetField && typeof self === "string" && action[targetField] === self)
