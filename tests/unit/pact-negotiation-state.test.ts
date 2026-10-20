@@ -129,3 +129,38 @@ it("trusted v2 projection preserves the original packet and protected record aft
   });
   expect(Buffer.byteLength(JSON.stringify(packed))).toBeLessThanOrEqual(8000);
 });
+
+it("one delivered installment cannot establish whole-contract closure", () => {
+  const f = facts();
+  object(f.world).asOfGameTimeMs = 3600000;
+  object(f.guide).asOfGameTimeMs = 3600000;
+  object(f.guide).activeSupplyContracts = [
+    {
+      ...offer,
+      type: "SupplyContract",
+      id: "partial",
+      status: "expired",
+      startGameTimeMs: "0",
+      endGameTimeMs: "3600000",
+      deliveries: [
+        {
+          direction: "sent",
+          resource: "iron",
+          dueMarked: "100",
+          deliveredMarked: "100",
+          failedInstallments: 0,
+          installments: 1,
+        },
+        {
+          direction: "received",
+          resource: "silver",
+          dueMarked: "50",
+          deliveredMarked: "50",
+          failedInstallments: 0,
+          installments: 1,
+        },
+      ],
+    },
+  ];
+  expect((negotiationState(f).contracts as Data[])[0].closure).toBe("unknown");
+});

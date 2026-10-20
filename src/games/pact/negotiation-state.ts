@@ -105,17 +105,33 @@ export function negotiationState(facts: Data): NegotiationState {
       const failed = deliveries?.some((d) => Number(object(d).failedInstallments) > 0);
       // Expired/closed alone never proves fulfillment. Due totals, failures and
       // terminal end time are needed for both non-null flow directions.
-      const expected = [common.youSend, common.youReceive].filter((v) => v !== null && v !== undefined);
+      const start = time(raw.startGameTimeMs);
+      const expected = [
+        { flow: common.youSend, direction: "sent" },
+        { flow: common.youReceive, direction: "received" },
+      ].filter((x) => x.flow !== null && x.flow !== undefined);
       const fullyObserved =
         deliveries !== null &&
         expected.length > 0 &&
-        expected.every((flow, i) =>
+        start !== null &&
+        end !== null &&
+        BigInt(end) > BigInt(start) &&
+        expected.every(({ flow, direction }) =>
           deliveries.some((d) => {
-            const x = object(d);
+            const x = object(d),
+              rate = object(flow).wholePerHour;
+            if (
+              !Number.isSafeInteger(rate) ||
+              Number(rate) <= 0 ||
+              !/^\d+$/.test(String(x.dueMarked)) ||
+              !/^\d+$/.test(String(x.deliveredMarked))
+            )
+              return false;
+            const total = (BigInt(Number(rate)) * 600n * (BigInt(end) - BigInt(start))) / 3600000n;
             return (
-              x.direction === (i === 0 && common.youSend !== null ? "sent" : "received") &&
+              x.direction === direction &&
               x.resource === object(flow).resource &&
-              /^\d+$/.test(String(x.dueMarked)) &&
+              BigInt(String(x.dueMarked)) >= total &&
               String(x.dueMarked) === String(x.deliveredMarked) &&
               Number(x.installments) > 0 &&
               Number(x.failedInstallments) === 0
