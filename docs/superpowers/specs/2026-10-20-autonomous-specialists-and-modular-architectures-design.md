@@ -8,6 +8,8 @@ Source review baseline: Fleet `421ad90a480ad4f6086ca8fffb69f542a920aa8f`. See th
 
 The founder wants specialists with their own enduring goals and memory, capable of deciding and acting within their expertise rather than merely advising a central agent. They should share knowledge and respond to events. This must be an additional architecture alongside all current Fleet architectures. Each architecture should be independently understandable and maintainable, and easy to select and launch.
 
+Follow-up requirement: specialists should learn reusable skills from past experience and create skills themselves, so familiar tasks can require less processing in future. This adds procedural learning to the design; it does not imply model-weight training.
+
 This document provides a concrete design and change map. It does not activate an engine, enroll accounts, grant inference, change existing budgets, install a release or alter game rules. Existing cohorts, history, unknown allocations and disabled installation remain outside this design work.
 
 ### Design choices proposed here
@@ -20,6 +22,7 @@ This document provides a concrete design and change map. It does not activate an
 - Offer a two-role resources/diplomacy preset and a fuller resources/diplomacy/defense/development preset. Presets express responsibilities, not mandatory communication, alliances or action frequency.
 - Preserve one environment per deployment for this release. The launcher explains unsupported environments rather than promising arbitrary adapters or cross-host rollout.
 - Use the existing TypeScript, Node, PostgreSQL, React and provider infrastructure. No new agent framework, message broker or vector database is required.
+- Add a versioned procedural-skill module: specialists can propose skills from observed episodes, retrieve relevant guides, and use qualified bounded procedures through the same action boundary. Learning and reuse are explicitly configured and accounted.
 
 These are recommendations for approval, not additional decisions already made by the founder.
 
@@ -82,6 +85,7 @@ src/
     continuity/v1/                preserved existing continuity semantics
     evidence/                     journal/retention implementation adapters
     action-admission/v1/          effects, claims and revision checks
+    skills/v1/                    skill library, validation and bounded interpreter
   engines/
     legacy/                       bridge, manifests and compatibility logic
     reactive/                     manifest, engine and tests
@@ -119,6 +123,7 @@ Each architecture exposes one descriptor containing:
 - Supported triggers: periodic, event, deadline, internal message.
 - Supported execution modes and whether sibling reasoning is implemented.
 - Required module versions and private-state codec versions.
+- Supported skill modes, recipe primitives, qualification-policy version and learning/reuse limits.
 - Pure configuration validation and a factory receiving scoped services.
 - Inspection metadata and maintenance hooks with bounded work.
 
@@ -167,6 +172,7 @@ Specialist
   charter: responsibility, owner priorities, permitted actions and limits
   goals: active/suspended/completed/abandoned objectives and subgoals
   memory: evidence-linked experiences, beliefs, predictions and plans
+  skills: owned procedural knowledge and explicitly adopted shared skill versions
   inbox: subscribed external events and addressed internal messages
   execution: current task, wake conditions, pending intent, latest outcome
 ```
@@ -175,7 +181,7 @@ A charter is a configured responsibility. Specialists may create, revise, suspen
 
 The resources role might adopt “cover the next obligation while maintaining the owner's reserve.” Diplomacy may adopt “seek a replacement supplier before the current agreement expires.” These goals persist across unrelated events and process restarts. One specialist can sleep while another works.
 
-A specialist's allowed output is a bounded structured envelope: goal revisions, memory updates, addressed messages, action intents, expectations and wake conditions. Narrating “I remembered this” does not persist a memory. Accepted writes and rejected updates are separately observable.
+A specialist's allowed output is a bounded structured envelope: goal revisions, memory updates, addressed messages, action intents, expectations, wake conditions and skill candidates/revisions. Narrating “I remembered this” or “I learned this skill” does not persist either record. Accepted writes and rejected updates are separately observable.
 
 ### Initial roles
 
@@ -261,6 +267,110 @@ The existing missed-delivery retrieval diagnostic becomes a regression scenario 
 
 No LLM writes are required on every activation. Original receipts and task/goal state are recorded deterministically. A structured memory update is optional, but its acceptance must be real and inspectable. Retention and source deletion follow existing privacy policies; expired evidence becomes unavailable rather than reconstructed from a summary.
 
+### 6.1. Skills as procedural memory
+
+A memory records what happened; a belief records an interpretation; a plan is an intention for one current goal; a skill describes how to handle a class of situations. A skill has parameters and applicability conditions, so it can be instantiated for a new goal without copying the old actor, offer or command IDs.
+
+The current [continuation implementation](../../../src/continuation.ts) already preserves bounded goal steps, dependencies, waits and observed postconditions. It is a useful source of trace structure, but storing an unfinished plan is not the proposed skill acquisition/retrieval/execution lifecycle. The existing [cognition implementation](../../../src/cognition.ts) supplies plans/reflections; those self-reports do not certify a reusable procedure.
+
+Skills are Fleet domain data, not executable Codex `SKILL.md` files or installed tools. An optional readable export can explain a skill, but the runtime consumes a versioned schema.
+
+#### Two useful representations
+
+| Representation | Reuse | What it can save |
+| --- | --- | --- |
+| Reasoning guide | Retrieve a short, relevant procedure and examples into the specialist's context; the model still judges the current situation | Repeated discovery, unnecessary reads and some planning tokens; savings must be measured |
+| Guarded recipe | Interpret a bounded typed procedure over advertised reads, conditions, calculations, actions and waits | Model calls for routine selection/execution steps when all necessary conditions are mechanically checkable |
+
+A long instruction document can increase inference cost. The system retrieves a small skill index first and supplies only the selected procedure and necessary evidence. It does not append the whole skill library to every prompt.
+
+A recipe is a finite graph built from reviewed primitives such as `observe`, `check`, `calculate`, `request`, `submit`, `await`, `verify`, and `return_to_reasoning`. Calculations call versioned adapter functions or a restricted typed expression evaluator; no generated JavaScript, shell, SQL, arbitrary network destination or dynamic tool installation is executed. V1 composition is acyclic, pins child skill versions and includes all child work in the parent's limits.
+
+#### Skill record
+
+```text
+SkillVersion
+  identity: scope + skill ID + immutable version + content digest
+  author: specialist ID; derivation episode IDs; parent version if revised
+  purpose: supported goal kinds and explicit non-goals
+  compatibility: environment/action/primitive versions and role requirements
+  inputs: typed parameters; no historical account/command IDs as defaults
+  applicability: required current facts, freshness and exclusion conditions
+  procedure: compact guide or bounded typed recipe
+  completion: observable postconditions and assessment window
+  interruption: abort, wait and return-to-reasoning conditions
+  effects: declared resource/authority needs checked by the normal adapter
+  limits: reads, actions, internal messages, model calls and elapsed time
+  evidence: outcome-linked examples, failures, omissions and test results
+  status: candidate, advisory, guarded, suspended or retired
+```
+
+Qualification applies to the exact version/digest, primitive versions and environment scope. Editing the body creates a new candidate; it does not inherit executable qualification. The current goal, permissions and state are checked again on every use.
+
+#### Learning and qualification lifecycle
+
+1. **Observe an episode:** retain the initiating goal, relevant facts, decisions, accepted actions and actual outcomes. Pending or unknown outcomes remain labelled; an admission receipt alone does not show that the strategy worked.
+2. **Propose:** when repeated work, avoidable failure or a useful completed outcome warrants it, the owning specialist can generalize a candidate with parameters, applicability limits and failure cases. Candidate extraction may use an ordinary specialist call or a separately admitted learning task. It is not an always-running “learning agent.”
+3. **Validate:** schema, scope, source ownership, allowed primitives, finite control flow and required effects are checked in code. Compare against existing skill signatures to avoid endless near-duplicate candidates.
+4. **Exercise:** run offline fixture tests with independent expected outcomes, including changed stocks, expired offers, missing evidence, conflicting claims and interrupted execution. Model-authored examples can add coverage but cannot be the sole evaluator. Replaying recorded observations proves neither a counterfactual world outcome nor generalized strategic success.
+5. **Adopt:** a valid guide can be used as explicitly unproven advice. A recipe becomes eligible for guarded execution only under the preconfigured promotion policy, with the required independent contract/edge-case coverage. Empirical usefulness and automatic-execution eligibility are reported separately.
+6. **Monitor and revise:** record successes, failures, abstentions, applicability misses and actual costs. A contract violation, invalidated dependency or unsupported action suspends affected executable versions; ordinary strategic failure updates evidence and may trigger review rather than inventing a universal verdict.
+
+Agents may create and revise candidates themselves. They cannot edit their promotion policy, qualify themselves by saying “passed,” or grant new action permissions. Within an explicitly configured learning/reuse policy, valid routine promotion need not ask a human about every skill. The fixed validator and existing execution authority decide admissibility; owner decisions remain necessary only where the underlying operation already needs them.
+
+One successful episode is grounds for a hypothesis, not a claim of general mastery. There is no universal “three successes means safe” threshold. Promotion policy and scenario coverage are versioned by procedure class, and unsupported classes stay advisory. Read-only routines can qualify before action-producing recipes. V1 learned social strategy remains advisory where applicability or completion depends on open-ended interpretation.
+
+Learning opportunities are deduplicated by skill/episode lineage, scheduled below urgent gameplay, and bounded by the current parent allowance. Validation/evaluation has CPU, elapsed-time and fixture limits as well as model accounting. Live experimentation to test a skill is ordinary consequential gameplay and is not automatically authorized by proposing the skill.
+
+#### Choosing between reuse and reasoning
+
+```mermaid
+flowchart LR
+    E[Event plus current goal] --> Find[Retrieve scoped compatible skills]
+    Find --> Match{Qualified recipe and current guards match?}
+    Match -->|Yes| Run[Bounded recipe through normal executor]
+    Match -->|No or ambiguous| Think[Specialist reasoning with relevant guides]
+    Run --> Result[Verified observations and outcomes]
+    Think --> Result
+    Result --> Learn[Budgeted candidate creation or revision]
+    Learn --> Validate[Validation and qualification]
+    Validate --> Find
+```
+
+Matching first checks world/actor scope, goal and charter, versions and required evidence. A similarity score is only a retrieval hint, not permission to execute. A recipe can run without inference only when its selection and all required parameter choices are resolved by an existing goal and deterministic conditions. If two skills imply an unresolved strategic tradeoff, or a price/recipient/commitment must be newly chosen, return to the specialist's reasoning path.
+
+Fresh observations are required even for a previously successful skill. Every action uses shared effect/authority validation, local conflict claims and authoritative commit checks. A fast path cannot bypass an unresolved command, treat a promise as fulfillment or use yesterday's stock.
+
+A long recipe advances through durable checkpoints and events. It does not hold a worker/model slot while waiting. Each step has stable execution identity and command ID; recovery resolves the original receipt. Repeated delivery of the same trigger resumes the same invocation rather than initiating a second purchase or message. New goal instances receive new command identities.
+
+Model-free execution still consumes reads, actions, CPU and time. Launch configuration must bound these independently of model-call counts; otherwise fewer inference calls could accidentally permit unlimited game actions. If those limits are absent, automatic action recipes are unavailable.
+
+#### Illustrative PACT recipe
+
+`evaluate_offer_for_existing_supply_goal` takes the current goal, an authorized offer reference and the owner's reserve policy. This is a proposed workflow, not a claim that all required PACT contracts already exist:
+
+1. Verify that the existing goal still calls for the offered resource and already specifies the acceptable amount/terms.
+2. Read the current offer, stock, obligations and authoritative effects.
+3. Check offer validity, goal terms, reserve constraints and conflicting claims.
+4. If every check is determinate, submit the permitted action through the normal executor; otherwise return to diplomacy/resources for reasoning.
+5. Record admission, then wait for and evaluate the actual delivery/default evidence separately.
+
+The first time, a model may work out the procedure and propose it. Later instances may need no model call for these routine checks. Negotiating unfamiliar terms, judging a partner or selecting between conflicting goals still needs deliberation. Skill names and match conditions cannot smuggle in a new goal such as “always accept cheap offers.”
+
+#### Ownership, reuse and compatibility
+
+The skill module owns persistence, indexing, validation and the bounded interpreter. Each architecture owns whether and when to learn, retrieve, adopt or invoke skills. Each specialist initially owns its candidates; it can publish a versioned skill to the same-kingdom shared board. A recipient explicitly adopts a compatible version and retains its author/evidence provenance. Publishing does not automatically replace another specialist's behavior.
+
+Other architectures can opt into the module through a new explicit configuration/profile version. The five existing `@1` baselines must not silently acquire skill learning or recipe execution. No cross-account/world transfer is automatic, and private examples are not public skill text. Source deletion/expiry follows existing privacy rules: inaccessible evidence loses its support designation; a skill requiring that support is suspended or downgraded. Derived private content is deleted or redacted according to the same policy, not retained indefinitely as a workaround.
+
+#### Learning must earn its cost
+
+Measure acquisition, validation, retrieval, execution, monitoring and fallback costs together. Compare matched tasks with and without skills using the same model/environment and outcome criteria. Report model calls/tokens, total elapsed time, CPU work, read/action counts, success and applicability failures. A fixture-only comparison is labelled as such; do not fabricate a counterfactual saving for an observed run.
+
+The objective is lower total processing for comparable or better outcomes, not a growing library or more claimed “learned skills.” Record the amortization horizon: a costly procedure may only pay back after repeated use. Retire duplicate, stale or consistently unhelpful versions while preserving required audit history.
+
+Research precedent: [Voyager](https://voyager.minedojo.org/) demonstrates an agent skill-library approach in Minecraft without model fine-tuning. Its code-generation design and reported game outcomes do not establish Fleet's performance. This design proposes constrained recipes and receipt-backed evidence appropriate to Fleet's existing execution boundaries.
+
 ## 7. Independent actions and competing goals
 
 Autonomy means a specialist can author and submit its own intent. Execution still uses the shared host and authoritative environment.
@@ -316,6 +426,8 @@ Proposed additive logical records:
 | `specialist_outbox` | Durable addressed messages, causation and delivery state |
 | `specialist_intents` | Origin goal/task, stable command ID, complete claim set and decision status |
 | `specialist_claims` | Binding-scoped resource/authority/promise coordination; pending-resolution state |
+| `skill_versions` / `skill_adoptions` | Immutable scoped procedures, provenance, exact adopted versions and qualification state |
+| `skill_evaluations` / `skill_invocations` | Independent validation results, outcome/cost evidence and durable per-step execution checkpoints |
 
 Exact physical tables/indexes can be consolidated during planning, provided the stated uniqueness, transaction, encryption and recovery boundaries remain. Existing `continuity_states`, event sources and legacy evidence are not repurposed or backfilled with invented specialist identities.
 
@@ -346,6 +458,8 @@ Display all registered architectures, including incompatible ones with specific 
 
 The common launch service returns separate results for configuration validity, adapter capabilities, credential readiness, provider availability/capacity, qualification evidence, remaining allowance and execution-enable state. Capability compatibility alone is not “ready to run.”
 
+For skill-capable profiles, expose `off`, `advisory`, or `guarded` reuse and an explicit learning setting, with the selected qualification policy and non-model execution limits. Proposed first-use preset: learning plus advisory reuse; guarded action execution becomes selectable only when its required contracts and limits are available. These settings apply to new drafts and never migrate existing cohorts.
+
 Preview/draft/check cannot enroll accounts, call models or start work. Credential connection is an explicit step. Start rechecks current conditions transactionally, records the exact manifest/config digest and is idempotent under a request ID. It cannot silently choose another architecture or enable a globally disabled installation.
 
 Proposed CLI syntax, not currently implemented:
@@ -371,6 +485,7 @@ For versioned configuration, `engine_profile` remains the compatibility referenc
 | Launch and configuration | `src/platform/profile-console.ts`, `src/domain.ts`, `src/store.ts`, `src/server.ts`, `web/profiles.tsx` | Exact-version catalog, architecture/model separation, common readiness service and guided launch; add CLI |
 | Event routing | `src/platform/event-intake.ts`, `tasks.ts`, migrations | Recipient fan-out, durable internal outbox, scoped task keys, conditions and backpressure |
 | State/evidence | Existing cognition/continuity adapters plus new scoped repositories | Specialist goals/memory, attributed shared records, delivery-aware retrieval and isolation |
+| Skills | New `src/modules/skills/v1/` and scoped repositories | Outcome-grounded candidate creation, compact retrieval, qualification, bounded recipes, checkpoints and cost tracking |
 | New architecture | New `src/engines/autonomous-specialists/` | Charter/goal lifecycle, selective context, independent actions, messaging and conflict protocol |
 | PACT adapter | `src/environments/pact.ts`, `src/games/pact/` and paired PACT source | Presets, action-effects/revision contract, claim mapping and handler-level acceptance |
 | Operations and reports | `src/platform/reports.ts`, web inspectors | Specialist goals, wake reasons, delivered evidence, messages, conflicts, action outcomes and total usage |
@@ -385,10 +500,11 @@ For versioned configuration, `engine_profile` remains the compatibility referenc
 | AS-03 | Specialist state and delivery infrastructure | Isolation, restart persistence, one-to-many delivery, transactional cursor/outbox, deduplication, stale writer fencing, expiry and gap handling |
 | AS-04 | Autonomous specialist engine with synthetic environment | Two specialists persist different goals, handle different events, exchange evidence and each commit an admissible action without a coordinator call |
 | AS-05 | PACT effects/revision integration | Handler-level races with game ticks/other clients, resource and promise conflicts, unsupported effects and unchanged authority; no real account required |
+| AS-05S | Skill acquisition, reuse and qualification | Candidate/adoption lifecycle, guide retrieval, typed recipe validation, guarded execution, source/version invalidation, cost accounting and fault recovery |
 | AS-06 | Complete guided launch, CLI and inspectors | Same readiness outcomes across entry points, no preview side effects, exact-version start, idempotent start, observable per-specialist lifecycle |
 | AS-07 | Qualification proposal, then authorized execution | Exact source/provider/adapter budget proposal; only a separately authorized run can establish real-model/game quality |
 
-AS-01 includes catalog/readiness foundations; AS-06 completes the user flow once specialist operation and PACT requirements can be represented accurately. This is the implementation dependency outline; a detailed task plan follows design approval.
+AS-01 includes catalog/readiness foundations; AS-06 completes the user flow once specialist operation, skills and PACT requirements can be represented accurately. AS-05S depends on AS-03/AS-04 for state and specialist outcomes; guide/recipe fixtures can be built against the synthetic adapter before AS-05, but PACT action-producing recipes depend on AS-05. Skills are part of the requested target architecture; staging advisory reuse before guarded execution is not a reason to omit the latter from delivery. This is the implementation dependency outline; a detailed task plan follows design approval.
 
 ### Acceptance scenarios
 
@@ -402,6 +518,12 @@ AS-01 includes catalog/readiness foundations; AS-06 completes the user flow once
 - **Receipt truth:** Proposal, admission, actual delivery, default and unknown outcome remain different states.
 - **Fault recovery:** Crash after model dispatch, after local state commit, before command send and after ambiguous send preserves usage and uses original command IDs.
 - **Architecture isolation:** A test-only architecture can be registered and launched against a synthetic adapter without adding engine-ID branches to host, store, intake, UI or reporting.
+- **Learned reuse:** A specialist derives a parameterized candidate from retained episodes; a later distinct goal uses the adopted skill with the right fresh parameters rather than replaying old IDs.
+- **No-model routine:** A qualified synthetic recipe resolves a fully specified current goal with zero model calls, while all reads, actions, checkpoints and usage remain visible.
+- **Generalization failure:** Missing facts, changed rules, revoked authority, conflicting reserves or ambiguous terms cause abstention/reasoning, not blind reuse.
+- **Qualification integrity:** A self-reported pass or model-generated test alone cannot enable action execution; editing a skill or dependency invalidates the affected qualification.
+- **Skill recovery and bounds:** Duplicate triggers, crashes between steps, pending receipts and exhausted non-model limits cannot duplicate commands or expand the parent allowance.
+- **Honest efficiency:** Evaluation includes learning/validation overhead and useful outcomes, rather than claiming savings from inference count alone.
 - **Compatibility:** Old consumed cohorts, profiles, namespaces, model flags, pending commands, counters and terminal states remain unchanged.
 
 Measure useful outcomes, fulfilled obligations, reserve violations, response/missed-deadline latency, blocked goals, retrieval omissions and total compute. More messages, goals, memory writes or actions do not define success. Compare against existing reactive and coordinator profiles under matched limits; interacting worlds and different models remain confounders.
@@ -411,6 +533,8 @@ Measure useful outcomes, fulfilled obligations, reserve violations, response/mis
 Local builder-oriented self-review completed; repository instructions prohibit delegation. The review checked whether an implementer could identify the owning component, persistence boundary, authority, wake behavior and failure behavior for each proposed operation.
 
 The review clarified four otherwise consequential gaps: cohort-level selection versus internal specialist identity; pure routing under host-owned transactions; atomic acknowledgment of deliveries with state/outbox acceptance; and durable command-result delivery after restart. These are now explicit above.
+
+The skills follow-up additionally checked advisory versus executable reuse, trusted qualification versus self-reported success, immutable versions/adoption, separate non-model work limits, multi-step receipt recovery and total-cost evaluation. No new model/provider experiment was performed to support this design.
 
 No additional founder answer is needed to prepare a detailed offline implementation plan once the design choices in section 1 are approved. The PACT action/effect/revision matrix still requires source investigation during AS-05 planning; support must remain unavailable until its complete coverage can be demonstrated.
 

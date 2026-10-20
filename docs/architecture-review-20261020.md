@@ -49,6 +49,14 @@ The target is one flow for every architecture: select exact version, choose its 
 
 All entry points must call the same launch service. Validity, environment compatibility, qualification evidence and operational readiness are distinct fields. Capability compatibility alone must not be displayed as permission to execute.
 
+## Skills follow-up — 20 October 2026
+
+The founder additionally requested agents that learn reusable skills from experience to reduce future processing. Inspection of [continuation](../src/continuation.ts) shows bounded current-goal steps, dependencies, waits and factual postconditions; [cognition](../src/cognition.ts) contains plans and reflections. These provide useful episode/plan structure, but do not constitute the proposed parameterized, versioned skill library and qualification/interpreter lifecycle.
+
+The revised design adds procedural skills as a shared module with architecture-owned learning and adoption policies. Short guides help model reasoning; qualified bounded recipes can avoid inference for mechanically resolved routine work. Skill execution still uses the normal action boundary. Old `@1` profiles remain unchanged; future skill adoption by another architecture is explicit and versioned.
+
+The key additional implementation work is scope-aware skill storage/retrieval, outcome-grounded candidate generation, independent validation, durable recipe checkpoints, and total-cost measurement. Model-free work needs its own read/action/time bounds. A model's claim of learning or success cannot qualify a procedure.
+
 ## Design and delivery order
 
 The [autonomous-specialists and modular architecture design](superpowers/specs/2026-10-20-autonomous-specialists-and-modular-architectures-design.md) defines the sixth architecture, persisted state, event fan-out, independent execution, resource conflicts, launch contract and acceptance scenarios.
@@ -61,7 +69,8 @@ Recommended ordering:
 4. Add scoped state, delivery/outbox and goal/wake infrastructure.
 5. Implement autonomous specialists against a synthetic adapter.
 6. Add PACT's authoritative effect/revision support and role-specific adapter data.
-7. Qualify the exact profile/provider/adapter combination under a separately authorized run.
+7. Add skill acquisition and advisory reuse, then qualified guarded procedures; synthetic work can start after specialist state/outcome support, while PACT action recipes require its commit contract.
+8. Qualify the exact profile/provider/adapter/skill configuration under a separately authorized run.
 
 ## Review method and verification
 
@@ -73,6 +82,7 @@ Executed checks:
 
 - Existing `scripts/check-boundaries.mjs`: passed. This checks game independence, not the proposed stronger engine isolation.
 - Existing unit files `core-boundaries`, `profile-console-view`, `continuity-schema`, and `profile-reports`: **14 tests passed across 4 files**.
-- Local Markdown validation: all **37 local links** across the three changed documents resolve; code fences and whitespace are valid. `git diff --check` passed.
+- Initial design Markdown validation: all **37 local links** across the three changed documents resolved; code fences and whitespace were valid. `git diff --check` passed. The skills follow-up uses a separate documentation-only verification; the unit results above belong to the original source review.
+- Skills follow-up: all **41 local links** across the three updated documents resolve; code fences, whitespace and `git diff --check` pass. No application source changed and unit suites were not rerun.
 
 No integration database, game service, real provider or helper was started. No full build or full-suite claim is made. These checks do not validate the proposed architecture or establish live behavior.
