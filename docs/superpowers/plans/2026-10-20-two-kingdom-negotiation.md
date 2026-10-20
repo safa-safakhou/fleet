@@ -117,11 +117,11 @@ State binds self/peer/conversation/offer/version to known/unknown coverage, game
 
 **Depends on:** N01/N02. **Produces:** `assessNegotiation(cell,evidence,solo,claimReviews):NegotiationAssessment`, `summarizeNegotiation(assessments):NegotiationSummary`. Open-prose `claimReviews` is an explicitly recorded evidence-backed manual rubric, never automatically passing self-report.
 
-- [ ] Assert wrong peer, invented consent/income, partial delivery, default, ignored outgoing cost, unmatched solo horizon, missing coverage, absent actor follow-up and extra dispatch cannot pass. Test valid refusal/silence and mutual benefit. Unassessable claims stay unresolved; zero useful outcomes gives null cost-per-outcome; original unknown reservations remain.
-- [ ] Run `npm run test:architecture -- tests/unit/negotiation-evaluation.test.ts`; missing strict assessments must fail.
-- [ ] Implement stage denominators, both parties' benefit, the useful two-way dialogue rubric, critical-claim failures, 9/10 and per-family 4/5 thresholds, Wilson intervals, p50/p95/max latency and measured/reserved/unknown cost fields. A material success without useful dialogue remains an incomplete communication milestone. Count all original/corrective/specialist calls once. Use a new schema/report rather than altering old `EvaluationRecord` meaning.
-- [ ] Rerun new and existing evaluation/report privacy suites. Reject mixed configs/evidence levels, duplicate world IDs, absent controls and private text. Prove results are traceable to retained sources without exporting them.
-- [ ] Commit: `feat: assess negotiation fulfillment factuality and history use`.
+- [x] Assert wrong peer, invented consent/income, partial delivery, default, ignored outgoing cost, unmatched solo horizon, missing coverage, absent actor follow-up and extra dispatch cannot pass. Test valid refusal/silence and mutual benefit. Unassessable claims stay unresolved; zero useful outcomes gives null cost-per-outcome; original unknown reservations remain.
+- [x] Run `npm run test:architecture -- tests/unit/negotiation-evaluation.test.ts`; missing strict assessments must fail.
+- [x] Implement stage denominators, both parties' benefit, the useful two-way dialogue rubric, critical-claim failures, 9/10 and per-family 4/5 thresholds, Wilson intervals, p50/p95/max latency and measured/reserved/unknown cost fields. A material success without useful dialogue remains an incomplete communication milestone. Count all original/corrective/specialist calls once. Use a new schema/report rather than altering old `EvaluationRecord` meaning.
+- [x] Rerun new and existing evaluation/report privacy suites. Reject mixed configs/evidence levels, duplicate world IDs, absent controls and private text. Prove results are traceable to retained sources without exporting them.
+- [x] Commit: `feat: assess negotiation fulfillment factuality and history use`.
 
 ## N06 — Offline paired lifecycle and fault acceptance
 
