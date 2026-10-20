@@ -88,11 +88,11 @@ Exact-version selection, concurrent edit/start, missing capabilities, wrong fixt
 
 **Interfaces:** Produce `ScopedServices`, `ScopedOperation`, `ScopedModelRequest/Result`. `createScopedServices(claim,definition,session):ScopedServices` belongs only to composition; concrete legacy claims never enter new engine code. Persist operation mode/version and per-allocation dispatch state before provider dispatch.
 
-- [ ] Write `cannot substitute another binding or claim`, `fences late port calls`, `uses recorded allocation dispatch facts on crash`, and `does not refund unknown legacy calls`. Test cancellation before dispatch versus transport uncertainty after dispatch; declared overlap requires host, environment and provider permission.
-- [ ] Run `npm run test:architecture -- tests/integration/scoped-engine-context.test.ts`; expect missing scope/mode records red.
-- [ ] Implement bound adapters for model/command/evidence/state/task/trace operations. Construct scoped runtime handlers per operation while retaining the durable architecture-instance identity; never mutate a shared process-global “current operation.” Replace host/admission engine-name checks with trusted declared modes intersected with capabilities. New operation recovery uses persisted facts; historical records without new metadata retain exact conservative compatibility rules through the legacy recovery adapter. Do not reinterpret old unknowns.
-- [ ] Rerun F04 tests, `tests/integration/platform-recovery.test.ts`, `tests/integration/model-recovery.test.ts`, and F01 parity.
-- [ ] Commit: `refactor: scope engine services and persist execution modes`.
+- [x] Write `cannot substitute another binding or claim`, `fences late port calls`, `uses recorded allocation dispatch facts on crash`, and `does not refund unknown legacy calls`. Test cancellation before dispatch versus transport uncertainty after dispatch; declared overlap requires host, environment and provider permission.
+- [x] Run `npm run test:architecture -- tests/integration/scoped-engine-context.test.ts`; expect missing scope/mode records red.
+- [x] Implement bound adapters for model/command/evidence/state/task/trace operations. Construct scoped runtime handlers per operation while retaining the durable architecture-instance identity; never mutate a shared process-global “current operation.” Replace host/admission engine-name checks with trusted declared modes intersected with capabilities. New operation recovery uses persisted facts; historical records without new metadata retain exact conservative compatibility rules through the legacy recovery adapter. Do not reinterpret old unknowns.
+- [x] Rerun F04 tests, `tests/integration/platform-recovery.test.ts`, `tests/integration/model-recovery.test.ts`, and F01 parity.
+- [x] Commit: `refactor: scope engine services and persist execution modes`.
 
 ## F05 — Separate engine implementations and shared modules
 

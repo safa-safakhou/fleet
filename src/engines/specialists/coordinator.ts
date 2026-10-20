@@ -145,6 +145,7 @@ export class ProposalCoordinator {
   }
 }
 export class SpecialistCoordinatorEngine implements AgentEngine {
+  readonly executionModes: ("serial" | "sibling-reasoning")[] = ["serial", "sibling-reasoning"];
   readonly ref = { id: "specialist-coordinator", version: "1" };
   readonly requiredCapabilities = { continuity: true, coordination: true };
   constructor(private continuity: ContinuityModule) {}

@@ -7,7 +7,7 @@ import { recoverModelOutput } from "../model-recovery.js";
 import { Observability } from "../observability.js";
 import type { Claim, Store } from "../store.js";
 import type { TaskClaim, TaskStore } from "./tasks.js";
-export type ModelResult = Awaited<ReturnType<ModelPort["decide"]>>;
+export type ModelResult = Awaited<ReturnType<ModelPort["decide"]>> & { allocationId?: string };
 export class RouteCapacity {
   constructor(
     private store: Store,
@@ -114,6 +114,9 @@ export class RouteCapacity {
       await this.store.pool.query("DELETE FROM model_capacity_leases WHERE id=$1", [id]);
     }
   }
+  supportsOverlap(model: ModelSettings) {
+    return model.route !== "codex-cli" && this.policy(model).capacity > 1;
+  }
   wrap(model: ModelPort, current: () => Claim | undefined): ModelPort {
     return {
       tracksDispatch: model.tracksDispatch,
@@ -137,6 +140,9 @@ export class ModelAdmission {
   ) {}
   guarded(guard: (claim: TaskClaim) => Promise<void>, siblingWorkers = false) {
     return new ModelAdmission(this.store, this.tasks, this.provider, this.capacity, guard, siblingWorkers);
+  }
+  supportsSiblingReasoning(model: ModelSettings) {
+    return this.siblingWorkers && this.capacity.supportsOverlap(model);
   }
   /** Planning snapshot only. Each actual call still reserves atomically in the shared ledger. */
   async remainingCalls(claim: TaskClaim): Promise<number> {
@@ -216,6 +222,10 @@ export class ModelAdmission {
         await this.tasks.check(claim);
         if (this.provider.tracksDispatch) await this.store.phase(turn, "model_preparing_tracked");
         const allocation = await this.store.reserveCall(turn, reserveCalls);
+        await this.store.pool.query(
+          "UPDATE architecture_allocations SET tracked=$2,updated_at=$3 WHERE allocation_id=$1",
+          [allocation, Boolean(this.provider.tracksDispatch), this.store.now()],
+        );
         let dispatched = false,
           invoked = false,
           execution = 0,
@@ -234,6 +244,19 @@ export class ModelAdmission {
             maxOutputTokens: request.maxOutputTokens,
           });
           modelStartedAt = this.store.now().getTime();
+          await this.tasks.check(claim);
+          if (!this.provider.tracksDispatch) {
+            const update = await this.store.pool.query(
+              "UPDATE architecture_allocations a SET dispatch_state='invoking_untracked',updated_at=$2 WHERE allocation_id=$1 AND EXISTS(SELECT 1 FROM compute_ledger l WHERE l.id=a.allocation_id AND l.status='reserved')",
+              [allocation, this.store.now()],
+            );
+            if (
+              !update.rowCount &&
+              (await this.store.pool.query("SELECT 1 FROM architecture_operations WHERE turn_id=$1", [turn.id]))
+                .rowCount
+            )
+              throw new FleetError("TASK_FENCED", true);
+          }
           invoked = true;
           const result = await this.provider.decide({
             ...request,
@@ -246,6 +269,10 @@ export class ModelAdmission {
             onDispatch: async () => {
               await this.tasks.check(claim);
               await this.store.phase(turn, "model_dispatched");
+              await this.store.pool.query(
+                "UPDATE architecture_allocations SET dispatch_state='dispatched',updated_at=$2 WHERE allocation_id=$1",
+                [allocation, this.store.now()],
+              );
               dispatched = true;
               await request.onDispatch?.();
             },
@@ -270,7 +297,7 @@ export class ModelAdmission {
             throw new FleetError("USAGE_EXCEEDED");
           await this.tasks.check(claim);
           await this.store.phase(turn, "model_settled");
-          return result;
+          return { ...result, allocationId: allocation };
         } catch (error) {
           const notDispatched =
             !invoked ||
@@ -291,10 +318,7 @@ export class ModelAdmission {
           throw error;
         }
       },
-      this.siblingWorkers &&
-        stage?.kind === "worker" &&
-        claim.profile.id === "specialist-coordinator" &&
-        claim.profile.version === "1",
+      this.supportsSiblingReasoning(request.model) && stage?.kind === "worker",
     );
   }
 }

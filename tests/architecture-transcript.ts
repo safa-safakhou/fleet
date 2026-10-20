@@ -1,4 +1,6 @@
 import { vi } from "vitest";
+import { builtinArchitectures } from "../src/app/builtins.js";
+import { compatibilityRuntime, createScopedServices, scopedOperationFor } from "../src/app/host-services.js";
 import { Cognition } from "../src/cognition.js";
 import { type Data, type ModelPort, object, safeCode } from "../src/domain.js";
 import { ContinuityEngine } from "../src/engines/continuity/engine.js";
@@ -7,7 +9,9 @@ import { LegacyEngineBridge } from "../src/engines/legacy/bridge.js";
 import { ReactiveEngine } from "../src/engines/reactive/engine.js";
 import { SpecialistCoordinatorEngine } from "../src/engines/specialists/coordinator.js";
 import { pactAdapter } from "../src/games/pact/adapter.js";
+import { EngineRegistry } from "../src/platform/engine-registry.js";
 import type { EngineProfileRef } from "../src/platform/profiles.js";
+import { PlatformHost } from "../src/platform/supervisor.js";
 import type { Claim, Store } from "../src/store.js";
 import { CoordinationBoard } from "./fixtures/environments/coordination-board.js";
 import { FakeGame, fixture, ready } from "./helpers.js";
@@ -195,8 +199,39 @@ export async function captureArchitectureTranscript(
             : new SpecialistCoordinatorEngine(continuity),
         );
       }
+      const architectures = builtinArchitectures({
+        [`${ref.id}@${ref.version}`]: (services) =>
+          compatibilityRuntime(services, () => {
+            if (ref.id === "reactive-basic") return new ReactiveEngine();
+            const c = new ContinuityModule(f.tasks, f.bindings, new Cognition(f.store), {
+              id: ref.id === "reactive-cognition" ? "reactive-cognition" : "specialist-coordinator",
+              version: "1",
+            });
+            return ref.id === "reactive-cognition" ? new ContinuityEngine(c) : new SpecialistCoordinatorEngine(c);
+          }),
+      });
+      const executing = new PlatformHost(
+        f.tasks,
+        f.bindings,
+        f.environments,
+        new EngineRegistry(host.engines.list(), architectures),
+        host.admission,
+        host.commands,
+        host.supervisor,
+        async (context, definition, session) => {
+          const services = await createScopedServices(context.claim, definition, session, {
+            context,
+            store: f.store,
+            tasks: f.tasks,
+            bindings: f.bindings,
+            model: host.admission,
+            commands: host.commands,
+          });
+          return { services, operation: scopedOperationFor(services) };
+        },
+      );
       try {
-        await host.host.run(task);
+        await executing.run(task);
       } catch (error) {
         code = safeCode(error);
       }

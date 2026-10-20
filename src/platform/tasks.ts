@@ -3,9 +3,9 @@ import type { PoolClient } from "pg";
 import { transaction } from "../db.js";
 import { type Data, FleetError } from "../domain.js";
 import type { Claim, Store } from "../store.js";
+import type { EngineProfileRef } from "./architecture.js";
 import type { Bindings } from "./bindings.js";
 import type { BindingRef, DomainTime, EnvironmentEvent } from "./contracts.js";
-import type { EngineProfileRef } from "./profiles.js";
 export type TaskState = "ready" | "running" | "waiting" | "completed" | "blocked" | "cancelled";
 export interface TaskRecord {
   id: string;

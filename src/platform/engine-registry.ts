@@ -1,8 +1,8 @@
 import { type Data, FleetError, type Tool } from "../domain.js";
 import type { ModelAdmission } from "./admission.js";
+import type { EngineProfileRef } from "./architecture.js";
 import type { BindingRef, CapabilityRequirements, Observation, SchemaRequirements } from "./contracts.js";
 import type { CommandExecutor } from "./execution.js";
-import type { EngineProfileRef } from "./profiles.js";
 import type { TaskClaim, TaskRecord } from "./tasks.js";
 export interface EngineContext {
   claim: TaskClaim;
@@ -36,11 +36,15 @@ export interface AgentEngine {
   requiredCapabilities: CapabilityRequirements;
   requiredSchemas?: SchemaRequirements;
   observationOwner?: "host" | "engine";
+  executionModes?: ("serial" | "sibling-reasoning")[];
   run(context: EngineContext): Promise<void>;
 }
 export class EngineRegistry {
   private engines = new Map<string, AgentEngine>();
-  constructor(engines: AgentEngine[] = []) {
+  constructor(
+    engines: AgentEngine[] = [],
+    readonly architectures?: import("./architecture.js").ArchitectureRegistry,
+  ) {
     for (const engine of engines) this.register(engine);
   }
   register(engine: AgentEngine) {

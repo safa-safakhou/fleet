@@ -25,12 +25,12 @@ export type ScopedOperation = {
   participantId?: string;
 };
 export type ScopedModelRequest = {
-  messages: unknown[];
+  messages: Parameters<ModelPort["decide"]>[0]["messages"];
   schema: Data;
   maxOutputTokens: number;
   stage?: { kind: "worker" | "coordinator"; focusId?: string; retryReserveCalls?: number };
 };
-export type ScopedModelResult = Awaited<ReturnType<ModelPort["decide"]>> & { allocationId?: string };
+export type ScopedModelResult = Awaited<ReturnType<ModelPort["decide"]>> & { allocationId: string };
 export type ScopedEvidence = { id: string; kind: string; detail: Data; sourceRefs: string[] };
 export interface ScopedServices {
   configuration: Readonly<{

@@ -1,9 +1,11 @@
 import { FleetError, safeCode } from "../domain.js";
 import { Observability } from "../observability.js";
 import type { ModelAdmission } from "./admission.js";
+import type { ArchitectureDefinition } from "./architecture.js";
 import type { Bindings } from "./bindings.js";
 import type { EnvironmentSession, Observation } from "./contracts.js";
-import type { EngineRegistry } from "./engine-registry.js";
+import type { ScopedOperation, ScopedServices } from "./engine-context.js";
+import type { EngineContext, EngineRegistry } from "./engine-registry.js";
 import { type EnvironmentRegistry, requireCapabilities } from "./environment-registry.js";
 import type { CommandExecutor } from "./execution.js";
 import { assertDeadline, type TaskClaim, type TaskStore } from "./tasks.js";
@@ -64,6 +66,11 @@ export class PlatformHost {
     private model: ModelAdmission,
     private commands: CommandExecutor,
     readonly supervisor: OperationSupervisor,
+    private scopeFactory?: (
+      context: EngineContext,
+      definition: ArchitectureDefinition,
+      session: EnvironmentSession | undefined,
+    ) => Promise<{ services: ScopedServices; operation: ScopedOperation }>,
   ) {}
   async run(claim: TaskClaim) {
     return this.supervisor.run(claim, async (signal) => {
@@ -115,7 +122,7 @@ export class PlatformHost {
             observation,
           },
         );
-        await engine.run({
+        const context: EngineContext = {
           claim,
           binding,
           task,
@@ -125,8 +132,11 @@ export class PlatformHost {
               await observe({});
             },
             adapter.capabilities.parallelReasoning &&
-              claim.profile.id === "specialist-coordinator" &&
-              claim.profile.version === "1",
+              (
+                this.engines.architectures?.resolve(claim.profile).manifest.executionModes ??
+                engine.executionModes ??
+                []
+              ).includes("sibling-reasoning"),
           ),
           commands: this.commands,
           observe,
@@ -158,7 +168,12 @@ export class PlatformHost {
               [claim.taskId, { kind: "event" }, claim.fence],
             );
           },
-        });
+        };
+        if (this.scopeFactory && this.engines.architectures) {
+          const definition = this.engines.architectures.resolve(claim.profile),
+            scope = await this.scopeFactory(context, definition, session);
+          await definition.create(scope.services).run(scope.operation);
+        } else await engine.run(context);
       } finally {
         await session?.close().catch(() => {});
       }

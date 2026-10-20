@@ -1,4 +1,5 @@
 import { builtinArchitectures } from "./app/builtins.js";
+import { compatibilityRuntime, createScopedServices, scopedOperationFor } from "./app/host-services.js";
 import { CodexModel } from "./codex.js";
 import { Cognition } from "./cognition.js";
 import { config } from "./config.js";
@@ -7,6 +8,7 @@ import { FleetError } from "./domain.js";
 import { ContinuityEngine } from "./engines/continuity/engine.js";
 import { ContinuityModule } from "./engines/continuity/state.js";
 import { LegacyEngineBridge } from "./engines/legacy/bridge.js";
+import { currentLegacyClaim, legacyProfileFor } from "./engines/legacy/execution.js";
 import { ReactiveEngine } from "./engines/reactive/engine.js";
 import { SpecialistCoordinatorEngine } from "./engines/specialists/coordinator.js";
 import { createPactEnvironment, PactBindings } from "./environments/pact.js";
@@ -21,7 +23,6 @@ import { EngineRegistry } from "./platform/engine-registry.js";
 import { EnvironmentRegistry } from "./platform/environment-registry.js";
 import { EventIntake } from "./platform/event-intake.js";
 import { CommandExecutor } from "./platform/execution.js";
-import { currentLegacyClaim, legacyProfileFor } from "./platform/profiles.js";
 import { OperationSupervisor, PlatformHost } from "./platform/supervisor.js";
 import { TaskStore } from "./platform/tasks.js";
 import { RunWindow } from "./run-window.js";
@@ -29,7 +30,23 @@ import { Store } from "./store.js";
 import { Vault } from "./vault.js";
 export function runtime() {
   const settings = config(),
-    architectures = builtinArchitectures(),
+    architectures = builtinArchitectures({
+      "legacy-loop@1": (services) =>
+        compatibilityRuntime(services, () => engines.resolve({ id: "legacy-loop", version: "1" })),
+      "legacy-cognition@1": (services) =>
+        compatibilityRuntime(services, () => engines.resolve({ id: "legacy-cognition", version: "1" })),
+      "reactive-basic@1": (services) => compatibilityRuntime(services, () => new ReactiveEngine()),
+      "reactive-cognition@1": (services) =>
+        compatibilityRuntime(services, () => new ContinuityEngine(new ContinuityModule(tasks, bindings, cognition))),
+      "specialist-coordinator@1": (services) =>
+        compatibilityRuntime(
+          services,
+          () =>
+            new SpecialistCoordinatorEngine(
+              new ContinuityModule(tasks, bindings, cognition, { id: "specialist-coordinator", version: "1" }),
+            ),
+        ),
+    }),
     pool = connect(settings.databaseUrl),
     store = new Store(pool, new Vault(settings.vaultKey), undefined, architectures);
   const runWindow = new RunWindow(settings.runWindowFile);
@@ -66,7 +83,7 @@ export function runtime() {
     new LegacyEngineBridge(store, capacityModel, game, settings.liveAllowed, pactAdapter, owner, undefined, cognition);
   const engine = makeLegacyEngine();
   const tasks = new TaskStore(store, bindings, settings.maxConcurrency),
-    engines = new EngineRegistry();
+    engines = new EngineRegistry([], architectures);
   for (const id of ["legacy-loop", "legacy-cognition"])
     engines.register({
       ref: { id, version: "1" },
@@ -100,7 +117,26 @@ export function runtime() {
   });
   engines.register(new SpecialistCoordinatorEngine(specialistContinuity));
   const intake = new EventIntake(tasks, bindings, environments);
-  const host = new PlatformHost(tasks, bindings, environments, engines, admission, commands, supervisor);
+  const host = new PlatformHost(
+    tasks,
+    bindings,
+    environments,
+    engines,
+    admission,
+    commands,
+    supervisor,
+    async (context, definition, session) => {
+      const services = await createScopedServices(context.claim, definition, session, {
+        context,
+        store,
+        tasks,
+        bindings,
+        model: admission,
+        commands,
+      });
+      return { services, operation: scopedOperationFor(services) };
+    },
+  );
   return {
     settings,
     providerConfigured: (model: import("./domain.js").ModelSettings) =>

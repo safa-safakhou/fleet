@@ -15,6 +15,7 @@ import {
   type Strategy,
   strategy,
 } from "./domain.js";
+import { legacyUndispatchedPhase } from "./engines/legacy/execution.js";
 import { Observability } from "./observability.js";
 import type { ArchitectureRegistry } from "./platform/architecture.js";
 import type { Vault } from "./vault.js";
@@ -222,6 +223,14 @@ export class Store {
       await c.query("UPDATE cohorts SET observation_consent=$2 WHERE id=$1", [id, enabled]);
       if (!enabled) {
         await c.query("DELETE FROM communications WHERE cohort_id=$1", [id]);
+        await c.query(
+          "DELETE FROM architecture_scoped_state s USING environment_bindings b,agents a WHERE s.binding_id=b.id AND b.agent_id=a.id AND a.cohort_id=$1",
+          [id],
+        );
+        await c.query(
+          "DELETE FROM architecture_scoped_evidence e USING environment_bindings b,agents a WHERE e.binding_id=b.id AND b.agent_id=a.id AND a.cohort_id=$1",
+          [id],
+        );
         await c.query("UPDATE turn_events SET detail_cipher=NULL WHERE cohort_id=$1", [id]);
       }
       await this.audit(c, id, "observation.consent", { enabled });
@@ -521,7 +530,13 @@ export class Store {
   }
   async notDispatched(id: string) {
     // Retain allocation/call counters; this is execution evidence, never fabricated zero usage.
-    await this.pool.query("UPDATE compute_ledger SET status='not_dispatched' WHERE id=$1 AND status='reserved'", [id]);
+    await transaction(this.pool, async (c) => {
+      await c.query("UPDATE compute_ledger SET status='not_dispatched' WHERE id=$1 AND status='reserved'", [id]);
+      await c.query(
+        "UPDATE architecture_allocations SET dispatch_state='not_dispatched',updated_at=$2 WHERE allocation_id=$1 AND EXISTS(SELECT 1 FROM compute_ledger WHERE id=$1 AND status='not_dispatched')",
+        [id, this.now()],
+      );
+    });
   }
   async beginMaintenance(cohortId: string, reason: string) {
     if (reason.trim().length < 10 || reason.length > 400) throw new FleetError("MAINTENANCE_REASON_REQUIRED");
@@ -545,6 +560,21 @@ export class Store {
       [id, owner, now, release],
     );
     if (!result.rowCount) throw new FleetError("MAINTENANCE_NOT_QUIESCENT_OR_FENCED");
+  }
+  private async settleModernUndispatched(c: PoolClient, turnId: string) {
+    const present = Boolean(
+      (await c.query("SELECT 1 FROM architecture_operations WHERE turn_id=$1", [turnId])).rowCount,
+    );
+    if (!present) return false;
+    await c.query(
+      "UPDATE compute_ledger l SET status='not_dispatched' FROM architecture_allocations a WHERE l.id=a.allocation_id AND a.turn_id=$1 AND a.dispatch_state='prepared' AND l.status='reserved'",
+      [turnId],
+    );
+    await c.query(
+      "UPDATE architecture_allocations a SET dispatch_state='not_dispatched',updated_at=$2 FROM compute_ledger l WHERE a.allocation_id=l.id AND a.turn_id=$1 AND l.status='not_dispatched'",
+      [turnId, this.now()],
+    );
+    return true;
   }
   async recoverExpired() {
     const now = this.now();
@@ -575,15 +605,16 @@ export class Store {
             [t.id],
           )
         ).rows[0];
-        // A parent phase cannot prove that every sibling was never dispatched.
-        if (
-          operation?.profile_id !== "specialist-coordinator" &&
-          ["model_preparing_tracked", "model_reserved_tracked"].includes(operation?.phase)
-        )
+        const modern = await this.settleModernUndispatched(c, t.id);
+        if (!modern && legacyUndispatchedPhase(operation))
           await c.query("UPDATE compute_ledger SET status='not_dispatched' WHERE turn_id=$1 AND status='reserved'", [
             t.id,
           ]);
         await c.query("UPDATE compute_ledger SET status='unknown' WHERE turn_id=$1 AND status='reserved'", [t.id]);
+        await c.query(
+          "UPDATE architecture_allocations a SET dispatch_state='unknown',updated_at=$2 FROM compute_ledger l WHERE a.allocation_id=l.id AND a.turn_id=$1 AND l.status='unknown'",
+          [t.id, now],
+        );
         const unknown = Boolean(
           (await c.query("SELECT 1 FROM compute_ledger WHERE turn_id=$1 AND status='unknown' LIMIT 1", [t.id]))
             .rowCount,
@@ -718,6 +749,10 @@ export class Store {
         "INSERT INTO compute_ledger(id,cohort_id,turn_id,period,tokens,created_at) VALUES($1,$2,$3,$4,$5,$6)",
         [id, claim.cohortId, claim.id, period, b.perCallTokenLimit, now],
       );
+      await c.query(
+        "INSERT INTO architecture_allocations(allocation_id,turn_id,updated_at) SELECT $1,turn_id,$3 FROM architecture_operations WHERE turn_id=$2",
+        [id, claim.id, now],
+      );
       await c.query("UPDATE turns SET calls=calls+1 WHERE id=$1", [claim.id]);
       return id;
     });
@@ -733,6 +768,11 @@ export class Store {
           [id, input, output, this.now()],
         );
       if (row?.status !== "reserved") return;
+      await c.query("UPDATE architecture_allocations SET dispatch_state=$2,updated_at=$3 WHERE allocation_id=$1", [
+        id,
+        input === null || output === null ? "unknown" : "settled",
+        this.now(),
+      ]);
       const reported = input !== null && output !== null;
       if (reported)
         await c.query("UPDATE compute_ledger SET tokens=greatest(tokens,$2) WHERE id=$1", [id, input + output]);
@@ -866,11 +906,18 @@ export class Store {
       const t = (await c.query("SELECT * FROM turns WHERE id=$1 FOR UPDATE", [claim.id])).rows[0];
       if (!t || !(onlyRunning ? ["running"] : ["running", "pending", "needs_owner"]).includes(t.state)) return;
       await this.settleUndispatched(c, t);
+      await this.settleModernUndispatched(c, claim.id);
       const unknown = await c.query(
         "UPDATE compute_ledger SET status='unknown' WHERE turn_id=$1 AND status='reserved' RETURNING id",
         [claim.id],
       );
-      if (unknown.rowCount) await c.query("UPDATE turns SET unknown_usage=true WHERE id=$1", [claim.id]);
+      if (unknown.rowCount) {
+        await c.query("UPDATE turns SET unknown_usage=true WHERE id=$1", [claim.id]);
+        await c.query(
+          "UPDATE architecture_allocations a SET dispatch_state='unknown',updated_at=$2 FROM compute_ledger l WHERE a.allocation_id=l.id AND a.turn_id=$1 AND l.status='unknown'",
+          [claim.id, this.now()],
+        );
+      }
       const fenced =
         (await c.query("SELECT 1 FROM agents WHERE id=$1 AND fence=$2", [claim.agentId, claim.fence])).rowCount === 0;
       const pending = Boolean(t.pending_command),
