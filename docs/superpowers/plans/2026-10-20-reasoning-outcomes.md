@@ -16,26 +16,26 @@ Check missing lesson coverage, rejected/uncertain receipts, optional bookkeeping
 ## Task 1 — read-only PACT lessons
 
 Files: `packages/application/src/agent-guide.ts`, `tests/unit/development-effects.test.ts` and paired Fleet acceptance.
-- [ ] RED: development lesson exposes Farm→Grain, Mine→Iron, Market→Silver and an explicit queue/start/completion explanation without accessing owned state.
-- [ ] GREEN: publish those additive facts; no costs, permissions or gameplay handlers change.
-- [ ] Verify PACT unit/type/boundary checks and package/API build; use paired real-handler construction evidence.
+- [x] RED: development lesson exposes Farm→Grain, Mine→Iron, Market→Silver and an explicit queue/start/completion explanation without accessing owned state.
+- [x] GREEN: publish those additive facts; no costs, permissions or gameplay handlers change.
+- [x] Verify PACT unit/type/boundary checks and package/API build; use paired real-handler construction evidence.
 
 ## Task 2 — Fleet decision and receipt grounding
 
 Files: `src/game.ts`, `src/engine.ts`, `src/games/pact/{adapter,briefing,action-meaning}.ts`, native baseline exception test, new unit/integration regressions.
-- [ ] RED: initial and scoped development reads retain production facts in the protected brief; missing roles remain unknown. Confirmed offer receipt produces unsigned-proposal meaning, not signature or delivery; uncertain receipts have no inferred effect.
-- [ ] RED: both native legacy engines expose optional bookkeeping as unnecessary for action and attach exact adapter receipt meaning in the next actual model request.
-- [ ] GREEN: add narrow optional receipt-meaning adapter hook, explicit bookkeeping guide, concise decision self-check and construction effects. Keep old failures/notes intact, with fresh facts authoritative.
-- [ ] Update only the explicitly reviewed historical-controller exception; retain original digest/goldens.
-- [ ] Full Linux unit/integration and native paired PACT suites; type/style/build/boundary checks and twelve-state private packet replay within unchanged limits. Self-review inline under the no-delegation instruction; verified local source commits before installation.
+- [x] RED: initial and scoped development reads retain production facts in the protected brief; missing roles remain unknown. Confirmed offer receipt produces unsigned-proposal meaning, not signature or delivery; uncertain receipts have no inferred effect.
+- [x] RED: both native legacy engines expose optional bookkeeping as unnecessary for action and attach exact adapter receipt meaning in the next actual model request.
+- [x] GREEN: add narrow optional receipt-meaning adapter hook, explicit bookkeeping guide, concise decision self-check and construction effects. Keep old failures/notes intact, with fresh facts authoritative.
+- [x] Update only the explicitly reviewed historical-controller exception; retain original digest/goldens.
+- [x] Full Linux unit/integration and native paired PACT suites; type/style/build/boundary checks and twelve-state private packet replay within unchanged limits. Self-review inline under the no-delegation instruction; verified local source commits before installation.
 
 ## Task 3 — exact live acceptance and preservation
 
-- [ ] Preserve encrypted baseline and accepted owner goals/permissions; verify gates closed,12 ready, groups/clock paused and pinned model.
-- [ ] Install only verified owned local processes; preserve old history and accounting.
-- [ ] One exact native turn each A2/B2/C3/D1; no silent retry or extra probe. Inspect all returned requests/responses/guards and authenticated receipts plus current owned state.
-- [ ] Park groups/clock, preserve any new uncertainty without clearing it, verify historical rows/settings/artifact hashes and encrypted restore.
-- [ ] Report actual usefulness, remaining reasoning/provider limitations and local commits. New uncertainty needs separate exact review.
+- [x] Preserve encrypted baseline and accepted owner goals/permissions; verify gates closed,12 ready, groups/clock paused and pinned model.
+- [x] Install only verified owned local processes; preserve old history and accounting.
+- [x] One exact native turn each A2/B2/C3/D1; no silent retry or extra probe. Inspect all returned requests/responses/guards and authenticated receipts plus current owned state.
+- [x] Park groups/clock, preserve any new uncertainty without clearing it, verify historical rows/settings/artifact hashes and encrypted restore.
+- [x] Report actual usefulness, remaining reasoning/provider limitations and local commits. New uncertainty needs separate exact review.
 
 ## Execution ledger
 
@@ -50,3 +50,6 @@ Files: `src/game.ts`, `src/engine.ts`, `src/games/pact/{adapter,briefing,action-
 
 - Native pass5e3a992/PACTbb17142: exactly A2/B2/C3/D1 at14:56:38.862–15:02:38.662UTC; nine reported allocations, four COMMITTED receipts, one guarded invalid bond and one recovered truncated D output. All goals/mandates/social policies retained. World/groups parked tick39; no further inference. A/B peer/tool reasoning and B reflection quality remain deficient; C queue waiting behind active Farm correctly charged nothing; D factual stock wait valid.
 - Post-pass source ruling: protected negotiations lacked peer identity/peer-consent while the second raw offer was omitted. Add those factual bindings (unknown stays null). Correct the operator's false terminal-READ flag; retain the original exit1/artifact and all real semantic failures. Eight RED/GREEN regressions; final328/414/14 =756, type/style/build/boundary/audit checks and12-state packet replay pass. Offline only, no repeated real turn.
+
+- Final: installed Fleet2d4d85b/PACTbb17142 with1632 hashes; no extra turn. Preservation verifies original36/55 rows/settings/identities/bindings/goals/mandates/gates, final40/64 (63 reported/one old owner-reviewed unknown40000), all12 ready, groups/clock paused tick39, no active/pending/reserved/lease/worker, draft stopped. Four owned receipts and9 actual response records retained; original false READ operator flag preserved separately from corrected technical classification.
+- Final: encrypted reasoning-outcomes-final-20261020 authenticated/network-disabled restore matches10 PACT/39 Fleet tables. Task containers removed. Inline source/diff review and all756 Fleet/409 PACT checks recorded; local documentation commits close this assignment. Behavioral acceptance partial; follow-up peer-binding correction offline only. No new uncertainty review or inference.
