@@ -55,6 +55,6 @@ Claims are scoped by source revision, model/settings, environment, time and cove
 
 The [current state](current-state.md) separates achieved capabilities from installed and live acceptance. The [evidence index](references.md) supplies the original records rather than asking readers to trust this summary.
 
-## Proposed next architecture — 20 October 2026
+## Approved next architecture design — 20 October 2026
 
-The founder requested persistent specialists with their own goals and memory, alongside every existing architecture, plus clearer code separation and a consistent launch flow. The design also includes skills learned from experience: reusable reasoning guides and qualified bounded procedures intended to reduce repeated processing. Read the [source architecture review](../architecture-review-20261020.md) and [concrete design](../superpowers/specs/2026-10-20-autonomous-specialists-and-modular-architectures-design.md). These are proposals, not implemented or activated capabilities; the checkpoint above retains its original meaning.
+The founder approved persistent specialists with their own goals and memory, alongside every existing architecture, plus clearer code separation and a consistent launch flow. The approved design includes skills learned from experience: reusable reasoning guides and qualified bounded procedures intended to reduce repeated processing. Read the [source architecture review](../architecture-review-20261020.md), [approved design](../superpowers/specs/2026-10-20-autonomous-specialists-and-modular-architectures-design.md) and [26-task implementation plan](../superpowers/plans/2026-10-20-autonomous-specialists.md). Implementation has not started; the checkpoint above retains its original meaning.

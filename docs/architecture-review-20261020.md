@@ -57,6 +57,8 @@ The revised design adds procedural skills as a shared module with architecture-o
 
 The key additional implementation work is scope-aware skill storage/retrieval, outcome-grounded candidate generation, independent validation, durable recipe checkpoints, and total-cost measurement. Model-free work needs its own read/action/time bounds. A model's claim of learning or success cannot qualify a procedure.
 
+The founder subsequently approved the design including skills. The [26-task implementation plan](superpowers/plans/2026-10-20-autonomous-specialists.md) records the concrete dependency order, file/interface ownership, fixture isolation, tests and acceptance. Implementation has not started.
+
 ## Design and delivery order
 
 The [autonomous-specialists and modular architecture design](superpowers/specs/2026-10-20-autonomous-specialists-and-modular-architectures-design.md) defines the sixth architecture, persisted state, event fan-out, independent execution, resource conflicts, launch contract and acceptance scenarios.

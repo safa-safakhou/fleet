@@ -1,6 +1,6 @@
 # Autonomous specialists and independent Fleet architectures
 
-Date: 20 October 2026. Status: proposed design for review; implementation has not started.
+Date: 20 October 2026. Status: founder-approved design, including skills; implementation has not started. The [concrete implementation plan](../plans/2026-10-20-autonomous-specialists.md) defines the source/offline task sequence.
 
 Source review baseline: Fleet `421ad90a480ad4f6086ca8fffb69f542a920aa8f`. See the [code architecture review](../../architecture-review-20261020.md) for demonstrated coupling and exact affected files.
 
@@ -24,7 +24,7 @@ This document provides a concrete design and change map. It does not activate an
 - Use the existing TypeScript, Node, PostgreSQL, React and provider infrastructure. No new agent framework, message broker or vector database is required.
 - Add a versioned procedural-skill module: specialists can propose skills from observed episodes, retrieve relevant guides, and use qualified bounded procedures through the same action boundary. Learning and reuse are explicitly configured and accounted.
 
-These are recommendations for approval, not additional decisions already made by the founder.
+The founder approved this design, including the skills follow-up, on 20 October 2026. Implementation details introduced by the linked plan are identified in their owning tasks.
 
 ## 2. Architectures coexist
 
@@ -536,8 +536,8 @@ The review clarified four otherwise consequential gaps: cohort-level selection v
 
 The skills follow-up additionally checked advisory versus executable reuse, trusted qualification versus self-reported success, immutable versions/adoption, separate non-model work limits, multi-step receipt recovery and total-cost evaluation. No new model/provider experiment was performed to support this design.
 
-No additional founder answer is needed to prepare a detailed offline implementation plan once the design choices in section 1 are approved. The PACT action/effect/revision matrix still requires source investigation during AS-05 planning; support must remain unavailable until its complete coverage can be demonstrated.
+Design approval is recorded above. The linked implementation plan includes the detailed offline sequence and the PACT action/effect/revision matrix task; support remains unavailable until its complete coverage can be demonstrated.
 
 The design intentionally leaves physical table consolidation, UI widget details and module file naming to the implementer. It does not leave the authority model, central-controller question, architecture coexistence, event fan-out, state isolation or uncertain-command behavior unspecified.
 
-No model budget, deployment or activation is requested by this document. Approval of this design would lead to a detailed implementation plan; actual rollout and model qualification retain their separate scope.
+No model budget, deployment or activation is requested by this document. The implementation plan is now written; actual rollout and model qualification retain their separate scope.
