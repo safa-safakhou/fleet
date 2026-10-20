@@ -121,6 +121,17 @@ export function scriptedProviders(cell: NegotiationCell): FixtureProviders {
               { youSend: role === "A" ? terms.aToB : terms.bToA, youReceive: role === "A" ? terms.bToA : terms.aToB },
             );
         }
+        if (
+          role === "B" &&
+          ((cell.family === "C01" && round === 1) || (cell.family === "C02" && round === 0)) &&
+          !rows(object(payload.requestedRead).messages).some((m) => m.senderKingdomId === peer)
+        ) {
+          decision = {
+            kind: "read",
+            query: { tool: "pact_council_thread_v1", args: { kingdomId: peer } },
+            summary: "Read the peer's actual need/constraint before responding; no invented reply",
+          };
+        }
         const needsOffer =
           (cell.family === "C01" && ((round === 2 && role === "B") || (round === 3 && role === "A"))) ||
           (cell.family === "C02" && (round === 1 || (round === 2 && role === "A")));

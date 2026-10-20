@@ -1,4 +1,6 @@
 import { expect, it } from "vitest";
+import { object } from "../../src/domain.js";
+import { expandFactTables } from "../../src/fact-table.js";
 import { assessNegotiation } from "../../src/negotiation-evaluation.js";
 import { negotiationPlan } from "../../src/negotiation-plan.js";
 import { runNegotiationFixture } from "../fixtures/negotiation/driver.js";
@@ -8,7 +10,16 @@ import { scriptedProviders } from "../fixtures/negotiation/providers.js";
 it("two actual selected engines establish contact/dialogue, settle 60 installments each, then decide later", async () => {
   const cell = negotiationPlan("E3", selections).find((c) => c.family === "C01")!;
   const providers = scriptedProviders(cell);
-  providers.capture = ({ evidence, solo, ledger }) => {
+  providers.capture = ({ evidence, solo, ledger, packets }) => {
+    expect(
+      packets.some((p) => {
+        const data = object(object(expandFactTables(p.observation)).payload);
+        return (
+          object(object(data.world ?? data.environment).profile).kingdomId === evidence.actors[1].actorId &&
+          JSON.stringify(data.requestedRead ?? {}).includes("I need 1 Silver/hour and can send 2 Iron/hour")
+        );
+      }),
+    ).toBe(true);
     expect(evidence.contracts[0]?.flows.map((f) => f.installments)).toEqual([60, 60]);
     expect(
       evidence.actors.map((a, i) =>
@@ -60,12 +71,21 @@ it.each([
   async (family, variant) => {
     const cell = negotiationPlan("E3", selections).find((c) => c.family === family && c.variant === variant)!;
     const providers = scriptedProviders(cell);
-    providers.capture = ({ evidence, solo, ledger }) => {
+    providers.capture = ({ evidence, solo, ledger, packets }) => {
       expect(
         evidence.lifecycle.filter((l) => l.stage === "later_decision" && !l.scriptedPrefix).length,
       ).toBeGreaterThanOrEqual(2);
       expect(ledger.length).toBeLessThanOrEqual(cell.limits.callsPerWorld);
       if (family === "C02") {
+        expect(
+          packets.some((p) => {
+            const data = object(object(expandFactTables(p.observation)).payload);
+            return (
+              object(object(data.world ?? data.environment).profile).kingdomId === evidence.actors[1].actorId &&
+              JSON.stringify(data.requestedRead ?? {}).includes("My current owner limit is 2 Iron/hour")
+            );
+          }),
+        ).toBe(true);
         expect(evidence.offers.some((o) => o.version === 2 && o.signedBy.length === 2)).toBe(true);
         expect(evidence.contracts[0].flows.every((f) => f.installments === 60)).toBe(true);
       }
