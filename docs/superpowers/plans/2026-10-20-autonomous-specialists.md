@@ -10,9 +10,9 @@
 
 **Spec:** [Approved design, including skills](../specs/2026-10-20-autonomous-specialists-and-modular-architectures-design.md).
 
-**Approval and status:** Founder approved the design and requested this plan on 20 October 2026. Design approval does not mean implementation has run. All 26 tasks in the linked parts start unchecked. Planning baselines: Fleet `c2f7bbd` (application source remains the reviewed `421ad90` source) and PACT `1d93da690cd1a2ae4821b799ca79e5961252e3c8`. The [source review](../../architecture-review-20261020.md) records evidence and existing coupling.
+**Approval and status:** Founder approved the design on 20 October 2026 and subsequently authorized inline offline implementation. F00–F06 are complete; F07/F08, A01–A08, K01–K07 and X01/X02 remain open. See the [source/offline acceptance report](../../two-kingdom-negotiation-source-acceptance-20261020.md). No model/game run, installation or activation follows from this source checkpoint. Original planning baselines were Fleet `c2f7bbd` and PACT `1d93da690cd1a2ae4821b799ca79e5961252e3c8`; the [source review](../../architecture-review-20261020.md) preserves the original findings.
 
-**Related proposed milestone — 20 October:** The [two-kingdom negotiation plan](2026-10-20-two-kingdom-negotiation.md) defines a behavioral benchmark before persistent specialists: exact consent, fulfilled supply, verified benefit and later history use. It reuses F00/F01 and proposes `reactive-cognition@2` after F02–F06, preserving the five current `@1` controls. A04 can consume its versioned evidence selector; A07/A08 remain mandatory before autonomous specialists enter PACT comparisons. This planning addition starts no implementation or run. At execution, F01 must capture the later merged repairs as well as the pinned historical baseline. If the extra version is adopted, catalog tests derive version-option counts from registered descriptors; the six architecture families and all original 26 tasks remain in scope.
+**Related proposed milestone — 20 October:** The [two-kingdom negotiation plan](2026-10-20-two-kingdom-negotiation.md) defines a behavioral benchmark before persistent specialists: exact consent, fulfilled supply, verified benefit and later history use. It reuses F00/F01 and proposes `reactive-cognition@2` after F02–F06, preserving the five current `@1` controls. A04 can consume its versioned evidence selector; A07/A08 remain mandatory before autonomous specialists enter PACT comparisons. The later offline assignment implemented F00–F06 and negotiation N01–N08; it started no real-provider stage. At execution, F01 must capture the later merged repairs as well as the pinned historical baseline. If the extra version is adopted, catalog tests derive version-option counts from registered descriptors; the six architecture families and all original 26 tasks remain in scope.
 
 ## Global Constraints
 
@@ -85,17 +85,18 @@ Use these names consistently. Types listed here are proposed new exports unless 
 
 Exact file responsibilities are listed in each part. New root areas: `src/app/`, `src/modules/decision-step/v1/`, `src/modules/continuity/v1/`, `src/modules/evidence/`, `src/modules/skills/v1/`, and `src/engines/autonomous-specialists/`. Do not move unrelated files merely for symmetry.
 
-At this checkpoint the last Fleet migration is `019_profile_comparisons.sql`; reserve these names only when execution starts:
+Source checkpoint: migrations 020/021 are implemented by F03/F04, and 022 is the N07 negotiation nonce record. Future specialist/skill numbers below are proposals only; recheck availability before implementation:
 
 | Migration | Owner |
 | --- | --- |
 | `020_architecture_launch.sql` | F03: immutable draft/config snapshots and idempotency |
 | `021_architecture_operations.sql` | F04: persisted execution modes and allocation dispatch evidence |
-| `022_specialist_state.sql` | A01: instances, private versioned state, goals |
-| `023_specialist_delivery.sql` | A02/A03: recipient deliveries, outbox and wake conditions |
-| `024_specialist_intents.sql` | A05: claims, intent linkage and result outbox |
-| `025_skill_library.sql` | K01: versions, adoptions and evaluation records |
-| `026_skill_invocations.sql` | K04/K05: non-model ledger, invocation/step checkpoints |
+| `022_negotiation_protocols.sql` | N07: one-shot protocol/grant/result digest metadata (not a second spend ledger) |
+| `023_specialist_state.sql` | A01: instances, private versioned state, goals |
+| `024_specialist_delivery.sql` | A02/A03: recipient deliveries, outbox and wake conditions |
+| `025_specialist_intents.sql` | A05: claims, intent linkage and result outbox |
+| `026_skill_library.sql` | K01: versions, adoptions and evaluation records |
+| `027_skill_invocations.sql` | K04/K05: non-model ledger, invocation/step checkpoints |
 
 If numbers are occupied by intervening work, choose the next free numbers and update the plan/status references before implementation. Never rename applied migrations. `src/db.ts` explicitly enumerates migrations; update it in the task adding each migration and test repeat application.
 

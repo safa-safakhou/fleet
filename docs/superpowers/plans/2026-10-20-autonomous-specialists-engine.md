@@ -31,7 +31,7 @@ Fan-out atomicity, persistent private state, missing-source retrieval, ambiguous
 
 **Depends:** F00–F06.
 
-**Files:** Create `src/platform/participant-state.ts`, `src/app/participant-services.ts`, `src/engines/autonomous-specialists/schemas.ts`, `goals.ts`, `migrations/022_specialist_state.sql`, `tests/integration/specialist-state.test.ts`; modify `src/db.ts`.
+**Files:** Create `src/platform/participant-state.ts`, `src/app/participant-services.ts`, `src/engines/autonomous-specialists/schemas.ts`, `goals.ts`, `migrations/023_specialist_state.sql`, `tests/integration/specialist-state.test.ts`; modify `src/db.ts`.
 
 **Interfaces:** Produce `SpecialistScope`, `SpecialistState`, `SpecialistRepository.load/accept` from the master plan. Envelope fields: goal updates, memory/prediction updates, delivery IDs, outgoing messages, optional intent and wake conditions. Until A03/A05, unsupported message/intent writes are rejected rather than partially stored.
 
@@ -43,7 +43,7 @@ Fan-out atomicity, persistent private state, missing-source retrieval, ambiguous
 
 ## A02 — Transactional event fan-out
 
-**Files:** Create `src/platform/participant-delivery.ts`, `src/engines/autonomous-specialists/routing.ts`, `migrations/023_specialist_delivery.sql`, `tests/integration/specialist-delivery.test.ts`; modify `event-intake.ts`, `tasks.ts`, `src/db.ts`.
+**Files:** Create `src/platform/participant-delivery.ts`, `src/engines/autonomous-specialists/routing.ts`, `migrations/024_specialist_delivery.sql`, `tests/integration/specialist-delivery.test.ts`; modify `event-intake.ts`, `tasks.ts`, `src/db.ts`.
 
 **Interfaces:** `route(event:ScopedEvent,subscriptions):RecipientSpec[]` is pure. `ParticipantDelivery.ingestWithin(transaction,binding,event,recipients)` owns new delivery keys and `TaskStore.upsertRecipientWithin(...)` creates participant tasks without reusing the old single-task source key.
 
@@ -84,7 +84,7 @@ Fan-out atomicity, persistent private state, missing-source retrieval, ambiguous
 
 ## A05 — Independent action admission and receipt recovery
 
-**Files:** Create `src/platform/action-effects.ts`, `src/modules/action-admission/v1/claims.ts`, `repository.ts`, `src/app/action-services.ts`, `migrations/024_specialist_intents.sql`, `tests/integration/specialist-actions.test.ts`; modify `src/platform/contracts.ts`, `execution.ts`, `tasks.ts`, `src/db.ts`.
+**Files:** Create `src/platform/action-effects.ts`, `src/modules/action-admission/v1/claims.ts`, `repository.ts`, `src/app/action-services.ts`, `migrations/025_specialist_intents.sql`, `tests/integration/specialist-actions.test.ts`; modify `src/platform/contracts.ts`, `execution.ts`, `tasks.ts`, `src/db.ts`.
 
 **Interfaces:** Produce `ActionEffects` and `ActionAdmission.reserve` from the master plan. Extend `EnvironmentSession` with `effects(intent):Promise<ActionEffects>` when advertised. `ParticipantActions.acceptAndDispatch` accepts state/outbox/intent atomically, then dispatches the immutable intent through existing `CommandExecutor`; result deliveries are deduplicated by `(commandId,resultVersion,recipient)`.
 

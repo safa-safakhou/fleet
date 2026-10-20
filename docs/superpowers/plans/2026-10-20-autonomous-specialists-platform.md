@@ -10,6 +10,8 @@
 
 **Spec:** [Approved design](../specs/2026-10-20-autonomous-specialists-and-modular-architectures-design.md); [master plan and canonical interfaces](2026-10-20-autonomous-specialists.md).
 
+**Source checkpoint (21 October 2026):** F00–F06 are complete and verified inline. F07/F08 remain open. The exact-version/scoped foundation now composes `reactive-cognition@2` without changing the five original `@1` profiles. See [paired offline acceptance](../../two-kingdom-negotiation-source-acceptance-20261020.md); no real-model stage or runtime installation is implied.
+
 ## Global Constraints
 
 All master-plan constraints apply. Preserve all five `@1` profiles and consumed state. No new runtime dependency, delegation, real inference, game/server contact or activation. Use fresh owned fixtures; original compatibility scheduling stays intact.

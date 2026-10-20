@@ -12,7 +12,7 @@
 
 **Original status:** Planning only, 20 October 2026. All eight tasks are unstarted. No source fixes, tests, fixture/model/game runs or installation are authorized by saving this plan. E1–E4 are separate future proposals. Baselines: Fleet `a6ef729`, PACT `41e8bcd`.
 
-**Implementation checkpoint (20 October 2026):** F00/F01 and N01/N02 are implemented and verified in the isolated `codex/two-kingdom-offline` worktrees. F02–F06 and N03–N08 remain open. Earlier planning-only wording below records the original assignment; the founder subsequently authorized offline implementation. No real-provider stage is authorized or started.
+**Implementation checkpoint (21 October 2026):** F00–F06 and N01–N08 are complete and verified inline in the isolated `codex/two-kingdom-offline` worktrees. See the [paired source/offline acceptance report](../../two-kingdom-negotiation-source-acceptance-20261020.md). F07/F08, persistent specialists and skills remain open. Original planning-only wording is historical; later source authorization covers offline implementation only. E1–E4 remain unstarted and real-model quality is unqualified.
 
 ## Global Constraints
 
@@ -149,14 +149,14 @@ Preview records source/model/settings digests, cells/roles/clock modes, native l
 
 **Depends on:** N01–N07. **Files:** `docs/two-kingdom-negotiation-source-acceptance-20261020.md`, `docs/two-kingdom-negotiation-status-20261020.json`; paired PACT report. Checkboxes change only with actual task evidence.
 
-- [ ] Add acceptance assertions for baseline preservation, distinct v2, actor/world isolation, mirrored schemas, repeat migration on fresh owned fixtures, capped protocols and complete stage evidence. A status cannot claim E1–E4 completed without actual matching run records.
-- [ ] Run focused source-acceptance tests and demonstrate missing implementation assertions before finalizing reporting. Do not add tests that merely mirror prose or generated output.
-- [ ] Self-review all five Review Focus cases, scope/private-data diff and specialist dependencies. Record unsupported paths and production fixes separately. An extra exact-version entry is not another architecture family.
-- [ ] Run Fleet check/build/boundaries and F00 unit/integration/acceptance suites; run PACT build/typecheck/lint/contracts/boundaries and isolated unit/integration suites. Use serial integration where needed. Record exact source revisions/counts/skips/failures; no hosted/live inference from local checks.
-- [ ] Commit verified reports/status locally. Hand over E1's concrete preview for later execution authorization. E1–E4 remain unstarted until separately requested; worlds stay parked. No automatic push, deployment or setting change.
+- [x] Add acceptance assertions for baseline preservation, distinct v2, actor/world isolation, mirrored schemas, repeat migration on fresh owned fixtures, capped protocols and complete stage evidence. A status cannot claim E1–E4 completed without actual matching run records.
+- [x] Run focused source-acceptance tests and demonstrate missing implementation assertions before finalizing reporting. Do not add tests that merely mirror prose or generated output.
+- [x] Self-review all five Review Focus cases, scope/private-data diff and specialist dependencies. Record unsupported paths and production fixes separately. An extra exact-version entry is not another architecture family.
+- [x] Run Fleet check/build/boundaries and F00 unit/integration/acceptance suites; run PACT build/typecheck/lint/contracts/boundaries and isolated unit/integration suites. Use serial integration where needed. Record exact source revisions/counts/skips/failures; no hosted/live inference from local checks.
+- [x] Commit verified reports/status locally. Hand over E1's concrete preview for later execution authorization. E1–E4 remain unstarted until separately requested; worlds stay parked. No automatic push, deployment or setting change.
 
 ## Plan self-review and handoff
 
 Coverage: scenarios/controls → N01/N02; factuality → N03; persistence/delivery → N04; communication/benefit thresholds → N05; real paths/faults → N06; budgets/clock modes → N07; source-versus-behavior reporting/architecture fit → N08.
 
-Version 2 and quantitative thresholds are explicit proposed choices, not prior approvals. They extend the version catalog without changing the six-family target. The execution method remains inline; no method choice is reopened. This assignment saves and validates documents only and executes no task checkbox.
+Version 2 and the frozen quantitative thresholds were implemented only for source/offline acceptance. The extra version does not change the six-family target. All execution remained inline. Model selection, operational grants, installation and E1–E4 are separate unstarted steps; source approval is not operational authorization.

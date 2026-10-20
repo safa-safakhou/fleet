@@ -31,7 +31,7 @@ Forged test results, changed skill dependencies, expired evidence, duplicate ski
 
 **Depends:** F04/F06, A01/A04.
 
-**Files:** Create `src/modules/skills/v1/schema.ts`, `library.ts`, `src/app/skill-services.ts`, `migrations/025_skill_library.sql`, `tests/unit/skill-schema.test.ts`, `tests/integration/skill-library.test.ts`; modify `src/db.ts`.
+**Files:** Create `src/modules/skills/v1/schema.ts`, `library.ts`, `src/app/skill-services.ts`, `migrations/026_skill_library.sql`, `tests/unit/skill-schema.test.ts`, `tests/integration/skill-library.test.ts`; modify `src/db.ts`.
 
 **Interfaces:** Produce `SkillRef`, `SkillVersion`, `SkillLibrary` from the master plan. Skill representation is `guide|recipe`; lifecycle is `candidate|advisory|guarded|suspended|retired`. `SkillScope` includes instance/binding/author specialist; adoptions are recipient-scoped and version-pinned.
 
@@ -67,7 +67,7 @@ Forged test results, changed skill dependencies, expired evidence, duplicate ski
 
 ## K04 — Recipe selection, interpreter and non-model limits
 
-**Files:** Create `src/modules/skills/v1/runner.ts`, `costs.ts`, `migrations/026_skill_invocations.sql`, `tests/integration/skill-execution.test.ts`; modify scoped task/action ports, launch contracts and `src/db.ts`.
+**Files:** Create `src/modules/skills/v1/runner.ts`, `costs.ts`, `migrations/027_skill_invocations.sql`, `tests/integration/skill-execution.test.ts`; modify scoped task/action ports, launch contracts and `src/db.ts`.
 
 **Interfaces:** `RecipeRunner.start` from the master plan; `SkillSelector.choose(goal,event,candidates,facts)` returns `recipe|advisory|reason` with exact reasons. `WorkLedger.reserve(invocationId,kind,units)` atomically debits remaining role/parent limits, including all nested recipe work.
 

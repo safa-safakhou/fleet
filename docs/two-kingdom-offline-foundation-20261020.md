@@ -1,5 +1,7 @@
 # Two-kingdom negotiation: offline foundation checkpoint — 20 October 2026
 
+Historical first-slice checkpoint. See the [completed source/offline continuation](two-kingdom-negotiation-source-acceptance-20261020.md) for the current source state; the original results below are preserved.
+
 This is the first implementation slice, not final milestone acceptance. F00/F01 and N01/N02 are complete. F02–F06 and N03–N08 remain open. G0 is not cleared; E1–E4 are unapproved and unstarted. No new model/helper execution, live game run, installation, deployment, push or recovery review occurred.
 
 ## Sources and preservation

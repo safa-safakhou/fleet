@@ -1,0 +1,118 @@
+{
+  "schemaVersion": "fleet.negotiation-protocol.v1",
+  "selection": {
+    "stage": "E1",
+    "sources": {
+      "fleet": "81b6ad6bcbe41c8db58948096c76c34bc662c29e",
+      "pact": "70d50383ae45501fcec6cef7463636de53c9769b"
+    },
+    "modelDigest": null,
+    "policyDigest": null,
+    "settingsDigest": null,
+    "selectedProfile": {
+      "id": "reactive-cognition",
+      "version": "1"
+    },
+    "batchNonce": "2a644e67-2a05-4480-8a19-8ecb77b27512"
+  },
+  "batchNonce": "2a644e67-2a05-4480-8a19-8ecb77b27512",
+  "ready": false,
+  "realProviderAuthorized": false,
+  "scope": "new_owned_synthetic_worlds",
+  "startsAt": null,
+  "cutoffAt": null,
+  "cells": [
+    {
+      "id": "negotiation-v1:E1:C01:default:11:1:v1:AB",
+      "stage": "E1",
+      "family": "C01",
+      "variant": "default",
+      "seed": 11,
+      "replicate": 1,
+      "split": "development",
+      "profile": {
+        "id": "reactive-cognition",
+        "version": "1"
+      },
+      "modelDigest": null,
+      "policyDigest": null,
+      "sources": {
+        "fleet": "81b6ad6bcbe41c8db58948096c76c34bc662c29e",
+        "pact": "70d50383ae45501fcec6cef7463636de53c9769b"
+      },
+      "initialStateDigest": "2b70eaa2daf8de0f536e73f32ba778e690ec6a6f1b00333f476e1423d17e5ef4",
+      "worldSeed": "5e8979297154d8ffdd31e947514ab156fb4a538c06248469b4f1dd152c396b5b",
+      "rolesReversed": false,
+      "clockMode": "controlled",
+      "realProviderAuthorized": false,
+      "limits": {
+        "turnsPerActor": 12,
+        "callsPerWorld": 72,
+        "reservedTokensPerWorld": 2880000,
+        "inputBytes": 24000,
+        "outputTokens": 2000,
+        "wallDeadlineMs": 10800000,
+        "gameHorizonMinutes": 180
+      },
+      "configurationDigest": null
+    },
+    {
+      "id": "negotiation-v1:E1:C02:default:11:1:v1:AB",
+      "stage": "E1",
+      "family": "C02",
+      "variant": "default",
+      "seed": 11,
+      "replicate": 1,
+      "split": "development",
+      "profile": {
+        "id": "reactive-cognition",
+        "version": "1"
+      },
+      "modelDigest": null,
+      "policyDigest": null,
+      "sources": {
+        "fleet": "81b6ad6bcbe41c8db58948096c76c34bc662c29e",
+        "pact": "70d50383ae45501fcec6cef7463636de53c9769b"
+      },
+      "initialStateDigest": "e5a3c732e27138727a75a53a622e41c6be47c80a2c3e9bc06c09c5c2a439f3e0",
+      "worldSeed": "f8f9e53df3e370487168067018c3fd2bbf32817c4686cbaf17760bac8e34bf5c",
+      "rolesReversed": false,
+      "clockMode": "controlled",
+      "realProviderAuthorized": false,
+      "limits": {
+        "turnsPerActor": 12,
+        "callsPerWorld": 72,
+        "reservedTokensPerWorld": 2880000,
+        "inputBytes": 24000,
+        "outputTokens": 2000,
+        "wallDeadlineMs": 10800000,
+        "gameHorizonMinutes": 180
+      },
+      "configurationDigest": null
+    }
+  ],
+  "maxima": {
+    "calls": 144,
+    "reservedTokens": 5760000,
+    "wallDeadlineMs": 21600000
+  },
+  "native": {
+    "periodicMinutes": 15,
+    "providerSlots": 1,
+    "callsPerTurn": 3,
+    "inputBytes": 24000,
+    "outputTokens": 2000,
+    "eventTriggeredTurns": false
+  },
+  "missingReadiness": [
+    "model_digest",
+    "policy_digest",
+    "settings_digest",
+    "private_approved_grant",
+    "owned_native_preflight",
+    "exact_fixture_bindings",
+    "utc_window",
+    "evidence_and_key_references"
+  ],
+  "digest": "8e49728aadd1241239d20d378dfc1b1bd7107a46e403b04a2d52ef4152aae831"
+}

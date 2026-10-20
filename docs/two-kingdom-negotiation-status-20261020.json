@@ -1,0 +1,102 @@
+{
+  "schemaVersion": "fleet.negotiation-status.v1",
+  "sourceGate": "pass",
+  "modelQualityQualified": false,
+  "realStages": {
+    "E1": {
+      "state": "not_started",
+      "assignedCells": 0,
+      "assessedCells": 0,
+      "reportedAllocations": 0,
+      "behaviorGate": "unstarted"
+    },
+    "E2": {
+      "state": "not_started",
+      "assignedCells": 0,
+      "assessedCells": 0,
+      "reportedAllocations": 0,
+      "behaviorGate": "unstarted"
+    },
+    "E3": {
+      "state": "not_started",
+      "assignedCells": 0,
+      "assessedCells": 0,
+      "reportedAllocations": 0,
+      "behaviorGate": "unstarted"
+    },
+    "E4": {
+      "state": "not_started",
+      "assignedCells": 0,
+      "assessedCells": 0,
+      "reportedAllocations": 0,
+      "behaviorGate": "unstarted"
+    }
+  },
+  "realRunRecordDigests": [],
+  "recordedLocalDate": "2026-10-21",
+  "planDate": "2026-10-20",
+  "sources": {
+    "fleet": "81b6ad6bcbe41c8db58948096c76c34bc662c29e",
+    "pact": "70d50383ae45501fcec6cef7463636de53c9769b"
+  },
+  "scope": "source_and_owned_synthetic_offline_only",
+  "evidenceLevel": "fake-provider",
+  "realProviderAuthorized": false,
+  "realProviderCalls": 0,
+  "liveGameRuns": 0,
+  "runtimePreservation": {
+    "method": "retained_world_not_accessed",
+    "installed": false,
+    "settingsChanged": false,
+    "resetOrReplay": false
+  },
+  "implemented": {
+    "platform": ["F00", "F01", "F02", "F03", "F04", "F05", "F06"],
+    "negotiation": ["N01", "N02", "N03", "N04", "N05", "N06", "N07", "N08"]
+  },
+  "deferred": {
+    "platform": ["F07", "F08"],
+    "specialists": ["A01", "A02", "A03", "A04", "A05", "A06", "A07", "A08"],
+    "skills": ["K01", "K02", "K03", "K04", "K05", "K06", "K07"],
+    "crossCutting": ["X01", "X02"]
+  },
+  "verifiedChecks": {
+    "fleet": {
+      "unitPassed": 427,
+      "integrationPassed": 455,
+      "integrationSkipped": 0,
+      "pairedFullSuitePassed": 24,
+      "pairedContractAdditionalPassed": 1,
+      "typeStyle": "pass",
+      "build": "pass",
+      "boundaries": "pass",
+      "styleWarnings": 57,
+      "styleInfos": 16
+    },
+    "pact": {
+      "unitPassed": 414,
+      "integrationPassed": 473,
+      "integrationSkipped": 1,
+      "skip": "optional_real_local_model_comparison_not_configured",
+      "fullBuild": "pass",
+      "typecheck": "pass",
+      "lintContractsDependenciesBoundaries": "pass"
+    }
+  },
+  "manifestSha256": "c3f2b0664e620852aa8da6cd976c8bda5eddb0fd781438db1b293fa3a451c306",
+  "outcomeSchemaJsonStringifySha256": "d7aafe4e58093eabca682e4e2ac04e3dda2eaa07c77863c60abc96d7f0854403",
+  "preview": {
+    "artifact": "two-kingdom-negotiation-E1-preview-20261020.json",
+    "digest": "8e49728aadd1241239d20d378dfc1b1bd7107a46e403b04a2d52ef4152aae831",
+    "ready": false,
+    "regenerateBeforeAnyFutureGrant": true
+  },
+  "limitations": [
+    "no_real_model_quality_qualification",
+    "no_native_timing_qualification",
+    "no_runtime_installation_certification",
+    "synthetic_agent_principal_handler_acceptance",
+    "CLI_has_no_owned_native_execution_composition",
+    "v2_persistence_requires_observation_consent"
+  ]
+}
