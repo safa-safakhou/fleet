@@ -46,17 +46,17 @@ Exact-version selection, concurrent edit/start, missing capabilities, wrong fixt
 
 **Interfaces:** `captureArchitectureTranscript(ref,fixture):Promise<ArchitectureTranscript>` in `tests/legacy-parity.ts`; transcript includes model packets, commands/receipts, reservations/usage, continuity selections, wake/recovery state and consent-visible traces. Normalize only injected synthetic IDs/time, never decision-visible content.
 
-- [ ] Write `captures all five current profiles` and `detects packet and accounting drift`. Assert:
+- [x] Write `captures all five current profiles` and `detects packet and accounting drift`. Assert:
   ```ts
   expect(actual.modelPackets).toEqual(baseline.modelPackets);
   expect(actual.commands).toEqual(baseline.commands);
   expect(actual.allocations).toEqual(baseline.allocations);
   ```
   Include known-output correction, unknown usage, stale evidence, zero-call wait and coordinator sibling failure. A deliberately altered copy must fail comparison.
-- [ ] Run `npm run test:architecture -- tests/integration/architecture-parity.test.ts`; establish that the absent baseline or intentional mutation fails.
-- [ ] Capture baseline from the pre-refactor source with fake providers/adapters. Label source revision and generation contracts; no private trace ingestion. Preserve the pinned older legacy baseline and its distinct later repairs.
-- [ ] Run the same test plus `tests/integration/multi-engine-preservation.test.ts`; repeat fixture migration and compare all seeded old rows, encrypted identities and pending commands.
-- [ ] Commit: `test: pin existing architecture behavior before isolation`.
+- [x] Run `npm run test:architecture -- tests/integration/architecture-parity.test.ts`; establish that the absent baseline or intentional mutation fails.
+- [x] Capture baseline from the pre-refactor source with fake providers/adapters. Label source revision and generation contracts; no private trace ingestion. Preserve the pinned older legacy baseline and its distinct later repairs.
+- [x] Run the same test plus `tests/integration/multi-engine-preservation.test.ts`; repeat fixture migration and compare all seeded old rows, encrypted identities and pending commands.
+- [x] Commit: `test: pin existing architecture behavior before isolation`.
 
 ## F02 — Trusted manifests and registry
 
