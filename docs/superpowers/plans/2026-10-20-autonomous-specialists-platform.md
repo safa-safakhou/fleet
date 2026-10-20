@@ -76,11 +76,11 @@ Exact-version selection, concurrent edit/start, missing capabilities, wrong fixt
 
 **Interfaces:** Produce `LaunchSpec`, `LaunchCheck`, `LaunchService` from the master plan. Add `/api/architectures`, `/api/launch/check`, `/api/launch/drafts`, `/api/launch/drafts/:id`, `/api/launch/start`; old profile endpoints delegate through explicit compatibility translation.
 
-- [ ] Write tests for immutable version/config digest, same request/same result, same request/different payload rejection, stale-digest start, concurrent update/start, consumed-config rejection, globally disabled execution and terminal cohorts. Assert check/draft make zero game/model calls, and a failed start leaves no partially running cohort.
-- [ ] Run `npm run test:architecture -- tests/integration/architecture-launch.test.ts`; expect missing launch service/version-2 acceptance red.
-- [ ] Implement canonical digest, revision-locked draft/update/start and transactional idempotency rows. Use registered validators rather than engine-ID/version checks in `Store.configure`. Legacy manifests alone translate cognition flags. Credential readiness uses saved bindings; check reports unknown external provider health without probing. Explicit account connection remains the existing authenticated enrollment flow. Recheck authoritative local state at start and let ordinary host admission recheck dynamic facts at execution.
-- [ ] Rerun F03 tests plus `tests/integration/profile-console.test.ts`; require existing CSRF/session boundaries and no setting `liveEnabled` as a side effect.
-- [ ] Commit: `feat: unify architecture launch validation and start`.
+- [x] Write tests for immutable version/config digest, same request/same result, same request/different payload rejection, stale-digest start, concurrent update/start, consumed-config rejection, globally disabled execution and terminal cohorts. Assert check/draft make zero game/model calls, and a failed start leaves no partially running cohort.
+- [x] Run `npm run test:architecture -- tests/integration/architecture-launch.test.ts`; expect missing launch service/version-2 acceptance red.
+- [x] Implement canonical digest, revision-locked draft/update/start and transactional idempotency rows. Use registered validators rather than engine-ID/version checks in `Store.configure`. Legacy manifests alone translate cognition flags. Credential readiness uses saved bindings; check reports unknown external provider health without probing. Explicit account connection remains the existing authenticated enrollment flow. Recheck authoritative local state at start and let ordinary host admission recheck dynamic facts at execution.
+- [x] Rerun F03 tests plus `tests/integration/profile-console.test.ts`; require existing CSRF/session boundaries and no setting `liveEnabled` as a side effect.
+- [x] Commit: `feat: unify architecture launch validation and start`.
 
 ## F04 — Scoped host ports and durable execution metadata
 

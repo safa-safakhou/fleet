@@ -35,3 +35,10 @@ export function validateLegacy(id: string, _config: Data, launch: Data): Validat
       ]
     : [];
 }
+
+export function prepareLegacyModel(
+  id: string,
+  model: import("../../domain.js").ModelSettings,
+): import("../../domain.js").ModelSettings {
+  return id === "legacy-cognition" ? { ...model, cognition: "llm-centered-v1" } : model;
+}

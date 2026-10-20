@@ -13,8 +13,10 @@ import { actionKinds } from "./games/pact/contracts.js";
 import type { CredentialBroker } from "./games/pact/credentials.js";
 import { OwnerPolicy } from "./games/pact/owner.js";
 import { Observability } from "./observability.js";
+import type { ArchitectureRegistry } from "./platform/architecture.js";
 import type { EngineRegistry } from "./platform/engine-registry.js";
 import type { EnvironmentRegistry } from "./platform/environment-registry.js";
+import { LaunchService } from "./platform/launch.js";
 import { ProfileConsole } from "./platform/profile-console.js";
 import { PlatformReports } from "./platform/reports.js";
 import type { TaskStore } from "./platform/tasks.js";
@@ -33,6 +35,8 @@ export function buildServer(options: {
   tasks?: TaskStore;
   engines?: EngineRegistry;
   environments?: EnvironmentRegistry;
+  architectures?: ArchitectureRegistry;
+  providerConfigured?: (model: import("./domain.js").ModelSettings) => boolean;
 }) {
   if (options.operatorSecret.length < 32) throw new FleetError("OPERATOR_SECRET_REQUIRED");
   const app = Fastify({ logger: false, bodyLimit: 65536 }),
@@ -127,6 +131,27 @@ export function buildServer(options: {
     if (!profileConsole) throw new FleetError("PROFILE_CONSOLE_UNAVAILABLE");
     return profileConsole;
   };
+  const launcher =
+    options.tasks && options.environments
+      ? new LaunchService(store, options.tasks, options.environments, options.architectures ?? store.architectures, {
+          liveAllowed: options.liveAllowed,
+          providerConfigured: options.providerConfigured,
+        })
+      : null;
+  const requireLauncher = () => {
+    if (!launcher) throw new FleetError("LAUNCH_UNAVAILABLE");
+    return launcher;
+  };
+  app.get("/api/architectures", async () => ({ architectures: requireLauncher().catalog() }));
+  app.post("/api/launch/check", async (r) => requireLauncher().check(r.body));
+  app.post("/api/launch/drafts", async (r) => requireLauncher().draft(r.body));
+  app.get<{ Params: { id: string } }>("/api/launch/drafts/:id", async (r) =>
+    requireLauncher().read(z.uuid().parse(r.params.id)),
+  );
+  app.put<{ Params: { id: string } }>("/api/launch/drafts/:id", async (r) =>
+    requireLauncher().update({ ...object(r.body), draftId: z.uuid().parse(r.params.id) }),
+  );
+  app.post("/api/launch/start", async (r) => requireLauncher().start(r.body));
   app.get("/api/profiles", async () => requireProfiles().catalog());
   app.post("/api/profiles/preview", async (r) => requireProfiles().preview(r.body));
   app.post("/api/profiles/drafts", async (r) => requireProfiles().createProfileDraft(r.body));

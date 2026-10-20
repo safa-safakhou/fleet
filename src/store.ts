@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
+import { builtinArchitectures } from "./app/builtins.js";
 import { type Pool, transaction } from "./db.js";
 import {
   Budget,
@@ -15,6 +16,7 @@ import {
   strategy,
 } from "./domain.js";
 import { Observability } from "./observability.js";
+import type { ArchitectureRegistry } from "./platform/architecture.js";
 import type { Vault } from "./vault.js";
 
 export interface AgentRow {
@@ -75,6 +77,7 @@ export class Store {
     readonly pool: Pool,
     readonly vault: Vault,
     readonly now: () => Date = () => new Date(),
+    readonly architectures: ArchitectureRegistry = builtinArchitectures(),
   ) {}
   async cohort(id: string, client: Pool | PoolClient = this.pool): Promise<CohortRow> {
     const r = await client.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1", [id]);
@@ -185,7 +188,7 @@ export class Store {
       if (
         (
           await c.query(
-            "SELECT 1 FROM compute_ledger WHERE cohort_id=$1 UNION ALL SELECT 1 FROM turns WHERE cohort_id=$1 LIMIT 1",
+            "SELECT 1 FROM compute_ledger WHERE cohort_id=$1 UNION ALL SELECT 1 FROM turns WHERE cohort_id=$1 UNION ALL SELECT 1 FROM platform_tasks WHERE cohort_id=$1 LIMIT 1",
             [id],
           )
         ).rowCount
@@ -193,18 +196,21 @@ export class Store {
         throw new FleetError("CONSUMED_CONFIG_IMMUTABLE");
       const hasProfiles = (await c.query("SELECT to_regclass('cohort_engine_profiles') AS relation")).rows[0].relation;
       const selected = hasProfiles
-        ? (await c.query("SELECT profile_id,profile_version FROM cohort_engine_profiles WHERE cohort_id=$1", [id]))
-            .rows[0]
+        ? (
+            await c.query(
+              "SELECT profile_id,profile_version,architecture_config FROM cohort_engine_profiles WHERE cohort_id=$1",
+              [id],
+            )
+          ).rows[0]
         : undefined;
-      if (
-        selected &&
-        (selected.profile_version !== "1" ||
-          (selected.profile_id === "legacy-loop" && model.cognition) ||
-          (selected.profile_id === "legacy-cognition" && !model.cognition) ||
-          (!["legacy-loop", "legacy-cognition"].includes(selected.profile_id) &&
-            (model.cognition || model.recallAssist)))
-      )
-        throw new FleetError("PROFILE_CONFIGURATION_MISMATCH");
+      if (selected) {
+        const issues = this.architectures.validate(
+          { id: selected.profile_id, version: selected.profile_version },
+          selected.architecture_config ?? {},
+          { model, budget },
+        );
+        if (issues.length) throw new FleetError(issues[0].code);
+      }
       await c.query("UPDATE cohorts SET model=$2,budget=$3,generation=generation+1 WHERE id=$1", [id, model, budget]);
       await this.audit(c, id, "cohort.configured", { route: model.route, model: model.model });
     };
@@ -249,9 +255,15 @@ export class Store {
   async setState(id: string, state: "running" | "paused" | "stopped", liveAllowed: boolean) {
     return this.setStates([id], state, liveAllowed);
   }
-  async setStates(ids: string[], state: "running" | "paused" | "stopped", liveAllowed: boolean, initialOnly = false) {
+  async setStates(
+    ids: string[],
+    state: "running" | "paused" | "stopped",
+    liveAllowed: boolean,
+    initialOnly = false,
+    client?: PoolClient,
+  ) {
     const now = this.now();
-    await transaction(this.pool, async (c) => {
+    const write = async (c: PoolClient) => {
       for (const id of [...new Set(ids)].sort()) {
         const row = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];
         if (!row) throw new FleetError("NOT_FOUND");
@@ -329,7 +341,8 @@ export class Store {
         }
         await this.audit(c, id, `cohort.${state}`, {});
       }
-    });
+    };
+    return client ? write(client) : transaction(this.pool, write);
   }
   async agentState(id: string, state: "ready" | "paused", liveAllowed: boolean) {
     await transaction(this.pool, async (c) => {

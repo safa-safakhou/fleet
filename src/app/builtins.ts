@@ -1,13 +1,14 @@
 import { FleetError } from "../domain.js";
 import { manifest as continuity, validate as validateContinuity } from "../engines/continuity/manifest.js";
-import { legacyManifest, validateLegacy } from "../engines/legacy/manifest.js";
+import { legacyManifest, prepareLegacyModel, validateLegacy } from "../engines/legacy/manifest.js";
 import { manifest as reactive, validate as validateReactive } from "../engines/reactive/manifest.js";
 import { manifest as specialists, validate as validateSpecialists } from "../engines/specialists/manifest.js";
 import { type ArchitectureDefinition, ArchitectureRegistry } from "../platform/architecture.js";
 export function builtinArchitectures(factories: Record<string, ArchitectureDefinition["create"]> = {}) {
-  const definitions: Pick<ArchitectureDefinition, "manifest" | "validate">[] = [
+  const definitions: Pick<ArchitectureDefinition, "manifest" | "validate" | "prepareModel">[] = [
     ...(["legacy-loop", "legacy-cognition"] as const).map((id) => ({
       manifest: legacyManifest(id),
+      prepareModel: (model: import("../domain.js").ModelSettings) => prepareLegacyModel(id, model),
       validate: (
         config: Parameters<ArchitectureDefinition["validate"]>[0],
         launch: Parameters<ArchitectureDefinition["validate"]>[1],

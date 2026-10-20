@@ -1,6 +1,6 @@
 import { Ajv } from "ajv";
 import type { z } from "zod";
-import { type Data, FleetError } from "../domain.js";
+import { type Data, FleetError, type ModelSettings } from "../domain.js";
 import { ArchitectureManifestSchema, ArchitectureRefSchema } from "./architecture-schema.js";
 import type { ScopedEvent, ScopedOperation, ScopedServices } from "./engine-context.js";
 export type ArchitectureRef = z.infer<typeof ArchitectureRefSchema>;
@@ -16,6 +16,7 @@ export type ArchitectureDefinition = {
   manifest: ArchitectureManifest;
   validate(config: Data, launch: Data): ValidationIssue[];
   create(services: ScopedServices): ArchitectureRuntime;
+  prepareModel?(model: ModelSettings): ModelSettings;
 };
 export function immutable<T>(value: T): T {
   if (value && typeof value === "object") {
@@ -47,7 +48,15 @@ export class ArchitectureRegistry {
     }
     if (!validate(manifest.defaults) || manifest.presets.some((p) => !validate(p.config)))
       throw new FleetError("INVALID_ARCHITECTURE_DEFAULTS");
-    this.definitions.set(key, Object.freeze({ manifest, validate: definition.validate, create: definition.create }));
+    this.definitions.set(
+      key,
+      Object.freeze({
+        manifest,
+        validate: definition.validate,
+        create: definition.create,
+        ...(definition.prepareModel ? { prepareModel: definition.prepareModel } : {}),
+      }),
+    );
     this.validators.set(key, validate);
   }
   resolve(raw: ArchitectureRef): ArchitectureDefinition {

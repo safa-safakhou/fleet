@@ -29,8 +29,9 @@ import { Store } from "./store.js";
 import { Vault } from "./vault.js";
 export function runtime() {
   const settings = config(),
+    architectures = builtinArchitectures(),
     pool = connect(settings.databaseUrl),
-    store = new Store(pool, new Vault(settings.vaultKey));
+    store = new Store(pool, new Vault(settings.vaultKey), undefined, architectures);
   const runWindow = new RunWindow(settings.runWindowFile);
   const broker = new CredentialBroker(store, settings.gameBase, settings.origin, settings.liveAllowed),
     model = runWindow.model(
@@ -102,6 +103,8 @@ export function runtime() {
   const host = new PlatformHost(tasks, bindings, environments, engines, admission, commands, supervisor);
   return {
     settings,
+    providerConfigured: (model: import("./domain.js").ModelSettings) =>
+      model.route === "codex-cli" ? Boolean(settings.codex.executable) : Boolean(settings.routes[model.route]),
     runWindow,
     continuity,
     specialistContinuity,
@@ -113,7 +116,7 @@ export function runtime() {
     environments,
     tasks,
     engines,
-    architectures: builtinArchitectures(),
+    architectures,
     admission,
     commands,
     host,
