@@ -1,6 +1,6 @@
 # Reactive trade direction and bonds — 20 October 2026
 
-Status: implementation/verification in progress, owned inline by Codex under the founder's explicit trade-fix-and-one-turn assignment. Preserve145 turns/193 executions and12 original actors, owner goal version3, mandates/models/budgets/anchors, queues/training and all prior failed attempts/closed gates. No other actor, worker, extra live turn, replay/reset/cancellation, push or server/other-population change.
+Status: source repair verified and locally installed; the requested single live turn did not meet behavioral acceptance. Work owned inline by Codex under the founder's explicit trade-fix-and-one-turn assignment. Preserve145 turns/193 executions and12 original actors, owner goal version3, mandates/models/budgets/anchors, queues/training and all prior failed attempts/closed gates. No other actor, worker, extra live turn, replay/reset/cancellation, push or server/other-population change.
 
 The retained C0 supply proposal treated outgoing Iron as incoming Hall stock and used500,000-Grain bonds. Exact PACT replay rejects BOND_EXCEEDS_FLOW. The adapter had no structured assertion of the model's send/receive interpretation, no semantic bond checker, and no numeric bond formula from the guide. Bare valid action shapes and persuasive summaries were insufficient.
 
@@ -8,7 +8,7 @@ The repair adds an optional game-neutral expectedOutcome-schema/validation-feedb
 
 PACT publishes a read-only versioned supply-rule descriptor from its canonical admission parameters/value function. Fleet consumes that observed descriptor for duration/notice/expiry and relative-value bond checks, and narrows the creator's outgoing rates only by the game's observed storage-capacity rule. Peer capacities/stock/interest remain unknown; unsigned offers remain nonbinding and stock/floors/signatures stay server-enforced. Missing rule pages require a read before non-null bonds; bond-free negotiations remain available. Large-number bond multiplication is corrected to exact integers in PACT, with a red-to-green boundary case. No economic constant, mandate or permission is changed.
 
-New regressions were observed red for missing publication, the retained excess bond, reversed/missing direction statements, counterparty roles, parameter combinations, observed rate caps, generic feedback forwarding and integer precision. Final checks, source/install pins, the single actual new turn and preservation/restore outcomes will be recorded below. Offline tests do not prove actual useful Hall work.
+New regressions were observed red for missing publication, the retained excess bond, reversed/missing direction statements, counterparty roles, parameter combinations, observed rate caps, generic feedback forwarding and integer precision. Checks, source/install pins, the single actual new turn and preservation/restore outcomes are recorded below. Offline tests do not prove actual useful Hall work.
 
 ## Verified source checkpoint
 
@@ -23,3 +23,21 @@ The first local installation was PACT fb7a1ba / Fleet dac40b7 with no actual inf
 The resulting fake-provider check passes all six real authorized observations: reactive-basic37,486–37,990 bytes and reactive-cognition47,614–47,906 bytes, with at least one observed peer, complete core/authority comparisons and valid/invalid trade probes. These checks use zero inference and zero game commands. Final regression results and the actual C0 outcome follow below.
 
 Final compact-source verification passed:292 unit +404 integration +14 paired acceptance =710 tests, native type/Biome/build/boundaries/diff checks passed. Installed packets preserve the48KB allowance and core facts; model/game activity is still zero for this assignment at this checkpoint.
+
+## Actual single-turn result: useful Hall behavior not verified
+
+The verified installed source is Fleet `a906488` (trade validation `dac40b7` plus context follow-up) and PACT `fb7a1ba`. Only the owned local API/Fleet console were restarted; existing rules/notification workers, gateway, other installations and populations were preserved. The private readiness/installation records verify1,629 artifact hashes, the original Nemotron digest and the145/193 baseline before execution.
+
+Exactly one original C0 native task ran: `trade-repair-20261020`, turn `5848988c-e513-485d-af86-20855010df5a`,20 October2026 00:35:15.418–00:35:55.317 UTC. One reported execution used8,987 input/1,118 output tokens and a37,531-byte packet, below the unchanged48KB allowance. It returned a valid WAIT and no command. The turn has no local rejection, server rejection, resolution, receipt, new offer/contract, resource change or Hall progress. There was no additional attempt.
+
+Its summary said: “Prioritizing missing Farm II and Barracks II prerequisites uses existing queued builds (hall upgrade pending); no new action required.” This explanation is contradicted by the delivered snapshot: FarmII/BarracksII are complete; HallII is already queued with `prerequisiteCheck=ready`, no missing buildings and `phase=stock_shortage`. It needs146 Iron and62 Silver (whole shortfall ceilings). The packet also contains exact canonical bond rules, send/receive directions, ordinary stock floors, explicit current-goal reconciliation and eight observed peers. The response is complete and well within output allowance. This is remaining stale-goal reasoning, not evidence of a missing context page, permission, schema or transport failure.
+
+The trade-direction/bond guard passes the synthetic and real-handler acceptance checks, but this live response did not propose any trade, so autonomous valid/useful trade reasoning is **not live verified**. Operational health and a syntactically valid wait do not satisfy the founder's requested useful Hall action. No Hall achievement or successful negotiation is claimed.
+
+## Preservation and handoff
+
+Final state:146 lifetime turns/194 fully reported executions,12 original ready actors, four groups/clock paused at tick139 (game time1792423560000), zero active turns/pending commands/unknown allocations/blockers, no Fleet worker and every original/hour/single-pass gate closed. All145 prior turns/193 ledger entries/resolutions, identities, bindings, goals/mandates, models/budgets/anchors and historical gate bytes are preserved. Existing HallII/FarmIII instructions and the Spearman batch were not cancelled; resource balances are identical. There was no provider switch, reset/replay, other actor turn, server rollout or push.
+
+Encrypted `trade-repair-before` and `trade-repair-final` checkpoints remain private. A network-disabled disposable clone restored authenticated archives and matched complete rows for10 PACT core tables and all39 Fleet tables; the clone and task-owned synthetic fixture container were removed. Private task-scoped evidence includes readiness, installation, six-packet preflight, results/inspection, explicit negative behavioral proof, preservation, final restore and completion records. Raw observations/decisions/credentials stay outside Git.
+
+Final checks:710 Fleet tests (292 unit/404 integration/14 paired),408 PACT unit/18 affected supply integration; builds, native type/Biome, boundaries, audit, backlog and diffs passed as recorded above. Legacy controller body/golden fixtures are unchanged. Verified source and this outcome are committed locally. Remaining work is fact-grounded goal/wait reasoning that distinguishes completed prerequisite descriptions from current stock blockers; no additional live attempt or run is implied by this handoff.
