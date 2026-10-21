@@ -41,9 +41,9 @@
 **Files:** PACT `tests/evaluation/specialist-owned-world.ts`, `tests/integration/specialist-owned-world.test.ts`; share existing synthetic construction only through an explicit bootstrap descriptor, never score that descriptor as a negotiation result.
 **Interfaces:** retained world has scoped normal read/quote/guarded-dispatch/receipt, same-live lease renewal, controlled settlement, encrypted checkpoint and disconnect; no drop/reset method. The scripted peer and synthetic setup remain labelled in evidence.
 
-- [ ] Write native RED cases for marker/scope rejection, preserved state on disconnect/reconnect, actual guarded signature followed by full delivery, and changed peer consent/reserve rejection.
-- [ ] Implement dedicated retained adapter over existing PACT services, with exact source/nonce/identity checks and no destructive fallback.
-- [ ] Verify paired PACT/Fleet suites and commit only GREEN source.
+- [x] Write native RED cases for marker/scope rejection, preserved state on disconnect/reconnect, actual guarded signature followed by full delivery, and changed peer consent/reserve rejection.
+- [x] Implement dedicated retained adapter over existing PACT services, with exact source/nonce/identity checks and no destructive fallback.
+- [x] Verify paired PACT/Fleet suites and commit only GREEN source. Four KQ1 plus ten retained negotiation-world integration tests; nine Fleet paired controller/skill checks;415PACT unit; type/style/contracts/boundaries and controller compilation pass. Initial invalid1440-minute expiry repaired to the published60-minute maximum; later reuse at32minutes remains in-window. Stale withdrawn-offer rejection is a native exception, retained as such.
 
 ## Task3 — Owned KQ1 host, operator and full fake acceptance
 
