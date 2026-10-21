@@ -32,6 +32,7 @@ import { EnvironmentRegistry } from "../../src/platform/environment-registry.js"
 import { CommandExecutor } from "../../src/platform/execution.js";
 import { OperationSupervisor, PlatformHost } from "../../src/platform/supervisor.js";
 import { type TaskClaim, TaskStore } from "../../src/platform/tasks.js";
+import type { RC1Cell } from "../../src/post-e3-plan.js";
 import type { Store } from "../../src/store.js";
 import { runNativeOwnedCell } from "./negotiation-native-run.js";
 
@@ -75,14 +76,14 @@ const tools: Tool[] = [
     annotations: { readOnlyHint: false },
   },
 ];
-export type PreparedNegotiationCell = {
-  cell: NegotiationCell;
+export type PreparedNegotiationCell<C extends NegotiationCell | RC1Cell = NegotiationCell> = {
+  cell: C;
   binding: NegotiationBinding;
-  world: OwnedNegotiationWorld;
-  control: OwnedNegotiationWorld;
+  world: OwnedNegotiationWorld<C>;
+  control: OwnedNegotiationWorld<C>;
   authorityDigest: string;
 };
-async function authorityDigest(world: OwnedNegotiationWorld) {
+async function authorityDigest(world: Pick<OwnedNegotiationWorld, "pool" | "players">) {
   const rows = (
     await world.pool.query(
       "SELECT account_id,allowed_actions,resource_limits,reserve_floors,version FROM kingdom_mandates WHERE product_scope='pact' AND account_id=ANY($1::uuid[]) ORDER BY account_id",
@@ -109,7 +110,11 @@ export type OwnedExecutionDependencies = {
 };
 
 /** No credential, evaluator, solo state or opposing private goal is exported. */
-function facade(world: OwnedNegotiationWorld, index: number, guard: () => Promise<void>): GamePort {
+export function facade(
+  world: Pick<OwnedNegotiationWorld, "players" | "actor">,
+  index: number,
+  guard: () => Promise<void>,
+): GamePort {
   const p = world.players[index];
   if (!p) throw new FleetError("NEGOTIATION_ACTOR_SCOPE", true);
   const a = world.actor(p.kingdomId);
@@ -135,16 +140,16 @@ function facade(world: OwnedNegotiationWorld, index: number, guard: () => Promis
     },
   };
 }
-export async function prepareOwnedNegotiationCohort(
+export async function prepareOwnedNegotiationCohort<C extends NegotiationCell | RC1Cell>(
   store: Store,
-  world: OwnedNegotiationWorld,
-  control: OwnedNegotiationWorld,
-  cell: NegotiationCell,
+  world: OwnedNegotiationWorld<C>,
+  control: OwnedNegotiationWorld<C>,
+  cell: C,
   model: ModelSettings,
   fixtureNonce: string,
   evidenceRef: string,
   keyRef: string,
-): Promise<PreparedNegotiationCell> {
+): Promise<PreparedNegotiationCell<C>> {
   if (
     world.control ||
     !control.control ||
@@ -158,7 +163,7 @@ export async function prepareOwnedNegotiationCohort(
     pact = new PactBindings(store, bindings),
     tasks = new TaskStore(store, bindings, 1);
   const group = await store.create({
-    name: `Negotiation ${cell.id}`,
+    name: `Negotiation ${cell.id}`.slice(0, 80),
     count: 2,
     intervalMinutes: 15,
     seed: cell.worldSeed.slice(0, 40),

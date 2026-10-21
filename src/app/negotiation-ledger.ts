@@ -47,7 +47,7 @@ type WorldAccounting = Pick<
 export async function readNativeNegotiationAccounting(
   store: Store,
   binding: NegotiationBinding,
-  cell: NegotiationCell,
+  cell: Pick<NegotiationCell, "limits" | "profile">,
   world: WorldAccounting,
 ): Promise<NativeAccounting> {
   const cohort = await store.cohort(binding.cohortId),

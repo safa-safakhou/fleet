@@ -1,6 +1,7 @@
 import { z } from "zod";
 import design from "./negotiation/design.json" with { type: "json" };
 import { designDigest, type NegotiationCell, negotiationPlan } from "./negotiation-plan.js";
+import { prepareRC1Protocol, type RC1Cell, type RC1Protocol, validateRC1Cell } from "./post-e3-plan.js";
 
 const id = z.string().min(1).max(200),
   source = z.string().min(1).max(8000),
@@ -240,9 +241,9 @@ const ReviewSchema = z
   .strict();
 export type NegotiationClaimReviews = z.infer<typeof ReviewSchema>;
 export type Grade = "pass" | "fail" | "unresolved";
-export type NegotiationAssessment = {
+export type NegotiationAssessment<C extends NegotiationCell | RC1Cell = NegotiationCell> = {
   schemaVersion: "fleet.negotiation-assessment.v1";
-  cell: NegotiationCell;
+  cell: C;
   worldId: string;
   evidenceLevel: NegotiationClaimReviews["evidenceLevel"];
   armDigest: string;
@@ -274,6 +275,54 @@ export function assessNegotiation(
   rawReviews: unknown,
 ): NegotiationAssessment {
   canonicalCell(cell);
+  return assessEvidence(cell, raw, rawSolo, rawReviews);
+}
+export function assessRC1Negotiation(
+  protocol: RC1Protocol,
+  cell: RC1Cell,
+  raw: unknown,
+  rawSolo: unknown,
+  rawReviews: unknown,
+): NegotiationAssessment<RC1Cell> {
+  validateRC1Cell(protocol, cell);
+  return assessEvidence(cell, raw, rawSolo, rawReviews);
+}
+/** Mechanical completion only; prose review and real-provider acceptance are
+ * still required. Stops redundant admission once actual lifecycle facts exist. */
+export function rc1MechanicallyComplete(
+  protocol: RC1Protocol,
+  cell: RC1Cell,
+  e: NegotiationEvidence,
+  solo: NegotiationEvidence,
+  allocations: NegotiationClaimReviews["allocations"],
+) {
+  const a = assessRC1Negotiation(protocol, cell, e, solo, {
+    evidenceLevel: "fake-provider",
+    allocations,
+    claims: [],
+    reviews: [],
+  });
+  if (
+    a.criticalFailures.length ||
+    a.material !== "pass" ||
+    a.history === "fail" ||
+    a.reasons.some((r) => r !== "UNRESOLVED_FACTUALITY")
+  )
+    return false;
+  return (
+    !["C01", "C02"].includes(cell.family) ||
+    (a.history === "pass" &&
+      e.actors.every((actor) =>
+        e.lifecycle.some((l) => l.stage === "dialogue" && l.actorId === actor.actorId && !l.scriptedPrefix),
+      ))
+  );
+}
+function assessEvidence<C extends NegotiationCell | RC1Cell>(
+  cell: C,
+  raw: unknown,
+  rawSolo: unknown,
+  rawReviews: unknown,
+): NegotiationAssessment<C> {
   const review = ReviewSchema.parse(rawReviews),
     parsed = NegotiationEvidenceSchema.safeParse(raw),
     control = NegotiationEvidenceSchema.safeParse(rawSolo);
@@ -586,8 +635,7 @@ export function summarizeNegotiation(assessments: NegotiationAssessment[]) {
   )
     throw Error("MIXED_CONFIGURATION_OR_EVIDENCE_LEVEL");
   for (const a of assessments) canonicalCell(a.cell);
-  const first = assessments[0],
-    passed = assessments.filter((a) => a.status === "pass").length;
+  const first = assessments[0];
   const expected = negotiationPlan(first.cell.stage, {
     sources: first.cell.sources,
     modelDigest: first.cell.modelDigest,
@@ -595,12 +643,69 @@ export function summarizeNegotiation(assessments: NegotiationAssessment[]) {
     selectedProfile: first.cell.profile,
     ...(first.cell.baselineAmendment ? { baselineAmendment: first.cell.baselineAmendment } : {}),
   }).filter((c) => c.profile.version === first.cell.profile.version);
+  return summarizeCells(assessments, expected, first.cell.stage === "E3", false);
+}
+export function summarizeRC1Negotiation(protocol: RC1Protocol, assessments: NegotiationAssessment<RC1Cell>[]) {
+  if (designDigest(prepareRC1Protocol(protocol.selection)) !== designDigest(protocol))
+    throw Error("RC1_PROTOCOL_CHANGED");
+  for (const a of assessments) validateRC1Cell(protocol, a.cell);
+  if (
+    new Set(assessments.map((a) => a.cell.id)).size !== assessments.length ||
+    new Set(assessments.map((a) => a.worldId)).size !== assessments.length
+  )
+    throw Error("DUPLICATE_WORLD_OR_CELL");
+  if (
+    new Set(assessments.map((a) => a.armDigest)).size > 1 ||
+    new Set(assessments.map((a) => a.evidenceLevel)).size > 1
+  )
+    throw Error("MIXED_CONFIGURATION_OR_EVIDENCE_LEVEL");
+  if (!assessments.length)
+    return {
+      schemaVersion: "fleet.rc1-summary.v1",
+      stage: protocol.selection.stage,
+      assigned: protocol.cells.length,
+      passed: 0,
+      complete: false,
+      gate: "incomplete",
+      productionQualified: false as const,
+      families: Object.fromEntries(
+        [...new Set(protocol.cells.map((c) => `${c.family}:${c.variant}`))].map((key) => [
+          key,
+          {
+            assigned: protocol.cells.filter((c) => `${c.family}:${c.variant}` === key).length,
+            passed: 0,
+            proportion: 0,
+            wilson95: [
+              0,
+              3.841458820694124 /
+                (protocol.cells.filter((c) => `${c.family}:${c.variant}` === key).length + 3.841458820694124),
+            ],
+          },
+        ]),
+      ),
+    };
+  return {
+    ...summarizeCells(assessments, protocol.cells, protocol.selection.stage === "R1-H", true),
+    schemaVersion: "fleet.rc1-summary.v1",
+    productionQualified: false as const,
+  };
+}
+function summarizeCells<C extends NegotiationCell | RC1Cell>(
+  assessments: NegotiationAssessment<C>[],
+  expected: C[],
+  heldOut: boolean,
+  fullDenominator: boolean,
+) {
+  const first = assessments[0],
+    passed = assessments.filter((a) => a.status === "pass").length;
   const complete =
     expected.length === assessments.length && expected.every((c) => assessments.some((a) => a.cell.id === c.id));
   const families = Object.fromEntries(
-    [...new Set(assessments.map((a) => `${a.cell.family}:${a.cell.variant}`))].map((key) => {
+    [
+      ...new Set((fullDenominator ? expected : assessments.map((a) => a.cell)).map((c) => `${c.family}:${c.variant}`)),
+    ].map((key) => {
       const members = assessments.filter((a) => `${a.cell.family}:${a.cell.variant}` === key),
-        n = members.length,
+        n = fullDenominator ? expected.filter((c) => `${c.family}:${c.variant}` === key).length : members.length,
         k = members.filter((a) => a.status === "pass").length,
         z = 1.959963984540054,
         den = 1 + (z * z) / n,
@@ -637,24 +742,23 @@ export function summarizeNegotiation(assessments: NegotiationAssessment[]) {
   );
   const zeroCritical = assessments.every((a) => !a.criticalFailures.length);
   const familyPass = (key: string, min: number) => Boolean(families[key] && families[key].passed >= min);
-  const thresholds =
-    first.cell.stage === "E3"
-      ? zeroCritical &&
-        familyPass("C01:default", 4) &&
-        familyPass("C02:default", 4) &&
-        assessments.filter((a) => ["C01", "C02"].includes(a.cell.family) && a.status === "pass").length >= 9 &&
-        familyPass("C03:default", 5) &&
-        familyPass("C04:expired", 5) &&
-        familyPass("C06:default", 5) &&
-        familyPass("C05:fulfilled", 4) &&
-        familyPass("C05:default", 4) &&
-        assessments.filter((a) => a.cell.family === "C05" && a.status === "pass").length >= 9
-      : passed === assessments.length && zeroCritical;
+  const thresholds = heldOut
+    ? zeroCritical &&
+      familyPass("C01:default", 4) &&
+      familyPass("C02:default", 4) &&
+      assessments.filter((a) => ["C01", "C02"].includes(a.cell.family) && a.status === "pass").length >= 9 &&
+      familyPass("C03:default", 5) &&
+      familyPass("C04:expired", 5) &&
+      familyPass("C06:default", 5) &&
+      familyPass("C05:fulfilled", 4) &&
+      familyPass("C05:default", 4) &&
+      assessments.filter((a) => a.cell.family === "C05" && a.status === "pass").length >= 9
+    : passed === assessments.length && zeroCritical;
   return {
     schemaVersion: "fleet.negotiation-summary.v1",
     evidenceLevel: first.evidenceLevel,
     stage: first.cell.stage,
-    assigned: assessments.length,
+    assigned: fullDenominator ? expected.length : assessments.length,
     passed,
     complete,
     gate: !complete

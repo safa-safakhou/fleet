@@ -9,7 +9,8 @@
     "scripts/prepare-negotiation-database.ts",
     "scripts/backup-negotiation-fixture.ts",
     "scripts/lib/negotiation-*.ts",
-    "scripts/lib/specialist-*.ts"
+    "scripts/lib/specialist-*.ts",
+    "scripts/lib/post-e3-*.ts"
   ],
   "exclude": ["web", "tests"]
 }
