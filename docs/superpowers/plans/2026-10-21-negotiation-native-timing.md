@@ -1,5 +1,7 @@
 # Negotiation native timing implementation plan
 
+> Completion checkpoint,21 October: N1–N4 source/mechanism acceptance is complete. The [Windows record](../../negotiation-native-preflight-20261021.md) retains the first failure, repairs, fresh fake pass and encrypted restore; the [candidate selection](../../negotiation-candidate-freeze-20261021.md) pins the final artifact. No real E4 behavior or production gate is cleared.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: use superpowers:executing-plans inline. Founder excludes delegation.
 
 **Goal:** implement the already approved E4 native timing gate without using the controlled-clock driver as timing evidence.
@@ -32,9 +34,9 @@ The existing spec permits completion to close admission early after necessary se
 
 **Produces:** scheduled tasks only for the selected environment instance; optional fourth `claim` callback `(binding:BindingRef)=>Promise<void>` executes before `Store.admitAgent` within the same claim transaction. Defaults preserve all existing callers.
 
-- [ ] Reproduce two running timed-review worlds causing `ENVIRONMENT_NOT_SELECTED` in `seedScheduled`; fix the instance-scoped query and verify no foreign/duplicate scheduled task.
-- [ ] Reproduce a rejected pre-admission callback creating a turn; require rejection before any turn/allocation while retaining its ready task. Verify normal claiming/priority/phase behavior and no callback for unavailable capacity.
-- [ ] Verify scoped tasks/recovery/admission suites and commit.
+- [x] Reproduce two running timed-review worlds causing `ENVIRONMENT_NOT_SELECTED` in `seedScheduled`; fix the instance-scoped query and verify no foreign/duplicate scheduled task.
+- [x] Reproduce a rejected pre-admission callback creating a turn; require rejection before any turn/allocation while retaining its ready task. Verify normal claiming/priority/phase behavior and no callback for unavailable capacity.
+- [x] Verify scoped tasks/recovery/admission suites and commit.
 
 ## Task N2 — Retained normal native world-clock lifecycle
 
@@ -42,9 +44,9 @@ The existing spec permits completion to close admission early after necessary se
 
 **Produces:** owned `startNativeClock`, `tickNativeClock`, `pauseClock` lifecycle. Preparation pauses only each new native fixture with exact `NEGOTIATION_PREPARED` reason. A single-use activation may resume only that specific unconsumed prepared clock, acquire its normal world-worker lease, heartbeat and call normal `advance`. It cannot clear an unrelated/operational pause, replace a lost live owner, change game time or rewrite due times. Controlled-only schedule refresh never applies here.
 
-- [ ] Tests first fail on missing native lifecycle; cover wrong mode/owner, repeated start, unrelated pause, expired/revoked lease and preserved initial stocks/identities.
-- [ ] Use actual elapsed wall time for a one-minute fake-provider mechanism check: a blocked fake request must not prevent ordinary ticks in treatment and solo. No direct SQL time manipulation supplies this evidence.
-- [ ] Verify same one-use lifecycle after retained checkpoint reconnect and keep clocks paused on interruption; commit verified source.
+- [x] Tests first fail on missing native lifecycle; cover wrong mode/owner, repeated start, unrelated pause, expired/revoked lease and preserved initial stocks/identities.
+- [x] Use actual elapsed wall time for a one-minute fake-provider mechanism check: a blocked fake request must not prevent ordinary ticks in treatment and solo. No direct SQL time manipulation supplies this evidence.
+- [x] Verify same one-use lifecycle after retained checkpoint reconnect and keep clocks paused on interruption; commit verified source.
 
 ## Task N3 — Concurrent cells with independent clocks and serialized native turns
 
@@ -54,19 +56,19 @@ The existing spec permits completion to close admission early after necessary se
 
 **Produces:** trusted `timingMode` capability on execution ports. Refactor the existing cell execution into one reusable scoped operation; controlled stages still run sequentially. E4 starts its two scoped cell operations together only when ports explicitly supply the certified native path. No arbitrary module loader or manifest flag can select an implementation.
 
-- [ ] Before changing behavior, test missing native capability rejects before nonce/dispatch; test known critical and unknown usage stop sibling admission, preserve original accounting and never synthesize another turn.
-- [ ] Open actor leases/windows serially before parallel native hosts. Each native host uses `timedReviews=true`, its own binding instance and normal `TaskStore.claim`; one shared turn/provider capacity remains. No scripted periodic event replaces native scheduling.
-- [ ] Run independent bounded clock pumps with normal heartbeat/advance during model and manual-review waits. Clock failure latches batch stop; original in-flight work settles within native bounds. No auto recovery/reset/reacquisition.
-- [ ] Use authoritative evidence for optional early completion and matched solo snapshots; require all settlement/later-decision and manual review criteria. Otherwise retain the cutoff failure. Do not infer missing behavior from a WAIT or model prose.
-- [ ] Regression-check all controlled-stage guard, critical-exception, packing and native accounting cases; commit.
+- [x] Before changing behavior, test missing native capability rejects before nonce/dispatch; test known critical and unknown usage stop sibling admission, preserve original accounting and never synthesize another turn.
+- [x] Open actor leases/windows serially before parallel native hosts. Each native host uses `timedReviews=true`, its own binding instance and normal `TaskStore.claim`; one shared turn/provider capacity remains. No scripted periodic event replaces native scheduling.
+- [x] Run independent bounded clock pumps with normal heartbeat/advance during model and manual-review waits. Clock failure latches batch stop; original in-flight work settles within native bounds. No auto recovery/reset/reacquisition.
+- [x] Use authoritative evidence for optional early completion and matched solo snapshots; require all settlement/later-decision and manual review criteria. Otherwise retain the cutoff failure. Do not infer missing behavior from a WAIT or model prose.
+- [x] Regression-check all controlled-stage guard, critical-exception, packing and native accounting cases; commit.
 
 ## Task N4 — Windows composition acceptance and frozen handoff
 
 **Files:** modify `scripts/lib/negotiation-windows.ts`, `scripts/lib/negotiation-prepare.ts`; focused acceptance/paired tests and dated progress report.
 
-- [ ] Keep E4 fenced until N1–N3 tests pass. Then route the fixed trusted Windows factory to the native path and native roster enrollment; fresh exact manifests/archives remain mandatory.
-- [ ] Run the actual one-minute blocked-fake test with two treatment/solo pairs, native scheduler and one provider slot. Assert ordinary clocks advance, original command IDs persist, no extra periodic task and no real provider call.
-- [ ] Type/style/build/boundary and appropriate full suites pass. Freeze source/model/settings/policy/roster before held-out inspection. Preserve every failure and record source versus real timing evidence separately.
+- [x] Keep E4 fenced until N1–N3 tests pass. Then route the fixed trusted Windows factory to the native path and native roster enrollment; fresh exact manifests/archives remain mandatory.
+- [x] Run the actual one-minute blocked-fake test with two treatment/solo pairs, native scheduler and one provider slot. Assert ordinary clocks advance, original command IDs persist, no extra periodic task and no real provider call.
+- [x] Type/style/build/boundary and appropriate full suites pass. Freeze source/model/settings/policy/roster before held-out inspection. Preserve every failure and record source versus real timing evidence separately.
 
 ## Review focus
 
