@@ -51,7 +51,7 @@
 
 The implemented composition is source/fake acceptance only. RC1 positive packet fitting failed at 24000 bytes; RC2 uses 32000 bytes and user-selected 30-minute external reviews without enlarging calls. See the [local acceptance record](../../RC2-local-acceptance-20261021.md) for current evidence. Real operational/release prerequisites remain pending; a supported denial route was documented but clearance was not obtained.
 
-- [ ] Verify source changes and report exact checks and limitations in both current-state files.
+- [x] Verify source changes and report exact checks and limitations in both current-state files.
 - [x] Recheck supported resolution of the recorded provider denial without attempting the denied outcome or changing review policy.
 - [ ] Complete only operational/release steps whose actual prerequisites are satisfied; do not invent grants, provider acceptance or qualification. Preserve unresolved blockers explicitly.
 
