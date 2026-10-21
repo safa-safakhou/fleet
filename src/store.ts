@@ -233,6 +233,7 @@ export class Store {
           ["skill_versions", "body_cipher"],
           ["skill_versions", "summary_cipher"],
           ["skill_evaluations", "detail_cipher"],
+          ["skill_invocations", "detail_cipher"],
         ])
           await c.query(
             `UPDATE ${table} SET ${column}=NULL WHERE binding_id IN(SELECT b.id FROM environment_bindings b JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)`,
@@ -244,6 +245,10 @@ export class Store {
         );
         await c.query(
           "UPDATE skill_versions SET status='suspended' WHERE binding_id IN(SELECT b.id FROM environment_bindings b JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)",
+          [id],
+        );
+        await c.query(
+          "UPDATE skill_checkpoints SET detail_cipher=NULL WHERE invocation_id IN(SELECT i.id FROM skill_invocations i JOIN environment_bindings b ON b.id=i.binding_id JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)",
           [id],
         );
         await c.query(

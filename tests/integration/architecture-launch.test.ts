@@ -116,6 +116,18 @@ it("idempotently creates and starts one exact immutable launch", async () => {
   expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(0);
   expect(f.board.connections).toBe(0);
 });
+it("persists exact finite non-model limits from the reviewed launch without starting work", async () => {
+  const f = await setup(),
+    limits = { reads: 12, actions: 2, messages: 1, steps: 32, wallTimeMs: 60000 },
+    d = await f.service.draft({ requestId: randomUUID(), spec: { ...f.spec, nonModelLimits: limits } });
+  await f.service.start({ requestId: randomUUID(), draftId: d.draftId, expectedDigest: d.digest });
+  expect(
+    (await f.pool.query("SELECT non_model_limits FROM cohort_engine_profiles WHERE cohort_id=$1", [f.id])).rows[0]
+      .non_model_limits,
+  ).toEqual(limits);
+  expect((await f.pool.query("SELECT * FROM turns")).rowCount).toBe(0);
+  expect(f.board.executions).toBe(0);
+});
 it("rejects stale revisions and serializes update against start", async () => {
   const f = await setup(),
     d = await f.service.draft({ requestId: randomUUID(), spec: f.spec });

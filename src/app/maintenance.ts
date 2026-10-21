@@ -11,6 +11,9 @@ export function createMaintenance(store: Store) {
     ["specialist_conflicts", "detail_cipher", "updated_at"],
     ["specialist_conflict_revisions", "detail_cipher", "created_at"],
     ["specialist_planning_intents", "detail_cipher", "created_at"],
+    ["skill_invocations", "detail_cipher", "started_at"],
+    ["skill_checkpoints", "detail_cipher", "updated_at"],
+    ["skill_evaluations", "detail_cipher", "created_at"],
   ])
     registry.register({
       id: `${table}-private`,

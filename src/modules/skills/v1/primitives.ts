@@ -83,7 +83,67 @@ export class PrimitiveRegistry {
     return d.definition.run(args, context);
   }
 }
-export type ExpandedNode = { node: RecipeNode; prefix: string; inputBindings: Data[] };
+export type ExpandedNode = { node: RecipeNode; prefix: string; inputBindings: Data[]; inputSchema: Data };
+function parameterSchemaValid(schema: unknown, depth = 0): boolean {
+  if (!schema || typeof schema !== "object" || Array.isArray(schema) || depth > 4) return false;
+  const s = schema as Data,
+    allowed = new Set([
+      "type",
+      "properties",
+      "required",
+      "additionalProperties",
+      "items",
+      "minItems",
+      "maxItems",
+      "minLength",
+      "maxLength",
+      "enum",
+      "minimum",
+      "maximum",
+      "description",
+      "title",
+    ]);
+  if (Object.keys(s).some((k) => !allowed.has(k))) return false;
+  if (s.type === "object") {
+    const props = s.properties as Data | undefined;
+    if (
+      !props ||
+      typeof props !== "object" ||
+      Array.isArray(props) ||
+      s.additionalProperties !== false ||
+      Object.keys(props).length > 16
+    )
+      return false;
+    return (
+      Object.entries(props).every(
+        ([k, v]) => /^[a-z][a-z0-9_]{0,39}$/i.test(k) && parameterSchemaValid(v, depth + 1),
+      ) &&
+      (!s.required ||
+        (Array.isArray(s.required) && s.required.every((k) => typeof k === "string" && Object.hasOwn(props, k))))
+    );
+  }
+  if (s.type === "string")
+    return Number.isSafeInteger(s.maxLength) && Number(s.maxLength) >= 0 && Number(s.maxLength) <= 4000;
+  if (s.type === "integer" || s.type === "number")
+    return (
+      typeof s.minimum === "number" &&
+      typeof s.maximum === "number" &&
+      Number.isFinite(s.minimum) &&
+      Number.isFinite(s.maximum) &&
+      s.minimum >= -Number.MAX_SAFE_INTEGER &&
+      s.maximum <= Number.MAX_SAFE_INTEGER &&
+      s.minimum <= s.maximum
+    );
+  if (s.type === "boolean") return true;
+  if (s.type === "array")
+    return (
+      Number.isSafeInteger(s.maxItems) &&
+      Number(s.maxItems) >= 0 &&
+      Number(s.maxItems) <= 16 &&
+      parameterSchemaValid(s.items, depth + 1)
+    );
+  return false;
+}
 function dynamic(value: unknown): boolean {
   if (typeof value === "string") return /https?:\/\/|\b(?:eval|require|import)\s*\(/i.test(value);
   return Array.isArray(value)
@@ -103,6 +163,10 @@ export function expandRecipe(
     nodes: ExpandedNode[] = [],
     path = new Set<string>();
   const walk = (v: SkillVersion, depth: number, prefix: string, bindings: Data[]) => {
+    if (!parameterSchemaValid(v.body.inputs))
+      issues.push({ nodeId: prefix, code: "UNSUPPORTED_SKILL_PARAMETER_SCHEMA" });
+    if (v.body.applicability.conditions.length)
+      issues.push({ nodeId: prefix, code: "UNEXPANDED_APPLICABILITY_CONDITION" });
     const identity = skillRefKey(v.ref);
     if (path.has(identity)) {
       issues.push({ nodeId: prefix, code: "SKILL_COMPOSITION_CYCLE" });
@@ -125,7 +189,7 @@ export function expandRecipe(
       }
       if (ids.has(node.id)) issues.push({ nodeId: prefix + node.id, code: "DUPLICATE_SKILL_NODE" });
       ids.add(node.id);
-      nodes.push({ node, prefix, inputBindings: bindings });
+      nodes.push({ node, prefix, inputBindings: bindings, inputSchema: v.body.inputs });
       if ("args" in node && dynamic(node.args))
         issues.push({ nodeId: prefix + node.id, code: "DYNAMIC_RECIPE_ARGUMENT" });
       if (node.kind === "invoke") {

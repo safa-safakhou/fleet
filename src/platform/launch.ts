@@ -404,8 +404,8 @@ export class LaunchService {
         if (!cohortId) throw new FleetError("ACCOUNTS_INCOMPLETE");
         await this.tasks.enroll(cohortId, spec.architecture, !spec.wakePolicy?.enabled, db);
         await db.query(
-          "UPDATE cohort_engine_profiles SET environment_ref=$2,architecture_config=$3 WHERE cohort_id=$1",
-          [cohortId, spec.environment, spec.architectureConfig],
+          "UPDATE cohort_engine_profiles SET environment_ref=$2,architecture_config=$3,non_model_limits=$4 WHERE cohort_id=$1",
+          [cohortId, spec.environment, spec.architectureConfig, spec.nonModelLimits ?? null],
         );
         if (spec.wakePolicy)
           await db.query(

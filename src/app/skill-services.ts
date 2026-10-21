@@ -437,4 +437,40 @@ export class ScopedSkillRepository implements SkillLibrary {
       return decision;
     });
   }
+  async executionEligible(
+    s: SpecialistScope,
+    ref: SkillRef,
+    registry: PrimitiveRegistry,
+    policy: QualificationPolicy,
+    children: ReadonlyMap<string, SkillVersion> = new Map(),
+  ): Promise<boolean> {
+    const [skill] = await this.loadSelected(s, [ref]);
+    if (skill.status !== "guarded" || !skill.evaluationId) return false;
+    for (const child of children.values()) {
+      const [current] = await this.loadSelected(s, [child.ref]);
+      if (current.status !== "guarded" || current.ref.digest !== child.ref.digest) return false;
+    }
+    return transaction(this.store.pool, async (db) => {
+      await this.authorize(db, s);
+      const row = (
+        await db.query(
+          "SELECT * FROM skill_evaluations WHERE id=$1 AND instance_id=$2 AND binding_id=$3 AND skill_id=$4 AND version=$5 AND digest=$6 AND eligible_mode='guarded' AND detail_cipher IS NOT NULL AND created_at>$7",
+          [skill.evaluationId, s.instanceId, s.bindingId, ref.id, ref.version, ref.digest, this.cutoff()],
+        )
+      ).rows[0];
+      if (!row) return false;
+      const detail = this.store.vault.decrypt<{
+          decision: { dependenciesDigest: string; mode: string; procedureClass: string };
+          evidence: QualificationEvidence;
+        }>(row.detail_cipher, `skill-evaluation:${s.instanceId}:${s.bindingId}:${row.id}`),
+        dependencies = recipeDependencies(skill, registry, children, policy.environmentDigest);
+      return (
+        row.policy_version === policy.version &&
+        row.dependencies_digest === dependencies &&
+        detail.evidence.policyDigest === policy.digest() &&
+        detail.evidence.caseSetDigest === policy.caseDigest(detail.evidence.procedureClass) &&
+        policy.requiredCases.every((id) => detail.evidence.cases.some((c) => c.id === id && c.passed && !c.error))
+      );
+    });
+  }
 }

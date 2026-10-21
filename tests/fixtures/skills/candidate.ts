@@ -12,7 +12,7 @@ export function candidate(sourceId: string = randomUUID()): SkillCandidate {
     },
     inputs: {
       type: "object",
-      properties: { resource: { type: "string" } },
+      properties: { resource: { type: "string", maxLength: 1000 } },
       required: ["resource"],
       additionalProperties: false,
     },
