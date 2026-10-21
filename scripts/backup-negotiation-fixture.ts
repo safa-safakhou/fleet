@@ -53,16 +53,44 @@ export function ownedDatabaseFingerprint(id: string, db: string): string {
     ).toString(),
   );
   const h = createHash("sha256").update(JSON.stringify(metadata));
-  for (const t of metadata) {
-    const name = `${identifier(t.schema_name)}.${identifier(t.relation_name)}`;
-    const value =
-      t.relkind === "S"
-        ? sql(id, db, `SELECT last_value::text||':'||is_called::text FROM ${name};`)
-        : sql(id, db, `COPY (SELECT to_jsonb(t)::text row FROM ${name} t ORDER BY 1) TO STDOUT;`);
+  const statements =
+    metadata
+      .map((t: { schema_name: string; relation_name: string; relkind: string }, i: number) => {
+        const name = `${identifier(t.schema_name)}.${identifier(t.relation_name)}`;
+        const statement =
+          t.relkind === "S"
+            ? `SELECT last_value::text||':'||is_called::text FROM ${name};`
+            : `COPY (SELECT to_jsonb(t)::text row FROM ${name} t ORDER BY 1) TO STDOUT;`;
+        return `\\echo __pact_fingerprint_${i}__\n${statement}\n`;
+      })
+      .join("") + "\\echo __pact_fingerprint_end__\n";
+  const values = splitOwnedFingerprintSections(sql(id, db, statements), metadata.length);
+  for (const [i, t] of metadata.entries()) {
     h.update(JSON.stringify([t.schema_name, t.relation_name]));
-    h.update(value);
+    h.update(values[i]);
   }
   return h.digest("hex");
+}
+/** COPY composite rows start with JSON '{' and sequences with a number. A
+ * marker-like string inside a JSON value cannot become a raw line boundary. */
+export function splitOwnedFingerprintSections(bytes: Buffer, count: number): Buffer[] {
+  if (!Number.isSafeInteger(count) || count < 0) throw Error("OWNED_FINGERPRINT_FRAMING");
+  const text = bytes.toString("utf8"),
+    marker = (i: number | "end") => `__pact_fingerprint_${i}__\n`,
+    out: Buffer[] = [];
+  let cursor = 0;
+  for (let i = 0; i < count; i++) {
+    const header = marker(i);
+    if (!text.startsWith(header, cursor)) throw Error("OWNED_FINGERPRINT_FRAMING");
+    cursor += header.length;
+    const next = marker(i === count - 1 ? "end" : i + 1),
+      end = text.indexOf(`\n${next}`, cursor - 1);
+    if (end < cursor - 1) throw Error("OWNED_FINGERPRINT_FRAMING");
+    out.push(Buffer.from(text.slice(cursor, end + 1), "utf8"));
+    cursor = end + 1;
+  }
+  if (text.slice(cursor) !== marker("end")) throw Error("OWNED_FINGERPRINT_FRAMING");
+  return out;
 }
 /** Operator-only retain/restore proof. Plain SQL/custom dumps stay in RAM;
  * authentication completes before any restore consumer starts. The original
