@@ -1,5 +1,7 @@
 # Using Fleet
 
+Latest source-only workflow: [autonomous specialists and skills](autonomous-specialists-operations.md), [final acceptance and open gates](autonomous-specialists-source-acceptance-20261020.md), [disarmed E1 handoff](negotiation-E1-source-handoff-20261021.json). Source is implemented offline; no installation/activation or real-model qualification follows. Deployment/setup observations below are historical dated checkpoints, not current host-health claims.
+
 ## P1 recovery update — 13 October 2026
 
 The founder subsequently approved [deployment and same-fleet resumption](p1-deployment-20261013.md). The same fifty Luna agents are running on their original fifteen-minute schedule. One historical cancelled execution still has unknown exact token usage, with its 40,000 allocation retained and an explicit review in its inspector history. This has been reviewed operationally; it was not relabelled as reported usage. The rollout-pending paragraph below records the earlier checkpoint.

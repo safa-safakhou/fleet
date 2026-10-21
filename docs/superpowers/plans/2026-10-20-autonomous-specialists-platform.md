@@ -1,6 +1,6 @@
 # Fleet Architecture Separation and Launch Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` task-by-task, without delegation. Steps use checkbox (`- [ ]`) syntax.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` task-by-task, without delegation. Steps use checkbox syntax.
 
 **Goal:** Preserve and separate the five existing architectures and provide one exact-version launch contract for all architectures.
 
@@ -10,7 +10,9 @@
 
 **Spec:** [Approved design](../specs/2026-10-20-autonomous-specialists-and-modular-architectures-design.md); [master plan and canonical interfaces](2026-10-20-autonomous-specialists.md).
 
-**Source checkpoint (21 October 2026):** F00–F06 are complete and verified inline. F07/F08 remain open. The exact-version/scoped foundation now composes `reactive-cognition@2` without changing the five original `@1` profiles. See [paired offline acceptance](../../two-kingdom-negotiation-source-acceptance-20261020.md); no real-model stage or runtime installation is implied.
+**Source checkpoint (21 October 2026):** F00–F06 are complete and verified inline. F07/F08 are now complete; the final source report supersedes this earlier foundation checkpoint. The exact-version/scoped foundation now composes `reactive-cognition@2` without changing the five original `@1` profiles. See [paired offline acceptance](../../two-kingdom-negotiation-source-acceptance-20261020.md); no real-model stage or runtime installation is implied.
+
+**Final source checkpoint —21 October2026:** All tasks in this part are implemented and offline verified; see [final source acceptance](../../autonomous-specialists-source-acceptance-20261020.md). Checkmarks record delivered scope, not a claim that every historical expected RED was observed. X01/X02 use prior-task and targeted regression evidence; inline author self-review only. E1 operational/behavioral gates remain open. No runtime installation or real-model/game run occurred.
 
 ## Global Constraints
 
@@ -126,11 +128,11 @@ Exact-version selection, concurrent edit/start, missing capabilities, wrong fixt
 
 **Interfaces:** `LaunchWizard({api,onCreated,onStarted})` consumes launch DTOs only; manifest widgets support bounded object/string/number/enum/boolean/array forms. Selection uses the exact ref, not `startsWith` or an ID-only key. Inactive drafts resume by ID/digest.
 
-- [ ] Write tests for two versions of one ID, a non-reactive event-capable fixture, a no-event fixture, unknown widget/schema, draft editing, zero connected accounts, missing provider configuration, disabled execution, stale start, and successful supported-profile flow. Assert no automatic start on selecting an architecture or completing account connection.
-- [ ] Run `npm run test:architecture -- tests/unit/architecture-launch-view.test.tsx tests/integration/architecture-launch-ui.test.ts`; expect old ID-only selection/new flow assertions red.
-- [ ] Implement architecture/version → preset/config → model → accounts → limits/triggers → readiness → start using F03. Reuse existing account/provider controls and operator session; do not add a study requirement or expose implementation internals. Unsupported schema widgets show a precise configuration error, never a guessed form. Preserve the old comparison view.
-- [ ] Rerun F07 tests and `tests/unit/profile-console-view.test.tsx`; exercise authenticated Fastify requests with a mock UI client and inspect rendered wizard states. Real browser acceptance is recorded separately if available; static rendering alone is not browser certification.
-- [ ] Commit: `feat: launch exact architecture versions from one console flow`.
+- [x] Write tests for two versions of one ID, a non-reactive event-capable fixture, a no-event fixture, unknown widget/schema, draft editing, zero connected accounts, missing provider configuration, disabled execution, stale start, and successful supported-profile flow. Assert no automatic start on selecting an architecture or completing account connection.
+- [x] Run `npm run test:architecture -- tests/unit/architecture-launch-view.test.tsx tests/integration/architecture-launch-ui.test.ts`; expect old ID-only selection/new flow assertions red.
+- [x] Implement architecture/version → preset/config → model → accounts → limits/triggers → readiness → start using F03. Reuse existing account/provider controls and operator session; do not add a study requirement or expose implementation internals. Unsupported schema widgets show a precise configuration error, never a guessed form. Preserve the old comparison view.
+- [x] Rerun F07 tests and `tests/unit/profile-console-view.test.tsx`; exercise authenticated Fastify requests with a mock UI client and inspect rendered wizard states. Real browser acceptance is recorded separately if available; static rendering alone is not browser certification.
+- [x] Commit: `feat: launch exact architecture versions from one console flow`.
 
 ## F08 — CLI using the same authenticated launcher
 
@@ -138,8 +140,8 @@ Exact-version selection, concurrent edit/start, missing capabilities, wrong fixt
 
 **Interfaces:** `runCli(argv,io,client):Promise<number>`; `LaunchClient` mirrors F03 endpoints. Expose package `bin` entry `fleet` targeting `dist/server/cli.js` with a Node shebang. Commands: `architectures list`, `launch check --file`, `launch draft --file`, `launch start --draft --expected-digest`, plus `login`/`logout` for existing operator sessions.
 
-- [ ] Write tests for JSON schema errors, unsupported versions, server unavailable, CSRF/origin propagation, unchanged readiness codes between UI/API/CLI, idempotent start and secret-free output. Assert login reads the operator secret from hidden stdin/input, never a command-line argument.
-- [ ] Run `npm run test:architecture -- tests/unit/architecture-cli.test.ts tests/integration/architecture-cli.test.ts`; expect missing CLI/client red.
-- [ ] Implement HTTP-only client to the configured Fleet origin; no direct database access. Reuse `/api/login` cookie and CSRF token, keep optional session storage owner-readable at mode `0600`, refuse cross-origin redirects and clear on logout. Credentials never enter launch JSON. Add request IDs for mutations and make exit codes `0` success, `2` invalid input, `3` not ready, `1` transport/unexpected failure.
-- [ ] Rerun F08 tests and F03 launch tests. Update operator examples as proposed workflows; do not connect a real session during acceptance.
-- [ ] Commit: `feat: expose architecture launch through an authenticated CLI`.
+- [x] Write tests for JSON schema errors, unsupported versions, server unavailable, CSRF/origin propagation, unchanged readiness codes between UI/API/CLI, idempotent start and secret-free output. Assert login reads the operator secret from hidden stdin/input, never a command-line argument.
+- [x] Run `npm run test:architecture -- tests/unit/architecture-cli.test.ts tests/integration/architecture-cli.test.ts`; expect missing CLI/client red.
+- [x] Implement HTTP-only client to the configured Fleet origin; no direct database access. Reuse `/api/login` cookie and CSRF token, keep optional session storage owner-readable at mode `0600`, refuse cross-origin redirects and clear on logout. Credentials never enter launch JSON. Add request IDs for mutations and make exit codes `0` success, `2` invalid input, `3` not ready, `1` transport/unexpected failure.
+- [x] Rerun F08 tests and F03 launch tests. Update operator examples as proposed workflows; do not connect a real session during acceptance.
+- [x] Commit: `feat: expose architecture launch through an authenticated CLI`.

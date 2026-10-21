@@ -1,0 +1,84 @@
+{
+  "schemaVersion": "fleet.negotiation-E1-source-handoff.v1",
+  "recordedDate": "2026-10-21",
+  "status": "source_verified_launch_not_ready",
+  "approved": false,
+  "ready": false,
+  "realProviderAuthorized": false,
+  "verifiedSources": {
+    "fleet": "93adbe6d391e820b908e4715d80207581f1dc8d8",
+    "pact": "75749557aa0390d32518e4bd300012ac4411c8cf"
+  },
+  "executionSources": null,
+  "operationalBundle": null,
+  "roster": null,
+  "utcWindow": null,
+  "grant": null,
+  "originalManifest": {
+    "path": "negotiation-E1-launch-manifest-20261021.json",
+    "sha256": "9b9936a098ff7768897aa0659143a6770b7bc3a9fa4c133880c1049e70a0c24d",
+    "preserved": true
+  },
+  "sourceEvidence": {
+    "schemaVersion": "fleet.source-evidence-metadata.v1",
+    "sources": {
+      "fleet": "93adbe6d391e820b908e4715d80207581f1dc8d8",
+      "pact": "75749557aa0390d32518e4bd300012ac4411c8cf"
+    },
+    "counts": {
+      "fleetUnit": {
+        "passed": 462,
+        "skipped": 0
+      },
+      "fleetIntegration": {
+        "passed": 546,
+        "skipped": 0
+      },
+      "fleetAcceptance": {
+        "passed": 38,
+        "skipped": 0
+      },
+      "pactUnit": {
+        "passed": 415,
+        "skipped": 0
+      },
+      "pactIntegration": {
+        "passed": 499,
+        "skipped": 1
+      }
+    },
+    "files": 34,
+    "archiveSha256": "3f39d4356f9b7daafe4da358274a43a6c7a713d683ee9120737785a7c7b4bf94",
+    "authenticatedRestoreVerified": true,
+    "separateOwnerOnlyKey": true,
+    "storedOutsideGit": true
+  },
+  "remainingGates": [
+    {
+      "id": "E1-baseline",
+      "status": "review_required",
+      "detail": "Frozen reactive-cognition@1 remains CONTEXT_LIMIT in both actors of both cells, zero provider allocations/actions. Separate @1.1 packing candidate remains unregistered and unadopted; worst observed headroom six bytes. Review baseline/source/policy amendment before revised E1 cells."
+    },
+    {
+      "id": "E1-P2",
+      "status": "not_implemented",
+      "detail": "Owned Windows operational execution composition/bundle still required: fixed process/artifact/database route, critical-claim review after usage settlement before next dispatch, same-live five-minute lease renewal and one-shot native execution ports. Disposable fake test driver is not this bundle."
+    },
+    {
+      "id": "E1-P3",
+      "status": "not_prepared",
+      "detail": "Final fenced eight-account/four-model-actor treatment/solo roster, private bindings/key references, roster restore proof and fresh absolute UTC grant/window are absent. Old proposed window is not carried forward."
+    },
+    {
+      "id": "real-qualification",
+      "status": "unstarted",
+      "detail": "E1–E4 and proposed KQ1 are separately budgeted, disarmed and unapproved. No model/game run occurred in this implementation assignment."
+    },
+    {
+      "id": "production",
+      "status": "unqualified",
+      "detail": "Requires reviewed qualification results, approved artifact installation/backup/restore/rollback rehearsal, disabled acceptance, explicit activation and bounded observation. No deployment or general strategic reliability claim."
+    }
+  ],
+  "qualificationProposal": "autonomous-specialists-qualification-proposal-20261021.md"
+}

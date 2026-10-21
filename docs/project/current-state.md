@@ -1,5 +1,9 @@
 # Current state: 19 October 2026
 
+## Later source checkpoint —21 October2026
+
+The [final autonomous-specialist source acceptance](../autonomous-specialists-source-acceptance-20261020.md) supersedes the historical source matrix below for the isolated implementation branch. All26 source tasks are complete;1960 checks passed/one opt-in real-model check skipped. E1 baseline/owned execution composition/final roster and real qualification remain open. No installation, retained-world access, model/game run or fresh server-health assessment occurred. The following19 October installation/runtime observations retain their original dates.
+
 **The execution platform is substantially implemented and locally verified. Reliable memory use, decision quality and live multi-engine gameplay remain unqualified.** This is a dated evidence checkpoint, not continuous monitoring of every host.
 
 The later [20 October local-world results](../reasoning-outcomes-20261020.md) cover a separate fresh twelve-actor world and supersede its earlier experiment checkpoints below. Its final four-profile pass committed four commands in nine reported allocations, with remaining legacy reasoning errors and no newly activated trade. The world is parked at 40 turns/64 allocations, retaining one previously reviewed unknown. See the [master publication record](local-world-publication-20261020.md) for integrated source and verification; the historical installed twenty-agent population below remains separate.
