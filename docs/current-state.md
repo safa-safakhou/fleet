@@ -18,7 +18,9 @@ The [last local-world result](reasoning-outcomes-20261020.md) records 12 matched
 
 ## Next work and reading
 
-RC2 has a separate canonical study/grant boundary; see the local acceptance record for actual checks, passive artifact status and limitations. The execution-policy blocker remains unresolved. Complete supported denial review, operational preflight, fresh rosters and encrypted restore proof, exact grants and real held-out qualification before isolated release/rollback/activation acceptance. Existing E4/KQ1 ceilings, failed grants and frozen artifacts remain unchanged; no RC2 real-model allowance exists.
+Current user restriction: **do not start a local Ollama server; use only what is already working**. The separate empty local PACT web/API and Fleet console remain healthy; Fleet reports live execution disabled. Do not pursue the rejected provider startup or change services/settings to satisfy older plans. A listener alone is not a verified or qualified model route.
+
+RC2 has a separate canonical study/grant boundary; see the local acceptance record for source checks, passive artifact status and limitations. Operational preflight, fresh rosters and encrypted restore proof, exact grants, real held-out qualification and isolated release/rollback/activation acceptance remain unfinished. Existing E4/KQ1 ceilings, failed grants and frozen artifacts remain unchanged; existing service availability does not replace their exact provider/model bindings or create a new study allowance. The recorded startup denial remains unresolved historical evidence and is not an instruction to retry.
 For a new task, read only its applicable guide/spec and affected source/tests. Detailed plans, reports and historical evidence remain at their existing paths.
 Update this file when a verified milestone changes; do not append execution diaries to AGENTS.md. Read the [original instruction snapshot](reference/agent-instructions-before-20261021.txt) only for a specific historical question; past grants there are not current authority.
 
