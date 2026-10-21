@@ -59,8 +59,22 @@ it("publishes immutable metadata without exposing factories and refuses malforme
 });
 it("preserves all five existing requirements and exact unsupported versions without making connections", () => {
   const r = builtinArchitectures();
-  expect(r.list()).toHaveLength(6);
-  expect(new Set(r.list().map((m) => m.ref.id)).size).toBe(5);
+  expect([...new Set(r.list().map((m) => m.ref.id))].sort()).toEqual(
+    [
+      "legacy-loop",
+      "legacy-cognition",
+      "reactive-basic",
+      "reactive-cognition",
+      "specialist-coordinator",
+      "autonomous-specialists",
+    ].sort(),
+  );
+  expect(
+    r
+      .list()
+      .filter((m) => m.ref.id === "reactive-cognition")
+      .map((m) => m.ref.version),
+  ).toEqual(["1", "2"]);
   const expected = [
     [
       "legacy-loop",

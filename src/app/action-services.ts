@@ -37,11 +37,12 @@ type Options = {
   store: Store;
   tasks: TaskStore;
   commands: CommandExecutor;
-  claim: TaskClaim;
+  claim?: TaskClaim;
   binding: BindingRef;
-  specialistId: string;
-  quote(intent: ActionIntent): Promise<ActionEffects>;
-  clock: DomainTime;
+  specialistId?: string;
+  scope?: SpecialistScope;
+  quote?(intent: ActionIntent): Promise<ActionEffects>;
+  clock?: DomainTime;
   messagesWithin?: (
     db: PoolClient,
     scope: SpecialistScope,
@@ -55,12 +56,16 @@ export class ParticipantActions {
   private claims: ActionClaimRepository;
   constructor(private options: Options) {
     const { claim, binding, specialistId } = options;
-    if (claim.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH", true);
-    this.scope = {
-      instanceId: `${binding.id}:${claim.profile.id}@${claim.profile.version}`,
-      bindingId: binding.id,
-      specialistId,
-    };
+    if ((claim && claim.bindingId !== binding.id) || (options.scope && options.scope.bindingId !== binding.id))
+      throw new FleetError("BINDING_MISMATCH", true);
+    if (claim && specialistId)
+      this.scope = {
+        instanceId: `${binding.id}:${claim.profile.id}@${claim.profile.version}`,
+        bindingId: binding.id,
+        specialistId,
+      };
+    else if (!claim && options.scope) this.scope = structuredClone(options.scope);
+    else throw new FleetError("PARTICIPANT_OPERATION_REQUIRED", true);
     this.claims = new ActionClaimRepository(options.store);
   }
   private async existing(commandId: string) {
@@ -72,6 +77,8 @@ export class ParticipantActions {
     ).rows[0];
   }
   async acceptAndDispatch(raw: unknown): Promise<{ version: number; accepted: boolean; outcome?: ActionOutcome }> {
+    if (!this.options.claim || !this.options.quote || !this.options.clock)
+      throw new FleetError("PARTICIPANT_OPERATION_REQUIRED", true);
     const input = inputSchema.parse(raw),
       { store, tasks, commands, claim } = this.options;
     if (input.intent.bindingId !== this.scope.bindingId) throw new FleetError("BINDING_MISMATCH", true);
@@ -85,7 +92,8 @@ export class ParticipantActions {
     await tasks.check(claim);
     const state = await new SpecialistRepository(store, this.scope, (db) => tasks.check(claim, db)).load(this.scope);
     if (state.version !== input.expectedVersion) throw new FleetError("STALE_STATE_VERSION", true);
-    const effects = ActionEffectsSchema.parse(await this.options.quote(input.intent));
+    const quote = this.options.quote;
+    const effects = ActionEffectsSchema.parse(await quote(input.intent));
     if (effects.intentDigest !== actionIntentDigest(input.intent)) throw new FleetError("EFFECT_INTENT_MISMATCH", true);
     if (!state.charter.allowedActions.includes(effects.actionKey))
       throw new FleetError("SPECIALIST_ACTION_FORBIDDEN", true);

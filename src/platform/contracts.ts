@@ -77,6 +77,7 @@ export type SchemaRequirements = { observations?: string[]; actions?: string[] }
 export type AccountObjective = string | { intent: string; currentState: Data };
 export type ActionContract = { schemaId: string; payloadSchema: Data; expectedOutcomeSchema?: Data };
 export type ProposalValidation = { valid: boolean; code: string; guidance?: string; detail?: Data };
+export type ConditionContract = { name: string; version: string; description: string; argsSchema: Data };
 export interface EnvironmentSession {
   effects?(intent: ActionIntent): Promise<import("./action-effects.js").ActionEffects>;
   observe(query: Data): Promise<Observation>;
@@ -93,6 +94,9 @@ export interface EnvironmentSession {
   close(): Promise<void>;
 }
 export interface EnvironmentAdapter {
+  specialistPresets?: import("./participant-state.js").SpecialistPreset[];
+  wakePredicates?: import("./wake-conditions.js").WakePredicates;
+  conditionContracts?: ConditionContract[];
   instructions?: string;
   accountObjective?(observation: Observation): AccountObjective | undefined;
   ref: { id: string; version: string };

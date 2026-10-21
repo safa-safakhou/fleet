@@ -6,6 +6,7 @@ import type { Claim, Store } from "../store.js";
 import type { EngineProfileRef, RecipientSpec } from "./architecture.js";
 import type { Bindings } from "./bindings.js";
 import type { BindingRef, DomainTime, EnvironmentEvent } from "./contracts.js";
+import type { EnvironmentRegistry } from "./environment-registry.js";
 import { ParticipantDelivery } from "./participant-delivery.js";
 export type TaskState = "ready" | "running" | "waiting" | "completed" | "blocked" | "cancelled";
 export interface TaskRecord {
@@ -37,6 +38,7 @@ export class TaskStore {
     readonly store: Store,
     readonly bindings: Bindings,
     readonly maxConcurrency = 1,
+    readonly routingEnvironment?: EnvironmentRegistry,
   ) {}
   async enroll(cohortId: string, profile: EngineProfileRef, timedReviews = false, client?: PoolClient) {
     if (!profile.id || !profile.version) throw new FleetError("INVALID_ENGINE_PROFILE");
@@ -72,6 +74,10 @@ export class TaskStore {
     const id = await transaction(this.store.pool, (db) => this.upsertWithin(db, binding, event, key));
     return this.get(id);
   }
+  async publishFromEvent(binding: BindingRef, event: EnvironmentEvent, key: string): Promise<TaskRecord[]> {
+    const ids = await transaction(this.store.pool, (db) => this.publishWithin(db, binding, event, key));
+    return Promise.all(ids.map((id) => this.get(id)));
+  }
   /** Pure registered routing is evaluated before any inference; legacy source keys stay unchanged. */
   async publishWithin(db: PoolClient, binding: BindingRef, event: EnvironmentEvent, key: string): Promise<string[]> {
     const agentId = await this.bindings.agentFor(binding, db),
@@ -88,7 +94,24 @@ export class TaskStore {
       definition = manifest && this.store.architectures.resolve(manifest.ref);
     if (!definition?.route) return [await this.upsertWithin(db, binding, event, key)];
     const instanceId = `${binding.id}:${p.profile_id}@${p.profile_version}`,
-      recipients = definition.route({ instanceId, binding, event }, structuredClone(p.architecture_config));
+      preset = this.routingEnvironment
+        ?.resolve(binding.environment)
+        .specialistPresets?.find((r) => r.id === p.architecture_config.preset),
+      configuration = structuredClone(p.architecture_config),
+      recipients = definition.route(
+        { instanceId, binding, event },
+        preset
+          ? {
+              ...configuration,
+              subscriptions: preset.roles.map((r) => ({
+                participantId: r.charter.id,
+                subscriptionVersion: r.subscriptions.version,
+                categories: r.subscriptions.categories,
+                periodic: r.subscriptions.periodic,
+              })),
+            }
+          : configuration,
+      );
     return new ParticipantDelivery(this).ingestWithin(db, binding, event, recipients);
   }
   async upsertRecipientWithin(
@@ -249,7 +272,7 @@ export class TaskStore {
     for (const row of rows) {
       const binding = await this.bindings.forAgent(row.id);
       if (binding)
-        await this.upsertFromEvent(
+        await this.publishFromEvent(
           binding,
           {
             id: `schedule:${row.next_due_at.toISOString()}`,

@@ -218,3 +218,22 @@ it("does not deliver expired private messages even before maintenance runs", asy
   await messages.deliverOutbox(10, new AbortController().signal);
   expect((await f.pool.query("SELECT * FROM specialist_deliveries WHERE recipient='diplomacy'")).rowCount).toBe(0);
 });
+it("acknowledges unavailable expired metadata without allowing it to ground a new message", async () => {
+  const { repository, scope, envelope, delivery } = await setup();
+  f.advance(31 * 86400000);
+  expect(
+    (
+      await repository.accept(scope, {
+        expectedVersion: 0,
+        operationId: randomUUID(),
+        envelope: { ...envelope, messages: [] },
+      })
+    ).accepted,
+  ).toBe(true);
+  expect(
+    (await f.pool.query("SELECT status FROM specialist_deliveries WHERE id=$1", [delivery.id])).rows[0].status,
+  ).toBe("acknowledged");
+  await expect(repository.accept(scope, { expectedVersion: 1, operationId: randomUUID(), envelope })).rejects.toThrow(
+    "MESSAGE_PARENT_REQUIRED",
+  );
+});

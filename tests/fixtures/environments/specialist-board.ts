@@ -5,7 +5,11 @@ import type { ActionIntent, ActionOutcome } from "../../../src/platform/contract
 import type { boardEnvironment } from "./board.js";
 
 /** Synthetic authoritative board: quote and execution share exact token rules. */
-export function enableBoardEffects(board: ReturnType<typeof boardEnvironment>, now: () => Date) {
+export function enableBoardEffects(
+  board: ReturnType<typeof boardEnvironment>,
+  now: () => Date,
+  options = { startingTokens: 10, tokensPerMove: 6 },
+) {
   const connect = board.adapter.connect,
     receipts = new Map<string, { intent: ActionIntent; outcome: ActionOutcome }>();
   const quote = (intent: ActionIntent): ActionEffects => ({
@@ -13,8 +17,14 @@ export function enableBoardEffects(board: ReturnType<typeof boardEnvironment>, n
     revision: `revision:${board.executions + 1}`,
     intentDigest: actionIntentDigest(intent),
     actionKey: "board.move.v1",
-    claims: [{ kind: "resource", schemaId: "tokens.v1", key: "stock", units: "6" }],
-    capacities: [{ schemaId: "tokens.v1", key: "stock", remainingUnits: String(10 - board.executions * 6) }],
+    claims: [{ kind: "resource", schemaId: "tokens.v1", key: "stock", units: String(options.tokensPerMove) }],
+    capacities: [
+      {
+        schemaId: "tokens.v1",
+        key: "stock",
+        remainingUnits: String(Math.max(0, options.startingTokens - board.executions * options.tokensPerMove)),
+      },
+    ],
     sourceRefs: ["board:1"],
     validUntil: { clockId: "utc", value: new Date(now().getTime() + 60000).toISOString() },
     coverage: { complete: true, omitted: [] },
@@ -41,7 +51,8 @@ export function enableBoardEffects(board: ReturnType<typeof boardEnvironment>, n
           !isDeepStrictEqual({ ...current, validUntil: guard.expectedEffects.validUntil }, guard.expectedEffects)
         )
           throw new FleetError("STALE_ACTION_EFFECTS", true);
-        if (board.executions > 0) throw new FleetError("INSUFFICIENT_TOKENS", true);
+        if (options.startingTokens - board.executions * options.tokensPerMove < options.tokensPerMove)
+          throw new FleetError("INSUFFICIENT_TOKENS", true);
         const outcome = await session.execute(intent);
         receipts.set(intent.commandId, { intent: structuredClone(intent), outcome });
         return outcome;

@@ -27,6 +27,7 @@ import { Vault } from "../vault.js";
 import { builtinArchitectures } from "./builtins.js";
 import { compatibilityContextFor, createScopedServices, scopedOperationFor } from "./host-services.js";
 import { createMaintenance } from "./maintenance.js";
+import { ParticipantWork } from "./participant-work.js";
 export function composeRuntime(settings: ReturnType<typeof config>) {
   const architectures = builtinArchitectures({
       "legacy-loop@1": (services) => legacyRuntime("legacy-loop", services),
@@ -67,7 +68,7 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
   const makeLegacyEngine = () =>
     new LegacyEngineBridge(store, capacityModel, game, settings.liveAllowed, pactAdapter, owner, undefined, cognition);
   const engine = makeLegacyEngine();
-  const tasks = new TaskStore(store, bindings, settings.maxConcurrency),
+  const tasks = new TaskStore(store, bindings, settings.maxConcurrency, environments),
     engines = new EngineRegistry([], architectures);
   function legacyRuntime(
     id: string,
@@ -103,6 +104,14 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
     version: "1",
   });
   const intake = new EventIntake(tasks, bindings, environments);
+  const participantWork = new ParticipantWork({
+    store,
+    tasks,
+    bindings,
+    environments,
+    commands,
+    enabled: () => settings.liveAllowed,
+  });
   const host = new PlatformHost(
     tasks,
     bindings,
@@ -145,5 +154,6 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
     commands,
     host,
     intake,
+    participantWork,
   };
 }

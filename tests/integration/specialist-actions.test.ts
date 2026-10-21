@@ -224,3 +224,23 @@ it("does not release a dispatched unknown just because its reservation expired",
   expect((await f.pool.query("SELECT status FROM specialist_claims")).rows[0].status).toBe("held");
   expect((await f.pool.query("SELECT * FROM specialist_action_results")).rowCount).toBe(0);
 });
+it("reconciles after restart without fabricating an active claim or permitting fresh dispatch", async () => {
+  const f = await setup();
+  await f.actions.acceptAndDispatch({ expectedVersion: 0, envelope: f.envelope, intent: f.intent });
+  const recovery = new ParticipantActions({
+    store: f.store,
+    tasks: f.tasks,
+    commands: f.host.commands,
+    binding: f.binding,
+    scope: f.scope,
+  });
+  expect((await recovery.reconcile(f.intent.commandId)).status).toBe("confirmed");
+  await expect(
+    recovery.acceptAndDispatch({
+      expectedVersion: 1,
+      envelope: f.envelope,
+      intent: { ...f.intent, commandId: randomUUID() },
+    }),
+  ).rejects.toThrow("PARTICIPANT_OPERATION_REQUIRED");
+  expect(f.board.executions).toBe(1);
+});

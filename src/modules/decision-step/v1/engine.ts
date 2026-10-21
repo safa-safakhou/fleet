@@ -244,7 +244,7 @@ export class BoundedDecisionStep {
     }
   }
 }
-function bindActionContracts(
+export function bindActionContracts(
   base: Data,
   allowed: string[],
   contracts?: import("../../../platform/contracts.js").ActionContract[],

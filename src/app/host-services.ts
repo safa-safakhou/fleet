@@ -13,6 +13,7 @@ import type { CommandExecutor } from "../platform/execution.js";
 import type { TaskClaim, TaskStore } from "../platform/tasks.js";
 import type { Store } from "../store.js";
 import { ContinuityV1Repository } from "./continuity-v1-repository.js";
+import { createParticipantPorts } from "./participant-context.js";
 
 const scopes = new WeakMap<ScopedServices, { operation: ScopedOperation; context: EngineContext }>();
 export function scopedOperationFor(services: ScopedServices): ScopedOperation {
@@ -109,6 +110,7 @@ export async function createScopedServices(
     signal: context.signal,
     observation: immutable(structuredClone(context.observation)),
     eventRefs: immutable([...context.eventRefs]),
+    ...(context.task.participantId ? { participantId: context.task.participantId } : {}),
   });
   const model = owned.turn.cohort.model,
     budget = owned.turn.cohort.budget;
@@ -315,6 +317,10 @@ export async function createScopedServices(
         ),
       ),
       schemas: immutable(structuredClone(context.schemas ?? { observations: [], actions: [] })),
+      specialistPresets: context.specialistPresets ? immutable(structuredClone(context.specialistPresets)) : undefined,
+      conditionContracts: context.conditionContracts
+        ? immutable(structuredClone(context.conditionContracts))
+        : undefined,
       accountObjective: context.accountObjective,
       catalog: async () => {
         await guard();
@@ -382,6 +388,17 @@ export async function createScopedServices(
     };
   }
   scopes.set(services, { operation: op, context });
+  if (definition.manifest.modules.some((m) => m.id === "participant-state" && m.version === "1"))
+    services.participants = await createParticipantPorts({
+      store,
+      tasks,
+      commands,
+      context,
+      operation: op,
+      services,
+      definition,
+      session: _session,
+    });
   return services;
 }
 

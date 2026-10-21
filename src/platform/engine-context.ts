@@ -46,6 +46,25 @@ export type ScopedModelRequest = {
 export type ScopedModelResult = Awaited<ReturnType<ModelPort["decide"]>> & { allocationId: string };
 export type ScopedEvidence = { id: string; kind: string; detail: Data; sourceRefs: string[] };
 export interface ScopedServices {
+  participants?: {
+    load(): Promise<import("./participant-state.js").SpecialistState>;
+    inbox(): Promise<{
+      records: { id: string; event: EnvironmentEvent | null; rootId: string; depth: number }[];
+      omitted: number;
+    }>;
+    captureOriginal(
+      input: Omit<
+        import("../modules/evidence/negotiation/v1.js").Original,
+        "id" | "bindingId" | "createdAt" | "expiresAt"
+      >,
+    ): Promise<import("../modules/evidence/negotiation/v1.js").Original>;
+    originals(): Promise<import("../modules/evidence/negotiation/v1.js").Original[]>;
+    accept(input: {
+      expectedVersion: number;
+      envelope: Omit<import("./participant-state.js").SpecialistEnvelope, "intent">;
+      intent?: ActionIntent;
+    }): Promise<{ version: number; accepted: boolean; outcome?: ActionOutcome }>;
+  };
   continuity?: import("../modules/continuity/v1/ports.js").ContinuityV1Ports;
   configuration: Readonly<{
     model: ModelSettings;
@@ -75,6 +94,8 @@ export interface ScopedServices {
   environment: {
     capabilities: Capabilities;
     schemas: { observations: string[]; actions: string[] };
+    specialistPresets?: import("./participant-state.js").SpecialistPreset[];
+    conditionContracts?: import("./contracts.js").ConditionContract[];
     accountObjective?(observation: Observation): AccountObjective | undefined;
     catalog(): Promise<Tool[]>;
     validateProposal?(proposal: Proposal, observation: Observation): Promise<ProposalValidation>;

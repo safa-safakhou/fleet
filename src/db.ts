@@ -60,5 +60,7 @@ export async function migrate(pool: Pool) {
     await c.query(await readFile(resolve("migrations/026_specialist_message_bounds.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/027_specialist_private_sources.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/028_specialist_intents.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/029_specialist_original_index.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/030_specialist_work_cursors.sql"), "utf8"));
   });
 }

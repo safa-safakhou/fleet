@@ -26,7 +26,7 @@ export class ParticipantMessages {
     private tasks: TaskStore,
     private binding: BindingRef,
     private instanceId: string,
-    private context: Context,
+    private context?: Context,
   ) {}
   private scope(scope: SpecialistScope) {
     if (scope.bindingId !== this.binding.id || scope.instanceId !== this.instanceId)
@@ -39,17 +39,12 @@ export class ParticipantMessages {
     if (!c.observation_consent) throw new FleetError("CONSENT_REQUIRED");
   }
   private async parents(db: PoolClient, scope: SpecialistScope) {
+    const context = this.context;
+    if (!context) throw new FleetError("PARTICIPANT_OPERATION_REQUIRED");
     const rows = (
       await db.query(
-        "SELECT * FROM specialist_deliveries WHERE instance_id=$1 AND binding_id=$2 AND recipient=$3 AND task_id=$4 AND id=ANY($5::uuid[]) AND received_at>$6 FOR UPDATE",
-        [
-          this.instanceId,
-          this.binding.id,
-          scope.specialistId,
-          this.context.taskId,
-          this.context.deliveryIds,
-          new Date(this.store.now().getTime() - 30 * 86400000),
-        ],
+        "SELECT * FROM specialist_deliveries WHERE instance_id=$1 AND binding_id=$2 AND recipient=$3 AND task_id=$4 AND id=ANY($5::uuid[]) FOR UPDATE",
+        [this.instanceId, this.binding.id, scope.specialistId, context.taskId, context.deliveryIds],
       )
     ).rows;
     return new Map(rows.map((r) => [r.id, r]));
@@ -64,7 +59,12 @@ export class ParticipantMessages {
     for (let index = 0; index < messages.length; index++) {
       const message = messages[index],
         parent = parents.get(message.parentDeliveryId);
-      if (!parent || !parent.detail_cipher) throw new FleetError("MESSAGE_PARENT_REQUIRED");
+      if (
+        !parent ||
+        !parent.detail_cipher ||
+        new Date(parent.received_at).getTime() <= this.store.now().getTime() - 30 * 86400000
+      )
+        throw new FleetError("MESSAGE_PARENT_REQUIRED");
       if (parent.depth >= 4) throw new FleetError("MESSAGE_CHAIN_LIMIT");
       if (message.to === scope.specialistId) throw new FleetError("SELF_INTERNAL_MESSAGE");
       if (
@@ -139,7 +139,9 @@ export class ParticipantMessages {
       if (condition.kind === "deadline" || condition.kind === "periodic" || condition.kind === "reply") {
         const comparison = compareDomainTime(
           condition.kind === "reply" ? condition.deadline : condition.at,
-          this.context.clock,
+          (condition.kind === "reply" ? condition.deadline : condition.at).clockId === "utc"
+            ? { clockId: "utc", value: this.store.now().toISOString() }
+            : this.context?.clock,
         );
         if (comparison === undefined || comparison >= 0) throw new FleetError("FUTURE_WAKE_REQUIRED");
       }
@@ -266,7 +268,20 @@ export class ParticipantMessages {
               row.condition_cipher,
               `specialist-wake:${this.instanceId}:${this.binding.id}:${row.specialist_id}:${row.id}`,
             ),
-          state = evaluateWake(condition, facts, time, predicates);
+          parsed = WakeConditionSchema.safeParse(condition),
+          at = parsed.success
+            ? parsed.data.kind === "reply"
+              ? parsed.data.deadline
+              : parsed.data.kind === "deadline" || parsed.data.kind === "periodic"
+                ? parsed.data.at
+                : undefined
+            : undefined,
+          state = evaluateWake(
+            condition,
+            facts,
+            at?.clockId === "utc" ? { clockId: "utc", value: this.store.now().toISOString() } : time,
+            predicates,
+          );
         await db.query("UPDATE specialist_wakes SET status=$2,updated_at=$3 WHERE id=$1", [
           row.id,
           row.condition_cipher ? state : "blocked",

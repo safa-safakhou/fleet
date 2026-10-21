@@ -16,6 +16,7 @@ import {
   LaunchStartRequest,
   LaunchUpdateRequest,
 } from "./launch-contracts.js";
+import { SpecialistPresetSchema } from "./participant-state.js";
 import type { TaskStore } from "./tasks.js";
 
 const canonical = (value: unknown): unknown =>
@@ -184,6 +185,11 @@ export class LaunchService {
       );
       if (spec.wakePolicy?.enabled && adapter.capabilities.events === "none")
         throw new FleetError("UNSUPPORTED_CAPABILITY");
+      if (definition.manifest.modules.some((m) => m.id === "participant-state" && m.version === "1")) {
+        const preset = adapter.specialistPresets?.find((p) => p.id === spec.architectureConfig.preset);
+        if (!preset) throw new FleetError("SPECIALIST_PRESET_REQUIRED");
+        if (!SpecialistPresetSchema.safeParse(preset).success) throw new FleetError("INVALID_SPECIALIST_PRESET");
+      }
       add("environment", "pass", "ENVIRONMENT_COMPATIBLE", "Local advertised capabilities satisfy the manifest.");
     } catch (e) {
       add(
@@ -204,6 +210,18 @@ export class LaunchService {
       add("credentials", "fail", "ACCOUNTS_INCOMPLETE", "Select the complete existing roster from one cohort.");
     else {
       const cohort = await this.store.cohort(cohortIds[0], db);
+      if (
+        this.architectures
+          .resolve(spec.architecture)
+          .manifest.modules.some((m) => m.id === "participant-state" && m.version === "1") &&
+        !cohort.observation_consent
+      )
+        add(
+          "credentials",
+          "fail",
+          "CONSENT_REQUIRED",
+          "Persistent private goals and memory require observation consent.",
+        );
       const bound = (
         await db.query(
           "SELECT agent_id,environment_id,environment_version,instance_id FROM environment_bindings WHERE agent_id=ANY($1::uuid[]) AND state='active'",

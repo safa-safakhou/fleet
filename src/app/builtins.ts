@@ -1,4 +1,5 @@
 import { FleetError } from "../domain.js";
+import { definition as autonomous } from "../engines/autonomous-specialists/engine.js";
 import { definition as continuity } from "../engines/continuity/engine.js";
 import { definition as continuityV2 } from "../engines/continuity/engine-v2.js";
 import { legacyManifest, prepareLegacyModel, validateLegacy } from "../engines/legacy/manifest.js";
@@ -24,6 +25,7 @@ export function builtinArchitectures(
     continuity,
     continuityV2,
     specialists,
+    autonomous,
     ...additional,
   ];
   return new ArchitectureRegistry(

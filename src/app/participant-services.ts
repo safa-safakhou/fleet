@@ -226,7 +226,13 @@ export class SpecialistRepository {
           goal.status === "completed" &&
           !goal.evidenceIds.some((id) => {
             const record = support.get(id);
-            return record?.kind === "outcome" && record.detail.fulfilled === true;
+            const detail =
+              record?.kind === "specialist-outcome.v1"
+                ? (record.detail.detail as Record<string, unknown> | undefined)
+                : record?.kind === "outcome"
+                  ? record.detail
+                  : undefined;
+            return detail?.fulfilled === true && detail.goalId === goal.id;
           })
         )
           throw new FleetError("GOAL_OUTCOME_REQUIRED");

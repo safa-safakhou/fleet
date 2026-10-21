@@ -15,11 +15,13 @@ let stop = false,
   recoveryInFlight: Promise<unknown> | undefined,
   intakeInFlight: Promise<unknown> | undefined;
 const platformInFlight = new Set<Promise<unknown>>();
+const participantCancellation = new AbortController();
 const scheduler = new DispatchScheduler();
 r.pool.on("error", () => console.error("fleet database connection unavailable"));
 for (const signal of ["SIGTERM", "SIGINT"] as const)
   process.once(signal, () => {
     stop = true;
+    participantCancellation.abort();
     r.legacy.stop();
     void r.host.stop().catch((error) => console.error("fleet stop deferred", safeCode(error)));
   });
@@ -85,8 +87,13 @@ try {
           ).rowCount,
         );
       if (platformEnabled && disk && !intakeInFlight) {
-        intakeInFlight = r.intake
-          .tick((binding, code) => console.error("fleet events deferred", binding, code))
+        intakeInFlight = (async () => {
+          await r.participantWork.tick({
+            admissionOpen: platformEnabled && disk,
+            signal: participantCancellation.signal,
+          });
+          await r.intake.tick((binding, code) => console.error("fleet events deferred", binding, code));
+        })()
           .catch((error) => console.error("fleet events deferred", safeCode(error)))
           .finally(() => {
             intakeInFlight = undefined;

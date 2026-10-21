@@ -18,6 +18,29 @@ export const CharterSchema = z
   })
   .strict();
 export type SpecialistCharter = z.infer<typeof CharterSchema>;
+export const SpecialistPresetSchema = z
+  .object({
+    id: z.string().min(1).max(100),
+    roles: z
+      .array(
+        z
+          .object({
+            charter: CharterSchema,
+            subscriptions: z
+              .object({
+                categories: z.array(z.string().min(1).max(64)).max(32),
+                periodic: z.boolean(),
+                version: z.string().min(1).max(40),
+              })
+              .strict(),
+          })
+          .strict(),
+      )
+      .min(1)
+      .max(4),
+  })
+  .strict();
+export type SpecialistPreset = z.infer<typeof SpecialistPresetSchema>;
 const evidenceIds = z
   .array(z.uuid())
   .min(1)
@@ -32,6 +55,14 @@ export const SpecialistGoalSchema = z
     status: z.enum(["active", "suspended", "completed", "abandoned"]),
     evidenceIds,
     assessment: z.string().min(1).max(1000),
+    assessmentCondition: z
+      .object({
+        name: z.string().min(1).max(100),
+        version: z.string().min(1).max(40),
+        args: z.record(z.string(), z.unknown()),
+      })
+      .strict()
+      .optional(),
     wake: z.string().min(1).max(1000),
   })
   .strict();
