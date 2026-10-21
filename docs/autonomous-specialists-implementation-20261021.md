@@ -42,4 +42,8 @@ Goal completion requires a retained goal-linked outcome. The host can produce th
 
 Verification: focused engine/action/messaging/parity/compatibility41/41 before the additional growing-library check, plus selector5/5 and native engine8/8 after that repair; fullunit448/448, type/style/build/boundaries and clean diff checks pass. All model responses are authored fakes. No real strategic qualification, installation or activation is claimed.
 
-A06–A08, K01–K07 and X01/X02 remain open. E1 operational preparation and E1–E4 behavioral gates remain separate. No production-readiness claim is made by this interim report.
+A06 connects conflict admission to the native engine. Optional deferred proposals publish unsubmitted coordination data without a command or world reservation. Explicit owner priority and source-backed policy resolve deterministic choices; tied resource conflicts retain a stable root and stop after two material revisions. Participant admission tickets prevent repeatedly coalesced work starving another eligible role. Private peer scratch state stays private. Reply waits can reference a same-envelope request index; correlation derives from the actual delivered request, never model-invented IDs.
+
+Verification: native proposal→conflict→peer revision→two independent guarded actions, messaging/action recovery, policy/fairness and unchanged architecture parity pass40/40; fullunit448/448, type/style/build/boundaries and diff checks pass. Conflict/planning history is encrypted and redacted on consent/source expiry. The default uncontested action incurs no conflict or coordinator model call.
+
+A07/A08, K01–K07 and X01/X02 remain open. E1 operational preparation and E1–E4 behavioral gates remain separate. No production-readiness claim is made by this interim report.

@@ -1,6 +1,8 @@
 import type { BudgetConfig, Data, ModelPort, ModelSettings, Tool } from "../domain.js";
 import type { ArchitectureRef } from "./architecture.js";
 
+export type { ActionEffects } from "./action-effects.js";
+
 export type {
   ParticipantStatePort,
   SpecialistCharter,
@@ -59,10 +61,12 @@ export interface ScopedServices {
       >,
     ): Promise<import("../modules/evidence/negotiation/v1.js").Original>;
     originals(): Promise<import("../modules/evidence/negotiation/v1.js").Original[]>;
+    coordination(): Promise<Data>;
     accept(input: {
       expectedVersion: number;
       envelope: Omit<import("./participant-state.js").SpecialistEnvelope, "intent">;
       intent?: ActionIntent;
+      defer?: boolean;
     }): Promise<{ version: number; accepted: boolean; outcome?: ActionOutcome }>;
   };
   continuity?: import("../modules/continuity/v1/ports.js").ContinuityV1Ports;

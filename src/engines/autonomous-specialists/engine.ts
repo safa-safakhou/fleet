@@ -19,7 +19,12 @@ import { route } from "./routing.js";
 const Update = SpecialistEnvelopeSchema.omit({ intent: true, deliveryIds: true }).extend({
   messages: z.array(InternalMessageSchema).max(8),
 });
-const Decision = z.object({ decision: ReactiveDecision, update: Update.optional() }).strict();
+const SpecialistDecision = z.discriminatedUnion("kind", [
+  ReactiveDecision.options[0],
+  ReactiveDecision.options[1],
+  ReactiveDecision.options[2].extend({ defer: z.boolean().optional() }),
+]);
+const Decision = z.object({ decision: SpecialistDecision, update: Update.optional() }).strict();
 const outputSchema = z.toJSONSchema(Decision, { target: "draft-7" });
 export class AutonomousSpecialistsEngine {
   readonly manifest = manifest;
@@ -117,6 +122,7 @@ export class AutonomousSpecialistsEngine {
         },
         evidence,
         inbox,
+        coordination: await p.coordination(),
         observation,
         actionSchemas: allowed,
         coverage: { omitted: [] as string[] },
@@ -215,7 +221,7 @@ export class AutonomousSpecialistsEngine {
         observation,
       );
       if (validation && !validation.valid) throw new FleetError(validation.code, true);
-      await p.accept({ expectedVersion: state.version, envelope, intent });
+      await p.accept({ expectedVersion: state.version, envelope, intent, defer: decision.defer });
       return;
     }
     await services.tasks.waitForEvent();

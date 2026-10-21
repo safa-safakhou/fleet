@@ -5,7 +5,18 @@ import type { DomainTime } from "./contracts.js";
 const clock = z.object({ clockId: z.string().min(1).max(100), value: z.string().min(1).max(200) }).strict();
 export const WakeConditionSchema = z.discriminatedUnion("kind", [
   z.object({ kind: z.literal("event"), category: z.string().min(1).max(64) }).strict(),
-  z.object({ kind: z.literal("reply"), requestId: z.uuid(), deadline: clock }).strict(),
+  z
+    .object({
+      kind: z.literal("reply"),
+      requestId: z.uuid().optional(),
+      requestIndex: z.number().int().min(0).max(7).optional(),
+      deadline: clock,
+    })
+    .strict()
+    .refine(
+      (v) => (v.requestId !== undefined) !== (v.requestIndex !== undefined),
+      "Choose a retained request or a same-envelope index",
+    ),
   z.object({ kind: z.literal("deadline"), at: clock }).strict(),
   z.object({ kind: z.literal("periodic"), at: clock }).strict(),
   z
@@ -53,7 +64,8 @@ export function evaluateWake(
   }
   if (condition.kind === "event")
     return !facts.categories ? "unknown" : facts.categories.includes(condition.category) ? "ready" : "waiting";
-  if (condition.kind === "reply" && facts.replies?.includes(condition.requestId)) return "ready";
+  if (condition.kind === "reply" && !condition.requestId) return "unknown";
+  if (condition.kind === "reply" && condition.requestId && facts.replies?.includes(condition.requestId)) return "ready";
   const comparison = compareDomainTime(condition.kind === "reply" ? condition.deadline : condition.at, time);
   return comparison === undefined ? "unknown" : comparison >= 0 ? "ready" : "waiting";
 }

@@ -1,5 +1,5 @@
 import type { ArchitectureManifest } from "../../platform/architecture.js";
-export const defaults = { preset: "resources-diplomacy", maxActiveGoals: 8, memoryBytes: 6000 };
+export const defaults = { preset: "resources-diplomacy", maxActiveGoals: 8, memoryBytes: 6000, ownerPriorities: {} };
 export const manifest: ArchitectureManifest = {
   schemaVersion: "fleet.architecture-manifest.v1",
   ref: { id: "autonomous-specialists", version: "1" },
@@ -12,6 +12,16 @@ export const manifest: ArchitectureManifest = {
       preset: { type: "string", enum: ["resources-diplomacy", "full"] },
       maxActiveGoals: { type: "integer", minimum: 1, maximum: 8 },
       memoryBytes: { type: "integer", minimum: 1024, maximum: 12000 },
+      ownerPriorities: {
+        type: "object",
+        properties: Object.fromEntries(
+          ["resources", "diplomacy", "defense", "development"].map((id) => [
+            id,
+            { type: "integer", minimum: 0, maximum: 100 },
+          ]),
+        ),
+        additionalProperties: false,
+      },
     },
     required: ["preset", "maxActiveGoals", "memoryBytes"],
     additionalProperties: false,

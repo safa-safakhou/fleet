@@ -2,7 +2,9 @@ import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { transaction } from "../db.js";
 import { FleetError } from "../domain.js";
+import { validateClaims } from "../modules/action-admission/v1/claims.js";
 import type { Original } from "../modules/evidence/negotiation/v1.js";
+import { ActionEffectsSchema, actionIntentDigest } from "../platform/action-effects.js";
 import type { ArchitectureDefinition } from "../platform/architecture.js";
 import type { EnvironmentSession } from "../platform/contracts.js";
 import type { ScopedEvidence, ScopedOperation, ScopedServices } from "../platform/engine-context.js";
@@ -14,6 +16,7 @@ import type { TaskStore } from "../platform/tasks.js";
 import type { Store } from "../store.js";
 import { ParticipantActions } from "./action-services.js";
 import { ParticipantMessages } from "./participant-messaging.js";
+import { ParticipantPlanning } from "./participant-planning.js";
 import { SpecialistRepository } from "./participant-services.js";
 
 export async function createParticipantPorts(deps: {
@@ -40,9 +43,18 @@ export async function createParticipantPorts(deps: {
   };
   const guard = () => transaction(store.pool, guardWithin);
   const repository = new SpecialistRepository(store, scope, guardWithin);
+  const quote = (intent: import("../platform/contracts.js").ActionIntent) => {
+    if (!session.effects) throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED", true);
+    return session.effects(intent);
+  };
+  const planning = new ParticipantPlanning(store, tasks, op.binding, scope, guardWithin, quote);
   await repository.initialize(
     preset.roles.map((r) => ({
       ...r.charter,
+      priority:
+        typeof (config.ownerPriorities as Record<string, unknown> | undefined)?.[r.charter.id] === "number"
+          ? Number((config.ownerPriorities as Record<string, unknown>)[r.charter.id])
+          : r.charter.priority,
       maxActiveGoals: Math.min(r.charter.maxActiveGoals, Number(config.maxActiveGoals)),
     })),
   );
@@ -82,6 +94,10 @@ export async function createParticipantPorts(deps: {
   };
   const ports: NonNullable<ScopedServices["participants"]> = {
     load: () => repository.load(scope),
+    coordination: async () => {
+      await guard();
+      return planning.coordination();
+    },
     inbox,
     captureOriginal: async (input) => {
       if (Buffer.byteLength(JSON.stringify(input)) > 64000 || !input.sourceRefs.length || input.sourceRefs.length > 100)
@@ -193,6 +209,43 @@ export async function createParticipantPorts(deps: {
       });
       const effects = messaging.acceptWithin.bind(messaging);
       const state = new SpecialistRepository(store, scope, guardWithin, effects);
+      if (input.defer) {
+        const intent = input.intent;
+        if (!intent || intent.bindingId !== scope.bindingId || intent.guard)
+          throw new FleetError("INVALID_PLANNING_INTENT", true);
+        const quoted = ActionEffectsSchema.parse(await quote(intent)),
+          current = await repository.load(scope);
+        if (
+          quoted.intentDigest !== actionIntentDigest(intent) ||
+          !current.charter.allowedActions.includes(quoted.actionKey) ||
+          validateClaims(quoted, []).length
+        )
+          throw new FleetError("INVALID_PLANNING_EFFECTS", true);
+        const result = await new SpecialistRepository(
+          store,
+          scope,
+          guardWithin,
+          effects,
+          (db, _scope, operationId, accepted) =>
+            planning.publishWithin(
+              db,
+              launchDigest(accepted) === launchDigest(intent)
+                ? intent
+                : (() => {
+                    throw new FleetError("INVALID_PLANNING_INTENT");
+                  })(),
+              quoted,
+              operationId,
+              input.envelope.goals.map((g) => g.id),
+            ),
+        ).accept(scope, {
+          expectedVersion: input.expectedVersion,
+          operationId: op.id,
+          envelope: { ...input.envelope, intent },
+        });
+        await messaging.deliverOutbox(8, op.signal);
+        return result;
+      }
       const result = input.intent
         ? await new ParticipantActions({
             store,
@@ -204,6 +257,14 @@ export async function createParticipantPorts(deps: {
             quote: (intent) => {
               if (!session.effects) throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED", true);
               return session.effects(intent);
+            },
+            admit: async (intent, quoted) => {
+              const priorities: Record<string, number> = {};
+              for (const r of preset.roles)
+                priorities[r.charter.id] = (
+                  await repository.load({ ...scope, specialistId: r.charter.id })
+                ).charter.priority;
+              return planning.admission(intent, quoted, op.task.id, priorities);
             },
             clock: op.observation.environmentTime,
             messagesWithin: effects,
@@ -220,7 +281,11 @@ export async function createParticipantPorts(deps: {
                   })),
                 },
               ) ?? [],
-          }).acceptAndDispatch(input)
+          }).acceptAndDispatch({
+            expectedVersion: input.expectedVersion,
+            envelope: input.envelope,
+            intent: input.intent,
+          })
         : await state.accept(scope, {
             expectedVersion: input.expectedVersion,
             operationId: op.id,

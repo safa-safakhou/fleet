@@ -148,7 +148,7 @@ export class TaskStore {
     }
     const id = randomUUID();
     await db.query(
-      "INSERT INTO platform_tasks(id,binding_id,cohort_id,profile_id,profile_version,task_key,due_at,deadline,deadline_at,created_at,participant_id,architecture_instance_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$7,$10,$11)",
+      "INSERT INTO platform_tasks(id,binding_id,cohort_id,profile_id,profile_version,task_key,due_at,deadline,deadline_at,created_at,participant_id,architecture_instance_id,owner_priority) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$7,$10,$11,$12)",
       [
         id,
         binding.id,
@@ -161,6 +161,7 @@ export class TaskStore {
         deadlineAt,
         recipient.participantId,
         instanceId,
+        profile.architecture_config?.ownerPriorities?.[recipient.participantId] ?? 0,
       ],
     );
     return id;
@@ -300,13 +301,13 @@ export class TaskStore {
       );
       const candidate = (
         await db.query(
-          `SELECT t.*,a.id actor_agent_id FROM platform_tasks t JOIN environment_bindings b ON b.id=t.binding_id JOIN agents a ON a.id=b.agent_id JOIN cohorts c ON c.id=t.cohort_id JOIN cohort_engine_profiles p ON p.cohort_id=c.id LEFT JOIN platform_cohort_admission admission ON admission.cohort_id=c.id
+          `SELECT t.*,a.id actor_agent_id FROM platform_tasks t JOIN environment_bindings b ON b.id=t.binding_id JOIN agents a ON a.id=b.agent_id JOIN cohorts c ON c.id=t.cohort_id JOIN cohort_engine_profiles p ON p.cohort_id=c.id LEFT JOIN platform_cohort_admission admission ON admission.cohort_id=c.id LEFT JOIN specialist_participant_admission participant ON participant.instance_id=t.architecture_instance_id AND participant.binding_id=t.binding_id AND participant.specialist_id=t.participant_id
     WHERE t.state='ready' AND t.due_at<=$1 AND b.state='active' AND c.state='running' AND a.state='ready' AND a.credential_state='ready' AND c.model IS NOT NULL AND c.budget IS NOT NULL
     AND b.environment_id=$2 AND b.environment_version=$3 AND b.instance_id=$4 AND ($5::uuid IS NULL OR t.id=$5)
     AND NOT EXISTS(SELECT 1 FROM turns x WHERE x.agent_id=a.id AND (x.state IN('running','pending','needs_owner') OR x.pending_command IS NOT NULL))
     AND NOT EXISTS(SELECT 1 FROM agent_blockers x WHERE x.agent_id=a.id) AND NOT EXISTS(SELECT 1 FROM maintenance_holds h WHERE h.cohort_id=c.id AND h.released_at IS NULL)
     AND (SELECT count(*) FROM turns x WHERE x.cohort_id=c.id AND x.state='running')<(c.budget->>'concurrency')::int
-    ORDER BY coalesce(admission.last_ticket,0),c.created_at,c.id,t.owner_priority DESC,t.deadline_at NULLS LAST,t.due_at,t.sequence FOR UPDATE OF t,a SKIP LOCKED LIMIT 1`,
+    ORDER BY coalesce(admission.last_ticket,0),c.created_at,c.id,t.owner_priority DESC,t.deadline_at NULLS LAST,coalesce(participant.last_ticket,0),t.due_at,t.sequence FOR UPDATE OF t,a SKIP LOCKED LIMIT 1`,
           [
             now,
             this.bindings.selected.id,
@@ -334,6 +335,11 @@ export class TaskStore {
         "INSERT INTO platform_cohort_admission(cohort_id,last_ticket) VALUES($1,nextval('platform_admission_ticket')) ON CONFLICT(cohort_id) DO UPDATE SET last_ticket=excluded.last_ticket",
         [turn.cohortId],
       );
+      if (candidate.participant_id)
+        await db.query(
+          "INSERT INTO specialist_participant_admission VALUES($1,$2,$3,nextval('specialist_admission_ticket')) ON CONFLICT(instance_id,binding_id,specialist_id) DO UPDATE SET last_ticket=excluded.last_ticket",
+          [candidate.architecture_instance_id, candidate.binding_id, candidate.participant_id],
+        );
       return {
         turn,
         taskId: candidate.id,

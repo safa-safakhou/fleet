@@ -42,6 +42,7 @@ type Options = {
   specialistId?: string;
   scope?: SpecialistScope;
   quote?(intent: ActionIntent): Promise<ActionEffects>;
+  admit?(intent: ActionIntent, effects: ActionEffects): Promise<(db: PoolClient) => Promise<void>>;
   clock?: DomainTime;
   messagesWithin?: (
     db: PoolClient,
@@ -101,6 +102,7 @@ export class ParticipantActions {
       effects.validUntil.clockId === "utc" ? { clockId: "utc", value: store.now().toISOString() } : this.options.clock;
     const comparison = compareDomainTime(effects.validUntil, currentTime);
     if (comparison === undefined || comparison >= 0) throw new FleetError("ACTION_QUOTE_EXPIRED", true);
+    const admitWithin = await this.options.admit?.(input.intent, effects);
     const intent: ActionIntent = {
       ...input.intent,
       guard: {
@@ -116,6 +118,7 @@ export class ParticipantActions {
       this.options.messagesWithin,
       async (db, scope, _operationId, accepted) => {
         if (launchDigest(accepted) !== launchDigest(intent)) throw new FleetError("EFFECT_INTENT_MISMATCH", true);
+        await admitWithin?.(db);
         await this.claims.reserveWithin(db, scope, intent, effects);
         await commands.prepare(claim, intent, db);
         await db.query(

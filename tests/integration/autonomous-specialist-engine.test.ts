@@ -12,10 +12,14 @@ afterEach(async () => {
   await end?.();
   end = undefined;
 });
-async function setup() {
+async function setup(tokens = 100) {
   const f = await platformFixture(1);
   end = () => f.pool.end();
-  enableBoardEffects(f.board, f.now, { startingTokens: 100, tokensPerMove: 1 });
+  enableBoardEffects(f.board, f.now, {
+    startingTokens: tokens,
+    tokensPerMove: tokens === 10 ? 6 : 1,
+    ...(tokens === 10 ? { costBySquare: { a3: 4 } } : {}),
+  });
   f.board.adapter.instructions = "Board instructions fixture: use only the current owned position.";
   f.board.adapter.accountObjective = (observation) => ({
     intent: "Owner board objective",
@@ -88,6 +92,56 @@ async function setup() {
     );
   return { ...f, binding, enqueue };
 }
+it("persists deferred proposals and gates real dispatch on bounded peer conflict without a coordinator", async () => {
+  const f = await setup(10);
+  let calls = 0;
+  const model = {
+    decide: async (request: { messages: { content: string }[] }) => {
+      const packet = JSON.parse(request.messages[1].content);
+      calls++;
+      if (calls > 1) expect(packet.coordination.proposals.length).toBeGreaterThan(0);
+      return {
+        decision: {
+          decision: {
+            kind: "action",
+            schemaId: "board.move.v1",
+            payload: { to: calls === 3 || calls === 5 ? "a3" : "a2" },
+            summary: "Published plan",
+            ...(calls === 1 || calls === 3 ? { defer: true } : {}),
+          },
+        },
+        inputTokens: 10,
+        outputTokens: 10,
+      };
+    },
+  };
+  const run = async (category: string) => {
+    const [id] = await f.enqueue(category);
+    const claim = await f.tasks.claim("deferred", f.now(), id);
+    if (!claim) throw Error("CLAIM_REQUIRED");
+    await f.host(model, undefined, {}, f.store.architectures).host.run(claim);
+    f.advance(16 * 60000);
+  };
+  await run("resource");
+  expect(f.board.executions).toBe(0);
+  expect((await f.pool.query("SELECT * FROM platform_commands")).rowCount).toBe(0);
+  await expect(run("offer")).rejects.toThrow("PEER_REVISION_REQUIRED");
+  expect(f.board.executions).toBe(0);
+  expect((await f.pool.query("SELECT * FROM specialist_conflicts")).rows).toEqual([
+    expect.objectContaining({ round: 0, status: "open" }),
+  ]);
+  expect((await f.pool.query("SELECT * FROM platform_commands")).rowCount).toBe(0);
+  expect(calls).toBe(2);
+  await run("resource");
+  await run("offer");
+  await run("resource");
+  expect(calls).toBe(5);
+  expect(f.board.executions).toBe(2);
+  expect((await f.pool.query("SELECT * FROM specialist_conflicts")).rows).toEqual([
+    expect.objectContaining({ round: 1, status: "resolved" }),
+  ]);
+  expect((await f.pool.query("SELECT * FROM platform_commands")).rowCount).toBe(2);
+});
 it("keeps independent goals across events and restart and lets each specialist act without a coordinator", async () => {
   const f = await setup(),
     goals = { resources: randomUUID(), diplomacy: randomUUID() },

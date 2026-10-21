@@ -228,11 +228,17 @@ export class Store {
           ["specialist_wakes", "condition_cipher"],
           ["specialist_claims", "claims_cipher"],
           ["specialist_intents", "effects_cipher"],
+          ["specialist_planning_intents", "detail_cipher"],
+          ["specialist_conflicts", "detail_cipher"],
         ])
           await c.query(
             `UPDATE ${table} SET ${column}=NULL WHERE binding_id IN(SELECT b.id FROM environment_bindings b JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)`,
             [id],
           );
+        await c.query(
+          "UPDATE specialist_conflict_revisions SET detail_cipher=NULL WHERE conflict_id IN(SELECT c.id FROM specialist_conflicts c JOIN environment_bindings b ON b.id=c.binding_id JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)",
+          [id],
+        );
         await c.query(
           "UPDATE specialist_states s SET state_cipher=NULL,support_ids=\u0027{}\u0027,version=version+1 WHERE s.binding_id IN(SELECT b.id FROM environment_bindings b JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)",
           [id],

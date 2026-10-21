@@ -56,6 +56,7 @@ export class ParticipantMessages {
       wakes = z.array(WakeConditionSchema).max(8).parse(envelope.wakeConditions),
       parents = await this.parents(db, scope);
     if (envelope.deliveryIds.some((id) => !parents.has(id))) throw new FleetError("FOREIGN_DELIVERY");
+    const requestIds = new Map<number, string>();
     for (let index = 0; index < messages.length; index++) {
       const message = messages[index],
         parent = parents.get(message.parentDeliveryId);
@@ -81,6 +82,24 @@ export class ParticipantMessages {
         `specialist-delivery:${this.instanceId}:${this.binding.id}:${scope.specialistId}:${parent.id}`,
       );
       const round = Number(source.metadata.conflictRound ?? 0) + (message.kind === "conflict" ? 1 : 0);
+      let replyToRequestId: string | null = null;
+      if (message.kind === "reply") {
+        if (
+          !source.id.startsWith("internal:") ||
+          source.metadata.kind !== "request" ||
+          source.metadata.sender !== message.to
+        )
+          throw new FleetError("REPLY_REQUEST_REQUIRED");
+        const candidate = source.id.slice(9);
+        const original = (
+          await db.query(
+            "SELECT id FROM specialist_outbox WHERE id=$1 AND instance_id=$2 AND binding_id=$3 AND sender=$4 AND recipient=$5 AND status='delivered'",
+            [candidate, this.instanceId, this.binding.id, message.to, scope.specialistId],
+          )
+        ).rows[0];
+        if (!original) throw new FleetError("REPLY_REQUEST_REQUIRED");
+        replyToRequestId = original.id;
+      }
       if (!Number.isInteger(round) || round > 2) throw new FleetError("CONFLICT_ROUND_LIMIT");
       if (message.evidenceIds.length) {
         const count = (
@@ -102,16 +121,18 @@ export class ParticipantMessages {
         text: message.text,
         evidenceIds: [...message.evidenceIds].sort(),
       });
-      if (
-        (
-          await db.query(
-            "SELECT 1 FROM specialist_outbox WHERE instance_id=$1 AND binding_id=$2 AND sender=$3 AND root_id=$4 AND payload_digest=$5",
-            [this.instanceId, this.binding.id, scope.specialistId, parent.root_id, payloadDigest],
-          )
-        ).rowCount
-      )
+      const duplicate = (
+        await db.query(
+          "SELECT id FROM specialist_outbox WHERE instance_id=$1 AND binding_id=$2 AND sender=$3 AND root_id=$4 AND payload_digest=$5",
+          [this.instanceId, this.binding.id, scope.specialistId, parent.root_id, payloadDigest],
+        )
+      ).rows[0];
+      if (duplicate) {
+        if (message.kind === "request") requestIds.set(index, duplicate.id);
         continue;
+      }
       const id = randomUUID();
+      if (message.kind === "request") requestIds.set(index, id);
       await db.query(
         "INSERT INTO specialist_outbox(id,instance_id,binding_id,sender,recipient,operation_id,message_index,root_id,parent_id,depth,conflict_round,payload_cipher,payload_digest,evidence_ids,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15)",
         [
@@ -132,8 +153,24 @@ export class ParticipantMessages {
           this.store.now(),
         ],
       );
+      if (replyToRequestId)
+        await db.query("UPDATE specialist_outbox SET reply_request_id=$2 WHERE id=$1", [id, replyToRequestId]);
     }
-    for (const condition of wakes) {
+    for (let condition of wakes) {
+      if (condition.kind === "reply") {
+        const requestId = condition.requestId ?? requestIds.get(condition.requestIndex ?? -1);
+        if (
+          !requestId ||
+          !(
+            await db.query(
+              "SELECT 1 FROM specialist_outbox WHERE id=$1 AND instance_id=$2 AND binding_id=$3 AND sender=$4",
+              [requestId, this.instanceId, this.binding.id, scope.specialistId],
+            )
+          ).rowCount
+        )
+          throw new FleetError("WAKE_REQUEST_REQUIRED");
+        condition = { kind: "reply", requestId, deadline: condition.deadline };
+      }
       const parent = parents.values().next().value;
       if (!parent) throw new FleetError("WAKE_PARENT_REQUIRED");
       if (condition.kind === "deadline" || condition.kind === "periodic" || condition.kind === "reply") {
@@ -218,6 +255,7 @@ export class ParticipantMessages {
             text: message.text,
             evidenceIds: message.evidenceIds,
             conflictRound: row.conflict_round,
+            ...(row.reply_request_id ? { replyToRequestId: row.reply_request_id } : {}),
             untrustedPeerContent: true,
           },
         };

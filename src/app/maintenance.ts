@@ -8,6 +8,9 @@ export function createMaintenance(store: Store) {
     ["specialist_wakes", "condition_cipher", "created_at"],
     ["specialist_claims", "claims_cipher", "created_at"],
     ["specialist_intents", "effects_cipher", "created_at"],
+    ["specialist_conflicts", "detail_cipher", "updated_at"],
+    ["specialist_conflict_revisions", "detail_cipher", "created_at"],
+    ["specialist_planning_intents", "detail_cipher", "created_at"],
   ])
     registry.register({
       id: `${table}-private`,

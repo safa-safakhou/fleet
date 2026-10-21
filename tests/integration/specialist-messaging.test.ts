@@ -68,6 +68,67 @@ async function setup() {
   };
   return { repository, messages, scope, envelope, delivery, binding, taskId };
 }
+it("normalizes a same-envelope request index and derives reply correlation from the actual received request", async () => {
+  const s = await setup();
+  await s.repository.accept(s.scope, {
+    expectedVersion: 0,
+    operationId: randomUUID(),
+    envelope: {
+      ...s.envelope,
+      wakeConditions: [
+        {
+          kind: "reply",
+          requestIndex: 0,
+          deadline: { clockId: "utc", value: new Date(f.now().getTime() + 60000).toISOString() },
+        },
+      ],
+    },
+  });
+  const request = (await f.pool.query("SELECT * FROM specialist_outbox")).rows[0];
+  await s.messages.deliverOutbox(8, new AbortController().signal);
+  const received = (await f.pool.query("SELECT * FROM specialist_deliveries WHERE recipient='diplomacy'")).rows[0];
+  const reply = new ParticipantMessages(f.store, f.tasks, s.binding, s.scope.instanceId, {
+    taskId: received.task_id,
+    deliveryIds: [received.id],
+    clock: { clockId: "utc", value: f.now().toISOString() },
+  });
+  const peer = { ...s.scope, specialistId: "diplomacy" };
+  const repo = new SpecialistRepository(f.store, peer, async () => {}, reply.acceptWithin.bind(reply));
+  await repo.accept(peer, {
+    expectedVersion: 0,
+    operationId: randomUUID(),
+    envelope: {
+      ...s.envelope,
+      deliveryIds: [received.id],
+      messages: [
+        {
+          to: "resources",
+          kind: "reply",
+          text: "Here is the requested assessment",
+          evidenceIds: [],
+          parentDeliveryId: received.id,
+        },
+      ],
+    },
+  });
+  await reply.deliverOutbox(8, new AbortController().signal);
+  const result = (
+    await f.pool.query("SELECT * FROM specialist_deliveries WHERE recipient='resources' AND event_id LIKE 'internal:%'")
+  ).rows[0];
+  expect(
+    f.store.vault.decrypt<{ metadata: { replyToRequestId: string } }>(
+      result.detail_cipher,
+      `specialist-delivery:${s.scope.instanceId}:${s.binding.id}:resources:${result.id}`,
+    ).metadata.replyToRequestId,
+  ).toBe(request.id);
+  expect(
+    await s.messages.evaluateWakes(
+      { replies: [request.id] },
+      { clockId: "utc", value: f.now().toISOString() },
+      new AbortController().signal,
+    ),
+  ).toBe(1);
+});
 it("commits state, acknowledgments and addressed outbox atomically and resumes delivery once", async () => {
   const { repository, messages, scope, envelope, delivery } = await setup();
   const input = { expectedVersion: 0, operationId: randomUUID(), envelope };
