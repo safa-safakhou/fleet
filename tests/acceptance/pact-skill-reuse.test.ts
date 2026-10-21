@@ -161,7 +161,23 @@ it("signs only a prior exact goal through native guards with zero reuse model ca
     (await f.pool.query("SELECT * FROM architecture_scoped_evidence WHERE kind='specialist-outcome.v1'")).rowCount,
   ).toBe(0);
   f.advanceBoth(16 * 60000);
-  await f.run();
+  const finish = f.tasks.finish.bind(f.tasks);
+  let interruptedTask = "";
+  f.tasks.finish = async (...args) => {
+    interruptedTask = args[0].taskId;
+    throw Error("OWNED_HOST_FINISH_CRASH");
+  };
+  await expect(f.run()).rejects.toThrow("OWNED_HOST_FINISH_CRASH");
+  f.tasks.finish = finish;
+  const readsBeforeRecovery = (
+    await f.pool.query("SELECT sum(actual_units)::text n FROM skill_work_reservations WHERE kind='reads'")
+  ).rows[0].n;
+  f.advanceBoth(16 * 60000);
+  await f.tasks.recover();
+  await f.runExisting(interruptedTask);
+  expect(
+    (await f.pool.query("SELECT sum(actual_units)::text n FROM skill_work_reservations WHERE kind='reads'")).rows[0].n,
+  ).toBe(readsBeforeRecovery);
   expect(calls).toBe(1);
   expect((await f.pact.pool.query("SELECT * FROM supply_contracts")).rowCount).toBe(1);
   const contract = (await f.pact.pool.query("SELECT start_game_time_ms,end_game_time_ms FROM supply_contracts"))

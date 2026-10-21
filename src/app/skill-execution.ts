@@ -491,7 +491,7 @@ export class SkillExecutionStore implements InvocationRepository, WorkLedger {
       await this.authorize(db);
       await this.row(db, inv.id);
       await db.query(
-        "INSERT INTO skill_work_reservations VALUES($1,$2,'recovery_reads',0,1,$3) ON CONFLICT DO NOTHING",
+        "INSERT INTO skill_work_reservations VALUES($1,$2,'recovery_reads',0,1,$3) ON CONFLICT(invocation_id,node_id,kind) DO UPDATE SET actual_units=skill_work_reservations.actual_units+1",
         [inv.id, `${nodeId}:${launchDigest(eventId)}`, this.store.now()],
       );
     });

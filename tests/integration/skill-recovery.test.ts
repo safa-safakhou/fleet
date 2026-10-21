@@ -24,7 +24,7 @@ it.each(["after_checkpoint", "after_reservation", "before_io", "after_io", "befo
       checkpoint = (await f.pool.query("SELECT * FROM skill_checkpoints WHERE node_id='move'")).rows[0],
       original = checkpoint.command_id;
     f.ports.fault = undefined;
-    const resumed = await f.runner().resume(inv.id, "owned-recovery");
+    const resumed = await f.runner().resume(inv.id, f.input().triggerId);
     expect(resumed.state).toBe("completed");
     expect(f.board.executions).toBe(1);
     expect((await f.pool.query("SELECT command_id FROM platform_commands")).rows).toEqual([{ command_id: original }]);

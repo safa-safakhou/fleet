@@ -132,6 +132,12 @@ export async function pactSkillNativeFixture(model: ModelPort, options: { learni
       new OperationSupervisor(tasks),
       hostScopeFactory({ store: f.store, tasks, bindings, model: admission, commands }),
     );
+  const runExisting = async (id: string) => {
+    const claim = await tasks.claim("owned-skill", f.now(), id);
+    if (!claim) throw Error("CLAIM_REQUIRED");
+    await host.run(claim);
+    return claim;
+  };
   const run = async () => {
     const ids = await tasks.publishFromEvent(
       binding,
@@ -145,10 +151,8 @@ export async function pactSkillNativeFixture(model: ModelPort, options: { learni
       },
       "offer",
     );
-    const claim = await tasks.claim("owned-skill", f.now(), ids[0]?.id);
-    if (!claim) throw Error("CLAIM_REQUIRED");
-    await host.run(claim);
-    return claim;
+    if (!ids[0]) throw Error("TASK_REQUIRED");
+    return runExisting(ids[0].id);
   };
   return {
     ...f,
@@ -159,6 +163,7 @@ export async function pactSkillNativeFixture(model: ModelPort, options: { learni
     group,
     tasks,
     host,
+    runExisting,
     setAfterQuote: (f: () => Promise<void>) => {
       afterQuote = f;
     },

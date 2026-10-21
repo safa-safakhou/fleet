@@ -154,6 +154,7 @@ export async function attachSkillExecution(d: {
   });
   let activeInputs: Data = {};
   services.skills!.tryKnownGoal = async () => {
+    const triggerId = launchDigest({ taskId: op.task.id, revision: op.task.revision, eventRefs: op.eventRefs });
     // Recovery is considered first even when a goal, source or skill has since changed.
     const pending = (
       await store.pool.query(
@@ -166,7 +167,7 @@ export async function attachSkillExecution(d: {
     if (pending[0]) {
       const old = await db.load(pending[0].id);
       activeInputs = old.inputs;
-      invocation = await runner.resume(old.id, op.id);
+      invocation = await runner.resume(old.id, triggerId);
     } else {
       const state = await repository.load(scope),
         goals = state.goals.filter((g) => g.routine && g.status === "active");
@@ -218,7 +219,7 @@ export async function attachSkillExecution(d: {
         goalId: g.id,
         inputs: g.parameters,
         skillRef: choice.skillRef,
-        triggerId: op.id,
+        triggerId,
       });
     }
     await services.trace("deciding", "Guarded routine checkpoint", {

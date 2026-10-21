@@ -111,8 +111,9 @@ export class RecipeRunner {
     let inv = await this.p.repository.load(id);
     const privateUnavailable = inv.privateUnavailable;
     if (["completed", "reason"].includes(inv.state)) return inv;
-    if (!(await this.p.repository.acceptEvent(id, eventId))) return inv;
+    const newEvent = await this.p.repository.acceptEvent(id, eventId);
     const cp = await this.p.repository.outstanding(id);
+    if (!newEvent && inv.state === "waiting" && !cp) return inv;
     if (cp?.state === "started" || cp?.state === "unknown") {
       if (cp.state === "started" && (await this.p.repository.resetUnstarted(cp))) return this.run(inv, eventId);
       if (cp.commandId) {
