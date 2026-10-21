@@ -23,6 +23,7 @@ const capabilities = z
     simulationControls: z.boolean().optional(),
     continuity: z.boolean().optional(),
     coordination: z.boolean().optional(),
+    actionEffects: z.boolean().optional(),
   })
   .strict();
 export const ArchitectureManifestSchema = z

@@ -226,6 +226,8 @@ export class Store {
           ["specialist_deliveries", "detail_cipher"],
           ["specialist_outbox", "payload_cipher"],
           ["specialist_wakes", "condition_cipher"],
+          ["specialist_claims", "claims_cipher"],
+          ["specialist_intents", "effects_cipher"],
         ])
           await c.query(
             `UPDATE ${table} SET ${column}=NULL WHERE binding_id IN(SELECT b.id FROM environment_bindings b JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)`,

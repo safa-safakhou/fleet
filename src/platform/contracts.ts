@@ -26,6 +26,11 @@ export type ActionIntent = {
   schemaId: string;
   expectedVersion?: string;
   payload: Data;
+  guard?: {
+    schemaVersion: "fleet.action-effects-guard.v1";
+    expectedRevision: string;
+    expectedEffects: import("./action-effects.js").ActionEffects;
+  };
 };
 export type ActionOutcome = { commandId: string; status: OutcomeStatus; code: string; sourceRefs: string[] };
 export type EnvironmentEvent = {
@@ -54,6 +59,7 @@ export type Capabilities = {
   simulationControls: boolean;
   continuity?: boolean;
   coordination?: boolean;
+  actionEffects?: boolean;
 };
 export type CapabilityRequirements = {
   eventDelivery?: ("native" | "poll")[];
@@ -65,12 +71,14 @@ export type CapabilityRequirements = {
   simulationControls?: boolean;
   continuity?: boolean;
   coordination?: boolean;
+  actionEffects?: boolean;
 };
 export type SchemaRequirements = { observations?: string[]; actions?: string[] };
 export type AccountObjective = string | { intent: string; currentState: Data };
 export type ActionContract = { schemaId: string; payloadSchema: Data; expectedOutcomeSchema?: Data };
 export type ProposalValidation = { valid: boolean; code: string; guidance?: string; detail?: Data };
 export interface EnvironmentSession {
+  effects?(intent: ActionIntent): Promise<import("./action-effects.js").ActionEffects>;
   observe(query: Data): Promise<Observation>;
   catalog(): Promise<Tool[]>;
   execute(intent: ActionIntent): Promise<ActionOutcome>;

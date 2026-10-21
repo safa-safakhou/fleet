@@ -39,6 +39,12 @@ export class SpecialistRepository {
       operationId: string,
       envelope: SpecialistEnvelope,
     ) => Promise<void>,
+    private intentWithin?: (
+      db: PoolClient,
+      scope: SpecialistScope,
+      operationId: string,
+      intent: Record<string, unknown>,
+    ) => Promise<void>,
   ) {}
   private scope(scope: SpecialistScope) {
     const value = SpecialistScopeSchema.parse(scope);
@@ -190,7 +196,7 @@ export class SpecialistRepository {
       envelope = input.envelope;
     if (Buffer.byteLength(JSON.stringify(envelope)) > 64000) throw new FleetError("SPECIALIST_DATA_LIMIT");
     if (
-      envelope.intent ||
+      (envelope.intent && !this.intentWithin) ||
       (!this.effects && (envelope.messages.length || envelope.deliveryIds.length || envelope.wakeConditions.length))
     )
       throw new FleetError("UNSUPPORTED_SPECIALIST_EFFECT");
@@ -226,6 +232,7 @@ export class SpecialistRepository {
           throw new FleetError("GOAL_OUTCOME_REQUIRED");
       const version = current.version + 1;
       await this.effects?.(db, scope, input.operationId, envelope);
+      if (envelope.intent) await this.intentWithin?.(db, scope, input.operationId, envelope.intent);
       await db.query(
         "UPDATE specialist_states SET version=$4,state_cipher=$5,support_ids=$6,updated_at=$7 WHERE instance_id=$1 AND binding_id=$2 AND specialist_id=$3",
         [...args, version, this.store.vault.encrypt(state, this.aad(scope, "state")), supportIds, this.store.now()],

@@ -75,3 +75,11 @@ it("reports unavailable outcome lookup as unknown without querying or replaying"
   });
   expect(board.executions).toBe(0);
 });
+it("requires explicit complete-effect capability and its actual quote protocol", async () => {
+  const board = boardEnvironment(),
+    registry = new EnvironmentRegistry([board.adapter], boardRef);
+  await expect(registry.connect(binding, { actionEffects: true })).rejects.toThrow("UNSUPPORTED_CAPABILITY");
+  board.adapter.capabilities.actionEffects = true;
+  await expect(registry.connect(binding, { actionEffects: true })).rejects.toThrow("ACTION_EFFECTS_PROTOCOL_REQUIRED");
+  expect(board.executions).toBe(0);
+});
