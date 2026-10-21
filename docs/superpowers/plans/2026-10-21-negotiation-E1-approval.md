@@ -1,5 +1,7 @@
 # E1 negotiation pilot: approval package and preparation plan
 
+> **Preparation update, 21 October:** P1 is implemented and verified. The actual @1 preflight fails `CONTEXT_LIMIT` before inference. The founder explicitly selected a separate offline packing repair; [the resulting unregistered @1.1 candidate and readiness report](../../negotiation-E1-readiness-20261021.md) preserve that failure. P2 and final P3 launch readiness remain incomplete. The historical proposal below is not an execution grant.
+
 > **For agentic workers:** Future preparation uses `superpowers:executing-plans` inline, without delegation. Checkboxes below are unstarted preparation tasks. This document is a proposal, not an execution grant.
 
 **Goal:** Prepare exactly two real-provider diagnostic cells of the frozen `reactive-cognition@1` baseline, with traceable settings, retained evidence and bounded native accounting.
@@ -108,7 +110,7 @@ Report contact, actual peer-message exposure, useful two-way response, proposal/
 
 Record all attempts, original/corrective calls, reserved/measured/unknown usage and real UTC latency. Inline/manual claim review uses original scoped evidence and redacted locators, without a model-judge endpoint or additional actor turn; it is not independent review. Unassessable prose stays unresolved. G1 remains a diagnostic result even if both cells pass; it cannot clear G3/G4 or certify native pacing.
 
-## Unstarted preparation tasks
+## Preparation tasks from the original proposal
 
 These are concrete next steps for a subsequent covering instruction, **not work executed by this package**. Complete them inline before requesting execution approval.
 
@@ -118,9 +120,9 @@ These are concrete next steps for a subsequent covering instruction, **not work 
 
 **Interface:** `prepareOwnedNegotiationWorld(target, cell, {control, secrets, retention:"preserve"}):Promise<OwnedNegotiationWorld>`. Reuse normal actor reads/dispatch, outcomes and tick advancement; provide `disconnect():Promise<void>` which never drops schemas. Define `OwnedNegotiationWorld` as the existing `NegotiationWorld` surface with `close` replaced by `disconnect`; identity/rules/encryption secrets are fresh 32-byte values supplied privately. A retained nonce/volume remains owned. Add `RunService.renewMcpLease({accountId,holderId,expectedLeaseId})`, returning `{leaseId,expiresAt}` only for the same unreleased, unexpired MCP tuple under its row lock; use the unchanged 15-minute TTL and normal clock. Reject mismatches without replacement/acquisition. This is a separate minimal lifecycle safety addition, not an authority/TTL change. No runtime Fleet import of PACT test code.
 
-- [ ] Reproduce wrong-marker/retained-target writes, foreign actor/receipt access and destructive-finally cleanup with synthetic owned fixtures; require rejection/preservation, including an interrupted setup. Same-live renewal preserves lease ID/TTL; released/expired/wrong-holder or concurrent revocation rejects without reopening a lease.
-- [ ] Implement explicit retention and secret ownership without copying the test helper’s fixed key or `TRUNCATE`; normal handler setup and labelled C02 prefix remain identical.
-- [ ] Verify repeat migration, both C01/C02 initial states, unchanged source contracts and encrypted archive/restore of the owned fixture without gameplay replay; commit only verified changes.
+- [x] Reproduce wrong-marker/retained-target writes, foreign actor/receipt access and destructive-finally cleanup with synthetic owned fixtures; require rejection/preservation, including an interrupted setup. Same-live renewal preserves lease ID/TTL; released/expired/wrong-holder or concurrent revocation rejects without reopening a lease.
+- [x] Implement explicit retention and secret ownership without copying the test helper’s fixed key or `TRUNCATE`; normal handler setup and labelled C02 prefix remain identical.
+- [x] Verify repeat migration, both C01/C02 initial states, unchanged source contracts and encrypted archive/restore of the owned fixture without gameplay replay; commit only verified changes.
 
 ### P2 — Native ledger/UTC execution composition and package
 
