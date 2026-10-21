@@ -4,6 +4,13 @@ import { z } from "zod";
 import { transaction } from "../db.js";
 import { FleetError } from "../domain.js";
 import type { SkillLibrary, SkillTransition } from "../modules/skills/v1/library.js";
+import { type PrimitiveRegistry, recipeDependencies } from "../modules/skills/v1/primitives.js";
+import {
+  isTrustedQualificationEvidence,
+  type QualificationEvidence,
+  type QualificationPolicy,
+  qualifyRecipe,
+} from "../modules/skills/v1/qualification.js";
 import { retrieveSkills } from "../modules/skills/v1/retrieval.js";
 import {
   type SkillCandidate,
@@ -380,6 +387,54 @@ export class ScopedSkillRepository implements SkillLibrary {
     return transaction(this.store.pool, async (db) => {
       await this.authorize(db, s);
       return this.learningAllowedWithin(db, s, operationId);
+    });
+  }
+  /** Host-only proof ingestion; reports supplied as JSON cannot acquire the private provenance brand. */
+  async recordQualification(
+    s: SpecialistScope,
+    ref: SkillRef,
+    registry: PrimitiveRegistry,
+    policy: QualificationPolicy,
+    evidence: QualificationEvidence,
+    children: ReadonlyMap<string, SkillVersion> = new Map(),
+  ) {
+    if (!isTrustedQualificationEvidence(evidence)) throw new FleetError("TRUSTED_SKILL_EVALUATION_REQUIRED");
+    const [skill] = await this.loadSelected(s, [ref]);
+    const decision = qualifyRecipe(skill, registry, policy, evidence, children);
+    return transaction(this.store.pool, async (db) => {
+      await this.authorize(db, s);
+      const r = await this.row(db, s, ref);
+      if (["suspended", "retired"].includes(r.status) || !(await this.support(db, s, r.source_ids)))
+        throw new FleetError("SKILL_SUPPORT_UNAVAILABLE");
+      if (recipeDependencies(skill, registry, children, policy.environmentDigest) !== decision.dependenciesDigest)
+        throw new FleetError("SKILL_EVALUATION_MISMATCH");
+      const detail = { decision, evidence },
+        old = (await db.query("SELECT * FROM skill_evaluations WHERE id=$1", [evidence.id])).rows[0];
+      if (old) {
+        if (old.instance_id !== s.instanceId || old.binding_id !== s.bindingId || old.digest !== ref.digest)
+          throw new FleetError("IDEMPOTENCY_CONFLICT");
+        return decision;
+      }
+      await db.query("INSERT INTO skill_evaluations VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11)", [
+        evidence.id,
+        s.instanceId,
+        s.bindingId,
+        ref.id,
+        ref.version,
+        ref.digest,
+        policy.version,
+        decision.dependenciesDigest,
+        decision.mode,
+        this.store.vault.encrypt(detail, `skill-evaluation:${s.instanceId}:${s.bindingId}:${evidence.id}`),
+        this.store.now(),
+      ]);
+      await this.transition(
+        s,
+        ref,
+        { expectedStatus: r.status, nextStatus: decision.mode, evaluationId: evidence.id },
+        db,
+      );
+      return decision;
     });
   }
 }
