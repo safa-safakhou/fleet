@@ -2,6 +2,8 @@ import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { FleetError } from "./domain.js";
 import type { NegotiationAssessment, NegotiationClaimReviews } from "./negotiation-evaluation.js";
+import { createNegotiationCellGuard } from "./negotiation-guard.js";
+import { executeNativeNegotiationProtocol } from "./negotiation-native-protocol.js";
 import { designDigest, type NegotiationCell, negotiationPlan } from "./negotiation-plan.js";
 import { immutable } from "./platform/architecture.js";
 
@@ -240,6 +242,7 @@ export type NegotiationGuardInput = {
   targetGameTimeMs?: string;
 };
 export interface NegotiationExecutionPorts {
+  readonly timingMode?: "controlled" | "native";
   now(): number;
   /** Read-only immediate verification of exact sources/config and owned fresh fixtures. */
   preflight(
@@ -310,7 +313,11 @@ export async function executeNegotiationProtocol(
   const valid = validateNegotiationAuthorization(protocol, rawGrant, { now: ports.now() });
   if (!valid.valid) throw new FleetError(valid.reasons[0] ?? "NEGOTIATION_UNAUTHORIZED", true);
   const grant = NegotiationGrantSchema.parse(rawGrant);
+  if (protocol.selection.stage === "E4" && ports.timingMode !== "native")
+    throw new FleetError("OWNED_NATIVE_SCHEDULER_ACCEPTANCE_REQUIRED", true);
   await preflight(protocol, grant, ports);
+  if (protocol.selection.stage === "E4")
+    return executeNativeNegotiationProtocol(protocol, grant, planned(protocol.selection), ports);
   if (!(await ports.claimNonce(grant.batchNonce, protocol.digest, designDigest(grant))))
     throw new FleetError("NONCE_ALREADY_CONSUMED", true);
   const cells = planned(protocol.selection),
@@ -331,93 +338,18 @@ export async function executeNegotiationProtocol(
         cutoff = Math.min(Date.parse(grant.cutoffAt), started + cell.limits.wallDeadlineMs),
         controller = new AbortController();
       let operationalFailure = false;
-      const guard = async (input: NegotiationGuardInput) => {
-        try {
-          if (!Number.isSafeInteger(ports.now())) throw new FleetError("NEGOTIATION_CLOCK_UNAVAILABLE", true);
-          if (ports.now() < Date.parse(grant.startsAt) || ports.now() >= cutoff)
-            throw new FleetError("NEGOTIATION_CUTOFF", true);
-          // Sources/model/settings may drift after the first cell or during a response.
-          const actual = await ports.preflight(protocol, grant);
-          if (
-            !actual.owned ||
-            !actual.evidenceReady ||
-            designDigest(actual.sources) !== designDigest(grant.sources) ||
-            actual.modelDigest !== grant.modelDigest ||
-            actual.policyDigest !== grant.policyDigest ||
-            actual.settingsDigest !== grant.settingsDigest
-          )
-            throw new FleetError("NEGOTIATION_SOURCE_OR_SCOPE_DRIFT", true);
-          const a = await ports.accounting(binding);
-          if (
-            !a.ownershipValid ||
-            !a.privacyValid ||
-            !a.authorityValid ||
-            a.duplicateEffects ||
-            a.uncertainCommands.length ||
-            a.allocations.some((row) => row.status === "unknown")
-          )
-            throw new FleetError("NEGOTIATION_OPERATIONAL_STOP", true);
-          if (
-            !Number.isFinite(Date.parse(a.deadlineAt)) ||
-            a.limitsDigest !== designDigest(cell.limits) ||
-            designDigest(a.profile) !== designDigest(cell.profile) ||
-            Date.parse(a.deadlineAt) > cutoff ||
-            Date.parse(a.deadlineAt) <= ports.now()
-          )
-            throw new FleetError("NEGOTIATION_NATIVE_LIMITS_DRIFT", true);
-          const ids = new Set(a.allocations.map((row) => row.id));
-          if (ids.size !== a.allocations.length) throw new FleetError("DUPLICATE_NATIVE_ALLOCATION", true);
-          if (
-            a.allocations.some(
-              (row) =>
-                !binding.actorIds.includes(row.actorId) ||
-                row.reservedTokens !== 40000 ||
-                (row.outputTokens ?? 0) > cell.limits.outputTokens ||
-                (row.inputTokens ?? 0) + (row.outputTokens ?? 0) > row.reservedTokens ||
-                (row.status === "reserved" && row.turnId !== input.turnId),
-            )
-          )
-            throw new FleetError("NEGOTIATION_ALLOCATION_SCOPE", true);
-          if (a.turns.some((t) => !binding.actorIds.includes(t.actorId)))
-            throw new FleetError("NEGOTIATION_TURN_SCOPE", true);
-          const before = input.phase === "call",
-            calls = a.allocations.length,
-            reserved = a.allocations.reduce((sum, row) => sum + row.reservedTokens, 0);
-          if (
-            calls + (before ? 1 : 0) > cell.limits.callsPerWorld ||
-            reserved + (before ? 40000 : 0) > cell.limits.reservedTokensPerWorld
-          )
-            throw new FleetError("NEGOTIATION_NATIVE_BUDGET_EXHAUSTED", true);
-          if (input.phase === "turn" && a.inFlight !== 0) throw new FleetError("NEGOTIATION_OPERATION_IN_FLIGHT", true);
-          if (input.phase !== "clock") {
-            if (!input.actorId || !binding.actorIds.includes(input.actorId))
-              throw new FleetError("NEGOTIATION_ACTOR_SCOPE", true);
-            const turns = new Set(a.turns.filter((t) => t.actorId === input.actorId).map((t) => t.turnId));
-            if (turns.size + (input.phase === "turn" ? 1 : 0) > cell.limits.turnsPerActor)
-              throw new FleetError("NEGOTIATION_TURN_CAP", true);
-            const own = a.allocations.filter((row) => row.actorId === input.actorId && row.turnId === input.turnId);
-            if (own.length + (before ? 1 : 0) > 3) throw new FleetError("NEGOTIATION_CALLS_PER_TURN", true);
-          }
-          if (BigInt(a.gameTimeMs) - BigInt(a.startGameTimeMs) > BigInt(cell.limits.gameHorizonMinutes) * 60000n)
-            throw new FleetError("NEGOTIATION_GAME_HORIZON", true);
-          if (input.phase === "clock") {
-            if (
-              cell.clockMode !== "controlled" ||
-              a.inFlight !== 0 ||
-              !input.targetGameTimeMs ||
-              input.targetGameTimeMs !== a.nextScheduledGameTimeMs ||
-              BigInt(input.targetGameTimeMs) < BigInt(a.gameTimeMs) ||
-              BigInt(input.targetGameTimeMs) - BigInt(a.startGameTimeMs) >
-                BigInt(cell.limits.gameHorizonMinutes) * 60000n
-            )
-              throw new FleetError("NEGOTIATION_CLOCK_ADVANCE_FORBIDDEN", true);
-          }
-        } catch (error) {
+      const guard = createNegotiationCellGuard({
+        ports,
+        protocol,
+        grant,
+        cell,
+        binding,
+        cutoff,
+        controller,
+        onOperationalFailure: () => {
           operationalFailure = true;
-          controller.abort();
-          throw error;
-        }
-      };
+        },
+      });
       const timer = setTimeout(() => controller.abort(), Math.max(1, cutoff - ports.now()));
       try {
         await ports.openCell?.(binding, {

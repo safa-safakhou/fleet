@@ -69,6 +69,7 @@ export function protocolFixture(stage: "E1" | "E2" | "E3" | "E4" = "E1") {
     sample = assessNegotiation(f.cell, f.evidence, f.solo, f.reviews);
   let simulate: ((cellId: string, guard: (input: NegotiationGuardInput) => Promise<void>) => Promise<void>) | undefined;
   const ports: NegotiationExecutionPorts = {
+    timingMode: stage === "E4" ? "native" : "controlled",
     now: () => time,
     preflight: async () => ({
       sources: grant.sources,
