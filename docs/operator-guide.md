@@ -121,3 +121,20 @@ The [F7 workflow](profiles-and-reports-20261017.md) describes inactive profile d
 ## Qualification before installation or a new run
 
 [Profile qualification](profile-qualification.md) separates source/offline compatibility from actual route evidence. Read the [F8 proposal](multi-engine-release-proposal-20261017.md) before selecting any rollout. Its current run selection is empty and execution is disabled; preparing or reviewing it never enrolls accounts, clears recovery gates or starts a cohort.
+# Common architecture launcher
+
+The Profiles screen offers exact architecture/version selection, bounded configuration, existing connected fleet selection, the model/allowance form, readiness, and explicit start. Saving a draft never starts execution. Resume a draft by its displayed ID; a concurrent edit requires a fresh readiness check. Connect/provision accounts through existing Fleet settings.
+
+The HTTP-only CLI is built by `npm run build`. Set `FLEET_ORIGIN` to the configured Fleet origin (no URL credentials, path or query). These are proposed operator workflows; they were verified with synthetic fixtures only:
+
+```sh
+fleet --session-file /private/fleet-session.json login
+fleet --session-file /private/fleet-session.json architectures list
+fleet --session-file /private/fleet-session.json launch check --file launch.json
+fleet --session-file /private/fleet-session.json launch draft --file launch.json --request-id SAVED_UUID
+fleet --session-file /private/fleet-session.json launch start --draft DRAFT_UUID --expected-digest SAVED_SHA256 --request-id SAVED_START_UUID
+fleet --session-file /private/fleet-session.json logout
+```
+
+The session directory must exist and be private. POSIX files use0600; Windows operators must also protect the directory ACL. The login prompt hides the secret; never put it in command arguments or launch JSON. Retain request IDs/digests before retries. Check returns0 when locally ready,2 for invalid input,3 when not ready,1 on transport/authentication failure. Unknown provider/qualification checks remain visible; a local readiness result is not behavioral qualification. Starting never enables a disabled execution flag.
+

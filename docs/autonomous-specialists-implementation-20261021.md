@@ -12,6 +12,14 @@ Verification: new missing-module RED, then 10/10 focused UI/controller/handler c
 
 Ruling: keep the existing authenticated account provisioning and model controls, and select complete existing cohort rosters as required by F03; do not create a second enrollment or credential path. Cost if wrong: account setup remains a separate Fleet settings operation.
 
+## F08 — authenticated CLI
+
+The `fleet` package entry uses the same HTTP launch service as the console. Commands list architectures, check JSON launch files, save inactive drafts and explicitly start a draft with its expected digest. Draft/start accept a caller-persisted request ID for idempotent retries. Exit codes: 0 success, 2 invalid input, 3 not ready, 1 transport/authentication failures.
+
+Login reads the operator secret from hidden terminal input or stdin, never a command-line flag. Optional `--session-file` storage is origin-bound and written atomically with mode0600; symlinks, foreign ownership and group/other access are rejected on POSIX. Windows file-mode semantics do not certify an ACL boundary: use a private user-owned directory. Cookies and CSRF remain private; redirects are refused and errors emit bounded codes. Logout removes local session material even if the request fails.
+
+Verification: missing-module RED→GREEN; six new unit/integration checks plus existing launch9/9; fullunit439/439, type/style/build/boundaries pass. Integration uses Fastify injection and a fake board; no real login, provider or game connection occurs. Offline lockfile update reports zero vulnerabilities in120 installed packages.
+
 ## Remaining
 
-F08, A01–A08, K01–K07 and X01/X02 remain open. E1 operational preparation and E1–E4 behavioral gates remain separate. No production-readiness claim is made by this interim report.
+A01–A08, K01–K07 and X01/X02 remain open. E1 operational preparation and E1–E4 behavioral gates remain separate. No production-readiness claim is made by this interim report.
