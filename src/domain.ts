@@ -147,6 +147,8 @@ export interface GamePort {
   read(tool: string, args: Data): Promise<Data>;
   open(): Promise<void>;
   submit(commandId: string, action: Data): Promise<Data>;
+  effects?(command: Data): Promise<Data>;
+  submitGuarded?(command: Data, guard: Data): Promise<Data>;
   receipt(commandId: string): Promise<Data>;
   close(): Promise<void>;
 }

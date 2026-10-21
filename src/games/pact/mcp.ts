@@ -92,6 +92,12 @@ export class McpGame implements GamePort {
     validateActionTool(this.catalog, id, action);
     return this.call("pact_game_action_v2", { commandId: id, action });
   }
+  async effects(command: Data) {
+    return this.call("pact_action_effects_quote_v1", { command });
+  }
+  async submitGuarded(command: Data, guard: Data) {
+    return this.call("pact_action_effects_execute_v1", { command, guard });
+  }
   async receipt(commandId: string) {
     return this.call("pact_receipt_read_v1", { commandId });
   }

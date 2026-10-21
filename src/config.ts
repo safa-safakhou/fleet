@@ -18,6 +18,10 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
     gameBase,
     gameId: "pact",
     pactOutlookVersion: z.enum(["pact.agent-outlook.v1"]).optional().parse(env.FLEET_PACT_OUTLOOK_VERSION),
+    pactActionEffectsVersion: z
+      .enum(["fleet.action-effects.v1"])
+      .optional()
+      .parse(env.FLEET_PACT_ACTION_EFFECTS_VERSION),
     pactEventFeedVersion: z.enum(["pact.agent-events.v1"]).optional().parse(env.FLEET_PACT_EVENT_FEED_VERSION),
     environment: {
       id: env.FLEET_ENVIRONMENT_ID ?? env.FLEET_GAME ?? "pact",

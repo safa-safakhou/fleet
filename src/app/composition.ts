@@ -52,6 +52,7 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
         now: store.now,
         eventFeedVersion: settings.pactEventFeedVersion,
         outlookVersion: settings.pactOutlookVersion,
+        actionEffectsVersion: settings.pactActionEffectsVersion,
       }),
     ],
     settings.environment,

@@ -46,4 +46,8 @@ A06 connects conflict admission to the native engine. Optional deferred proposal
 
 Verification: native proposal→conflict→peer revision→two independent guarded actions, messaging/action recovery, policy/fairness and unchanged architecture parity pass40/40; fullunit448/448, type/style/build/boundaries and diff checks pass. Conflict/planning history is encrypted and redacted on consent/source expiry. The default uncontested action incurs no conflict or coordinator model call.
 
-A07/A08, K01–K07 and X01/X02 remain open. E1 operational preparation and E1–E4 behavioral gates remain separate. No production-readiness claim is made by this interim report.
+A07/A08 implement the complete initial eight-action PACT matrix and default-off API/MCP guard protocol. Fleet explicitly selects `FLEET_PACT_ACTION_EFFECTS_VERSION=fleet.action-effects.v1`, verifies both remote tools, translates immutable local/native digests, and preserves the normal gated command lane. The two-role preset owns resource checks and diplomacy; the four-role preset adds building development and training defense. Unsupported military/garrison/cancellation actions remain absent. F6 coordinator support is a separate protocol.
+
+Verification: both presets use actual native hosts and PACT handlers with authored model responses; contact, building and training receipts are independently read back. New adapter/digest, all environment compatibility and original architecture parity checks pass11/11. PACT's focused effects/interface/fault/social/outlook checks pass87/87; type/lint/contracts/boundaries/package builds pass. No provider or retained game was contacted. Broader final acceptance follows the skill tasks.
+
+K01–K07 and X01/X02 remain open. E1 operational preparation and E1–E4 behavioral gates remain separate. No production-readiness claim is made by this interim report.

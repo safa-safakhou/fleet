@@ -13,6 +13,7 @@ export const requiredChecks = [
   "events",
   "continuity",
   "coordination",
+  "actionEffects",
 ];
 export function evidence(
   adapter: EnvironmentAdapter,

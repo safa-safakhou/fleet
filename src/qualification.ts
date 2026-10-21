@@ -74,6 +74,7 @@ export const AdapterDescriptor = z
         simulationControls: z.boolean(),
         continuity: z.boolean().optional(),
         coordination: z.boolean().optional(),
+        actionEffects: z.boolean().optional(),
       })
       .strict(),
   })
@@ -209,6 +210,7 @@ export function qualifyProfile(
   if (requirements.capabilities.eventDelivery) checks.push("events");
   if (requirements.capabilities.continuity) checks.push("continuity");
   if (requirements.capabilities.coordination) checks.push("coordination");
+  if (requirements.capabilities.actionEffects) checks.push("actionEffects");
   const subjects = new Set<string>(),
     providers = new Set<string>();
   let fake = false,
