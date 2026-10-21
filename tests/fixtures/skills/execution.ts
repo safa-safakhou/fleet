@@ -25,7 +25,8 @@ export async function executionFixture(
     binding = f.group.bindings[0],
     native = f.host(new FakeModel([])),
     scope = { instanceId: `${binding.id}:fixture-loop@1`, bindingId: binding.id, specialistId: "resources" };
-  const state = new SpecialistRepository(f.store, scope, (db) => f.tasks.check(claim, db));
+  let activeClaim = claim;
+  const state = new SpecialistRepository(f.store, scope, (db) => f.tasks.check(activeClaim, db));
   await state.initialize([
     {
       id: "resources",
@@ -122,7 +123,7 @@ export async function executionFixture(
       },
     },
   ]);
-  const library = new ScopedSkillRepository(f.store, scope, (db) => f.tasks.check(claim, db)),
+  const library = new ScopedSkillRepository(f.store, scope, (db) => f.tasks.check(activeClaim, db)),
     ref = await library.propose(scope, body),
     [unqualified] = await library.loadSelected(scope, [ref]);
   const policy = new QualificationPolicy([
@@ -145,7 +146,7 @@ export async function executionFixture(
     policy,
     await runTrustedCases(unqualified, registry, policy, cases, body.evidence.sourceIds),
   );
-  const db = new SkillExecutionStore(f.store, scope, (c) => f.tasks.check(claim, c)),
+  const db = new SkillExecutionStore(f.store, scope, (c) => f.tasks.check(activeClaim, c)),
     goal: ExistingSkillGoal = {
       id: randomUUID(),
       kind: "move",
@@ -180,7 +181,7 @@ export async function executionFixture(
         store: f.store,
         tasks: f.tasks,
         commands: native.commands,
-        claim,
+        claim: activeClaim,
         binding,
         specialistId: scope.specialistId,
         quote: async (i) => {
@@ -197,13 +198,17 @@ export async function executionFixture(
     recover: async (commandId) => {
       const row = (await f.pool.query("SELECT * FROM specialist_intents WHERE command_id=$1", [commandId])).rows[0];
       if (!row) return { status: "not_prepared" };
-      const outcome = await new ParticipantActions({
+      const actions = new ParticipantActions({
         store: f.store,
         tasks: f.tasks,
         commands: native.commands,
         binding,
         scope,
-      }).reconcile(commandId);
+      });
+      const phase = (await f.pool.query("SELECT state FROM platform_commands WHERE command_id=$1", [commandId])).rows[0]
+        ?.state;
+      const outcome =
+        phase === "prepared" ? await actions.expirePrepared(commandId) : await actions.reconcile(commandId);
       return { status: outcome.status, outcome: outcome as unknown as Data };
     },
     request: async () => {
@@ -214,6 +219,15 @@ export async function executionFixture(
   };
   return {
     ...f,
+    native,
+    refreshClaim: async () => {
+      await f.tasks.recover();
+      f.advance(16 * 60000);
+      const task = await f.enqueue(binding, `recipe-recovery:${randomUUID()}`, `recovery:${randomUUID()}`),
+        next = await f.tasks.claim("recipe-recovery", f.now(), task.id);
+      if (!next) throw Error("RECOVERY_CLAIM_REQUIRED");
+      activeClaim = next;
+    },
     scope,
     goal,
     ref,

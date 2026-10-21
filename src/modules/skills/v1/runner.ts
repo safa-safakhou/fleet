@@ -109,6 +109,7 @@ export class RecipeRunner {
   }
   async resume(id: string, eventId: string): Promise<Invocation> {
     let inv = await this.p.repository.load(id);
+    const privateUnavailable = inv.privateUnavailable;
     if (["completed", "reason"].includes(inv.state)) return inv;
     if (!(await this.p.repository.acceptEvent(id, eventId))) return inv;
     const cp = await this.p.repository.outstanding(id);
@@ -160,6 +161,7 @@ export class RecipeRunner {
         }
       } else return this.reason(inv, "INTERRUPTED_NON_ACTION_STEP", cp);
     }
+    if (privateUnavailable) return this.reason(inv, "SKILL_PRIVATE_SOURCE_UNAVAILABLE");
     return this.run(inv, eventId);
   }
   private reason(inv: Invocation, reason: string, cp: Checkpoint | null = null) {
@@ -307,6 +309,7 @@ export class RecipeRunner {
       }
       return this.p.repository.finish(inv, null, { state: "completed", nodeIndex: inv.nodeIndex, values: inv.values });
     } catch (error) {
+      if (error instanceof FleetError && error.code === "STALE_SKILL_CHECKPOINT") return this.p.repository.load(inv.id);
       if (error instanceof FleetError && error.notDispatched)
         return this.reason(await this.p.repository.load(inv.id), safeCode(error));
       throw error;
