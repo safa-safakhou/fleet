@@ -48,6 +48,22 @@ export type ScopedModelRequest = {
 export type ScopedModelResult = Awaited<ReturnType<ModelPort["decide"]>> & { allocationId: string };
 export type ScopedEvidence = { id: string; kind: string; detail: Data; sourceRefs: string[] };
 export interface ScopedServices {
+  skills?: {
+    canLearn(): Promise<boolean>;
+    retrieve(query: {
+      goal: string;
+      event: string;
+      limit: number;
+    }): Promise<import("../modules/skills/v1/schema.js").SkillSummary[]>;
+    loadSelected(
+      refs: import("../modules/skills/v1/schema.js").SkillRef[],
+    ): Promise<import("../modules/skills/v1/schema.js").SkillVersion[]>;
+    propose(
+      candidates: import("../modules/skills/v1/schema.js").SkillCandidate[],
+    ): Promise<import("../modules/skills/v1/schema.js").SkillRef[]>;
+    publish(ref: import("../modules/skills/v1/schema.js").SkillRef): Promise<void>;
+    adopt(ref: import("../modules/skills/v1/schema.js").SkillRef): Promise<void>;
+  };
   participants?: {
     load(): Promise<import("./participant-state.js").SpecialistState>;
     inbox(): Promise<{
@@ -60,7 +76,7 @@ export interface ScopedServices {
         "id" | "bindingId" | "createdAt" | "expiresAt"
       >,
     ): Promise<import("../modules/evidence/negotiation/v1.js").Original>;
-    originals(): Promise<import("../modules/evidence/negotiation/v1.js").Original[]>;
+    originals(requiredIds?: string[]): Promise<import("../modules/evidence/negotiation/v1.js").Original[]>;
     coordination(): Promise<Data>;
     accept(input: {
       expectedVersion: number;

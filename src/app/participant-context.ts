@@ -18,6 +18,7 @@ import { ParticipantActions } from "./action-services.js";
 import { ParticipantMessages } from "./participant-messaging.js";
 import { ParticipantPlanning } from "./participant-planning.js";
 import { SpecialistRepository } from "./participant-services.js";
+import { ScopedSkillRepository } from "./skill-services.js";
 
 export async function createParticipantPorts(deps: {
   store: Store;
@@ -48,6 +49,20 @@ export async function createParticipantPorts(deps: {
     return session.effects(intent);
   };
   const planning = new ParticipantPlanning(store, tasks, op.binding, scope, guardWithin, quote);
+  if (config.skillMode !== "off" && definition.manifest.modules.some((m) => m.id === "skills" && m.version === "1")) {
+    const skills = new ScopedSkillRepository(store, scope, guardWithin);
+    services.skills = {
+      canLearn: () => skills.canLearn(scope, op.id),
+      retrieve: (q) => skills.retrieve(scope, q),
+      loadSelected: (refs) => skills.loadSelected(scope, refs),
+      propose: (candidates) => {
+        if (config.learning === false) throw new FleetError("LEARNING_DISABLED", true);
+        return skills.proposeFromOperation(scope, op.id, candidates);
+      },
+      publish: (ref) => skills.publish(scope, ref),
+      adopt: (ref) => skills.adopt(scope, ref),
+    };
+  }
   await repository.initialize(
     preset.roles.map((r) => ({
       ...r.charter,
@@ -148,12 +163,13 @@ export async function createParticipantPorts(deps: {
         return original;
       });
     },
-    originals: async () => {
+    originals: async (requiredIds = []) => {
+      if (requiredIds.length > 64) throw new FleetError("SPECIALIST_DATA_LIMIT", true);
       await guard();
       const rows = (
         await store.pool.query(
-          "SELECT id,detail_cipher FROM architecture_scoped_evidence WHERE instance_id=$1 AND binding_id=$2 AND kind IN('specialist-outcome.v1','specialist-promise.v1','specialist-observation.v1') AND created_at>$3 ORDER BY CASE kind WHEN 'specialist-outcome.v1' THEN 0 WHEN 'specialist-promise.v1' THEN 1 ELSE 2 END,created_at DESC,id LIMIT 100",
-          [scope.instanceId, scope.bindingId, cutoff()],
+          "SELECT id,detail_cipher FROM architecture_scoped_evidence WHERE instance_id=$1 AND binding_id=$2 AND kind IN('specialist-outcome.v1','specialist-promise.v1','specialist-observation.v1') AND created_at>$3 ORDER BY CASE WHEN id=ANY($4::uuid[]) THEN -1 WHEN kind='specialist-outcome.v1' THEN 0 WHEN kind='specialist-promise.v1' THEN 1 ELSE 2 END,created_at DESC,id LIMIT 100",
+          [scope.instanceId, scope.bindingId, cutoff(), requiredIds],
         )
       ).rows;
       await guard();

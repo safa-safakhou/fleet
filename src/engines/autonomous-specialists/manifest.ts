@@ -1,5 +1,13 @@
 import type { ArchitectureManifest } from "../../platform/architecture.js";
-export const defaults = { preset: "resources-diplomacy", maxActiveGoals: 8, memoryBytes: 6000, ownerPriorities: {} };
+export const defaults = {
+  preset: "resources-diplomacy",
+  maxActiveGoals: 8,
+  memoryBytes: 6000,
+  ownerPriorities: {},
+  learning: true,
+  skillMode: "advisory",
+  qualificationPolicy: "skills-policy.v1",
+};
 export const manifest: ArchitectureManifest = {
   schemaVersion: "fleet.architecture-manifest.v1",
   ref: { id: "autonomous-specialists", version: "1" },
@@ -10,6 +18,9 @@ export const manifest: ArchitectureManifest = {
     type: "object",
     properties: {
       preset: { type: "string", enum: ["resources-diplomacy", "full"] },
+      learning: { type: "boolean" },
+      skillMode: { type: "string", enum: ["off", "advisory"] },
+      qualificationPolicy: { type: "string", enum: ["skills-policy.v1"] },
       maxActiveGoals: { type: "integer", minimum: 1, maximum: 8 },
       memoryBytes: { type: "integer", minimum: 1024, maximum: 12000 },
       ownerPriorities: {
@@ -39,9 +50,10 @@ export const manifest: ArchitectureManifest = {
     { id: "participant-state", version: "1" },
     { id: "negotiation-evidence", version: "1" },
     { id: "action-admission", version: "1" },
+    { id: "skills", version: "1" },
   ],
   stateCodecs: [{ id: "participant-state", version: "1" }],
-  skillModes: ["off"],
+  skillModes: ["off", "advisory"],
   form: {
     fields: [
       { path: "preset", label: "Role preset", widget: "enum" },

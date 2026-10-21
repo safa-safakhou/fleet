@@ -5,6 +5,7 @@ import { ParticipantWork } from "../../src/app/participant-work.js";
 import { transaction } from "../../src/db.js";
 import { LaunchService } from "../../src/platform/launch.js";
 import { enableBoardEffects } from "../fixtures/environments/specialist-board.js";
+import { candidate } from "../fixtures/skills/candidate.js";
 import { platformFixture } from "../platform-helpers.js";
 
 let end: (() => Promise<void>) | undefined;
@@ -141,6 +142,91 @@ it("persists deferred proposals and gates real dispatch on bounded peer conflict
     expect.objectContaining({ round: 1, status: "resolved" }),
   ]);
   expect((await f.pool.query("SELECT * FROM platform_commands")).rowCount).toBe(2);
+});
+it("extracts outcome-labelled advice only through accounted bounded learning and retrieves its compact index", async () => {
+  const f = await setup();
+  let calls = 0;
+  let expectedEpisodes: string[] = [];
+  const model = {
+    decide: async (request: { messages: { content: string }[] }) => {
+      calls++;
+      const packet = JSON.parse(request.messages[1].content);
+      if (calls === 1)
+        return {
+          decision: {
+            decision: {
+              kind: "action",
+              schemaId: "board.move.v1",
+              payload: { to: "a2" },
+              summary: "Observed board action",
+            },
+          },
+          inputTokens: 10,
+          outputTokens: 10,
+        };
+      if (calls === 2) {
+        expect(packet.skills.opportunities[0].outcome).toBe("unproven");
+        expectedEpisodes = packet.skills.opportunities[0].episodeIds;
+        return {
+          decision: {
+            decision: { kind: "read", query: { skillSchema: true }, summary: "Low-priority repeated-work hypothesis" },
+          },
+          inputTokens: 10,
+          outputTokens: 10,
+        };
+      }
+      if (calls === 3) {
+        const body = candidate(expectedEpisodes[0]);
+        body.evidence.episodeIds = expectedEpisodes;
+        body.evidence.claimedOutcome = "success";
+        return {
+          decision: {
+            decision: { kind: "wait", summary: "Candidate persisted without experimentation" },
+            proposals: [body],
+          },
+          inputTokens: 10,
+          outputTokens: 10,
+        };
+      }
+      expect(packet.skills.index).toHaveLength(1);
+      expect(packet.skills.index[0]).toMatchObject({ status: "advisory", outcomeSupport: "unproven" });
+      expect(packet.skills.index[0]).not.toHaveProperty("body");
+      if (calls === 4)
+        return {
+          decision: {
+            decision: { kind: "read", query: {}, summary: "Select a pinned relevant guide" },
+            skills: { select: [packet.skills.index[0].ref] },
+          },
+          inputTokens: 10,
+          outputTokens: 10,
+        };
+      expect(packet.skills.selected).toHaveLength(1);
+      expect(
+        packet.evidence.bundles
+          .flatMap((b: { originals: { id: string }[] }) => b.originals)
+          .map((o: { id: string }) => o.id),
+      ).toEqual(expect.arrayContaining(packet.skills.selected[0].body.evidence.sourceIds));
+      return {
+        decision: { decision: { kind: "wait", summary: "I learned more (narrative only)" } },
+        inputTokens: 10,
+        outputTokens: 10,
+      };
+    },
+  };
+  for (let i = 0; i < 3; i++) {
+    const [id] = await f.enqueue("resource");
+    const claim = await f.tasks.claim("learning", f.now(), id);
+    if (!claim) throw Error("CLAIM_REQUIRED");
+    await f.host(model, undefined, {}, f.store.architectures).host.run(claim);
+    f.advance(16 * 60000);
+  }
+  expect(calls).toBe(5);
+  expect(f.board.executions).toBe(1);
+  expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(5);
+  const learning = (await f.pool.query("SELECT * FROM skill_learning_operations")).rows;
+  expect(learning).toHaveLength(1);
+  expect(learning[0].allocation_ids).toHaveLength(2);
+  expect((await f.pool.query("SELECT status FROM skill_versions")).rows).toEqual([{ status: "advisory" }]);
 });
 it("keeps independent goals across events and restart and lets each specialist act without a coordinator", async () => {
   const f = await setup(),

@@ -54,4 +54,8 @@ K01 stores encrypted immutable skill versions, canonical content digests, explic
 
 Verification: schema/library/state/old-continuity25/25, type/style/build/boundaries and clean diff checks pass. Concurrent proposals deduplicate transactionally; foreign binding, unsupported recipient actions and forged evaluation IDs are rejected. These mechanisms are not skill effectiveness evidence.
 
-K02–K07 and X01/X02 remain open. E1 operational preparation and E1–E4 behavioral gates remain separate. No production-readiness claim is made by this interim report.
+K02 adds outcome-grounded, low-priority learning and compact retrieval. New autonomous drafts default to learning plus advisory reuse; old profiles do not gain these modes. A normal packet receives up to eight compatible summaries; a model can explicitly select up to two pinned bodies with their original support. Full candidate extraction uses a requested, separately metered call within the same turn/parent allowance. Urgent ready work takes precedence. At most two candidates and their parent allocation IDs commit together; model outcome claims do not overwrite observed support or qualify recipes.
+
+Verification: native extraction/index/body retrieval, actual success/failure support, no allowance, duplicate signature suppression, paired presets and original architecture parity pass23/23. Types/style/build/boundaries pass. The native learning episode used five authored responses: one actual board action, one extraction request, one extraction response, one body selection and one final wait. No extra action experiment occurred; narrative learning created no row. Source deletion/expiry remains authoritative.
+
+K03–K07 and X01/X02 remain open. E1 operational preparation and E1–E4 behavioral gates remain separate. No production-readiness claim is made by this interim report.

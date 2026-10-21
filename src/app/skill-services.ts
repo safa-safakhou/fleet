@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
+import { z } from "zod";
 import { transaction } from "../db.js";
 import { FleetError } from "../domain.js";
 import type { SkillLibrary, SkillTransition } from "../modules/skills/v1/library.js";
+import { retrieveSkills } from "../modules/skills/v1/retrieval.js";
 import {
   type SkillCandidate,
   SkillCandidateSchema,
@@ -103,10 +105,10 @@ export class ScopedSkillRepository implements SkillLibrary {
       throw new FleetError("SKILL_NOT_ADOPTED");
     return row;
   }
-  async propose(s: SpecialistScope, raw: SkillCandidate): Promise<SkillRef> {
+  async propose(s: SpecialistScope, raw: SkillCandidate, client?: PoolClient): Promise<SkillRef> {
     const body = SkillCandidateSchema.parse(raw),
       digest = skillContentDigest(body);
-    return transaction(this.store.pool, async (db) => {
+    const write = async (db: PoolClient) => {
       const auth = await this.authorize(db, s);
       if (
         launchDigest(auth.environment) !== launchDigest(body.compatibility.environment) ||
@@ -118,14 +120,14 @@ export class ScopedSkillRepository implements SkillLibrary {
       const episode = launchDigest([...body.evidence.episodeIds].sort()),
         signature = launchDigest({
           parent: body.parent ?? null,
-          purpose: body.purpose,
+          goalKinds: body.purpose.goalKinds,
           procedure: body.procedure,
           inputs: body.inputs,
         });
       const duplicate = (
         await db.query(
-          "SELECT skill_id,version,digest FROM skill_versions WHERE instance_id=$1 AND binding_id=$2 AND author=$3 AND episode_signature=$4 AND procedure_signature=$5",
-          [...this.scope(s), episode, signature],
+          "SELECT skill_id,version,digest FROM skill_versions WHERE instance_id=$1 AND binding_id=$2 AND author=$3 AND procedure_signature=$4 AND body_cipher IS NOT NULL AND created_at>$5 ORDER BY version DESC LIMIT 1",
+          [...this.scope(s), signature, this.cutoff()],
         )
       ).rows[0];
       if (duplicate) return { id: duplicate.skill_id, version: duplicate.version, digest: duplicate.digest };
@@ -190,7 +192,8 @@ export class ScopedSkillRepository implements SkillLibrary {
         ],
       );
       return ref;
-    });
+    };
+    return client ? write(client) : transaction(this.store.pool, write);
   }
   async publish(s: SpecialistScope, ref: SkillRef) {
     await transaction(this.store.pool, async (db) => {
@@ -285,15 +288,19 @@ export class ScopedSkillRepository implements SkillLibrary {
           published: r.published,
         });
       }
-      const words = new Set((query.goal + " " + query.event).toLowerCase().match(/[a-z0-9_-]+/g) ?? []),
-        rank = (v: SkillSummary) =>
-          [...words].filter((w) => (v.purpose + " " + v.goalKinds.join(" ")).toLowerCase().includes(w)).length;
-      return summaries.sort((a, b) => rank(b) - rank(a) || a.ref.id.localeCompare(b.ref.id)).slice(0, query.limit);
+      const binding = (
+        await db.query("SELECT environment_id,environment_version FROM environment_bindings WHERE id=$1", [s.bindingId])
+      ).rows[0];
+      return retrieveSkills(summaries, {
+        ...query,
+        environment: { id: binding.environment_id, version: binding.environment_version },
+        role: s.specialistId,
+      });
     });
   }
   /** Trusted composition/evaluator only; deliberately absent from the engine-facing library port. */
-  async transition(s: SpecialistScope, ref: SkillRef, t: SkillTransition) {
-    await transaction(this.store.pool, async (db) => {
+  async transition(s: SpecialistScope, ref: SkillRef, t: SkillTransition, client?: PoolClient) {
+    const write = async (db: PoolClient) => {
       await this.authorize(db, s);
       const r = await this.row(db, s, ref);
       if (r.author !== s.specialistId || r.status !== t.expectedStatus) throw new FleetError("SKILL_STATUS_CONFLICT");
@@ -314,6 +321,65 @@ export class ScopedSkillRepository implements SkillLibrary {
         "UPDATE skill_versions SET status=$5,evaluation_id=$6,updated_at=$7 WHERE instance_id=$1 AND binding_id=$2 AND skill_id=$3 AND version=$4",
         [...this.args(s, ref), t.nextStatus, t.evaluationId ?? null, this.store.now()],
       );
+    };
+    return client ? write(client) : transaction(this.store.pool, write);
+  }
+  async proposeFromOperation(s: SpecialistScope, operationId: string, raw: unknown): Promise<SkillRef[]> {
+    const candidates = z.array(SkillCandidateSchema).min(1).max(2).parse(raw);
+    return transaction(this.store.pool, async (db) => {
+      await this.authorize(db, s);
+      const digest = launchDigest(candidates),
+        old = (await db.query("SELECT * FROM skill_learning_operations WHERE operation_id=$1", [operationId])).rows[0];
+      if (old) {
+        if (
+          old.instance_id !== s.instanceId ||
+          old.binding_id !== s.bindingId ||
+          old.specialist_id !== s.specialistId ||
+          old.input_digest !== digest
+        )
+          throw new FleetError("IDEMPOTENCY_CONFLICT");
+        return old.refs;
+      }
+      const allocations = (
+        await db.query("SELECT id FROM compute_ledger WHERE turn_id=$1 AND status='reported' ORDER BY created_at,id", [
+          operationId,
+        ])
+      ).rows.map((r) => r.id);
+      if (!allocations.length) throw new FleetError("LEARNING_ALLOWANCE_UNAVAILABLE");
+      if (!(await this.learningAllowedWithin(db, s, operationId)))
+        throw new FleetError("URGENT_GAMEPLAY_PRECEDES_LEARNING");
+      const refs: SkillRef[] = [];
+      for (const body of candidates) {
+        const ref = await this.propose(s, body, db);
+        refs.push(ref);
+        const r = await this.row(db, s, ref);
+        if (body.representation === "guide" && r.status === "candidate")
+          await this.transition(s, ref, { expectedStatus: "candidate", nextStatus: "advisory" }, db);
+      }
+      await db.query("INSERT INTO skill_learning_operations VALUES($1,$2,$3,$4,$5,$6,$7,$8)", [
+        operationId,
+        ...this.scope(s),
+        digest,
+        JSON.stringify(refs),
+        allocations,
+        this.store.now(),
+      ]);
+      return refs;
+    });
+  }
+  private async learningAllowedWithin(db: PoolClient, s: SpecialistScope, operationId: string) {
+    const found = (
+      await db.query(
+        "SELECT 1 FROM platform_tasks t WHERE t.binding_id=$1 AND t.state IN('ready','running') AND (t.deadline_at<=$3 OR t.owner_priority>coalesce((SELECT owner_priority FROM platform_tasks WHERE active_turn_id=$2),0)) LIMIT 1",
+        [s.bindingId, operationId, new Date(this.store.now().getTime() + 60000)],
+      )
+    ).rowCount;
+    return !found;
+  }
+  async canLearn(s: SpecialistScope, operationId: string) {
+    return transaction(this.store.pool, async (db) => {
+      await this.authorize(db, s);
+      return this.learningAllowedWithin(db, s, operationId);
     });
   }
 }
