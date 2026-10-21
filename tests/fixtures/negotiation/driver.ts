@@ -1,9 +1,11 @@
+import { randomBytes } from "node:crypto";
 import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import type { NegotiationActor, NegotiationWorld } from "../../../../pact/tests/evaluation/negotiation-world.js";
 import { builtinArchitectures } from "../../../src/app/builtins.js";
 import { hostScopeFactory } from "../../../src/app/host-services.js";
-import { type Data, type GamePort, type ModelPort, object, type Tool } from "../../../src/domain.js";
+import { connect, migrate } from "../../../src/db.js";
+import type { Data, GamePort, ModelPort, Tool } from "../../../src/domain.js";
 import { createPactEnvironment, PactBindings } from "../../../src/environments/pact.js";
 import {
   assessNegotiation,
@@ -13,14 +15,42 @@ import {
 } from "../../../src/negotiation-evaluation.js";
 import type { NegotiationCell } from "../../../src/negotiation-plan.js";
 import { ModelAdmission, RouteCapacity } from "../../../src/platform/admission.js";
+import type { ArchitectureDefinition } from "../../../src/platform/architecture.js";
 import { Bindings } from "../../../src/platform/bindings.js";
 import { EngineRegistry } from "../../../src/platform/engine-registry.js";
 import { EnvironmentRegistry } from "../../../src/platform/environment-registry.js";
 import { CommandExecutor } from "../../../src/platform/execution.js";
 import { OperationSupervisor, PlatformHost } from "../../../src/platform/supervisor.js";
 import { TaskStore } from "../../../src/platform/tasks.js";
-import { tools as baseTools, budget, fixture } from "../../helpers.js";
+import { Store } from "../../../src/store.js";
+import { Vault } from "../../../src/vault.js";
+import { assertOwnedFixture } from "../../architecture-fixture.js";
+import { tools as baseTools, budget, fixture, testUrl } from "../../helpers.js";
 export type FixtureProviders = {
+  alternateRoles?: boolean;
+  candidateDefinition?: ArchitectureDefinition;
+  request?: (detail: {
+    actor: number;
+    round: number;
+    inputBytes: number;
+    schemaBytes: number;
+    maxOutputTokens: number;
+    packet: Data;
+  }) => void;
+  stopOnFirstFailure?: boolean;
+  ownedUtcPreflight?: boolean;
+  maxRounds?: number;
+  skipSettlement?: boolean;
+  packing?: (detail: {
+    actor: number;
+    round: number;
+    allowance: number;
+    observationBytes: number;
+    payloadFieldBytes: Record<string, number>;
+    standalonePackedBytes: number | null;
+    packedBytes: number | null;
+    error: string | null;
+  }) => void;
   actors: readonly [ModelPort, ModelPort];
   review: (e: NegotiationEvidence) => Pick<NegotiationClaimReviews, "reviews" | "claims">;
   fault?: {
@@ -47,6 +77,9 @@ export type FixtureProviders = {
     stateVersions: number[];
     turns: Data[];
     ledger: Data[];
+    selectedProfile: { id: string; version: string };
+    continuityNamespaces: string[];
+    outputRetries: Data[];
   }) => void;
 };
 const uuid = { type: "string" },
@@ -114,11 +147,66 @@ export async function runNegotiationFixture(
   const outcomes = (await import(
     pathToFileURL(resolve(root, "tests/evaluation/negotiation-outcome.ts")).href
   )) as typeof import("../../../../pact/tests/evaluation/negotiation-outcome.js");
-  const world = await worlds.createNegotiationWorld({ pactUrl, nonce }, cell);
+  if (providers.candidateDefinition && !providers.ownedUtcPreflight)
+    throw Error("CANDIDATE_REQUIRES_OWNED_OFFLINE_PREFLIGHT");
+  const architectures = () =>
+    builtinArchitectures({}, providers.candidateDefinition ? [providers.candidateDefinition] : []);
+  const retainedSchemas: string[] = [];
+  const makeWorld = async (control = false): Promise<NegotiationWorld> => {
+    if (!providers.ownedUtcPreflight) return worlds.createNegotiationWorld({ pactUrl, nonce }, cell, { control });
+    const owned = (await import(
+      pathToFileURL(resolve(root, "tests/evaluation/negotiation-owned-run.ts")).href
+    )) as typeof import("../../../../pact/tests/evaluation/negotiation-owned-run.js");
+    const world = await owned.prepareOwnedNegotiationWorld({ pactUrl, nonce }, cell, {
+      control,
+      retention: "preserve",
+      secrets: {
+        rulesKey: randomBytes(32).toString("base64"),
+        tokenKey: randomBytes(32).toString("base64"),
+        encryptionKey: randomBytes(32).toString("base64"),
+      },
+      onCreated: async (schema) => {
+        retainedSchemas.push(schema);
+      },
+    });
+    if (!control) {
+      await world.activateLeases();
+      await world.renewLeases();
+    }
+    // This wrapper belongs ONLY to the explicitly disposable offline test driver.
+    // The operational adapter exposes disconnect, never this teardown surface.
+    return { ...world, close: () => world.disconnect() };
+  };
+  const cleanOwnedTestSchemas = async () => {
+    const { createPool, dropTestSchema } = (await import(
+      pathToFileURL(resolve(root, "packages/db/dist/index.js")).href
+    )) as typeof import("../../../../pact/packages/db/src/index.js");
+    const admin = createPool(pactUrl);
+    try {
+      const marker = (await admin.query("SELECT nonce FROM public.architecture_fixture_owner")).rows;
+      if (marker.length !== 1 || marker[0].nonce !== nonce) throw Error("OWNED_TEST_CLEANUP_REFUSED");
+      for (const schema of retainedSchemas) await dropTestSchema(admin, schema);
+    } finally {
+      await admin.end();
+    }
+  };
+  const world = await makeWorld();
   let solo: NegotiationWorld | undefined;
-  const f = await fixture();
+  const f = await (async () => {
+    if (!providers.ownedUtcPreflight) return fixture();
+    await assertOwnedFixture(testUrl, nonce);
+    const pool = connect(testUrl);
+    await migrate(pool);
+    return {
+      pool,
+      store: new Store(pool, new Vault(randomBytes(32).toString("base64")), () => new Date(), architectures()),
+      now: () => new Date(),
+      advance: (_ms: number) => {},
+    };
+  })();
+  let ownedCohort: string | undefined;
   try {
-    solo = await worlds.createNegotiationWorld({ pactUrl, nonce }, cell, { control: true });
+    solo = await makeWorld(true);
     const ref = { id: "pact", version: "1", instanceId: world.worldId },
       bindings = new Bindings(f.store, ref),
       pactBindings = new PactBindings(f.store, bindings),
@@ -130,6 +218,7 @@ export async function runNegotiationFixture(
       seed: cell.worldSeed.slice(0, 40),
       strategies: ["merchant"],
     });
+    ownedCohort = id;
     await f.store.configure(id, {
       model: { route: "ollama", model: "fake-negotiation" },
       budget: {
@@ -153,7 +242,7 @@ export async function runNegotiationFixture(
       );
       refs.push(await pactBindings.attach(agent.id));
     }
-    await tasks.enroll(id, cell.profile);
+    await tasks.enroll(id, providers.candidateDefinition?.manifest.ref ?? cell.profile);
     await f.store.setState(id, "running", true);
     let actorIndex = 0,
       round = 0,
@@ -167,6 +256,7 @@ export async function runNegotiationFixture(
       bindings: pactBindings,
       now: f.now,
       outlookVersion: "pact.agent-outlook.v1",
+      eventFeedVersion: "pact.agent-events.v1",
       game: async (agentId) => {
         const index = agents.findIndex((a) => a.id === agentId);
         const game = facade(world, index),
@@ -203,7 +293,17 @@ export async function runNegotiationFixture(
           faulted = true;
           throw Error("SYNTHETIC_AFTER_DISPATCH");
         }
-        packets.push(JSON.parse(request.messages[1].content));
+        const packet = JSON.parse(request.messages[1].content);
+        providers.request?.({
+          actor: actorIndex,
+          round,
+          inputBytes:
+            Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.schema)),
+          schemaBytes: Buffer.byteLength(JSON.stringify(request.schema)),
+          maxOutputTokens: request.maxOutputTokens,
+          packet,
+        });
+        packets.push(packet);
         const result = await providers.actors[actorIndex].decide(request);
         answers.push(structuredClone(result.decision));
         if (hit && fault.point === "cutoff") {
@@ -229,13 +329,47 @@ export async function runNegotiationFixture(
         tasks,
         bindings,
         environments,
-        new EngineRegistry([], builtinArchitectures()),
+        new EngineRegistry([], architectures()),
         admission,
         commands,
         new OperationSupervisor(tasks),
         async (...args: Parameters<typeof factory>) => {
           const scope = await factory(...args),
             accept = scope.services.state.accept;
+          const pack = scope.services.environment.packObservation;
+          if (pack && providers.packing)
+            scope.services.environment.packObservation = (observation, allowance) => {
+              const detail = {
+                actor: actorIndex,
+                round,
+                allowance,
+                observationBytes: Buffer.byteLength(JSON.stringify(observation)),
+                payloadFieldBytes: Object.fromEntries(
+                  Object.entries(observation.payload)
+                    .filter(([, value]) => value !== undefined)
+                    .map(([key, value]) => [key, Buffer.byteLength(JSON.stringify(value))]),
+                ),
+                standalonePackedBytes: (() => {
+                  try {
+                    return Buffer.byteLength(JSON.stringify(pack(observation, 24000)));
+                  } catch {
+                    return null;
+                  }
+                })(),
+              };
+              try {
+                const result = pack(observation, allowance);
+                providers.packing?.({ ...detail, packedBytes: Buffer.byteLength(JSON.stringify(result)), error: null });
+                return result;
+              } catch (error) {
+                providers.packing?.({
+                  ...detail,
+                  packedBytes: null,
+                  error: error instanceof Error ? error.message : "PACKING_FAILED",
+                });
+                throw error;
+              }
+            };
           scope.services.state.accept = async (input) => {
             const fault = providers.fault,
               hit = !faulted && fault?.actor === actorIndex && fault?.round === round;
@@ -255,9 +389,10 @@ export async function runNegotiationFixture(
       );
     };
     const start = world.decisionStartGameTimeMs / 60000;
-    scheduled: for (round = 0; round < cell.limits.turnsPerActor; round++) {
+    scheduled: for (round = 0; round < (providers.maxRounds ?? cell.limits.turnsPerActor); round++) {
       await world.advanceTo(start + round * 15);
-      for (actorIndex = 0; actorIndex < 2; actorIndex++) {
+      for (const index of providers.alternateRoles && round % 2 ? [1, 0] : [0, 1]) {
+        actorIndex = index;
         const binding = refs[actorIndex];
         if (!binding) throw Error("ACTOR_SCOPE");
         if (
@@ -310,8 +445,11 @@ export async function runNegotiationFixture(
           });
         } catch (error) {
           failures.push(error instanceof Error ? error.message : "SYNTHETIC_FAILURE");
+          if (providers.stopOnFirstFailure) break scheduled;
         }
-        const unknown = (await f.pool.query("SELECT 1 FROM compute_ledger WHERE status='unknown' LIMIT 1")).rowCount;
+        const unknown = (
+          await f.pool.query("SELECT 1 FROM compute_ledger WHERE cohort_id=$1 AND status='unknown' LIMIT 1", [id])
+        ).rowCount;
         const pending = (
           await f.pool.query(
             "SELECT command_id FROM platform_commands WHERE turn_id=$1 AND state IN('unknown','pending','dispatched')",
@@ -333,8 +471,10 @@ export async function runNegotiationFixture(
       f.advance(15 * 60000);
     }
     const finalMinute = start + cell.limits.gameHorizonMinutes;
-    await world.advanceTo(finalMinute);
-    await solo.advanceTo(finalMinute);
+    if (!providers.skipSettlement) {
+      await world.advanceTo(finalMinute);
+      await solo.advanceTo(finalMinute);
+    }
     const evidence = await outcomes.readNegotiationEvidence(world),
       control = await outcomes.readNegotiationEvidence(solo);
     evidence.lifecycle.push(...decisions);
@@ -344,7 +484,8 @@ export async function runNegotiationFixture(
     }
     const ledger = (
       await f.pool.query(
-        "SELECT l.*,a.kingdom_id FROM compute_ledger l JOIN turns t ON t.id=l.turn_id JOIN agents a ON a.id=t.agent_id ORDER BY l.created_at,l.id",
+        "SELECT l.*,a.kingdom_id FROM compute_ledger l JOIN turns t ON t.id=l.turn_id JOIN agents a ON a.id=t.agent_id WHERE l.cohort_id=$1 ORDER BY l.created_at,l.id",
+        [id],
       )
     ).rows;
     const reviews = providers.review(evidence),
@@ -368,18 +509,38 @@ export async function runNegotiationFixture(
       packets,
       answers,
       ledger,
+      selectedProfile: providers.candidateDefinition?.manifest.ref ?? cell.profile,
+      outputRetries: (
+        await f.pool.query(
+          "SELECT id,detail_cipher FROM turn_events WHERE cohort_id=$1 AND label='Debug: Model output retry' ORDER BY sequence",
+          [id],
+        )
+      ).rows.map((r) => f.store.vault.decrypt<Data>(r.detail_cipher, `turn-event:${r.id}`)),
+      continuityNamespaces: (
+        await f.pool.query("SELECT DISTINCT namespace FROM continuity_states WHERE cohort_id=$1", [id])
+      ).rows.map((r) => r.namespace),
       failures,
       recoveries,
       commands: (
-        await f.pool.query("SELECT command_id,state,outcome FROM platform_commands ORDER BY created_at,command_id")
+        await f.pool.query(
+          "SELECT p.command_id,p.state,p.outcome FROM platform_commands p JOIN turns t ON t.id=p.turn_id WHERE t.cohort_id=$1 ORDER BY p.created_at,p.command_id",
+          [id],
+        )
       ).rows,
       stateVersions: (await f.pool.query("SELECT version FROM architecture_scoped_state")).rows.map((r) => r.version),
-      turns: (await f.pool.query("SELECT code,calls,actions FROM turns ORDER BY started_at,id")).rows,
+      turns: (
+        await f.pool.query(
+          "SELECT code,calls,actions,started_at,deadline_at FROM turns WHERE cohort_id=$1 ORDER BY started_at,id",
+          [id],
+        )
+      ).rows,
     });
     return assessment;
   } finally {
+    if (providers.ownedUtcPreflight && ownedCohort) await f.store.setState(ownedCohort, "paused", true);
     await f.pool.end();
     await solo?.close();
     await world.close();
+    if (providers.ownedUtcPreflight) await cleanOwnedTestSchemas();
   }
 }

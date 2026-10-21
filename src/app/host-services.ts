@@ -370,7 +370,10 @@ export async function createScopedServices(
     const id = owned.profile.id;
     if (id !== "reactive-cognition" && id !== "specialist-coordinator")
       throw new FleetError("UNSUPPORTED_CONTINUITY_NAMESPACE");
-    const repository = new ContinuityV1Repository(tasks, bindings, new Cognition(store), { id, version: "1" });
+    const repository = new ContinuityV1Repository(tasks, bindings, new Cognition(store), {
+      id,
+      version: owned.profile.version,
+    });
     services.continuity = {
       context: (o) => repository.context(binding, owned, o),
       restrict: (c) => repository.restrict(owned, c),

@@ -23,7 +23,7 @@ export class ContinuityV1Repository {
     private tasks: TaskStore,
     private bindings: Bindings,
     private cognition: Cognition,
-    private profile: { id: "reactive-cognition" | "specialist-coordinator"; version: "1" } = {
+    private profile: { id: "reactive-cognition" | "specialist-coordinator"; version: string } = {
       id: "reactive-cognition",
       version: "1",
     },

@@ -13,10 +13,15 @@ const terms = {
   noticeHours: 0,
 };
 /** Authored fake outputs are test inputs, not decisions supplied by the driver. */
-export function scriptedProviders(cell: NegotiationCell): FixtureProviders {
+export function scriptedProviders(
+  cell: NegotiationCell,
+  options: { alternating?: boolean; correctOnce?: boolean; learnOnce?: boolean } = {},
+): FixtureProviders {
   const actors = ([0, 1] as const).map((index) => {
     const role = cell.rolesReversed ? (index === 0 ? "B" : "A") : index === 0 ? "A" : "B";
     let first: number | undefined;
+    let corrected = false,
+      learned = false;
     const provider: ModelPort = {
       decide: async (request) => {
         const packet = expandFactTables(JSON.parse(request.messages[1].content)) as Data,
@@ -35,7 +40,10 @@ export function scriptedProviders(cell: NegotiationCell): FixtureProviders {
               ? rows(object(payload.negotiation).offers)
               : rows(guide.openSupplyOffers),
           offer = offers[0];
-        const discovery = object(payload.discovery ?? object(payload.environment).publicDiscovery),
+        const requested = object(payload.requestedRead);
+        const discovery = Array.isArray(requested.players)
+            ? requested
+            : object(payload.discovery ?? object(payload.environment).publicDiscovery),
           peer = String(
             rows(discovery.players)[0]?.kingdomId ??
               rows(guide.contacts)[0]?.kingdomId ??
@@ -122,7 +130,7 @@ export function scriptedProviders(cell: NegotiationCell): FixtureProviders {
             );
         }
         if (
-          role === "B" &&
+          role === (options.alternating && cell.family === "C01" ? "A" : "B") &&
           ((cell.family === "C01" && round === 1) || (cell.family === "C02" && round === 0)) &&
           !rows(object(payload.requestedRead).messages).some((m) => m.senderKingdomId === peer)
         ) {
@@ -132,9 +140,27 @@ export function scriptedProviders(cell: NegotiationCell): FixtureProviders {
             summary: "Read the peer's actual need/constraint before responding; no invented reply",
           };
         }
+        if (options.alternating && cell.family === "C02") {
+          if (round === 1 && role === "B")
+            decision = {
+              kind: "wait",
+              summary: "The peer requested a counter within their current limit; await revised terms, no new consent.",
+            };
+          if (round === 2 && role === "B" && offer)
+            decision = action(
+              { kind: "game.supply.sign", offerId: offer.id, version: offer.version },
+              { youSend: terms.bToA, youReceive: terms.aToB },
+            );
+        }
+        if (cell.family === "C01" && round === 0 && !/^[a-f0-9-]{36}$/.test(peer))
+          decision = {
+            kind: "read",
+            query: { tool: "pact_kingdom_discover_v2", args: { limit: 1 } },
+            summary: "Read an actual public peer identity; missing discovery is not an empty world.",
+          };
         const needsOffer =
           (cell.family === "C01" && ((round === 2 && role === "B") || (round === 3 && role === "A"))) ||
-          (cell.family === "C02" && (round === 1 || (round === 2 && role === "A")));
+          (cell.family === "C02" && (round === 1 || (round === 2 && (role === "A" || options.alternating))));
         if (needsOffer && !offer)
           decision = {
             kind: "read",
@@ -174,7 +200,39 @@ export function scriptedProviders(cell: NegotiationCell): FixtureProviders {
             };
           }
         }
-        return { decision: { decision }, inputTokens: 40, outputTokens: 20 };
+        if (options.correctOnce && index === 0 && !corrected) {
+          corrected = true;
+          return {
+            decision: {
+              decision: { kind: "wait", summary: "No command before continuity validation" },
+              continuity: {
+                memories: [
+                  {
+                    text: "Authored unavailable-evidence correction test",
+                    evidenceRefs: ["55555555-5555-4555-8555-555555555555"],
+                  },
+                ],
+              },
+            },
+            inputTokens: 40,
+            outputTokens: 20,
+          };
+        }
+        const evidence = rows(object(packet.continuity).evidence);
+        const original = evidence.find((e) => typeof e.id === "string");
+        const continuity =
+          options.learnOnce && !learned && original && round >= 2
+            ? {
+                memories: [
+                  {
+                    text: "Current scoped facts are observed; signatures do not prove delivery.",
+                    evidenceRefs: [original.id],
+                  },
+                ],
+              }
+            : undefined;
+        if (continuity) learned = true;
+        return { decision: { decision, ...(continuity ? { continuity } : {}) }, inputTokens: 40, outputTokens: 20 };
       },
     };
     return provider;
