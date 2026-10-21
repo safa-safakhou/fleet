@@ -143,6 +143,7 @@ for (const layer of descriptor.model.artifact.layers)
 const { designDigest, negotiationBaselineAmendment } = await import(
   "../dist/negotiation/fleet/src/negotiation-plan.js"
 );
+const { pinnedProviderMetadata } = await import("../dist/negotiation/fleet/scripts/lib/negotiation-model-store.js");
 await writeFile(join(out, "execution-settings.json"), JSON.stringify(descriptor.proposedSettings) + "\n", {
   flag: "wx",
 });
@@ -156,6 +157,7 @@ await writeFile(
     model: descriptor.model,
     scope: "new_owned_synthetic_worlds",
     retainedWorldAccess: false,
+    providerModels: { location: "separate-owned-provider-store", optionalAccountedMetadata: pinnedProviderMetadata },
   }) + "\n",
   { flag: "wx" },
 );

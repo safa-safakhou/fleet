@@ -18,9 +18,14 @@ import { Store } from "../../src/store.js";
 import { Vault } from "../../src/vault.js";
 import { createPinnedArtifactVerifier, fileSha256, validateOwnedDatabaseTarget } from "./negotiation-artifacts.js";
 import { loadPreparationRestoreGate } from "./negotiation-backup-proof.js";
+import { createProviderModelStoreVerifier } from "./negotiation-model-store.js";
 import { createOwnedNegotiationExecution, type PreparedNegotiationCell } from "./negotiation-owned-run.js";
 import { PrivateNegotiationReview } from "./negotiation-review-channel.js";
-import { validateWindowsOwnedRoots, windowsInspectionEnvironment } from "./negotiation-windows-paths.js";
+import {
+  validateWindowsOwnedRoots,
+  validateWindowsProviderStore,
+  windowsInspectionEnvironment,
+} from "./negotiation-windows-paths.js";
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/),
   revision = z.string().regex(/^[a-f0-9]{40}$/);
@@ -42,6 +47,7 @@ export const OwnedNegotiationManifestSchema = z
       .max(50000),
     fixture: z.object({ fleetUrl: z.string(), pactUrl: z.string(), nonce: hash, containerId: hash }).strict(),
     providerPid: z.number().int().positive(),
+    providerModelsRoot: z.string().min(1),
     providerUrl: z.literal("http://127.0.0.1:11436"),
     model: z
       .object({ route: z.literal("ollama"), model: z.literal("nemotron-3-nano:4b"), thinking: z.literal(true) })
@@ -88,6 +94,7 @@ export async function verifyOwnedWindowsPackage(m: OwnedNegotiationManifest) {
     await realpath(m.bundleRoot),
     await realpath(m.privateRoot),
   );
+  validateWindowsProviderStore(base, m.providerModelsRoot, await realpath(base), await realpath(m.providerModelsRoot));
   if (
     resolve(m.vaultKeyRef).toLowerCase() !== join(resolve(m.privateRoot), "keys/vault.key").toLowerCase() ||
     resolve(m.reviewKeyRef).toLowerCase() !== join(resolve(m.privateRoot), "keys/review.key").toLowerCase()
@@ -145,12 +152,20 @@ export async function verifyOwnedWindowsPackage(m: OwnedNegotiationManifest) {
   privateChild(m.privateRoot, m.vaultKeyRef);
   privateChild(m.privateRoot, m.reviewKeyRef);
   const verify = await createPinnedArtifactVerifier(m.bundleRoot, m.pins);
+  const verifyModels = await createProviderModelStoreVerifier(
+    m.providerModelsRoot,
+    m.pins
+      .filter((p) => p.relativePath.startsWith("models/"))
+      .map((p) => ({ ...p, relativePath: p.relativePath.slice("models/".length) })),
+  );
   const inspect = async () => {
     await verify();
+    await verifyModels();
     const quote = (value: string) => `'${value.replaceAll("'", "''")}'`;
     const paths = [
       m.bundleRoot,
       m.privateRoot,
+      m.providerModelsRoot,
       m.reviewKeyRef,
       m.vaultKeyRef,
       join(m.privateRoot, "reviews"),

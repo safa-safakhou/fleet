@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import {
   validateWindowsOwnedRoots,
+  validateWindowsProviderStore,
   windowsInspectionEnvironment,
 } from "../../scripts/lib/negotiation-windows-paths.js";
 
@@ -21,6 +22,22 @@ it("anchors app-container redirection at its canonical base while rejecting chil
     id = "1eb99a67-c484-45d1-8c79-38da135d45fb",
     bundle = `${logical}\\bundles\\${id}`,
     root = `${logical}\\E1\\${id}`;
+  expect(() =>
+    validateWindowsProviderStore(
+      logical,
+      `${logical}\\provider-stores\\${id}`,
+      canonical,
+      `${canonical}\\provider-stores\\${id}`,
+    ),
+  ).not.toThrow();
+  expect(() =>
+    validateWindowsProviderStore(
+      logical,
+      `${logical}\\provider-stores\\${id}`,
+      canonical,
+      `${canonical}\\elsewhere\\${id}`,
+    ),
+  ).toThrow("OWNED_PROVIDER_STORE_REQUIRED");
   expect(() =>
     validateWindowsOwnedRoots(
       logical,
