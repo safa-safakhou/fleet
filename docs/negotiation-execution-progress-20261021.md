@@ -1,6 +1,6 @@
 # Negotiation and production qualification —21 October2026
 
-Latest: [E1 terminated with a retained operational failure](negotiation-E1-result-20261021.md), one reported model call and zero commands. E2 preparation continues under its separate approval; production remains unqualified. The earlier paragraphs below identify their source-only or preparation checkpoint.
+Latest: [E3 stopped on a critical unsupported claim](negotiation-E3-result-20261021.md):3finished turns/4reported calls/0commands; one failed cell and34unstarted. E1 and E2 remain terminal failures. All70 E3 clocks are parked, the owned provider stopped and final encrypted restore verified. The separate candidate release cannot pass or activate on this result. The earlier paragraphs below identify their historical source-only or preparation checkpoint.
 
 The founder explicitly approved all six remaining tasks: baseline amendment, owned launcher, final fixtures/manifest, E1–E4, specialist/skill KQ1 and verified release. Work remains inline, with no delegation. This supersedes the earlier preparation-only/no-inference restriction solely for the new isolated qualification worlds and the approved release path. The retained paused world and all other populations/historical unknowns remain preserved; no reset/replay or historical owner recovery review is authorized.
 
