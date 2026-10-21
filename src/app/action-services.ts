@@ -44,6 +44,7 @@ type Options = {
   quote?(intent: ActionIntent): Promise<ActionEffects>;
   admit?(intent: ActionIntent, effects: ActionEffects): Promise<(db: PoolClient) => Promise<void>>;
   validateIntent?(intent: ActionIntent, effects: ActionEffects): Promise<void>;
+  reserveConstraints?(intent: ActionIntent, effects: ActionEffects): Record<string, string>;
   clock?: DomainTime;
   messagesWithin?: (
     db: PoolClient,
@@ -111,6 +112,9 @@ export class ParticipantActions {
         schemaVersion: "fleet.action-effects-guard.v1",
         expectedRevision: effects.revision,
         expectedEffects: effects,
+        ...(this.options.reserveConstraints
+          ? { reserveConstraints: this.options.reserveConstraints(input.intent, effects) }
+          : {}),
       },
     };
     const repository = new SpecialistRepository(

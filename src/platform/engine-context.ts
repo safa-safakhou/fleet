@@ -49,6 +49,7 @@ export type ScopedModelResult = Awaited<ReturnType<ModelPort["decide"]>> & { all
 export type ScopedEvidence = { id: string; kind: string; detail: Data; sourceRefs: string[] };
 export interface ScopedServices {
   skills?: {
+    tryKnownGoal?(): Promise<{ handled: boolean; state?: string; reason?: string }>;
     canLearn(): Promise<boolean>;
     retrieve(query: {
       goal: string;
@@ -112,6 +113,7 @@ export interface ScopedServices {
   tasks: { waitForEvent(): Promise<void> };
   trace(stage: "thinking" | "deciding", label: string, detail: Data): Promise<void>;
   environment: {
+    skillTemplates?: Data[];
     capabilities: Capabilities;
     schemas: { observations: string[]; actions: string[] };
     specialistPresets?: import("./participant-state.js").SpecialistPreset[];

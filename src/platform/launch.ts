@@ -178,6 +178,13 @@ export class LaunchService {
       if (!sameEnvironment(spec.environment, this.environments.selected))
         throw new FleetError("ENVIRONMENT_NOT_SELECTED");
       const adapter = this.environments.resolve(spec.environment);
+      if (
+        definition.manifest.modules.some((m) => m.id === "skills") &&
+        spec.architectureConfig.skillMode === "guarded"
+      ) {
+        if (!spec.nonModelLimits) throw new FleetError("PARENT_WORK_LIMITS_REQUIRED");
+        if (!adapter.skillSupport) throw new FleetError("GUARDED_SKILLS_UNSUPPORTED");
+      }
       requireCapabilities(
         adapter,
         definition.manifest.requirements.capabilities,

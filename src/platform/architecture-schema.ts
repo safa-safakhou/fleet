@@ -65,7 +65,7 @@ export const ArchitectureManifestSchema = z
     modules: z.array(moduleRef).max(20),
     stateCodecs: z.array(moduleRef).max(20),
     skillModes: z
-      .array(z.enum(["off", "advisory", "qualified"]))
+      .array(z.enum(["off", "advisory", "qualified", "guarded"]))
       .min(1)
       .max(3),
     form: z

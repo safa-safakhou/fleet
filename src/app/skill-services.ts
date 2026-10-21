@@ -198,6 +198,18 @@ export class ScopedSkillRepository implements SkillLibrary {
           this.store.now(),
         ],
       );
+      for (const child of body.procedure.children) {
+        await this.row(db, s, child);
+        await db.query("INSERT INTO skill_dependencies VALUES($1,$2,$3,$4,$5,$6,$7)", [
+          s.instanceId,
+          s.bindingId,
+          ref.id,
+          ref.version,
+          child.id,
+          child.version,
+          child.digest,
+        ]);
+      }
       return ref;
     };
     return client ? write(client) : transaction(this.store.pool, write);
@@ -267,6 +279,23 @@ export class ScopedSkillRepository implements SkillLibrary {
     });
     if (!result) throw new FleetError("SKILL_SUPPORT_UNAVAILABLE");
     return result;
+  }
+  async qualificationCandidates(s: SpecialistScope): Promise<SkillSummary[]> {
+    return transaction(this.store.pool, async (db) => {
+      await this.authorize(db, s);
+      const rows = (
+        await db.query(
+          "SELECT * FROM skill_versions WHERE instance_id=$1 AND binding_id=$2 AND author=$3 AND status='candidate' AND summary_cipher IS NOT NULL AND created_at>$4 ORDER BY created_at,skill_id LIMIT 2",
+          [...this.scope(s), this.cutoff()],
+        )
+      ).rows;
+      return rows.map((r) =>
+        this.store.vault.decrypt<SkillSummary>(
+          r.summary_cipher,
+          this.aad({ id: r.skill_id, version: r.version, digest: r.digest }, "summary"),
+        ),
+      );
+    });
   }
   async retrieve(s: SpecialistScope, query: { goal: string; event: string; limit: number }): Promise<SkillSummary[]> {
     if (
@@ -448,9 +477,12 @@ export class ScopedSkillRepository implements SkillLibrary {
     if (skill.status !== "guarded" || !skill.evaluationId) return false;
     for (const child of children.values()) {
       const [current] = await this.loadSelected(s, [child.ref]);
-      if (current.status !== "guarded" || current.ref.digest !== child.ref.digest) return false;
+      if (current.status !== "guarded" || current.ref.digest !== child.ref.digest) {
+        await this.transition(s, ref, { expectedStatus: "guarded", nextStatus: "suspended" });
+        return false;
+      }
     }
-    return transaction(this.store.pool, async (db) => {
+    const eligible = await transaction(this.store.pool, async (db) => {
       await this.authorize(db, s);
       const row = (
         await db.query(
@@ -472,5 +504,7 @@ export class ScopedSkillRepository implements SkillLibrary {
         policy.requiredCases.every((id) => detail.evidence.cases.some((c) => c.id === id && c.passed && !c.error))
       );
     });
+    if (!eligible) await this.transition(s, ref, { expectedStatus: "guarded", nextStatus: "suspended" });
+    return eligible;
   }
 }

@@ -11,7 +11,8 @@ export interface EngineContext {
   observation: Observation;
   model: ModelAdmission;
   commands: CommandExecutor;
-  observe: (query: Data) => Promise<Observation>;
+  observe: (query: Data, externallyMetered?: boolean) => Promise<Observation>;
+  skillSupport?: import("../modules/skills/v1/support.js").SkillSupport;
   eventRefs: string[];
   signal: AbortSignal;
   goal?: string;

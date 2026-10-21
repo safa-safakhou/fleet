@@ -56,11 +56,66 @@ export class SkillExecutionStore implements InvocationRepository, WorkLedger {
     return BigInt(
       (
         await db.query(
-          "SELECT coalesce(sum(w.units),0)::text n FROM skill_work_reservations w JOIN skill_invocations i ON i.id=w.invocation_id WHERE i.cohort_id=$1 AND w.kind=$2 AND ($3::uuid IS NULL OR i.id=$3) AND (NOT $4 OR (i.binding_id=$5 AND i.specialist_id=$6))",
+          "SELECT coalesce(sum(units),0)::text n FROM (SELECT w.units FROM skill_work_reservations w JOIN skill_invocations i ON i.id=w.invocation_id WHERE i.cohort_id=$1 AND w.kind=$2 AND ($3::uuid IS NULL OR i.id=$3) AND (NOT $4 OR (i.binding_id=$5 AND i.specialist_id=$6)) UNION ALL SELECT units FROM specialist_turn_work WHERE cohort_id=$1 AND kind=$2 AND $3::uuid IS NULL AND (NOT $4 OR (binding_id=$5 AND specialist_id=$6))) work",
           [cohortId, kind, invocationId ?? null, role, this.scope.bindingId, this.scope.specialistId],
         )
       ).rows[0].n,
     );
+  }
+  async hostWork(turnId: string, key: string, work: Partial<WorkLimits>) {
+    return transaction(this.store.pool, async (db) => {
+      const p = await this.parent(db);
+      for (const kind of workKinds) {
+        const units = work[kind] ?? 0;
+        if (!Number.isSafeInteger(units) || units < 0) throw new FleetError("INVALID_WORK_RESERVATION", true);
+        if (!units) continue;
+        const old = (
+          await db.query("SELECT units FROM specialist_turn_work WHERE turn_id=$1 AND work_key=$2 AND kind=$3", [
+            turnId,
+            key,
+            kind,
+          ])
+        ).rows[0];
+        if (old) {
+          if (Number(old.units) !== units) throw new FleetError("WORK_RESERVATION_CONFLICT", true);
+          continue;
+        }
+        if (
+          (await this.used(db, p.cohortId, kind)) + BigInt(units) > BigInt(p.limits[kind]) ||
+          (await this.used(db, p.cohortId, kind, undefined, true)) + BigInt(units) >
+            BigInt((this.roleLimits ?? p.limits)[kind])
+        )
+          throw new FleetError("WORK_LIMIT_EXHAUSTED", true);
+        await db.query(
+          "INSERT INTO specialist_turn_work(turn_id,cohort_id,binding_id,specialist_id,work_key,kind,units,created_at,actual_units,actual_known) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)",
+          [
+            turnId,
+            p.cohortId,
+            this.scope.bindingId,
+            this.scope.specialistId,
+            key,
+            kind,
+            units,
+            this.store.now(),
+            kind === "wallTimeMs" ? 0 : units,
+            kind !== "wallTimeMs",
+          ],
+        );
+      }
+    });
+  }
+  async hostActual(turnId: string, key: string, wallTimeMs: number) {
+    if (!Number.isSafeInteger(wallTimeMs) || wallTimeMs < 0) throw new FleetError("INVALID_WORK_RESERVATION", true);
+    const row = await transaction(this.store.pool, async (db) => {
+      await this.authorize(db);
+      return (
+        await db.query(
+          "UPDATE specialist_turn_work SET actual_units=greatest(actual_units,$5),actual_known=true WHERE turn_id=$1 AND work_key=$2 AND binding_id=$3 AND specialist_id=$4 AND kind='wallTimeMs' RETURNING units",
+          [turnId, key, this.scope.bindingId, this.scope.specialistId, wallTimeMs],
+        )
+      ).rows[0];
+    });
+    if (!row || BigInt(wallTimeMs) > BigInt(row.units)) throw new FleetError("SKILL_VALIDATION_WALL_LIMIT", true);
   }
   async limits(recipe: WorkLimits, requested?: Partial<WorkLimits>) {
     return transaction(this.store.pool, async (db) => {

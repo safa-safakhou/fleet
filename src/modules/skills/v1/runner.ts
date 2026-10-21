@@ -22,7 +22,7 @@ export type RecipePorts = {
   eligible(skill: SkillVersion, children: ReadonlyMap<string, SkillVersion>): Promise<boolean>;
   goal(id: string): Promise<ExistingSkillGoal | null>;
   observe(query: Data): Promise<Data>;
-  submit(payload: Data, commandId: string, validate: () => Promise<void>): Promise<Data>;
+  submit(payload: Data, commandId: string, validate: () => Promise<void>, read: () => Promise<void>): Promise<Data>;
   recover(
     commandId: string,
   ): Promise<{ status: "not_prepared" | "pending" | "unknown" | "confirmed" | "rejected"; outcome?: Data }>;
@@ -260,7 +260,7 @@ export class RecipeRunner {
             await this.p.repository.submission(cp, payload);
             await this.p.work.consume(inv, nodeId, "reads", 1);
             await this.p.work.consume(inv, nodeId, "actions", 1);
-            return this.p.submit(payload, id, before);
+            return this.p.submit(payload, id, before, () => this.p.work.consume(inv, nodeId, "reads", 1));
           },
           resolve: async () => {
             throw new FleetError("RECIPE_RECEIPT_READ_REQUIRES_RECOVERY", true);
@@ -284,9 +284,22 @@ export class RecipeRunner {
         }
         if (node.saveAs && result.value) localValues[node.saveAs] = result.value;
         if (Buffer.byteLength(JSON.stringify(values)) > 48000) return this.reason(inv, "SKILL_STATE_LIMIT", cp);
-        if (result.returnToReasoning) return this.reason(inv, result.returnToReasoning, cp);
+        if (result.returnToReasoning)
+          return this.p.repository.finish(inv, cp, {
+            state: "reason",
+            nodeIndex: inv.nodeIndex,
+            values,
+            reason: result.returnToReasoning,
+            result: result.value,
+          });
         if (["check", "verify"].includes(node.kind) && result.value?.satisfied !== true)
-          return this.reason(inv, "SKILL_CHECK_UNMET", cp);
+          return this.p.repository.finish(inv, cp, {
+            state: "reason",
+            nodeIndex: inv.nodeIndex,
+            values,
+            reason: "SKILL_CHECK_UNMET",
+            result: result.value,
+          });
         if (result.outcome && !["confirmed", "rejected"].includes(String(result.outcome.status)))
           return this.p.repository.finish(inv, cp, {
             state: "unknown",

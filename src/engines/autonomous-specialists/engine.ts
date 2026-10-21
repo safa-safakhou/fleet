@@ -69,17 +69,35 @@ export class AutonomousSpecialistsEngine {
       learningMode = false;
     const budget = services.configuration.budget,
       config = { ...defaults, ...services.configuration.architectureConfig };
+    if (config.skillMode === "guarded") {
+      if (!services.skills?.tryKnownGoal) throw new FleetError("GUARDED_SKILLS_UNSUPPORTED", true);
+      const routine = await services.skills.tryKnownGoal();
+      if (routine.handled) {
+        await services.tasks.waitForEvent();
+        return;
+      }
+      await services.trace("deciding", "Guarded routine returned to reasoning", {
+        reason: routine.reason ?? "NO_EXACT_ROUTINE",
+      });
+    }
     for (let call = 0; call < budget.maxCallsPerTurn; call++) {
       if (operation.signal.aborted) throw new FleetError("TASK_FENCED", true);
-      if (Buffer.byteLength(JSON.stringify(observation.payload)) <= 4000)
-        await p.captureOriginal({
-          kind: "observation",
-          causalKey: "current-state",
-          sourceRefs: observation.sourceRefs,
-          entityRefs: [],
-          goalRefs: [],
-          detail: { revision: observation.revision, payload: observation.payload },
-        });
+      await p.captureOriginal({
+        kind: "observation",
+        causalKey: "current-state",
+        sourceRefs: observation.sourceRefs,
+        entityRefs: [],
+        goalRefs: [],
+        detail:
+          Buffer.byteLength(JSON.stringify(observation.payload)) <= 4000
+            ? { revision: observation.revision, payload: observation.payload }
+            : {
+                revision: observation.revision,
+                payloadOmitted: true,
+                reason:
+                  "Large current observation is delivered separately and retained in the native trace; this reference is not a historical stock snapshot.",
+              },
+      });
       for (const fact of (observation.continuity?.facts ?? []).slice(0, 20))
         await p.captureOriginal({
           kind: fact.kind === "outcome" ? "outcome" : fact.kind === "commitment" ? "promise" : "observation",
@@ -164,6 +182,7 @@ export class AutonomousSpecialistsEngine {
                 limit: 8,
               }),
               selected,
+              templates: learningMode ? (services.environment.skillTemplates ?? []) : [],
               opportunities,
               coverage: { indexScanLimit: 256, summaryLimit: 8, bodyLimit: 2, completeLibrary: false },
               instructions:

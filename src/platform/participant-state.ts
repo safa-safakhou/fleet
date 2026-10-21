@@ -55,6 +55,10 @@ export const SpecialistGoalSchema = z
     status: z.enum(["active", "suspended", "completed", "abandoned"]),
     evidenceIds,
     assessment: z.string().min(1).max(1000),
+    routine: z
+      .object({ kind: z.string().min(1).max(100), parameters: z.record(z.string(), z.unknown()) })
+      .strict()
+      .optional(),
     assessmentCondition: z
       .object({
         name: z.string().min(1).max(100),

@@ -18,6 +18,7 @@ import { ParticipantActions } from "./action-services.js";
 import { ParticipantMessages } from "./participant-messaging.js";
 import { ParticipantPlanning } from "./participant-planning.js";
 import { SpecialistRepository } from "./participant-services.js";
+import { attachSkillExecution, ownerIntentDigest } from "./skill-context.js";
 import { ScopedSkillRepository } from "./skill-services.js";
 
 export async function createParticipantPorts(deps: {
@@ -181,135 +182,180 @@ export async function createParticipantPorts(deps: {
           ).detail as Original,
       );
     },
-    accept: async (input) => {
-      input = structuredClone(input);
-      const completed = input.envelope.goals.filter((g) => g.status === "completed");
-      if (completed.length) {
-        const current = await services.observe({}),
-          previous = await repository.load(scope);
-        for (const goal of completed) {
-          const condition = goal.assessmentCondition,
-            old = previous.goals.find((g) => g.id === goal.id);
-          if (!condition || (old && launchDigest(old.assessmentCondition) !== launchDigest(condition)))
-            throw new FleetError("GOAL_OUTCOME_REQUIRED", true);
-          const predicate = context.conditionPredicates?.get(`${condition.name}@${condition.version}`);
-          let satisfied = false;
-          try {
-            satisfied = predicate?.(condition.args, current.payload) === true;
-          } catch {
-            /* malformed predicate inputs are not completion evidence */
-          }
-          if (!satisfied) throw new FleetError("GOAL_OUTCOME_REQUIRED", true);
-          const proof = await ports.captureOriginal({
-            kind: "outcome",
-            causalKey: `goal:${goal.id}`,
-            sourceRefs: current.sourceRefs,
-            entityRefs: [],
-            goalRefs: [goal.id],
-            detail: {
-              goalId: goal.id,
-              fulfilled: true,
-              assessmentCondition: condition,
-              observedRevision: current.revision,
-              environmentTime: current.environmentTime,
-            },
-          });
-          goal.evidenceIds = [...new Set([...goal.evidenceIds, proof.id])];
+    accept: async (input) => accept(input),
+  };
+  const accept = async (
+    input: Parameters<NonNullable<ScopedServices["participants"]>["accept"]>[0],
+    recipe?: {
+      validate(): Promise<void>;
+      constraints(effects: import("../platform/action-effects.js").ActionEffects): Record<string, string>;
+      verifiedGoalIds?: string[];
+    },
+  ) => {
+    input = structuredClone(input);
+    const completed = input.envelope.goals.filter(
+      (g) => g.status === "completed" && !recipe?.verifiedGoalIds?.includes(g.id),
+    );
+    if (completed.length) {
+      const current = await services.observe({}),
+        previous = await repository.load(scope);
+      for (const goal of completed) {
+        const condition = goal.assessmentCondition,
+          old = previous.goals.find((g) => g.id === goal.id);
+        if (!condition || (old && launchDigest(old.assessmentCondition) !== launchDigest(condition)))
+          throw new FleetError("GOAL_OUTCOME_REQUIRED", true);
+        const predicate = context.conditionPredicates?.get(`${condition.name}@${condition.version}`);
+        let satisfied = false;
+        try {
+          satisfied = predicate?.(condition.args, current.payload) === true;
+        } catch {
+          /* malformed predicate inputs are not completion evidence */
         }
-      }
-      const delivered = await inbox();
-      const messaging = new ParticipantMessages(store, tasks, op.binding, op.instanceId, {
-        taskId: op.task.id,
-        deliveryIds: delivered.records.map((r) => r.id),
-        clock: op.observation.environmentTime,
-      });
-      const effects = messaging.acceptWithin.bind(messaging);
-      const state = new SpecialistRepository(store, scope, guardWithin, effects);
-      if (input.defer) {
-        const intent = input.intent;
-        if (!intent || intent.bindingId !== scope.bindingId || intent.guard)
-          throw new FleetError("INVALID_PLANNING_INTENT", true);
-        const quoted = ActionEffectsSchema.parse(await quote(intent)),
-          current = await repository.load(scope);
-        if (
-          quoted.intentDigest !== actionIntentDigest(intent) ||
-          !current.charter.allowedActions.includes(quoted.actionKey) ||
-          validateClaims(quoted, []).length
-        )
-          throw new FleetError("INVALID_PLANNING_EFFECTS", true);
-        const result = await new SpecialistRepository(
-          store,
-          scope,
-          guardWithin,
-          effects,
-          (db, _scope, operationId, accepted) =>
-            planning.publishWithin(
-              db,
-              launchDigest(accepted) === launchDigest(intent)
-                ? intent
-                : (() => {
-                    throw new FleetError("INVALID_PLANNING_INTENT");
-                  })(),
-              quoted,
-              operationId,
-              input.envelope.goals.map((g) => g.id),
-            ),
-        ).accept(scope, {
-          expectedVersion: input.expectedVersion,
-          operationId: op.id,
-          envelope: { ...input.envelope, intent },
+        if (!satisfied) throw new FleetError("GOAL_OUTCOME_REQUIRED", true);
+        const proof = await ports.captureOriginal({
+          kind: "outcome",
+          causalKey: `goal:${goal.id}`,
+          sourceRefs: current.sourceRefs,
+          entityRefs: [],
+          goalRefs: [goal.id],
+          detail: {
+            goalId: goal.id,
+            fulfilled: true,
+            assessmentCondition: condition,
+            observedRevision: current.revision,
+            environmentTime: current.environmentTime,
+          },
         });
-        await messaging.deliverOutbox(8, op.signal);
-        return result;
+        goal.evidenceIds = [...new Set([...goal.evidenceIds, proof.id])];
       }
-      const result = input.intent
-        ? await new ParticipantActions({
-            store,
-            tasks,
-            commands,
-            claim: context.claim,
-            binding: op.binding,
-            specialistId: scope.specialistId,
-            quote: (intent) => {
-              if (!session.effects) throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED", true);
-              return session.effects(intent);
-            },
-            admit: async (intent, quoted) => {
-              const priorities: Record<string, number> = {};
-              for (const r of preset.roles)
-                priorities[r.charter.id] = (
-                  await repository.load({ ...scope, specialistId: r.charter.id })
-                ).charter.priority;
-              return planning.admission(intent, quoted, op.task.id, priorities);
-            },
-            clock: op.observation.environmentTime,
-            messagesWithin: effects,
-            resultRecipients: (event) =>
-              definition.route?.(
-                { instanceId: op.instanceId, binding: op.binding, event },
-                {
-                  ...config,
-                  subscriptions: preset.roles.map((r) => ({
-                    participantId: r.charter.id,
-                    subscriptionVersion: r.subscriptions.version,
-                    categories: r.subscriptions.categories,
-                    periodic: r.subscriptions.periodic,
-                  })),
-                },
-              ) ?? [],
-          }).acceptAndDispatch({
-            expectedVersion: input.expectedVersion,
-            envelope: input.envelope,
-            intent: input.intent,
-          })
-        : await state.accept(scope, {
-            expectedVersion: input.expectedVersion,
-            operationId: op.id,
-            envelope: input.envelope,
-          });
+    }
+    const delivered = await inbox();
+    const messaging = new ParticipantMessages(store, tasks, op.binding, op.instanceId, {
+      taskId: op.task.id,
+      deliveryIds: delivered.records.map((r) => r.id),
+      clock: op.observation.environmentTime,
+    });
+    const routines = input.envelope.goals.filter((g) => g.routine);
+    let ownerDigest: string | undefined;
+    if (routines.length) {
+      const current = await services.observe({});
+      ownerDigest = ownerIntentDigest(context, services, current);
+      if (ownerDigest !== ownerIntentDigest(context, services, op.observation))
+        throw new FleetError("OWNER_INTENT_CHANGED", true);
+    }
+    const effects = async (
+      db: PoolClient,
+      s: SpecialistScope,
+      id: string,
+      envelope: import("../platform/participant-state.js").SpecialistEnvelope,
+    ) => {
+      await messaging.acceptWithin(db, s, id, envelope);
+      for (const goal of routines)
+        await db.query(
+          "INSERT INTO specialist_goal_routines VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT(instance_id,binding_id,specialist_id,goal_id) DO UPDATE SET goal_digest=excluded.goal_digest,owner_digest=excluded.owner_digest",
+          [scope.instanceId, scope.bindingId, scope.specialistId, goal.id, launchDigest(goal), ownerDigest],
+        );
+    };
+    const state = new SpecialistRepository(store, scope, guardWithin, effects);
+    if (input.defer) {
+      const intent = input.intent;
+      if (!intent || intent.bindingId !== scope.bindingId || intent.guard)
+        throw new FleetError("INVALID_PLANNING_INTENT", true);
+      const quoted = ActionEffectsSchema.parse(await quote(intent)),
+        current = await repository.load(scope);
+      if (
+        quoted.intentDigest !== actionIntentDigest(intent) ||
+        !current.charter.allowedActions.includes(quoted.actionKey) ||
+        validateClaims(quoted, []).length
+      )
+        throw new FleetError("INVALID_PLANNING_EFFECTS", true);
+      const result = await new SpecialistRepository(
+        store,
+        scope,
+        guardWithin,
+        effects,
+        (db, _scope, operationId, accepted) =>
+          planning.publishWithin(
+            db,
+            launchDigest(accepted) === launchDigest(intent)
+              ? intent
+              : (() => {
+                  throw new FleetError("INVALID_PLANNING_INTENT");
+                })(),
+            quoted,
+            operationId,
+            input.envelope.goals.map((g) => g.id),
+          ),
+      ).accept(scope, {
+        expectedVersion: input.expectedVersion,
+        operationId: op.id,
+        envelope: { ...input.envelope, intent },
+      });
       await messaging.deliverOutbox(8, op.signal);
       return result;
-    },
+    }
+    const result = input.intent
+      ? await new ParticipantActions({
+          store,
+          tasks,
+          commands,
+          claim: context.claim,
+          binding: op.binding,
+          specialistId: scope.specialistId,
+          quote: (intent) => {
+            if (!session.effects) throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED", true);
+            return session.effects(intent);
+          },
+          validateIntent: recipe ? () => recipe.validate() : undefined,
+          reserveConstraints: recipe ? (_intent, quoted) => recipe.constraints(quoted) : undefined,
+          admit: async (intent, quoted) => {
+            const priorities: Record<string, number> = {};
+            for (const r of preset.roles)
+              priorities[r.charter.id] = (
+                await repository.load({ ...scope, specialistId: r.charter.id })
+              ).charter.priority;
+            return planning.admission(intent, quoted, op.task.id, priorities);
+          },
+          clock: op.observation.environmentTime,
+          messagesWithin: effects,
+          resultRecipients: (event) =>
+            definition.route?.(
+              { instanceId: op.instanceId, binding: op.binding, event },
+              {
+                ...config,
+                subscriptions: preset.roles.map((r) => ({
+                  participantId: r.charter.id,
+                  subscriptionVersion: r.subscriptions.version,
+                  categories: r.subscriptions.categories,
+                  periodic: r.subscriptions.periodic,
+                })),
+              },
+            ) ?? [],
+        }).acceptAndDispatch({
+          expectedVersion: input.expectedVersion,
+          envelope: input.envelope,
+          intent: input.intent,
+        })
+      : await state.accept(scope, {
+          expectedVersion: input.expectedVersion,
+          operationId: op.id,
+          envelope: input.envelope,
+        });
+    await messaging.deliverOutbox(8, op.signal);
+    return result;
   };
+  if (services.skills && config.skillMode === "guarded")
+    await attachSkillExecution({
+      store,
+      tasks,
+      commands,
+      context,
+      operation: op,
+      services,
+      scope,
+      repository,
+      guardWithin,
+      accept,
+    });
   return ports;
 }

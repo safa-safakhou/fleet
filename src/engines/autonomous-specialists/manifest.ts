@@ -19,7 +19,7 @@ export const manifest: ArchitectureManifest = {
     properties: {
       preset: { type: "string", enum: ["resources-diplomacy", "full"] },
       learning: { type: "boolean" },
-      skillMode: { type: "string", enum: ["off", "advisory"] },
+      skillMode: { type: "string", enum: ["off", "advisory", "guarded"] },
       qualificationPolicy: { type: "string", enum: ["skills-policy.v1"] },
       maxActiveGoals: { type: "integer", minimum: 1, maximum: 8 },
       memoryBytes: { type: "integer", minimum: 1024, maximum: 12000 },
@@ -53,7 +53,7 @@ export const manifest: ArchitectureManifest = {
     { id: "skills", version: "1" },
   ],
   stateCodecs: [{ id: "participant-state", version: "1" }],
-  skillModes: ["off", "advisory"],
+  skillModes: ["off", "advisory", "guarded"],
   form: {
     fields: [
       { path: "preset", label: "Role preset", widget: "enum" },

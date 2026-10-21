@@ -14,6 +14,7 @@ import type { TaskClaim, TaskStore } from "../platform/tasks.js";
 import type { Store } from "../store.js";
 import { ContinuityV1Repository } from "./continuity-v1-repository.js";
 import { createParticipantPorts } from "./participant-context.js";
+import { SkillExecutionStore } from "./skill-execution.js";
 
 const scopes = new WeakMap<ScopedServices, { operation: ScopedOperation; context: EngineContext }>();
 export function scopedOperationFor(services: ScopedServices): ScopedOperation {
@@ -303,6 +304,9 @@ export async function createScopedServices(
       await guard();
     },
     environment: {
+      skillTemplates: context.skillSupport?.templates
+        ? immutable(structuredClone(context.skillSupport.templates))
+        : undefined,
       capabilities: immutable(
         structuredClone(
           context.capabilities ?? {
@@ -424,7 +428,7 @@ export function hostScopeFactory(deps: {
   model: ModelAdmission;
   commands: CommandExecutor;
 }) {
-  return async (
+  const factory = async (
     context: EngineContext,
     definition: ArchitectureDefinition,
     session: EnvironmentSession | undefined,
@@ -432,4 +436,38 @@ export function hostScopeFactory(deps: {
     const services = await createScopedServices(context.claim, definition, session, { ...deps, context });
     return { services, operation: scopedOperationFor(services) };
   };
+  const counts = new Map<string, number>();
+  const work = async (claim: TaskClaim, bootstrap: boolean) => {
+    const row = (
+      await deps.store.pool.query("SELECT architecture_config FROM cohort_engine_profiles WHERE cohort_id=$1", [
+        claim.turn.cohortId,
+      ])
+    ).rows[0];
+    if (
+      row?.architecture_config?.skillMode !== "guarded" ||
+      !deps.store.architectures
+        .resolve(claim.profile)
+        .manifest.modules.some((m) => m.id === "skills" && m.version === "1")
+    )
+      return;
+    const task = await deps.tasks.get(claim.taskId);
+    if (!task.participantId) throw new FleetError("PARTICIPANT_SCOPE_REQUIRED", true);
+    if (bootstrap) counts.set(claim.turn.id, 0);
+    const index = counts.get(claim.turn.id) ?? 0;
+    counts.set(claim.turn.id, index + 1);
+    if (counts.size > 1000) counts.delete(counts.keys().next().value!);
+    await new SkillExecutionStore(
+      deps.store,
+      {
+        instanceId: `${claim.bindingId}:${claim.profile.id}@${claim.profile.version}`,
+        bindingId: claim.bindingId,
+        specialistId: task.participantId,
+      },
+      (db) => deps.tasks.check(claim, db),
+    ).hostWork(claim.turn.id, bootstrap ? "bootstrap" : `observation:${index}`, { reads: 1, steps: 1 });
+  };
+  return Object.assign(factory, {
+    beforeConnect: (claim: TaskClaim) => work(claim, true),
+    beforeObserve: (claim: TaskClaim) => work(claim, false),
+  });
 }

@@ -30,6 +30,7 @@ export type ActionIntent = {
     schemaVersion: "fleet.action-effects-guard.v1";
     expectedRevision: string;
     expectedEffects: import("./action-effects.js").ActionEffects;
+    reserveConstraints?: Record<string, string>;
   };
 };
 export type ActionOutcome = { commandId: string; status: OutcomeStatus; code: string; sourceRefs: string[] };
@@ -94,6 +95,7 @@ export interface EnvironmentSession {
   close(): Promise<void>;
 }
 export interface EnvironmentAdapter {
+  skillSupport?: import("../modules/skills/v1/support.js").SkillSupport;
   specialistPresets?: import("./participant-state.js").SpecialistPreset[];
   wakePredicates?: import("./wake-conditions.js").WakePredicates;
   conditionContracts?: ConditionContract[];

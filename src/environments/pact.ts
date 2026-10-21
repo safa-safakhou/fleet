@@ -14,6 +14,7 @@ import type { ActionOutcome, BindingRef, EnvironmentAdapter } from "../platform/
 import type { Store } from "../store.js";
 import { validateTool } from "../tools.js";
 import { pactSpecialistPresets } from "./pact-presets.js";
+import { createPactSkillSupport } from "./pact-skills.js";
 
 /** Preserve the agent UUID used as the existing vault associated-data identity. */
 export class PactBindings {
@@ -76,6 +77,7 @@ export function createPactEnvironment(ports: {
   return {
     ref: { id: "pact", version: "1" },
     specialistPresets: pactSpecialistPresets,
+    ...(ports.actionEffectsVersion ? { skillSupport: createPactSkillSupport() } : {}),
     instructions: pactAdapter.instructions,
     accountObjective: (observation) => pactCurrentObjective(observation.payload),
     schemas: { observations: ["pact.observation.v1"], actions: ["pact.action.v1"] },

@@ -66,11 +66,14 @@ export class PlatformHost {
     private model: ModelAdmission,
     private commands: CommandExecutor,
     readonly supervisor: OperationSupervisor,
-    private scopeFactory?: (
+    private scopeFactory?: ((
       context: EngineContext,
       definition: ArchitectureDefinition,
       session: EnvironmentSession | undefined,
-    ) => Promise<{ services: ScopedServices; operation: ScopedOperation }>,
+    ) => Promise<{ services: ScopedServices; operation: ScopedOperation }>) & {
+      beforeConnect?(claim: TaskClaim): Promise<void>;
+      beforeObserve?(claim: TaskClaim): Promise<void>;
+    },
   ) {}
   async run(claim: TaskClaim) {
     return this.supervisor.run(claim, async (signal) => {
@@ -80,13 +83,15 @@ export class PlatformHost {
       const adapter = this.environments.resolve(binding.environment);
       requireCapabilities(adapter, engine.requiredCapabilities, engine.requiredSchemas);
       let session: EnvironmentSession | undefined;
+      await this.scopeFactory?.beforeConnect?.(claim);
       if (engine.observationOwner !== "engine")
         session = await this.environments.connect(binding, engine.requiredCapabilities, engine.requiredSchemas);
       try {
-        const observe = async (query: import("../domain.js").Data) => {
+        const observe = async (query: import("../domain.js").Data, externallyMetered = false) => {
           await this.tasks.check(claim);
           if (signal.aborted) throw new FleetError("TASK_FENCED");
           if (!session) throw new FleetError("OBSERVATION_OWNED_BY_ENGINE");
+          if (!externallyMetered) await this.scopeFactory?.beforeObserve?.(claim);
           const result = await session.observe(query);
           await this.tasks.check(claim);
           assertDeadline((await this.tasks.get(claim.taskId)).deadline, result.environmentTime, this.tasks.store.now());
@@ -144,6 +149,7 @@ export class PlatformHost {
           signal,
           schemas: adapter.schemas,
           specialistPresets: adapter.specialistPresets,
+          skillSupport: adapter.skillSupport,
           conditionPredicates: adapter.wakePredicates,
           conditionContracts: adapter.conditionContracts,
           goal: adapter.presentation.defaultGoal,
