@@ -58,7 +58,12 @@ execFileSync(process.execPath, [join(fleet, "node_modules/typescript/bin/tsc"), 
 });
 const out = options["--output"];
 await mkdir(out, { mode: 0o700 });
-await cp(join(fleet, "dist/negotiation"), out, { recursive: true, errorOnExist: true, force: false });
+for (const name of await readdir(join(fleet, "dist/negotiation")))
+  await cp(join(fleet, "dist/negotiation", name), join(out, name), {
+    recursive: true,
+    errorOnExist: true,
+    force: false,
+  });
 for (const name of ["migrations", "vendor"]) await cp(join(fleet, name), join(out, "fleet", name), { recursive: true });
 await mkdir(join(out, "fleet/docs"), { recursive: true });
 await cp(
