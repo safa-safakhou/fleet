@@ -266,8 +266,13 @@ export class TaskStore {
   async seedScheduled() {
     const rows = (
       await this.store.pool.query(
-        "SELECT a.id,a.next_due_at FROM agents a JOIN cohort_engine_profiles p ON p.cohort_id=a.cohort_id JOIN cohorts c ON c.id=a.cohort_id WHERE p.timed_reviews AND c.state='running' AND a.state='ready' AND a.next_due_at<=$1",
-        [this.store.now()],
+        "SELECT a.id,a.next_due_at FROM agents a JOIN cohort_engine_profiles p ON p.cohort_id=a.cohort_id JOIN cohorts c ON c.id=a.cohort_id JOIN environment_bindings b ON b.agent_id=a.id AND b.state='active' WHERE p.timed_reviews AND c.state='running' AND a.state='ready' AND a.next_due_at<=$1 AND b.environment_id=$2 AND b.environment_version=$3 AND b.instance_id=$4",
+        [
+          this.store.now(),
+          this.bindings.selected.id,
+          this.bindings.selected.version,
+          this.bindings.selected.instanceId,
+        ],
       )
     ).rows;
     for (const row of rows) {
@@ -287,7 +292,12 @@ export class TaskStore {
         );
     }
   }
-  async claim(workerId: string, now: Date, selectedTaskId?: string): Promise<TaskClaim | null> {
+  async claim(
+    workerId: string,
+    now: Date,
+    selectedTaskId?: string,
+    beforeAdmit?: (binding: BindingRef) => Promise<void>,
+  ): Promise<TaskClaim | null> {
     await this.store.recoverExpired();
     await this.recover();
     await this.seedScheduled();
@@ -318,6 +328,7 @@ export class TaskStore {
         )
       ).rows[0];
       if (!candidate) return null;
+      if (beforeAdmit) await beforeAdmit(await this.bindings.get(candidate.binding_id, db));
       const agent = await this.store.agent(candidate.actor_agent_id, db);
       const turn = await this.store.admitAgent(db, agent, workerId, now, candidate.due_at);
       if (!turn) return null;
