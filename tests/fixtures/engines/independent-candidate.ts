@@ -1,11 +1,11 @@
 import { SpecialistCoordinatorEngine } from "../../../src/engines/specialists/coordinator.js";
-import type { EngineContext } from "../../../src/platform/engine-registry.js";
+import type { DecisionContext } from "../../../src/modules/decision-step/v1/context.js";
 import { brokerJournal, FakeReservationBroker } from "./reservation-broker.js";
 /** Test composition only. Reuses identical focused prompts/admission; no coordinator model call. */
 export class IndependentSubmitCandidate extends SpecialistCoordinatorEngine {
   readonly journal = brokerJournal();
   denials: string[] = [];
-  async run(ctx: EngineContext) {
+  async run(ctx: DecisionContext) {
     if (!ctx.validateProposal) throw Error("FIXTURE_VALIDATOR_REQUIRED");
     const broker = new FakeReservationBroker(
       () => ctx.observe({ continuity: true, coordination: true }),
@@ -24,7 +24,7 @@ export class IndependentSubmitCandidate extends SpecialistCoordinatorEngine {
           broker.stop();
           return;
         }
-        await ctx.commands.submit(ctx.claim, p.intent);
+        await ctx.actions.submit(p.intent);
       });
       tail = own.catch(() => {});
       return own;

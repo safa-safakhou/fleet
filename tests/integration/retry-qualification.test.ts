@@ -4,14 +4,14 @@ import type { ModelPort } from "../../src/domain.js";
 import { PactQualificationFixtures } from "../../src/games/pact/qualification.js";
 import { prepareQualification, QualificationLedger, qualificationModelDigest } from "../../src/qualification-run.js";
 import { RecoveryQualification, runRetryQualification } from "../../src/retry-qualification.js";
+import { openQualificationFixture } from "../qualification-helpers.js";
 
-const url = "postgres://fleet_qualification:qualification_fixture@127.0.0.1:5436/fleet_qualification";
 const closes: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const c of closes.splice(0)) await c();
 });
 async function setup() {
-  const ledger = await QualificationLedger.open(url, Buffer.alloc(32, 19).toString("base64"));
+  const ledger = await openQualificationFixture(Buffer.alloc(32, 19).toString("base64"));
   closes.push(() => ledger.close());
   const parent = prepareQualification({
     schemaVersion: "fleet.local-qualification.v1",

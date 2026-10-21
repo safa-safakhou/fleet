@@ -6,9 +6,15 @@ PACT is a persistent kingdom game with consequential choices. Fleet is an indepe
 
 The platform has progressed further than demonstrated intelligence. We have multiple engines, durable tasks, scoped evidence, budgets, receipts and recoverability. We have not demonstrated reliable long-term memory use, sound strategic decisions, or an architecture that improves survival and relationships in live play.
 
+## Latest negotiation preparation
+
+Latest21 October [autonomous-specialist source acceptance](../autonomous-specialists-source-acceptance-20261020.md) completes all26 source tasks with1960 passing checks and one intentional real-model skip. Launch, persistent specialists, guarded PACT effects and bounded learned skills are implemented offline. Real negotiation/skill quality, E1 operational packaging and production qualification remain open; no retained-world access or activation occurred.
+
+The [21 October owned adapter, safe renewal and E1 preflight](../negotiation-E1-readiness-20261021.md) records the blocked frozen @1 baseline and a separate unregistered @1.1 packing repair. Its full fake-provider packets/settlement pass offline; the [launch-manifest draft](../negotiation-E1-launch-manifest-20261021.json) remains unapproved and not executable. The paused world was not accessed.
+
 ## Publication scope
 
-The [20 October local-world publication](local-world-publication-20261020.md) integrates the subsequent four-profile repairs and all observation/result reports. The [latest reasoning outcomes](../reasoning-outcomes-20261020.md) retain partial behavioral acceptance and distinguish actual native turns from later offline fixes. The independent specialist architecture proposal remains planning work.
+The [20 October local-world publication](local-world-publication-20261020.md) integrates the subsequent four-profile repairs and all observation/result reports. The [latest reasoning outcomes](../reasoning-outcomes-20261020.md) retain partial behavioral acceptance and distinguish actual native turns from later offline fixes. That dated publication preceded the now-complete specialist source implementation linked above; it does not establish real-provider qualification.
 
 The founder subsequently authorized merging the implementation branches `feature/engine-baseline-20261017` (Fleet) and `feature/phase2-agent-events-20261017` (PACT) into master. The [merge verification report](merge-20261019.md) records the integrated source, checks and publication result. Original dated reports retain their pinned historical candidates. Source integration does not install a release, enable execution or establish live strategic quality.
 

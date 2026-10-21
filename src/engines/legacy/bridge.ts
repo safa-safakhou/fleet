@@ -1,6 +1,6 @@
 import { Engine } from "../../engine.js";
-import { withLegacyExecution } from "../../platform/profiles.js";
 import type { Claim } from "../../store.js";
+import { withLegacyExecution } from "./execution.js";
 
 /** Keep admission, lifecycle, reasoning, leases and reconciliation in the original controller. */
 export class LegacyEngineBridge extends Engine {

@@ -10,6 +10,15 @@ it("preserves the recorded controller except the explicit context, owner-assignm
   // any other controller drift still fails against the original source digest.
   let historical = source.toString();
   const reviewed: [string, string][] = [
+    // F06 mechanically relocates only the disk probe; keep the controller pin exact.
+    [
+      'export { enoughDisk } from "./platform/disk.js";',
+      "export async function enoughDisk(path: string, minBytes = 10 * 1024 ** 3) {\n  const stats = await statfs(path);\n  return stats.bavail * stats.bsize >= minBytes;\n}",
+    ],
+    [
+      'import { randomUUID } from "node:crypto";',
+      'import { randomUUID } from "node:crypto";\nimport { statfs } from "node:fs/promises";',
+    ],
     // Reasoning repair: optional bookkeeping and adapter-owned receipt meaning.
     [
       "        const priorContinuation = continuation.context(decisionState);\n        if (Array.isArray(priorContinuation.outcomes))\n          priorContinuation.outcomes = priorContinuation.outcomes.map((raw) => {\n            const entry = object(raw);\n            return {\n              ...entry,\n              operationMeaning: this.adapter.commandMeaning?.({ kind: entry.actionKind }, { code: entry.code }),\n            };\n          });\n",

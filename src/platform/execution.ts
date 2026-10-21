@@ -1,4 +1,5 @@
 import { isDeepStrictEqual } from "node:util";
+import type { PoolClient } from "pg";
 import { transaction } from "../db.js";
 import { FleetError, safeCode } from "../domain.js";
 import type { Store } from "../store.js";
@@ -13,14 +14,14 @@ export class CommandExecutor {
     private bindings: Bindings,
     private environments: EnvironmentRegistry,
   ) {}
-  async prepare(claim: TaskClaim, intent: ActionIntent): Promise<boolean> {
+  async prepare(claim: TaskClaim, intent: ActionIntent, client?: PoolClient): Promise<boolean> {
     if (intent.bindingId !== claim.bindingId) throw new FleetError("BINDING_MISMATCH", true);
     if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(intent.commandId))
       throw new FleetError("INVALID_COMMAND_ID", true);
     const binding = await this.bindings.get(intent.bindingId),
       adapter = this.environments.resolve(binding.environment);
     if (!adapter.schemas.actions.includes(intent.schemaId)) throw new FleetError("UNSUPPORTED_SCHEMA", true);
-    return transaction(this.store.pool, async (db) => {
+    const write = async (db: PoolClient) => {
       await this.tasks.check(claim, db);
       const turn = (await db.query("SELECT * FROM turns WHERE id=$1 FOR UPDATE", [claim.turn.id])).rows[0];
       const old = (await db.query("SELECT * FROM platform_commands WHERE command_id=$1", [intent.commandId])).rows[0];
@@ -51,11 +52,30 @@ export class CommandExecutor {
         ],
       );
       return true;
-    });
+    };
+    return client ? write(client) : transaction(this.store.pool, write);
   }
   async submit(claim: TaskClaim, intent: ActionIntent): Promise<ActionOutcome> {
     const fresh = await this.prepare(claim, intent);
     if (!fresh) return this.reconcile(claim.turn.id, intent.commandId);
+    return this.dispatchPrepared(claim, intent);
+  }
+  async dispatchPrepared(claim: TaskClaim, intent: ActionIntent): Promise<ActionOutcome> {
+    const row = (
+      await this.store.pool.query("SELECT * FROM platform_commands WHERE command_id=$1 AND turn_id=$2", [
+        intent.commandId,
+        claim.turn.id,
+      ])
+    ).rows[0];
+    if (
+      !row ||
+      !isDeepStrictEqual(
+        this.store.vault.decrypt<ActionIntent>(row.intent_cipher, `platform-command:${intent.commandId}`),
+        intent,
+      )
+    )
+      throw new FleetError("COMMAND_ID_REUSE", true);
+    if (row.state !== "prepared") return this.reconcile(claim.turn.id, intent.commandId);
     const binding = await this.bindings.get(claim.bindingId);
     let session: EnvironmentSession | undefined;
     try {
@@ -63,17 +83,21 @@ export class CommandExecutor {
       const task = await this.tasks.get(claim.taskId);
       if (task.deadline) assertDeadline(task.deadline, (await session.observe({})).environmentTime, this.store.now());
       await this.tasks.check(claim);
-      await transaction(this.store.pool, async (db) => {
+      const admitted = await transaction(this.store.pool, async (db) => {
         await this.tasks.check(claim, db);
+        const changed = await db.query(
+          "UPDATE platform_commands SET state='dispatched',updated_at=$2 WHERE command_id=$1 AND state='prepared' RETURNING command_id",
+          [intent.commandId, this.store.now()],
+        );
+        if (!changed.rowCount) return false;
         await db.query("UPDATE recovery_operations SET phase='command_dispatched',updated_at=$2 WHERE turn_id=$1", [
           claim.turn.id,
           this.store.now(),
         ]);
-        await db.query("UPDATE platform_commands SET state='dispatched',updated_at=$2 WHERE command_id=$1", [
-          intent.commandId,
-          this.store.now(),
-        ]);
+        return true;
       });
+      if (!admitted)
+        return { commandId: intent.commandId, status: "pending", code: "COMMAND_ALREADY_DISPATCHED", sourceRefs: [] };
       let outcome: ActionOutcome;
       let source: "receipt" | "explicit_rejection" = "receipt";
       try {
@@ -93,6 +117,34 @@ export class CommandExecutor {
     } finally {
       await session?.close().catch(() => {});
     }
+  }
+  /** Local expiry can reject only a journal entry proven never to have crossed dispatch. */
+  async rejectPrepared(turnId: string, commandId: string, code: string): Promise<ActionOutcome | undefined> {
+    return transaction(this.store.pool, async (db) => {
+      const command = (
+        await db.query("SELECT * FROM platform_commands WHERE command_id=$1 AND turn_id=$2 FOR UPDATE", [
+          commandId,
+          turnId,
+        ])
+      ).rows[0];
+      if (!command || command.state !== "prepared") return undefined;
+      const turn = (await db.query("SELECT * FROM turns WHERE id=$1 FOR UPDATE", [turnId])).rows[0];
+      const outcome: ActionOutcome = { commandId, status: "rejected", code, sourceRefs: [] };
+      await this.store.receipt(
+        { id: turnId, agentId: turn.agent_id, cohortId: turn.cohort_id },
+        { commandId, code },
+        "explicit_rejection",
+        { environmentOutcome: outcome, notDispatched: true },
+        false,
+        db,
+      );
+      await db.query("UPDATE platform_commands SET state='rejected',outcome=$2,updated_at=$3 WHERE command_id=$1", [
+        commandId,
+        outcome,
+        this.store.now(),
+      ]);
+      return outcome;
+    });
   }
   private async settle(
     turnId: string,

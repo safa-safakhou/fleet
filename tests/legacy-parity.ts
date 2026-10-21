@@ -1,6 +1,12 @@
 import { createHash } from "node:crypto";
+import { isDeepStrictEqual } from "node:util";
 import type { Claim } from "../src/store.js";
 import type { FakeModel } from "./helpers.js";
+
+export function assertArchitectureParity(actual: unknown, expected: unknown): void {
+  if (!isDeepStrictEqual(actual, expected)) throw Error("ARCHITECTURE_PARITY_DRIFT");
+}
+export { captureArchitectureTranscript } from "./architecture-transcript.js";
 
 /** Preserve identity relationships while normalizing independently generated fixture UUIDs. */
 export function normalizedModelInputs(model: FakeModel, claim: Claim) {

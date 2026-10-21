@@ -2,6 +2,7 @@ import { StrictMode, useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import "./style.css";
 import { ComparisonWorkspace } from "./comparisons.js";
+import { LaunchWizard } from "./launch.js";
 import {
   AgentInspector,
   agentStatus,
@@ -14,6 +15,7 @@ import {
 } from "./observe.js";
 import { ProfileWorkspace } from "./profiles.js";
 import { RunDetails } from "./runs.js";
+import { SpecialistWorkspace } from "./specialists.js";
 
 type Obj = Record<string, unknown>;
 type Agent = {
@@ -150,9 +152,9 @@ function App() {
     return () => window.removeEventListener("hashchange", changed);
   }, []);
   const api = useCallback(
-    async <T,>(path: string, body?: unknown): Promise<T> => {
+    async <T,>(path: string, body?: unknown, method?: "POST" | "PUT"): Promise<T> => {
       const r = await fetch(`/api${path}`, {
-        method: body === undefined ? "GET" : "POST",
+        method: method ?? (body === undefined ? "GET" : "POST"),
         headers: { "content-type": "application/json", ...(body !== undefined ? { "x-csrf-token": csrf } : {}) },
         ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
       });
@@ -988,19 +990,35 @@ function App() {
           </section>
         )}
         {tab === "profiles" && (
-          <ProfileWorkspace
-            api={api}
-            cohorts={state?.cohorts ?? []}
-            open={(id) => {
-              setCohortId(id);
-              setTab("agents");
-            }}
-            created={async (id) => {
-              await refresh();
-              setCohortId(id);
-              setTab("settings");
-            }}
-          />
+          <>
+            <SpecialistWorkspace
+              api={api}
+              consentVersion={JSON.stringify(state?.cohorts.map((c) => [c.id, c.observation_consent]))}
+            />
+            <LaunchWizard
+              api={api}
+              onCreated={() => {}}
+              onStarted={(id) => {
+                setCohortId(id);
+                setTab("agents");
+                void refresh();
+              }}
+              renderConfigure={(save, working) => <Configure busy={working} save={(input) => save(input as Obj)} />}
+            />
+            <ProfileWorkspace
+              api={api}
+              cohorts={state?.cohorts ?? []}
+              open={(id) => {
+                setCohortId(id);
+                setTab("agents");
+              }}
+              created={async (id) => {
+                await refresh();
+                setCohortId(id);
+                setTab("settings");
+              }}
+            />
+          </>
         )}
         {tab === "comparisons" && (
           <ComparisonWorkspace

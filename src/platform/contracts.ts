@@ -26,6 +26,12 @@ export type ActionIntent = {
   schemaId: string;
   expectedVersion?: string;
   payload: Data;
+  guard?: {
+    schemaVersion: "fleet.action-effects-guard.v1";
+    expectedRevision: string;
+    expectedEffects: import("./action-effects.js").ActionEffects;
+    reserveConstraints?: Record<string, string>;
+  };
 };
 export type ActionOutcome = { commandId: string; status: OutcomeStatus; code: string; sourceRefs: string[] };
 export type EnvironmentEvent = {
@@ -54,6 +60,7 @@ export type Capabilities = {
   simulationControls: boolean;
   continuity?: boolean;
   coordination?: boolean;
+  actionEffects?: boolean;
 };
 export type CapabilityRequirements = {
   eventDelivery?: ("native" | "poll")[];
@@ -65,12 +72,15 @@ export type CapabilityRequirements = {
   simulationControls?: boolean;
   continuity?: boolean;
   coordination?: boolean;
+  actionEffects?: boolean;
 };
 export type SchemaRequirements = { observations?: string[]; actions?: string[] };
 export type AccountObjective = string | { intent: string; currentState: Data };
 export type ActionContract = { schemaId: string; payloadSchema: Data; expectedOutcomeSchema?: Data };
 export type ProposalValidation = { valid: boolean; code: string; guidance?: string; detail?: Data };
+export type ConditionContract = { name: string; version: string; description: string; argsSchema: Data };
 export interface EnvironmentSession {
+  effects?(intent: ActionIntent): Promise<import("./action-effects.js").ActionEffects>;
   observe(query: Data): Promise<Observation>;
   catalog(): Promise<Tool[]>;
   execute(intent: ActionIntent): Promise<ActionOutcome>;
@@ -79,11 +89,17 @@ export interface EnvironmentSession {
   validateProposal?(proposal: Proposal, observation: Observation): Promise<ProposalValidation>;
   waitSchema?(observation: Observation): Promise<Data | undefined>;
   validateWait?(basis: Data, observation: Observation): Promise<ProposalValidation>;
-  actionContracts?(observation: Observation): Promise<ActionContract[]>;
+  actionContracts?(observation: Observation, allowedActionKeys?: readonly string[]): Promise<ActionContract[]>;
+  projectObservation?(observation: Observation, policy: { id: string; version: string }): Observation;
   packObservation?(observation: Observation, byteLimit: number): Observation;
   close(): Promise<void>;
 }
 export interface EnvironmentAdapter {
+  specialistObservationPolicy?: { id: string; version: string };
+  skillSupport?: import("../modules/skills/v1/support.js").SkillSupport;
+  specialistPresets?: import("./participant-state.js").SpecialistPreset[];
+  wakePredicates?: import("./wake-conditions.js").WakePredicates;
+  conditionContracts?: ConditionContract[];
   instructions?: string;
   accountObjective?(observation: Observation): AccountObjective | undefined;
   ref: { id: string; version: string };

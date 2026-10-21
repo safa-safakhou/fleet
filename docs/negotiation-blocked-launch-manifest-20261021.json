@@ -1,0 +1,229 @@
+{
+  "schemaVersion": "fleet.negotiation-blocked-launch-record.v1",
+  "asOf": "2026-10-21",
+  "executable": false,
+  "ready": false,
+  "productionQualified": false,
+  "target": "separate_isolated_candidate_installation",
+  "originalPausedWorld": "preserved_by_non_access",
+  "executionPolicyBlock": {
+    "action": "start isolated E4 owned Ollama standby provider",
+    "mechanism": "tools.exec_command",
+    "decision": "automatic approval review rejected",
+    "statedReason": "blocked by policy",
+    "retryAttempted": false
+  },
+  "releaseBlock": "E3 terminal held-out behavioral failure",
+  "realUsageE1ThroughE3": {
+    "calls": 14,
+    "reservedTokens": 560000,
+    "measuredTokens": 71886
+  },
+  "model": {
+    "route": "ollama",
+    "model": "nemotron-3-nano:4b",
+    "thinking": true,
+    "artifact": {
+      "manifestSha256": "6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197",
+      "modelFormat": "gguf",
+      "family": "nemotron_h",
+      "parameters": "4.0B",
+      "quantization": "Q4_K_M",
+      "layers": [
+        {
+          "mediaType": "application/vnd.docker.container.image.v1+json",
+          "sha256": "1c309ae5e93ede03f48f4bdbfd1b50d1780f2c3bcdc82f4569e20f0c33878db9",
+          "bytes": 499
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "sha256": "527db2cf6c705d8fabb95693d038d9c06b4a2b0b8b0a4bbdbd01212d37242970",
+          "bytes": 2837586496
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.license",
+          "sha256": "355e036064fa9b3a96ce0cdbb69abe54f5c7ce0b6aa2c7d5f8ec8580b011c20e",
+          "bytes": 10124
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.params",
+          "sha256": "12e88b2a8727339b5a4a8b3e2d0d637ac1c61085b1072e77865f0c25d6e468eb",
+          "bytes": 28
+        }
+      ]
+    },
+    "runtime": {
+      "platform": "windows-amd64",
+      "version": "0.35.1",
+      "versionEvidence": "embedded_binary_string_and_prior_report; live_api_not_queried",
+      "executable": {
+        "sha256": "3cc17c238b081adf2bd3a206e52a063b637af1bf283d95b4ffd73a2bdec8b027",
+        "bytes": 26676104,
+        "fileVersion": null,
+        "productVersion": null
+      },
+      "libraryTree": {
+        "files": 989,
+        "bytes": 2930392048,
+        "digest": "f06576561d9fa0049ee9c3db227ff3542cff33423e3cdf73bfcd8182a103efeb",
+        "algorithm": "designDigest of array sorted by UTF8 relativePath; entries {relativePath with /,bytes,sha256}; includes lib/ollama recursively"
+      }
+    },
+    "renderer": "nemotron-3-nano",
+    "parser": "nemotron-3-nano",
+    "template": "bundled renderer plus GGUF metadata; pinned binary and model bytes; no custom template or adapter",
+    "sampling": {
+      "temperature": 1,
+      "top_p": 1,
+      "source": "pinned model params layer",
+      "wireOverrides": [],
+      "otherParameters": "inherited from pinned Ollama runtime",
+      "seed": "not supplied; scenario seed does not seed sampling"
+    }
+  },
+  "stages": {
+    "E4": {
+      "state": "blocked_before_provider_start",
+      "sources": {
+        "fleet": "cc07350496fbc6136eae3054e2386055e6d6d569",
+        "pact": "9d0f480d71cf9f1a7c966117ded039bb35e07d07"
+      },
+      "bundleDigest": "f60ddeedcc394fe23ccd785eab4bb42afca7eb2783a4dffdc11496156048ebcd",
+      "profile": {
+        "id": "reactive-cognition",
+        "version": "2"
+      },
+      "fixtures": {
+        "family": "C01",
+        "seeds": [47, 83],
+        "roleDirections": ["AB", "BA"],
+        "timing": "native",
+        "cells": 2,
+        "setup": "marker-only owned databases and private provider store; no game schemas or roster",
+        "expectedAccounts": 8,
+        "expectedModelActors": 4,
+        "preparedAccounts": 0,
+        "preparedModelActors": 0,
+        "gameSchemas": 0,
+        "markerOnlyDatabases": 2,
+        "containerStopped": true,
+        "containerAndVolumeRetained": true
+      },
+      "maxima": {
+        "calls": 144,
+        "reservedTokens": 5760000,
+        "wallDeadlineMs": 21600000
+      },
+      "providerPid": null,
+      "startsAt": null,
+      "cutoffAt": null,
+      "actorBindings": null,
+      "protocolDigest": null,
+      "grant": null,
+      "pending": [
+        "policy-permitted owned provider startup",
+        "full Windows process/route/source acceptance",
+        "fresh eight-account/four-model-actor roster and preflight",
+        "authenticated before restore",
+        "exact one-shot grant and UTC interval",
+        "native timing execution and per-response inline review",
+        "terminal park and authenticated final restore"
+      ]
+    },
+    "KQ1": {
+      "state": "passive_bundle_verified_runtime_blocked",
+      "sources": {
+        "fleet": "7ca67b2891c511a33ad129396ac5aaeed1305fb7",
+        "pact": "81007a449aab049bbb0beb9ccef18eca0b6d40aa"
+      },
+      "bundleDigest": "218801a698939102649d50d18354257e7d20f2061a7559dd137feeeda6c4dcf3",
+      "profile": {
+        "id": "autonomous-specialists",
+        "version": "1"
+      },
+      "fixtures": {
+        "presets": ["resources-diplomacy", "full"],
+        "skillModes": ["advisory", "guarded"],
+        "scenarios": ["existing-goal", "changed-consent-reserve"],
+        "cells": 8,
+        "accounts": 16,
+        "modelActors": 8,
+        "scriptedPeers": 8,
+        "counterexampleTiming": "before_first_model_decision",
+        "gameReviewMinutes": [0, 16, 32, 112],
+        "gameHorizonMinutes": 120
+      },
+      "maxima": {
+        "turns": 96,
+        "calls": 288,
+        "reservedTokens": 11520000,
+        "wallDeadlineMs": 21600000,
+        "perCellWallDeadlineMs": 2700000
+      },
+      "providerPid": null,
+      "startsAt": null,
+      "cutoffAt": null,
+      "actorBindings": null,
+      "protocolDigest": null,
+      "grant": null,
+      "pending": [
+        "policy-permitted real-provider Windows acceptance",
+        "fresh retained roster",
+        "authenticated before restore",
+        "exact one-shot grant and UTC interval",
+        "real diagnostic with source-backed learning/reuse/full-delivery assessment",
+        "terminal park and authenticated final restore"
+      ],
+      "modelDigest": "d2119dbb017e6ec2383dd7aaa7c5df702dcaecdcce147d7c372172efbcb160e5",
+      "policyDigest": "86829dfed86a8a2cc5503638ff5ac0ccc6a86701a40156e7a460aef350e3fc70",
+      "settingsDigest": "9287609769183150267824cfc9b50354603c024c4d14cd36609091d52f658dac",
+      "passiveAcceptance": {
+        "files": 14313,
+        "fullBytesVerified": true,
+        "windowsModuleImport": true,
+        "settingsRoundTrip": true,
+        "pinnedRuntimeAndRequestVerified": true,
+        "libraryFiles": 989,
+        "providerCalls": 0,
+        "runtimePreflightPassed": false,
+        "installed": false,
+        "activated": false,
+        "productionQualified": false
+      }
+    }
+  },
+  "perCall": {
+    "reservation": 40000,
+    "inputBytes": 24000,
+    "outputTokens": 2000,
+    "contextTokens": 32768,
+    "callsPerTurn": 3,
+    "providerSlots": 1,
+    "helpers": 0,
+    "fallbacks": 0
+  },
+  "hardStops": [
+    "unknown transport/model usage or command outcome",
+    "source/model/settings/artifact/ownership drift",
+    "unplanned authority change",
+    "lease expiry/revocation/replacement; no reacquisition",
+    "privacy/retention failure",
+    "duplicate effect",
+    "critical unsupported acceptance or delivery claim",
+    "unresolved inline review",
+    "accounting mismatch",
+    "cap or UTC cutoff"
+  ],
+  "release": {
+    "state": "disarmed",
+    "installed": false,
+    "activated": false,
+    "qualificationAccepted": false,
+    "required": [
+      "valid separate candidate qualification after terminal E3 failure",
+      "owned disabled installation acceptance",
+      "authenticated backup/restore and rollback rehearsal",
+      "supported activation and bounded observation"
+    ]
+  }
+}

@@ -62,6 +62,20 @@ export class RunWindow {
         return game.submit(commandId, action);
       },
       receipt: (commandId) => game.receipt(commandId),
+      ...(game.effects
+        ? {
+            effects: (command: import("./domain.js").Data) =>
+              game.effects?.(command) as Promise<import("./domain.js").Data>,
+          }
+        : {}),
+      ...(game.submitGuarded
+        ? {
+            submitGuarded: async (command: import("./domain.js").Data, guard: import("./domain.js").Data) => {
+              this.assertOpen();
+              return game.submitGuarded?.(command, guard) as Promise<import("./domain.js").Data>;
+            },
+          }
+        : {}),
       close: () => game.close(),
     };
   }

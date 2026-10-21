@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from "react";
+import { exactKey } from "./launch.js";
 
 type Ref = { id: string; version: string };
-type Preview = { profile: Ref; compatible: boolean; code: string; coverage: string };
+type Preview = { profile: Ref; compatible: boolean; code: string; coverage: string; triggers?: string[] };
 type Group = {
   cohortId: string;
   name: string;
@@ -94,7 +95,7 @@ export function ProfileWorkspace({
       capabilities: { events: string };
       profiles: Preview[];
     } | null>(null),
-    [selected, setSelected] = useState("legacy-loop"),
+    [selected, setSelected] = useState(exactKey({ id: "legacy-loop", version: "1" })),
     [eventWake, setEventWake] = useState(false),
     [categories, setCategories] = useState("raid,offer,contract,completion,conversation,resource"),
     [name, setName] = useState(""),
@@ -124,7 +125,7 @@ export function ProfileWorkspace({
       setBusy(false);
     }
   };
-  const preview = catalog?.profiles.find((p) => p.profile.id === selected);
+  const preview = catalog?.profiles.find((p) => exactKey(p.profile) === selected);
   const download = (scope: "private" | "shareable") =>
     work(async () => {
       const data = await api("/reports/export", { scope, cohortIds: chosen });
@@ -160,7 +161,7 @@ export function ProfileWorkspace({
                   seed: crypto.randomUUID(),
                   strategies: ["guardian", "expansionist", "merchant", "diplomat", "opportunist"],
                   profile: preview?.profile,
-                  ...(eventWake && selected.startsWith("reactive-")
+                  ...(eventWake && preview?.triggers?.includes("event")
                     ? {
                         wakePolicy: {
                           enabled: true,
@@ -185,7 +186,7 @@ export function ProfileWorkspace({
               Engine
               <select value={selected} onChange={(e) => setSelected(e.target.value)}>
                 {catalog.profiles.map((p) => (
-                  <option key={p.profile.id} value={p.profile.id}>
+                  <option key={exactKey(p.profile)} value={exactKey(p.profile)}>
                     {p.profile.id}@{p.profile.version}
                   </option>
                 ))}
@@ -228,7 +229,7 @@ export function ProfileWorkspace({
               No game accounts or model calls. Event wakes remain off unless explicitly configured. A consumed profile
               is immutable.
             </p>
-            {catalog.capabilities.events !== "none" && selected.startsWith("reactive-") && (
+            {catalog.capabilities.events !== "none" && preview?.triggers?.includes("event") && (
               <>
                 <label className="profile-event-toggle">
                   <input type="checkbox" checked={eventWake} onChange={(e) => setEventWake(e.target.checked)} />

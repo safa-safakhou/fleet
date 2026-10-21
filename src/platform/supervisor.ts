@@ -1,9 +1,11 @@
 import { FleetError, safeCode } from "../domain.js";
 import { Observability } from "../observability.js";
 import type { ModelAdmission } from "./admission.js";
+import type { ArchitectureDefinition } from "./architecture.js";
 import type { Bindings } from "./bindings.js";
 import type { EnvironmentSession, Observation } from "./contracts.js";
-import type { EngineRegistry } from "./engine-registry.js";
+import type { ScopedOperation, ScopedServices } from "./engine-context.js";
+import type { EngineContext, EngineRegistry } from "./engine-registry.js";
 import { type EnvironmentRegistry, requireCapabilities } from "./environment-registry.js";
 import type { CommandExecutor } from "./execution.js";
 import { assertDeadline, type TaskClaim, type TaskStore } from "./tasks.js";
@@ -64,6 +66,15 @@ export class PlatformHost {
     private model: ModelAdmission,
     private commands: CommandExecutor,
     readonly supervisor: OperationSupervisor,
+    private scopeFactory?: ((
+      context: EngineContext,
+      definition: ArchitectureDefinition,
+      session: EnvironmentSession | undefined,
+    ) => Promise<{ services: ScopedServices; operation: ScopedOperation }>) & {
+      beforeConnect?(claim: TaskClaim): Promise<void>;
+      beforeObserve?(claim: TaskClaim): Promise<void>;
+      finished?(claim: TaskClaim): void;
+    },
   ) {}
   async run(claim: TaskClaim) {
     return this.supervisor.run(claim, async (signal) => {
@@ -73,13 +84,15 @@ export class PlatformHost {
       const adapter = this.environments.resolve(binding.environment);
       requireCapabilities(adapter, engine.requiredCapabilities, engine.requiredSchemas);
       let session: EnvironmentSession | undefined;
-      if (engine.observationOwner !== "engine")
-        session = await this.environments.connect(binding, engine.requiredCapabilities, engine.requiredSchemas);
       try {
-        const observe = async (query: import("../domain.js").Data) => {
+        await this.scopeFactory?.beforeConnect?.(claim);
+        if (engine.observationOwner !== "engine")
+          session = await this.environments.connect(binding, engine.requiredCapabilities, engine.requiredSchemas);
+        const observe = async (query: import("../domain.js").Data, externallyMetered = false) => {
           await this.tasks.check(claim);
           if (signal.aborted) throw new FleetError("TASK_FENCED");
           if (!session) throw new FleetError("OBSERVATION_OWNED_BY_ENGINE");
+          if (!externallyMetered) await this.scopeFactory?.beforeObserve?.(claim);
           const result = await session.observe(query);
           await this.tasks.check(claim);
           assertDeadline((await this.tasks.get(claim.taskId)).deadline, result.environmentTime, this.tasks.store.now());
@@ -115,7 +128,7 @@ export class PlatformHost {
             observation,
           },
         );
-        await engine.run({
+        const context: EngineContext = {
           claim,
           binding,
           task,
@@ -125,14 +138,22 @@ export class PlatformHost {
               await observe({});
             },
             adapter.capabilities.parallelReasoning &&
-              claim.profile.id === "specialist-coordinator" &&
-              claim.profile.version === "1",
+              (
+                this.engines.architectures?.resolve(claim.profile).manifest.executionModes ??
+                engine.executionModes ??
+                []
+              ).includes("sibling-reasoning"),
           ),
           commands: this.commands,
           observe,
           eventRefs: task.sourceRefs,
           signal,
           schemas: adapter.schemas,
+          specialistPresets: adapter.specialistPresets,
+          skillSupport: adapter.skillSupport,
+          specialistObservationPolicy: adapter.specialistObservationPolicy,
+          conditionPredicates: adapter.wakePredicates,
+          conditionContracts: adapter.conditionContracts,
           goal: adapter.presentation.defaultGoal,
           instructions: adapter.instructions,
           accountObjective: adapter.accountObjective?.bind(adapter),
@@ -145,6 +166,7 @@ export class PlatformHost {
           validateWait: session?.validateWait,
           validateProposal: session?.validateProposal,
           actionContracts: session?.actionContracts,
+          projectObservation: session?.projectObservation,
           packObservation: session?.packObservation,
           catalog: async () => {
             if (!session) throw new FleetError("OBSERVATION_OWNED_BY_ENGINE");
@@ -158,9 +180,20 @@ export class PlatformHost {
               [claim.taskId, { kind: "event" }, claim.fence],
             );
           },
-        });
+        };
+        const definition =
+          this.engines.architectures?.resolve(claim.profile) ??
+          ("create" in engine
+            ? { manifest: engine.manifest, validate: () => [], create: engine.create.bind(engine) }
+            : undefined);
+        if (this.scopeFactory && definition) {
+          const scope = await this.scopeFactory(context, definition, session);
+          await definition.create(scope.services).run(scope.operation);
+        } else if ("create" in engine) throw new FleetError("SCOPED_HOST_REQUIRED");
+        else await (engine as import("./engine-registry.js").AgentEngine).run(context);
       } finally {
         await session?.close().catch(() => {});
+        this.scopeFactory?.finished?.(claim);
       }
     });
   }

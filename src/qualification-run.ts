@@ -116,22 +116,54 @@ export class QualificationLedger {
     try {
       if ((await pool.query("SELECT current_database() name")).rows[0].name !== "fleet_qualification")
         throw new FleetError("ISOLATED_QUALIFICATION_DATABASE_REQUIRED");
-      await pool.query(`CREATE TABLE IF NOT EXISTS qualification_runs(id uuid PRIMARY KEY,authorization_ref text UNIQUE NOT NULL,digest text NOT NULL,plan jsonb NOT NULL,state text NOT NULL DEFAULT 'prepared',stage_started_at timestamptz,stage_deadline timestamptz,code text,created_at timestamptz NOT NULL DEFAULT now());
+      return await QualificationLedger.initialize(pool, key);
+    } catch (error) {
+      await pool.end();
+      throw error;
+    }
+  }
+  /** Explicit nonce-owned offline entry point. The production URL/port guard above
+   * is unchanged; no environment variable retargets an existing qualification.
+   */
+  static async openOwnedFixture(url: string, key: string, nonce: string) {
+    const u = new URL(url),
+      port = Number(u.port);
+    if (
+      u.hostname !== "127.0.0.1" ||
+      !["postgres:", "postgresql:"].includes(u.protocol) ||
+      u.pathname !== "/fleet_test" ||
+      !Number.isInteger(port) ||
+      port < 1 ||
+      [5432, 5436, 5437, 5438, 5439, 5451, 5452].includes(port) ||
+      u.search ||
+      u.hash ||
+      !/^[a-f0-9]{64}$/.test(nonce)
+    )
+      throw new FleetError("OWNED_QUALIFICATION_FIXTURE_REQUIRED");
+    const pool = connect(url);
+    try {
+      const marker = (await pool.query("SELECT nonce FROM public.architecture_fixture_owner")).rows;
+      if (marker.length !== 1 || marker[0].nonce !== nonce)
+        throw new FleetError("OWNED_QUALIFICATION_FIXTURE_REQUIRED");
+      return await QualificationLedger.initialize(pool, key);
+    } catch (error) {
+      await pool.end();
+      throw error;
+    }
+  }
+  private static async initialize(pool: Pool, key: string) {
+    await pool.query(`CREATE TABLE IF NOT EXISTS qualification_runs(id uuid PRIMARY KEY,authorization_ref text UNIQUE NOT NULL,digest text NOT NULL,plan jsonb NOT NULL,state text NOT NULL DEFAULT 'prepared',stage_started_at timestamptz,stage_deadline timestamptz,code text,created_at timestamptz NOT NULL DEFAULT now());
       CREATE TABLE IF NOT EXISTS qualification_calls(id uuid PRIMARY KEY,run_id uuid NOT NULL REFERENCES qualification_runs(id),profile text NOT NULL,trial text NOT NULL,state text NOT NULL,tokens bigint NOT NULL DEFAULT 40000,input_tokens bigint,output_tokens bigint,valid boolean,code text,detail_cipher text,created_at timestamptz NOT NULL DEFAULT now(),finished_at timestamptz);
       CREATE TABLE IF NOT EXISTS qualification_helpers(id uuid PRIMARY KEY,run_id uuid NOT NULL REFERENCES qualification_runs(id),profile text NOT NULL,trial text NOT NULL,state text NOT NULL,detail_cipher text,created_at timestamptz NOT NULL DEFAULT now());
       CREATE TABLE IF NOT EXISTS qualification_diagnostics(id uuid PRIMARY KEY,run_id uuid NOT NULL REFERENCES qualification_runs(id),authorization_ref text UNIQUE NOT NULL,digest text NOT NULL,plan jsonb NOT NULL,state text NOT NULL DEFAULT 'active',code text,created_at timestamptz NOT NULL DEFAULT now());
       CREATE TABLE IF NOT EXISTS qualification_diagnostic_calls(diagnostic_id uuid NOT NULL REFERENCES qualification_diagnostics(id),call_id uuid PRIMARY KEY REFERENCES qualification_calls(id));
       INSERT INTO qualification_diagnostic_calls(diagnostic_id,call_id) SELECT d.id,c.id FROM qualification_diagnostics d JOIN qualification_calls c ON c.run_id=d.run_id AND c.profile='output-diagnostic' AND left(c.trial,length(d.id::text)+1)=d.id::text||':' ON CONFLICT DO NOTHING;
       CREATE TABLE IF NOT EXISTS qualification_trials(run_id uuid NOT NULL REFERENCES qualification_runs(id),profile text NOT NULL,trial text NOT NULL,result jsonb NOT NULL,PRIMARY KEY(run_id,profile,trial));`);
-      await pool.query(`CREATE TABLE IF NOT EXISTS qualification_batches(id uuid PRIMARY KEY,authorization_ref text UNIQUE NOT NULL,history_run_id uuid UNIQUE NOT NULL REFERENCES qualification_runs(id),digest text NOT NULL,plan jsonb NOT NULL,state text NOT NULL DEFAULT 'active',code text,created_at timestamptz NOT NULL DEFAULT now());
+    await pool.query(`CREATE TABLE IF NOT EXISTS qualification_batches(id uuid PRIMARY KEY,authorization_ref text UNIQUE NOT NULL,history_run_id uuid UNIQUE NOT NULL REFERENCES qualification_runs(id),digest text NOT NULL,plan jsonb NOT NULL,state text NOT NULL DEFAULT 'active',code text,created_at timestamptz NOT NULL DEFAULT now());
        CREATE TABLE IF NOT EXISTS qualification_batch_runs(batch_id uuid NOT NULL REFERENCES qualification_batches(id),run_id uuid UNIQUE NOT NULL REFERENCES qualification_runs(id),thinking boolean NOT NULL,PRIMARY KEY(batch_id,thinking));`);
-      await pool.query(`CREATE TABLE IF NOT EXISTS qualification_execution_reviews(call_id uuid PRIMARY KEY REFERENCES qualification_calls(id),reserved_tokens bigint NOT NULL CHECK(reserved_tokens=40000),authorization_ref text UNIQUE NOT NULL,review jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
+    await pool.query(`CREATE TABLE IF NOT EXISTS qualification_execution_reviews(call_id uuid PRIMARY KEY REFERENCES qualification_calls(id),reserved_tokens bigint NOT NULL CHECK(reserved_tokens=40000),authorization_ref text UNIQUE NOT NULL,review jsonb NOT NULL,created_at timestamptz NOT NULL DEFAULT now());
       CREATE UNIQUE INDEX IF NOT EXISTS qualification_one_continuation ON qualification_batches((plan->>'predecessorBatchId')) WHERE plan->>'predecessorBatchId' IS NOT NULL;`);
-      return new QualificationLedger(pool, new Vault(key));
-    } catch (e) {
-      await pool.end();
-      throw e;
-    }
+    return new QualificationLedger(pool, new Vault(key));
   }
   close() {
     return this.pool.end();

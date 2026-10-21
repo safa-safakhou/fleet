@@ -1,11 +1,13 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { transaction } from "../db.js";
 import { type Data, FleetError } from "../domain.js";
 import type { Claim, Store } from "../store.js";
+import type { EngineProfileRef, RecipientSpec } from "./architecture.js";
 import type { Bindings } from "./bindings.js";
 import type { BindingRef, DomainTime, EnvironmentEvent } from "./contracts.js";
-import type { EngineProfileRef } from "./profiles.js";
+import type { EnvironmentRegistry } from "./environment-registry.js";
+import { ParticipantDelivery } from "./participant-delivery.js";
 export type TaskState = "ready" | "running" | "waiting" | "completed" | "blocked" | "cancelled";
 export interface TaskRecord {
   id: string;
@@ -20,6 +22,8 @@ export interface TaskRecord {
   wake?: Data;
   revision: number;
   code: string | null;
+  participantId?: string;
+  instanceId?: string;
 }
 export interface TaskClaim {
   turn: Claim;
@@ -34,6 +38,7 @@ export class TaskStore {
     readonly store: Store,
     readonly bindings: Bindings,
     readonly maxConcurrency = 1,
+    readonly routingEnvironment?: EnvironmentRegistry,
   ) {}
   async enroll(cohortId: string, profile: EngineProfileRef, timedReviews = false, client?: PoolClient) {
     if (!profile.id || !profile.version) throw new FleetError("INVALID_ENGINE_PROFILE");
@@ -68,6 +73,98 @@ export class TaskStore {
   async upsertFromEvent(binding: BindingRef, event: EnvironmentEvent, key: string): Promise<TaskRecord> {
     const id = await transaction(this.store.pool, (db) => this.upsertWithin(db, binding, event, key));
     return this.get(id);
+  }
+  async publishFromEvent(binding: BindingRef, event: EnvironmentEvent, key: string): Promise<TaskRecord[]> {
+    const ids = await transaction(this.store.pool, (db) => this.publishWithin(db, binding, event, key));
+    return Promise.all(ids.map((id) => this.get(id)));
+  }
+  /** Pure registered routing is evaluated before any inference; legacy source keys stay unchanged. */
+  async publishWithin(db: PoolClient, binding: BindingRef, event: EnvironmentEvent, key: string): Promise<string[]> {
+    const agentId = await this.bindings.agentFor(binding, db),
+      agent = await this.store.agent(agentId, db);
+    const p = (
+      await db.query(
+        "SELECT profile_id,profile_version,architecture_config FROM cohort_engine_profiles WHERE cohort_id=$1",
+        [agent.cohort_id],
+      )
+    ).rows[0];
+    const manifest =
+        p &&
+        this.store.architectures.list().find((m) => m.ref.id === p.profile_id && m.ref.version === p.profile_version),
+      definition = manifest && this.store.architectures.resolve(manifest.ref);
+    if (!definition?.route) return [await this.upsertWithin(db, binding, event, key)];
+    const instanceId = `${binding.id}:${p.profile_id}@${p.profile_version}`,
+      preset = this.routingEnvironment
+        ?.resolve(binding.environment)
+        .specialistPresets?.find((r) => r.id === p.architecture_config.preset),
+      configuration = structuredClone(p.architecture_config),
+      recipients = definition.route(
+        { instanceId, binding, event },
+        preset
+          ? {
+              ...configuration,
+              subscriptions: preset.roles.map((r) => ({
+                participantId: r.charter.id,
+                subscriptionVersion: r.subscriptions.version,
+                categories: r.subscriptions.categories,
+                periodic: r.subscriptions.periodic,
+              })),
+            }
+          : configuration,
+      );
+    return new ParticipantDelivery(this).ingestWithin(db, binding, event, recipients);
+  }
+  async upsertRecipientWithin(
+    db: PoolClient,
+    binding: BindingRef,
+    event: EnvironmentEvent,
+    recipient: RecipientSpec,
+    instanceId: string,
+  ): Promise<string> {
+    const agentId = await this.bindings.agentFor(binding, db),
+      agent = await this.store.agent(agentId, db);
+    const profile = (await db.query("SELECT * FROM cohort_engine_profiles WHERE cohort_id=$1", [agent.cohort_id]))
+      .rows[0];
+    if (!profile || instanceId !== `${binding.id}:${profile.profile_id}@${profile.profile_version}`)
+      throw new FleetError("SPECIALIST_SCOPE_MISMATCH");
+    const key = `participant:${recipient.participantId}:${createHash("sha256")
+      .update(JSON.stringify([instanceId, recipient.taskKey]))
+      .digest("hex")}`;
+    const old = (
+      await db.query(
+        "SELECT id,deadline FROM platform_tasks WHERE binding_id=$1 AND task_key=$2 AND state IN('ready','running','waiting','blocked') FOR UPDATE",
+        [binding.id, key],
+      )
+    ).rows[0];
+    const deadline = earliestDeadline(old?.deadline ?? undefined, event.deadline),
+      deadlineAt = deadline?.clockId === "utc" ? new Date(deadline.value) : null;
+    if (deadlineAt && !Number.isFinite(deadlineAt.getTime())) throw new FleetError("INVALID_DEADLINE");
+    if (old) {
+      await db.query(
+        "UPDATE platform_tasks SET revision=revision+1,state=CASE WHEN state='waiting' THEN 'ready' ELSE state END,wake=NULL,deadline=$2,deadline_at=$3 WHERE id=$1",
+        [old.id, deadline ?? null, deadlineAt],
+      );
+      return old.id;
+    }
+    const id = randomUUID();
+    await db.query(
+      "INSERT INTO platform_tasks(id,binding_id,cohort_id,profile_id,profile_version,task_key,due_at,deadline,deadline_at,created_at,participant_id,architecture_instance_id,owner_priority) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$7,$10,$11,$12)",
+      [
+        id,
+        binding.id,
+        agent.cohort_id,
+        profile.profile_id,
+        profile.profile_version,
+        key,
+        this.store.now(),
+        deadline ?? null,
+        deadlineAt,
+        recipient.participantId,
+        instanceId,
+        profile.architecture_config?.ownerPriorities?.[recipient.participantId] ?? 0,
+      ],
+    );
+    return id;
   }
   /** Caller owns the transaction: source/task/cursor effects commit together. */
   async upsertWithin(db: PoolClient, binding: BindingRef, event: EnvironmentEvent, key: string): Promise<string> {
@@ -136,12 +233,19 @@ export class TaskStore {
     if (!row) throw new FleetError("TASK_NOT_FOUND");
     const refs = (
       await this.store.pool.query(
-        "SELECT source_ref FROM (SELECT source_ref,sequence FROM platform_task_sources WHERE task_id=$1 ORDER BY sequence DESC LIMIT 100) s ORDER BY sequence",
+        row.participant_id
+          ? "SELECT source_ref FROM (SELECT source_ref,sequence FROM specialist_deliveries WHERE task_id=$1 ORDER BY sequence DESC LIMIT 100) s ORDER BY sequence"
+          : "SELECT source_ref FROM (SELECT source_ref,sequence FROM platform_task_sources WHERE task_id=$1 ORDER BY sequence DESC LIMIT 100) s ORDER BY sequence",
         [id],
       )
     ).rows;
     const sourceCount = (
-      await this.store.pool.query("SELECT count(*)::int n FROM platform_task_sources WHERE task_id=$1", [id])
+      await this.store.pool.query(
+        row.participant_id
+          ? "SELECT count(*)::int n FROM specialist_deliveries WHERE task_id=$1"
+          : "SELECT count(*)::int n FROM platform_task_sources WHERE task_id=$1",
+        [id],
+      )
     ).rows[0].n;
     return {
       id: row.id,
@@ -156,19 +260,25 @@ export class TaskStore {
       ...(row.wake ? { wake: row.wake } : {}),
       revision: Number(row.revision),
       code: row.code,
+      ...(row.participant_id ? { participantId: row.participant_id, instanceId: row.architecture_instance_id } : {}),
     };
   }
   async seedScheduled() {
     const rows = (
       await this.store.pool.query(
-        "SELECT a.id,a.next_due_at FROM agents a JOIN cohort_engine_profiles p ON p.cohort_id=a.cohort_id JOIN cohorts c ON c.id=a.cohort_id WHERE p.timed_reviews AND c.state='running' AND a.state='ready' AND a.next_due_at<=$1",
-        [this.store.now()],
+        "SELECT a.id,a.next_due_at FROM agents a JOIN cohort_engine_profiles p ON p.cohort_id=a.cohort_id JOIN cohorts c ON c.id=a.cohort_id JOIN environment_bindings b ON b.agent_id=a.id AND b.state='active' WHERE p.timed_reviews AND c.state='running' AND a.state='ready' AND a.next_due_at<=$1 AND b.environment_id=$2 AND b.environment_version=$3 AND b.instance_id=$4",
+        [
+          this.store.now(),
+          this.bindings.selected.id,
+          this.bindings.selected.version,
+          this.bindings.selected.instanceId,
+        ],
       )
     ).rows;
     for (const row of rows) {
       const binding = await this.bindings.forAgent(row.id);
       if (binding)
-        await this.upsertFromEvent(
+        await this.publishFromEvent(
           binding,
           {
             id: `schedule:${row.next_due_at.toISOString()}`,
@@ -182,7 +292,12 @@ export class TaskStore {
         );
     }
   }
-  async claim(workerId: string, now: Date, selectedTaskId?: string): Promise<TaskClaim | null> {
+  async claim(
+    workerId: string,
+    now: Date,
+    selectedTaskId?: string,
+    beforeAdmit?: (binding: BindingRef) => Promise<void>,
+  ): Promise<TaskClaim | null> {
     await this.store.recoverExpired();
     await this.recover();
     await this.seedScheduled();
@@ -196,13 +311,13 @@ export class TaskStore {
       );
       const candidate = (
         await db.query(
-          `SELECT t.*,a.id actor_agent_id FROM platform_tasks t JOIN environment_bindings b ON b.id=t.binding_id JOIN agents a ON a.id=b.agent_id JOIN cohorts c ON c.id=t.cohort_id JOIN cohort_engine_profiles p ON p.cohort_id=c.id LEFT JOIN platform_cohort_admission admission ON admission.cohort_id=c.id
+          `SELECT t.*,a.id actor_agent_id FROM platform_tasks t JOIN environment_bindings b ON b.id=t.binding_id JOIN agents a ON a.id=b.agent_id JOIN cohorts c ON c.id=t.cohort_id JOIN cohort_engine_profiles p ON p.cohort_id=c.id LEFT JOIN platform_cohort_admission admission ON admission.cohort_id=c.id LEFT JOIN specialist_participant_admission participant ON participant.instance_id=t.architecture_instance_id AND participant.binding_id=t.binding_id AND participant.specialist_id=t.participant_id
     WHERE t.state='ready' AND t.due_at<=$1 AND b.state='active' AND c.state='running' AND a.state='ready' AND a.credential_state='ready' AND c.model IS NOT NULL AND c.budget IS NOT NULL
     AND b.environment_id=$2 AND b.environment_version=$3 AND b.instance_id=$4 AND ($5::uuid IS NULL OR t.id=$5)
     AND NOT EXISTS(SELECT 1 FROM turns x WHERE x.agent_id=a.id AND (x.state IN('running','pending','needs_owner') OR x.pending_command IS NOT NULL))
     AND NOT EXISTS(SELECT 1 FROM agent_blockers x WHERE x.agent_id=a.id) AND NOT EXISTS(SELECT 1 FROM maintenance_holds h WHERE h.cohort_id=c.id AND h.released_at IS NULL)
     AND (SELECT count(*) FROM turns x WHERE x.cohort_id=c.id AND x.state='running')<(c.budget->>'concurrency')::int
-    ORDER BY coalesce(admission.last_ticket,0),c.created_at,c.id,t.owner_priority DESC,t.deadline_at NULLS LAST,t.due_at,t.sequence FOR UPDATE OF t,a SKIP LOCKED LIMIT 1`,
+    ORDER BY coalesce(admission.last_ticket,0),c.created_at,c.id,t.owner_priority DESC,t.deadline_at NULLS LAST,coalesce(participant.last_ticket,0),t.due_at,t.sequence FOR UPDATE OF t,a SKIP LOCKED LIMIT 1`,
           [
             now,
             this.bindings.selected.id,
@@ -213,6 +328,7 @@ export class TaskStore {
         )
       ).rows[0];
       if (!candidate) return null;
+      if (beforeAdmit) await beforeAdmit(await this.bindings.get(candidate.binding_id, db));
       const agent = await this.store.agent(candidate.actor_agent_id, db);
       const turn = await this.store.admitAgent(db, agent, workerId, now, candidate.due_at);
       if (!turn) return null;
@@ -230,6 +346,11 @@ export class TaskStore {
         "INSERT INTO platform_cohort_admission(cohort_id,last_ticket) VALUES($1,nextval('platform_admission_ticket')) ON CONFLICT(cohort_id) DO UPDATE SET last_ticket=excluded.last_ticket",
         [turn.cohortId],
       );
+      if (candidate.participant_id)
+        await db.query(
+          "INSERT INTO specialist_participant_admission VALUES($1,$2,$3,nextval('specialist_admission_ticket')) ON CONFLICT(instance_id,binding_id,specialist_id) DO UPDATE SET last_ticket=excluded.last_ticket",
+          [candidate.architecture_instance_id, candidate.binding_id, candidate.participant_id],
+        );
       return {
         turn,
         taskId: candidate.id,

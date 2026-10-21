@@ -1,6 +1,6 @@
 # Autonomous Specialists and Independent Architectures Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task-by-task. Repository instructions prohibit delegation, including subagent implementation and review. Steps use checkbox (`- [ ]`) syntax for tracking.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans` to implement this plan task-by-task. Repository instructions prohibit delegation, including subagent implementation and review. Steps use checkbox syntax for tracking.
 
 **Goal:** Make all existing Fleet architectures independently maintainable and consistently launchable, and add persistent autonomous specialists with learned procedural skills.
 
@@ -10,9 +10,11 @@
 
 **Spec:** [Approved design, including skills](../specs/2026-10-20-autonomous-specialists-and-modular-architectures-design.md).
 
-**Approval and status:** Founder approved the design and requested this plan on 20 October 2026. Design approval does not mean implementation has run. All 26 tasks in the linked parts start unchecked. Planning baselines: Fleet `c2f7bbd` (application source remains the reviewed `421ad90` source) and PACT `1d93da690cd1a2ae4821b799ca79e5961252e3c8`. The [source review](../../architecture-review-20261020.md) records evidence and existing coupling.
+**Approval and status:** Founder approved the design on 20 October 2026 and subsequently authorized inline offline implementation. All26 source tasks are complete; operational/behavioral qualification remains separate. See the [final source acceptance report](../../autonomous-specialists-source-acceptance-20261020.md) and [earlier negotiation acceptance](../../two-kingdom-negotiation-source-acceptance-20261020.md). No model/game run, installation or activation follows from this source checkpoint. Original planning baselines were Fleet `c2f7bbd` and PACT `1d93da690cd1a2ae4821b799ca79e5961252e3c8`; the [source review](../../architecture-review-20261020.md) preserves the original findings.
 
-**Related proposed milestone — 20 October:** The [two-kingdom negotiation plan](2026-10-20-two-kingdom-negotiation.md) defines a behavioral benchmark before persistent specialists: exact consent, fulfilled supply, verified benefit and later history use. It reuses F00/F01 and proposes `reactive-cognition@2` after F02–F06, preserving the five current `@1` controls. A04 can consume its versioned evidence selector; A07/A08 remain mandatory before autonomous specialists enter PACT comparisons. This planning addition starts no implementation or run. At execution, F01 must capture the later merged repairs as well as the pinned historical baseline. If the extra version is adopted, catalog tests derive version-option counts from registered descriptors; the six architecture families and all original 26 tasks remain in scope.
+**Related proposed milestone — 20 October:** The [two-kingdom negotiation plan](2026-10-20-two-kingdom-negotiation.md) defines a behavioral benchmark before persistent specialists: exact consent, fulfilled supply, verified benefit and later history use. It reuses F00/F01 and proposes `reactive-cognition@2` after F02–F06, preserving the five current `@1` controls. A04 can consume its versioned evidence selector; A07/A08 remain mandatory before autonomous specialists enter PACT comparisons. The later offline assignment implemented F00–F06 and negotiation N01–N08; it started no real-provider stage. At execution, F01 must capture the later merged repairs as well as the pinned historical baseline. If the extra version is adopted, catalog tests derive version-option counts from registered descriptors; the six architecture families and all original 26 tasks remain in scope.
+
+**Final source checkpoint —21 October2026:** All tasks in this part are implemented and offline verified; see [final source acceptance](../../autonomous-specialists-source-acceptance-20261020.md). Checkmarks record delivered scope, not a claim that every historical expected RED was observed. X01/X02 use prior-task and targeted regression evidence; inline author self-review only. E1 operational/behavioral gates remain open. No runtime installation or real-model/game run occurred.
 
 ## Global Constraints
 
@@ -85,17 +87,22 @@ Use these names consistently. Types listed here are proposed new exports unless 
 
 Exact file responsibilities are listed in each part. New root areas: `src/app/`, `src/modules/decision-step/v1/`, `src/modules/continuity/v1/`, `src/modules/evidence/`, `src/modules/skills/v1/`, and `src/engines/autonomous-specialists/`. Do not move unrelated files merely for symmetry.
 
-At this checkpoint the last Fleet migration is `019_profile_comparisons.sql`; reserve these names only when execution starts:
+Implemented migration allocation:020/021 belong to F03/F04,022 to N07 and023 to the separate packing candidate. The actual additive specialist/skill migrations are:
 
 | Migration | Owner |
 | --- | --- |
 | `020_architecture_launch.sql` | F03: immutable draft/config snapshots and idempotency |
 | `021_architecture_operations.sql` | F04: persisted execution modes and allocation dispatch evidence |
-| `022_specialist_state.sql` | A01: instances, private versioned state, goals |
-| `023_specialist_delivery.sql` | A02/A03: recipient deliveries, outbox and wake conditions |
-| `024_specialist_intents.sql` | A05: claims, intent linkage and result outbox |
-| `025_skill_library.sql` | K01: versions, adoptions and evaluation records |
-| `026_skill_invocations.sql` | K04/K05: non-model ledger, invocation/step checkpoints |
+| `022_negotiation_protocols.sql` | N07: one-shot protocol/grant/result digest metadata (not a second spend ledger) |
+| `023_packing_candidate_continuity.sql` | Separate @1.1 candidate isolation |
+| `024_specialist_state.sql` | A01 state, goals and outbox |
+| `025_specialist_delivery.sql` | A02 recipient delivery |
+| `026_specialist_message_bounds.sql` | A03 causal bounds |
+| `027_specialist_private_sources.sql` | A04 private source/retention |
+| `028_specialist_intents.sql` / `029_specialist_original_index.sql` | A05 intents and original command identity |
+| `030_specialist_work_cursors.sql` / `031_specialist_conflicts.sql` / `032_specialist_planning.sql` | A06 bounded work/conflicts/plans |
+| `033_skill_library.sql` / `034_skill_learning.sql` | K01/K02 library and learning |
+| `035_skill_invocations.sql` / `036_skill_composition.sql` | K04–K06 checkpoints, work, goal stamps and composition |
 
 If numbers are occupied by intervening work, choose the next free numbers and update the plan/status references before implementation. Never rename applied migrations. `src/db.ts` explicitly enumerates migrations; update it in the task adding each migration and test repeat application.
 
@@ -132,6 +139,6 @@ The author reviewed design coverage, interface ownership, dependency order, task
 
 The implementation choices introduced by this plan are explicit in the owning tasks: fresh-fixture ownership fencing, small shared-port modules, limited initial PACT action coverage, skill-policy bounds, and authenticated CLI sessions. They do not change the approved goals or grant runtime authority.
 
-Planning verification: all 55 local links across the seven changed Markdown documents resolve; all four plan headers, 26 unique task IDs, 130 unchecked implementation steps, code fences and whitespace were checked. `git diff --check` passed. No application tests, database fixtures, providers or game services were run for this documentation assignment.
+Historical planning verification: all 55 local links across the seven changed Markdown documents resolve; all four plan headers, 26 unique task IDs, 130 unchecked implementation steps, code fences and whitespace were checked. `git diff --check` passed. No application tests, database fixtures, providers or game services were run for this documentation assignment.
 
-This assignment ends with a verified local documentation commit. When implementation is requested, execute this plan directly without delegation; no execution-method question is needed. The design is approved and must not be sent through brainstorming again unless a material requirement changes.
+The original planning assignment ended with a verified local documentation commit. When implementation is requested, execute this plan directly without delegation; no execution-method question is needed. The design is approved and must not be sent through brainstorming again unless a material requirement changes.

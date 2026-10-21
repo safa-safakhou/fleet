@@ -58,10 +58,31 @@ it("preserves legacy identities/settings/history, pending IDs and full unknown a
     history: await history(),
     pending: await pending(),
   };
+  const legacyRows = async () => {
+    const tables = (
+      await f.pool.query(
+        "SELECT table_name FROM information_schema.columns WHERE table_schema='public' AND column_name='cohort_id' ORDER BY table_name",
+      )
+    ).rows;
+    const snapshot: Record<string, unknown> = {};
+    for (const { table_name } of tables) {
+      if (!/^[a-z_]+$/.test(table_name)) throw Error("INVALID_FIXTURE_TABLE");
+      const rows = (
+        await f.pool.query(
+          `SELECT to_jsonb(t) AS row FROM "${table_name}" t WHERE cohort_id=$1 ORDER BY to_jsonb(t)::text`,
+          [legacy],
+        )
+      ).rows;
+      if (rows.length) snapshot[table_name] = rows;
+    }
+    return snapshot;
+  };
+  const allSeededLegacyRows = await legacyRows();
   await migrate(f.pool);
   await migrate(f.pool);
   const tasks = new TaskStore(f.store, f.bindings, 4);
   await tasks.recover();
+  expect(await legacyRows()).toEqual(allSeededLegacyRows);
   const preservation = {
     identitiesUnchanged: JSON.stringify(await identities()) === JSON.stringify(before.identities),
     pendingIdsUnchanged: JSON.stringify(await pending()) === JSON.stringify(before.pending),
@@ -83,4 +104,5 @@ it("preserves legacy identities/settings/history, pending IDs and full unknown a
   expect(await unknown()).toEqual(before.unknown);
   expect(await history()).toEqual(before.history);
   expect(await identities()).toEqual(before.identities);
+  expect(await legacyRows()).toEqual(allSeededLegacyRows);
 });

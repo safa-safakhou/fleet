@@ -30,7 +30,8 @@ it.each([
   try {
     expect(r.settings.liveAllowed).toBe(false);
     const adapter = r.environments.resolve(r.settings.environment);
-    expect(r.engines.list()).toHaveLength(5);
+    expect(r.engines.list().map((e) => e.ref)).toEqual(r.architectures.list().map((m) => m.ref));
+    expect(new Set(r.engines.list().map((e) => e.ref.id)).size).toBe(6);
     for (const engine of r.engines.list()) {
       expect(profileRequirements(engine.ref)).toEqual({
         capabilities: engine.requiredCapabilities,

@@ -51,5 +51,23 @@ export async function migrate(pool: Pool) {
     await c.query(await readFile(resolve("migrations/017_specialist_continuity.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/018_sibling_model_leases.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/019_profile_comparisons.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/020_architecture_launch.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/021_architecture_operations.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/022_negotiation_protocols.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/023_packing_candidate_continuity.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/024_specialist_state.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/025_specialist_delivery.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/026_specialist_message_bounds.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/027_specialist_private_sources.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/028_specialist_intents.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/029_specialist_original_index.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/030_specialist_work_cursors.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/031_specialist_conflicts.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/032_specialist_planning.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/033_skill_library.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/034_skill_learning.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/035_skill_invocations.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/036_skill_composition.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/037_specialist_qualification.sql"), "utf8"));
   });
 }

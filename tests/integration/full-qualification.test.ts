@@ -8,16 +8,14 @@ import {
 import { PactQualificationFixtures } from "../../src/games/pact/qualification.js";
 import { qualifyOutput } from "../../src/qualification.js";
 import { prepareQualification, QualificationLedger, qualificationProfiles } from "../../src/qualification-run.js";
+import { openQualificationFixture } from "../qualification-helpers.js";
 
 const closes: (() => Promise<void>)[] = [];
 afterEach(async () => {
   for (const close of closes.splice(0)) await close();
 });
 async function setup() {
-  const ledger = await QualificationLedger.open(
-    "postgres://fleet_qualification:qualification_fixture@127.0.0.1:5436/fleet_qualification",
-    Buffer.alloc(32, 21).toString("base64"),
-  );
+  const ledger = await openQualificationFixture(Buffer.alloc(32, 21).toString("base64"));
   closes.push(() => ledger.close());
   const history = prepareQualification({
     schemaVersion: "fleet.local-qualification.v1",

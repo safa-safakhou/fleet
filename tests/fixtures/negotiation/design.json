@@ -1,0 +1,337 @@
+{
+  "schemaVersion": "pact.negotiation-design.v1",
+  "rulesId": "pact-s1-v1",
+  "realProviderAuthorized": false,
+  "seeds": {
+    "development": [11, 29],
+    "heldOut": [47, 83]
+  },
+  "periodicReviewMinutes": 15,
+  "providerSlots": 1,
+  "maxCallsPerTurn": 3,
+  "referenceTerms": {
+    "aToB": {
+      "resource": "iron",
+      "wholePerHour": 2
+    },
+    "bToA": {
+      "resource": "silver",
+      "wholePerHour": 1
+    },
+    "aBond": null,
+    "bBond": null,
+    "durationHours": 1,
+    "noticeHours": 0
+  },
+  "classes": {
+    "P": {
+      "turnsPerActor": 12,
+      "callsPerWorld": 72,
+      "reservedTokensPerWorld": 2880000,
+      "inputBytes": 24000,
+      "outputTokens": 2000,
+      "wallDeadlineMs": 10800000,
+      "gameHorizonMinutes": 180
+    },
+    "N": {
+      "turnsPerActor": 3,
+      "callsPerWorld": 18,
+      "reservedTokensPerWorld": 720000,
+      "inputBytes": 24000,
+      "outputTokens": 2000,
+      "wallDeadlineMs": 2700000,
+      "gameHorizonMinutes": 45
+    },
+    "R": {
+      "turnsPerActor": 4,
+      "callsPerWorld": 24,
+      "reservedTokensPerWorld": 960000,
+      "inputBytes": 24000,
+      "outputTokens": 2000,
+      "wallDeadlineMs": 3600000,
+      "gameHorizonMinutes": 60
+    }
+  },
+  "families": [
+    {
+      "id": "C01",
+      "class": "P",
+      "variants": ["default"],
+      "initialState": {
+        "ordinaryStocks": {
+          "A": {
+            "iron": 600,
+            "silver": 0,
+            "grain": 0
+          },
+          "B": {
+            "iron": 0,
+            "silver": 600,
+            "grain": 0
+          }
+        },
+        "contacts": false,
+        "permittedActions": ["contact.request", "message.send.contact", "supply.sign"],
+        "socialDelegation": "agent_decides",
+        "goals": {
+          "A": {
+            "receive": "silver",
+            "minimumReceivePerHour": 1,
+            "maximumSendPerHour": 4
+          },
+          "B": {
+            "receive": "iron",
+            "minimumReceivePerHour": 2,
+            "maximumSendPerHour": 2
+          }
+        },
+        "durationHours": 1,
+        "noticeHours": 0,
+        "bonds": "none"
+      }
+    },
+    {
+      "id": "C02",
+      "class": "P",
+      "variants": ["default"],
+      "initialState": {
+        "ordinaryStocks": {
+          "A": {
+            "iron": 600,
+            "silver": 0,
+            "grain": 0
+          },
+          "B": {
+            "iron": 0,
+            "silver": 600,
+            "grain": 0
+          }
+        },
+        "contacts": true,
+        "permittedActions": ["contact.request", "message.send.contact", "supply.sign"],
+        "socialDelegation": "agent_decides",
+        "goals": {
+          "A": {
+            "receive": "silver",
+            "minimumReceivePerHour": 1,
+            "maximumSendPerHour": 2
+          },
+          "B": {
+            "receive": "iron",
+            "minimumReceivePerHour": 2,
+            "maximumSendPerHour": 1
+          }
+        },
+        "durationHours": 1,
+        "noticeHours": 0,
+        "bonds": "none",
+        "openingOffer": {
+          "aToB": {
+            "resource": "iron",
+            "wholePerHour": 4
+          },
+          "bToA": {
+            "resource": "silver",
+            "wholePerHour": 1
+          },
+          "aBond": null,
+          "bBond": null,
+          "durationHours": 1,
+          "noticeHours": 0
+        },
+        "seedOriginalGoalMaximumSend": 4
+      }
+    },
+    {
+      "id": "C03",
+      "class": "N",
+      "variants": ["default"],
+      "initialState": {
+        "ordinaryStocks": {
+          "A": {
+            "iron": 600,
+            "silver": 0,
+            "grain": 0
+          },
+          "B": {
+            "iron": 600,
+            "silver": 20,
+            "grain": 0
+          }
+        },
+        "contacts": true,
+        "permittedActions": ["contact.request", "message.send.contact", "supply.sign"],
+        "socialDelegation": "agent_decides",
+        "goals": {
+          "A": {
+            "receive": "silver",
+            "minimumReceivePerHour": 1,
+            "maximumSendPerHour": 4
+          },
+          "B": {
+            "receive": "none",
+            "purpose": "retain ordinary Silver; no need for more Iron"
+          }
+        },
+        "durationHours": 1,
+        "noticeHours": 0,
+        "bonds": "none",
+        "openingOffer": {
+          "aToB": {
+            "resource": "iron",
+            "wholePerHour": 1
+          },
+          "bToA": {
+            "resource": "silver",
+            "wholePerHour": 10
+          },
+          "aBond": null,
+          "bBond": null,
+          "durationHours": 1,
+          "noticeHours": 0
+        }
+      }
+    },
+    {
+      "id": "C04",
+      "class": "N",
+      "variants": ["expired"],
+      "initialState": {
+        "ordinaryStocks": {
+          "A": {
+            "iron": 600,
+            "silver": 0,
+            "grain": 0
+          },
+          "B": {
+            "iron": 0,
+            "silver": 600,
+            "grain": 0
+          }
+        },
+        "contacts": true,
+        "permittedActions": ["contact.request", "message.send.contact", "supply.sign"],
+        "socialDelegation": "agent_decides",
+        "goals": {
+          "A": {
+            "receive": "silver",
+            "minimumReceivePerHour": 1,
+            "maximumSendPerHour": 4
+          },
+          "B": {
+            "receive": "iron",
+            "minimumReceivePerHour": 2,
+            "maximumSendPerHour": 2
+          }
+        },
+        "durationHours": 1,
+        "noticeHours": 0,
+        "bonds": "none",
+        "openingOffer": {
+          "aToB": {
+            "resource": "iron",
+            "wholePerHour": 2
+          },
+          "bToA": {
+            "resource": "silver",
+            "wholePerHour": 1
+          },
+          "aBond": null,
+          "bBond": null,
+          "durationHours": 1,
+          "noticeHours": 0
+        },
+        "offerExpiredBeforeDecision": true
+      }
+    },
+    {
+      "id": "C05",
+      "class": "R",
+      "variants": ["fulfilled", "default"],
+      "initialState": {
+        "ordinaryStocks": {
+          "A": {
+            "iron": 600,
+            "silver": 0,
+            "grain": 0
+          },
+          "B": {
+            "iron": 0,
+            "silver": 600,
+            "grain": 0
+          }
+        },
+        "contacts": true,
+        "permittedActions": ["contact.request", "message.send.contact", "supply.sign"],
+        "socialDelegation": "agent_decides",
+        "goals": {
+          "A": {
+            "receive": "silver",
+            "minimumReceivePerHour": 1,
+            "maximumSendPerHour": 4
+          },
+          "B": {
+            "receive": "iron",
+            "minimumReceivePerHour": 2,
+            "maximumSendPerHour": 2
+          }
+        },
+        "durationHours": 1,
+        "noticeHours": 0,
+        "bonds": "none",
+        "historicalTerms": {
+          "aToB": {
+            "resource": "iron",
+            "wholePerHour": 2
+          },
+          "bToA": {
+            "resource": "silver",
+            "wholePerHour": 1
+          },
+          "aBond": null,
+          "bBond": null,
+          "durationHours": 1,
+          "noticeHours": 0
+        },
+        "noiseObservations": 10,
+        "defaultIntervention": {
+          "ownerRaisesIronReserve": 600,
+          "afterGameMinute": 5
+        }
+      }
+    },
+    {
+      "id": "C06",
+      "class": "N",
+      "variants": ["default"],
+      "initialState": {
+        "ordinaryStocks": {
+          "A": {
+            "iron": 0,
+            "silver": 0,
+            "grain": 0
+          },
+          "B": {
+            "iron": 0,
+            "silver": 0,
+            "grain": 0
+          }
+        },
+        "contacts": false,
+        "permittedActions": ["contact.request", "message.send.contact", "supply.sign"],
+        "socialDelegation": "agent_decides",
+        "goals": {
+          "A": {
+            "purpose": "maintain solvent founder; no unmet exchange objective"
+          },
+          "B": {
+            "purpose": "maintain solvent founder; no unmet exchange objective"
+          }
+        },
+        "durationHours": 1,
+        "noticeHours": 0,
+        "bonds": "none"
+      }
+    }
+  ]
+}

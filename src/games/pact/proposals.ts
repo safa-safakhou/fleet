@@ -7,12 +7,14 @@ import { goalActionOutcomeSchema, validateGoalAction } from "./goal-state.js";
 import { tradeExpectedOutcomeSchema, tradePreflight } from "./trade.js";
 
 /** Generation constraints describe conditional choices, never permission. */
-export function pactActionContracts(facts: Data): ActionContract[] {
+export function pactActionContracts(facts: Data, allowedActionKeys?: readonly string[]): ActionContract[] {
   const available = pactAdapter.availableActions?.(facts, null);
-  const variants = (available?.kinds ?? []).flatMap((kind) => {
-    const shape = observedActionSchema(kind, facts);
-    return shape ? [shape] : [];
-  });
+  const variants = (available?.kinds ?? [])
+    .filter((kind) => allowedActionKeys === undefined || allowedActionKeys.includes(kind))
+    .flatMap((kind) => {
+      const shape = observedActionSchema(kind, facts);
+      return shape ? [shape] : [];
+    });
   const trade = variants.filter((s) =>
     ["game.supply.offer", "game.supply.counter", "game.supply.sign"].includes(
       String(object(object(s.properties).kind).const),

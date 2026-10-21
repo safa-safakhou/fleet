@@ -75,7 +75,7 @@ it("admits two focused workers and a coordinator in the same three-call budget",
   const f = await setup(),
     inputs: unknown[] = [];
   const h = f.host(modelFor(inputs));
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await h.host.run(f.claim);
   expect(inputs).toHaveLength(3);
   expect(f.board.debits).toBe(40);
@@ -91,7 +91,7 @@ it("uses actual remaining slots and never starts a third worker at the expense o
   const allocation = await f.store.reserveCall(f.claim.turn);
   await f.store.recordUsage(allocation, 10, 10);
   const h = f.host(modelFor(inputs));
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await h.host.run(f.claim);
   expect(inputs).toHaveLength(2);
   expect((inputs[0] as { coverage: { focusesOmitted: number } }).coverage.focusesOmitted).toBeGreaterThan(0);
@@ -108,7 +108,7 @@ it("rejects a proposal made stale during coordinator inference before any comman
     },
   };
   const h = f.host(model);
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await expect(h.host.run(f.claim)).rejects.toThrow("STALE_PROPOSAL");
   expect(f.board.debits).toBe(0);
   expect((await f.pool.query("SELECT * FROM platform_commands")).rowCount).toBe(0);
@@ -139,7 +139,7 @@ it.each([
     },
   };
   const h = f.host(model);
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   const run = h.host.run(f.claim);
   try {
     await expect.poll(() => releases.length).toBe(want);
@@ -168,7 +168,7 @@ it("rejects source forgery before a worker can execute or get selected", async (
       },
     };
   const h = f.host(model);
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await expect(h.host.run(f.claim)).rejects.toThrow("PROPOSAL_SOURCE_NOT_DELIVERED");
   expect(f.board.debits).toBe(0);
 });
@@ -184,7 +184,7 @@ it("environment validation rejects omitted resource effects rather than trusting
       },
     };
   const h = f.host(model);
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await h.host.run(f.claim);
   expect(f.board.debits).toBe(0);
   expect(inputs).toHaveLength(2);
@@ -201,7 +201,7 @@ it("cancels all siblings, settles late usage and prevents old results from actin
     },
   };
   const h = f.host(model);
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   const run = h.host.run(f.claim);
   const rejection = run.then(
     () => {
@@ -230,7 +230,7 @@ it("retains unknown allocations and never coordinates or commits after a worker 
       },
     },
     h = f.host(model);
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await expect(h.host.run(f.claim)).rejects.toThrow();
   expect(f.board.debits).toBe(0);
   expect((await f.pool.query("SELECT status,tokens FROM compute_ledger")).rows).toEqual([
@@ -253,7 +253,7 @@ it("keeps bounded focused inputs honest when large sections must be omitted", as
   };
   const inputs: unknown[] = [],
     h = f.host(modelFor(inputs));
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await h.host.run(f.claim);
   expect(JSON.stringify(inputs)).toContain("focusKeysOmitted");
   expect(f.board.debits).toBe(40);
@@ -263,7 +263,7 @@ it("does not admit the specialist profile without an environment conflict/revisi
   f.environments.resolve(f.group.bindings[0].environment).capabilities.coordination = false;
   const inputs: unknown[] = [],
     h = f.host(modelFor(inputs));
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await expect(h.host.run(f.claim)).rejects.toThrow("UNSUPPORTED_CAPABILITY");
   expect(inputs).toHaveLength(0);
 });
@@ -283,9 +283,7 @@ it.each(["coordinator", "broker"])(
       },
     };
     const h = f.host(model);
-    h.engines.register(
-      option === "broker" ? new IndependentSubmitCandidate(f.module) : new SpecialistCoordinatorEngine(f.module),
-    );
+    h.engines.register(option === "broker" ? new IndependentSubmitCandidate() : new SpecialistCoordinatorEngine());
     await expect(h.host.run(f.claim)).rejects.toThrow();
     const rows = (await f.pool.query("SELECT status,tokens FROM compute_ledger ORDER BY created_at,id")).rows;
     expect(rows).toHaveLength(2);
@@ -307,9 +305,7 @@ it.each(["coordinator", "broker"])(
       },
     };
     const h = f.host(model);
-    h.engines.register(
-      option === "broker" ? new IndependentSubmitCandidate(f.module) : new SpecialistCoordinatorEngine(f.module),
-    );
+    h.engines.register(option === "broker" ? new IndependentSubmitCandidate() : new SpecialistCoordinatorEngine());
     const run = h.host.run(f.claim).then(
       () => null,
       (error) => error,
@@ -363,8 +359,7 @@ it("compares identical two-focus workloads and caps including coordinator cost a
           },
         };
         const h = f.host(model),
-          engine =
-            option === "broker" ? new IndependentSubmitCandidate(f.module) : new SpecialistCoordinatorEngine(f.module);
+          engine = option === "broker" ? new IndependentSubmitCandidate() : new SpecialistCoordinatorEngine();
         h.engines.register(engine);
         let code = "COMPLETED";
         try {
@@ -438,7 +433,7 @@ it("the environment rejects a state change between preflight and atomic commit w
     };
   };
   const h = f.host(modelFor([]));
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await h.host.run(f.claim);
   expect(f.board.debits).toBe(0);
   expect((await f.pool.query("SELECT state FROM platform_commands")).rows).toEqual([{ state: "rejected" }]);
@@ -478,7 +473,7 @@ it("saves coordinator continuity in its separate namespace before action and res
     },
   };
   const h = f.host(model);
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await h.host.run(f.claim);
   expect(savedBefore).toBe(true);
   expect((await f.module.inspect(f.group.bindings[0])).available).toBe(false);
@@ -553,7 +548,7 @@ it("an uncertain command survives restart and resolves through its original rece
     };
   };
   const h = f.host(modelFor([]));
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await h.host.run(f.claim);
   expect((await f.tasks.get(f.claim.taskId)).state).toBe("blocked");
   const before = (await f.pool.query("SELECT command_id,state FROM platform_commands")).rows[0];
@@ -583,7 +578,7 @@ it.each([false, true])(
         return base.decide(input);
       },
     });
-    h.engines.register(new SpecialistCoordinatorEngine(f.module));
+    h.engines.register(new SpecialistCoordinatorEngine());
     await h.host.run(f.claim);
     expect(inputs).toHaveLength(3);
     expect((inputs[2] as { stage: string }).stage).toBe("coordinator");
@@ -603,7 +598,7 @@ it("retries the task later when every focused worker fails with known usage", as
       return { decision: null, decisionError: "MODEL_THINKING_WITHOUT_FINAL", inputTokens: 70, outputTokens: 44 };
     },
   });
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await expect(h.host.run(f.claim)).rejects.toThrow("MODEL_OUTPUT_RETRY_EXHAUSTED");
   expect(calls).toBe(2);
   expect((await f.tasks.get(f.claim.taskId)).state).toBe("waiting");
@@ -626,7 +621,7 @@ it("corrects a worker output when an existing fourth slot is available and still
       return base.decide(input);
     },
   });
-  h.engines.register(new SpecialistCoordinatorEngine(f.module));
+  h.engines.register(new SpecialistCoordinatorEngine());
   await h.host.run(f.claim);
   expect(inputs).toHaveLength(4);
   expect((inputs[3] as { stage: string }).stage).toBe("coordinator");

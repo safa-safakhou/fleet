@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { hostScopeFactory } from "../src/app/host-services.js";
 import type { ModelPort } from "../src/domain.js";
 import { ModelAdmission, RouteCapacity } from "../src/platform/admission.js";
 import { Bindings } from "../src/platform/bindings.js";
@@ -14,9 +15,9 @@ export const profile = { id: "fixture-loop", version: "1" };
 export async function platformFixture(capacity = 2) {
   const f = await fixture(),
     bindings = new Bindings(f.store, boardRef),
-    tasks = new TaskStore(f.store, bindings, 4),
     board = boardEnvironment(),
-    environments = new EnvironmentRegistry([board.adapter], boardRef);
+    environments = new EnvironmentRegistry([board.adapter], boardRef),
+    tasks = new TaskStore(f.store, bindings, 4, environments);
   const route = new RouteCapacity(f.store, () => ({ key: `fixture:${key}`, capacity })),
     key = randomUUID();
   async function cohort(count = 2) {
@@ -82,13 +83,14 @@ export async function platformFixture(capacity = 2) {
   });
   function host(
     model: ModelPort,
-    run?: Parameters<EngineRegistry["register"]>[0]["run"],
+    run?: import("../src/platform/engine-registry.js").AgentEngine["run"],
     requirements: CapabilityRequirements = {},
+    architectureRegistry?: import("../src/platform/architecture.js").ArchitectureRegistry,
   ) {
     const admission = new ModelAdmission(f.store, tasks, model, route),
       commands = new CommandExecutor(f.store, tasks, bindings, environments),
       supervisor = new OperationSupervisor(tasks);
-    const engines = new EngineRegistry();
+    const engines = new EngineRegistry([], architectureRegistry);
     engines.register({
       ref: profile,
       requiredCapabilities: requirements,
@@ -100,7 +102,16 @@ export async function platformFixture(capacity = 2) {
         }),
     });
     return {
-      host: new PlatformHost(tasks, bindings, environments, engines, admission, commands, supervisor),
+      host: new PlatformHost(
+        tasks,
+        bindings,
+        environments,
+        engines,
+        admission,
+        commands,
+        supervisor,
+        hostScopeFactory({ store: f.store, tasks, bindings, model: admission, commands }),
+      ),
       admission,
       commands,
       supervisor,

@@ -1,4 +1,5 @@
 import { FleetError } from "../domain.js";
+import { ActionEffectsSchema, actionIntentDigest } from "./action-effects.js";
 import type {
   ActionOutcome,
   BindingRef,
@@ -32,7 +33,15 @@ export function requireCapabilities(
     (required.timing && !required.timing.includes(c.timing)) ||
     (required.nativeIdempotency && c.idempotency !== "native") ||
     (
-      ["outcomeLookup", "parallelReasoning", "social", "simulationControls", "continuity", "coordination"] as const
+      [
+        "outcomeLookup",
+        "parallelReasoning",
+        "social",
+        "simulationControls",
+        "continuity",
+        "coordination",
+        "actionEffects",
+      ] as const
     ).some((key) => required[key] && !c[key])
   )
     throw new FleetError("UNSUPPORTED_CAPABILITY");
@@ -69,6 +78,10 @@ export class EnvironmentRegistry {
       adapter = this.resolve(binding.environment);
     requireCapabilities(adapter, required, schemas);
     const session = await adapter.connect(binding);
+    if (adapter.capabilities.actionEffects && !session.effects) {
+      await session.close();
+      throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED");
+    }
     if (adapter.capabilities.events !== "none" && !session.events) {
       await session.close();
       throw new FleetError("UNSUPPORTED_CAPABILITY");
@@ -117,21 +130,36 @@ export class EnvironmentRegistry {
         };
       },
       catalog: () => session.catalog(),
+      ...(session.projectObservation ? { projectObservation: session.projectObservation.bind(session) } : {}),
       ...(session.packObservation ? { packObservation: session.packObservation.bind(session) } : {}),
       ...(session.waitSchema ? { waitSchema: session.waitSchema.bind(session) } : {}),
       ...(session.validateWait ? { validateWait: session.validateWait.bind(session) } : {}),
       ...(session.validateProposal ? { validateProposal: session.validateProposal.bind(session) } : {}),
       ...(session.actionContracts
         ? {
-            actionContracts: async (observation: import("./contracts.js").Observation) => {
-              const contracts = (await session.actionContracts?.(observation)) ?? [];
+            actionContracts: async (...args: Parameters<NonNullable<EnvironmentSession["actionContracts"]>>) => {
+              const contracts = (await session.actionContracts?.(...args)) ?? [];
               if (contracts.some((c) => !adapter.schemas.actions.includes(c.schemaId)))
                 throw new FleetError("UNSUPPORTED_SCHEMA", true);
               return contracts;
             },
           }
         : {}),
+      ...(session.effects && adapter.capabilities.actionEffects
+        ? {
+            effects: async (intent: import("./contracts.js").ActionIntent) => {
+              if (intent.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH", true);
+              if (!adapter.schemas.actions.includes(intent.schemaId)) throw new FleetError("UNSUPPORTED_SCHEMA", true);
+              const quote = ActionEffectsSchema.parse(await session.effects?.(intent));
+              if (quote.intentDigest !== actionIntentDigest(intent))
+                throw new FleetError("EFFECT_INTENT_MISMATCH", true);
+              return quote;
+            },
+          }
+        : {}),
       execute: async (intent) => {
+        if (intent.guard && !adapter.capabilities.actionEffects)
+          throw new FleetError("ACTION_EFFECTS_UNSUPPORTED", true);
         if (intent.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH");
         if (!adapter.schemas.actions.includes(intent.schemaId)) throw new FleetError("UNSUPPORTED_SCHEMA");
         return outcome(await session.execute(intent), intent.commandId);

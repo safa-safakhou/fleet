@@ -14,7 +14,9 @@ import {
   type Strategy,
   strategy,
 } from "./domain.js";
+import { legacyUndispatchedPhase } from "./engines/legacy/execution.js";
 import { Observability } from "./observability.js";
+import { ArchitectureRegistry } from "./platform/architecture.js";
 import type { Vault } from "./vault.js";
 
 export interface AgentRow {
@@ -75,6 +77,7 @@ export class Store {
     readonly pool: Pool,
     readonly vault: Vault,
     readonly now: () => Date = () => new Date(),
+    readonly architectures: ArchitectureRegistry = new ArchitectureRegistry(),
   ) {}
   async cohort(id: string, client: Pool | PoolClient = this.pool): Promise<CohortRow> {
     const r = await client.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1", [id]);
@@ -182,10 +185,11 @@ export class Store {
       const row = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];
       if (!row) throw new FleetError("NOT_FOUND");
       if (!["draft", "paused"].includes(row.state)) throw new FleetError("COHORT_NOT_EDITABLE");
+      const hasTasks = Boolean((await c.query("SELECT to_regclass('platform_tasks') AS relation")).rows[0].relation);
       if (
         (
           await c.query(
-            "SELECT 1 FROM compute_ledger WHERE cohort_id=$1 UNION ALL SELECT 1 FROM turns WHERE cohort_id=$1 LIMIT 1",
+            `SELECT 1 FROM compute_ledger WHERE cohort_id=$1 UNION ALL SELECT 1 FROM turns WHERE cohort_id=$1 ${hasTasks ? "UNION ALL SELECT 1 FROM platform_tasks WHERE cohort_id=$1" : ""} LIMIT 1`,
             [id],
           )
         ).rowCount
@@ -193,18 +197,21 @@ export class Store {
         throw new FleetError("CONSUMED_CONFIG_IMMUTABLE");
       const hasProfiles = (await c.query("SELECT to_regclass('cohort_engine_profiles') AS relation")).rows[0].relation;
       const selected = hasProfiles
-        ? (await c.query("SELECT profile_id,profile_version FROM cohort_engine_profiles WHERE cohort_id=$1", [id]))
-            .rows[0]
+        ? (
+            await c.query(
+              "SELECT profile_id,profile_version,architecture_config FROM cohort_engine_profiles WHERE cohort_id=$1",
+              [id],
+            )
+          ).rows[0]
         : undefined;
-      if (
-        selected &&
-        (selected.profile_version !== "1" ||
-          (selected.profile_id === "legacy-loop" && model.cognition) ||
-          (selected.profile_id === "legacy-cognition" && !model.cognition) ||
-          (!["legacy-loop", "legacy-cognition"].includes(selected.profile_id) &&
-            (model.cognition || model.recallAssist)))
-      )
-        throw new FleetError("PROFILE_CONFIGURATION_MISMATCH");
+      if (selected) {
+        const issues = this.architectures.validate(
+          { id: selected.profile_id, version: selected.profile_version },
+          selected.architecture_config ?? {},
+          { model, budget },
+        );
+        if (issues.length) throw new FleetError(issues[0].code);
+      }
       await c.query("UPDATE cohorts SET model=$2,budget=$3,generation=generation+1 WHERE id=$1", [id, model, budget]);
       await this.audit(c, id, "cohort.configured", { route: model.route, model: model.model });
     };
@@ -215,7 +222,48 @@ export class Store {
       await this.cohort(id, c);
       await c.query("UPDATE cohorts SET observation_consent=$2 WHERE id=$1", [id, enabled]);
       if (!enabled) {
+        for (const [table, column] of [
+          ["specialist_deliveries", "detail_cipher"],
+          ["specialist_outbox", "payload_cipher"],
+          ["specialist_wakes", "condition_cipher"],
+          ["specialist_claims", "claims_cipher"],
+          ["specialist_intents", "effects_cipher"],
+          ["specialist_planning_intents", "detail_cipher"],
+          ["specialist_conflicts", "detail_cipher"],
+          ["skill_versions", "body_cipher"],
+          ["skill_versions", "summary_cipher"],
+          ["skill_evaluations", "detail_cipher"],
+          ["skill_invocations", "detail_cipher"],
+        ])
+          await c.query(
+            `UPDATE ${table} SET ${column}=NULL WHERE binding_id IN(SELECT b.id FROM environment_bindings b JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)`,
+            [id],
+          );
+        await c.query(
+          "UPDATE specialist_conflict_revisions SET detail_cipher=NULL WHERE conflict_id IN(SELECT c.id FROM specialist_conflicts c JOIN environment_bindings b ON b.id=c.binding_id JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)",
+          [id],
+        );
+        await c.query(
+          "UPDATE skill_versions SET status='suspended' WHERE binding_id IN(SELECT b.id FROM environment_bindings b JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)",
+          [id],
+        );
+        await c.query(
+          "UPDATE skill_checkpoints SET detail_cipher=NULL WHERE invocation_id IN(SELECT i.id FROM skill_invocations i JOIN environment_bindings b ON b.id=i.binding_id JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)",
+          [id],
+        );
+        await c.query(
+          "UPDATE specialist_states s SET state_cipher=NULL,support_ids=\u0027{}\u0027,version=version+1 WHERE s.binding_id IN(SELECT b.id FROM environment_bindings b JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)",
+          [id],
+        );
         await c.query("DELETE FROM communications WHERE cohort_id=$1", [id]);
+        await c.query(
+          "DELETE FROM architecture_scoped_state s USING environment_bindings b,agents a WHERE s.binding_id=b.id AND b.agent_id=a.id AND a.cohort_id=$1",
+          [id],
+        );
+        await c.query(
+          "DELETE FROM architecture_scoped_evidence e USING environment_bindings b,agents a WHERE e.binding_id=b.id AND b.agent_id=a.id AND a.cohort_id=$1",
+          [id],
+        );
         await c.query("UPDATE turn_events SET detail_cipher=NULL WHERE cohort_id=$1", [id]);
       }
       await this.audit(c, id, "observation.consent", { enabled });
@@ -249,9 +297,15 @@ export class Store {
   async setState(id: string, state: "running" | "paused" | "stopped", liveAllowed: boolean) {
     return this.setStates([id], state, liveAllowed);
   }
-  async setStates(ids: string[], state: "running" | "paused" | "stopped", liveAllowed: boolean, initialOnly = false) {
+  async setStates(
+    ids: string[],
+    state: "running" | "paused" | "stopped",
+    liveAllowed: boolean,
+    initialOnly = false,
+    client?: PoolClient,
+  ) {
     const now = this.now();
-    await transaction(this.pool, async (c) => {
+    const write = async (c: PoolClient) => {
       for (const id of [...new Set(ids)].sort()) {
         const row = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];
         if (!row) throw new FleetError("NOT_FOUND");
@@ -329,7 +383,8 @@ export class Store {
         }
         await this.audit(c, id, `cohort.${state}`, {});
       }
-    });
+    };
+    return client ? write(client) : transaction(this.pool, write);
   }
   async agentState(id: string, state: "ready" | "paused", liveAllowed: boolean) {
     await transaction(this.pool, async (c) => {
@@ -508,7 +563,13 @@ export class Store {
   }
   async notDispatched(id: string) {
     // Retain allocation/call counters; this is execution evidence, never fabricated zero usage.
-    await this.pool.query("UPDATE compute_ledger SET status='not_dispatched' WHERE id=$1 AND status='reserved'", [id]);
+    await transaction(this.pool, async (c) => {
+      await c.query("UPDATE compute_ledger SET status='not_dispatched' WHERE id=$1 AND status='reserved'", [id]);
+      await c.query(
+        "UPDATE architecture_allocations SET dispatch_state='not_dispatched',updated_at=$2 WHERE allocation_id=$1 AND EXISTS(SELECT 1 FROM compute_ledger WHERE id=$1 AND status='not_dispatched')",
+        [id, this.now()],
+      );
+    });
   }
   async beginMaintenance(cohortId: string, reason: string) {
     if (reason.trim().length < 10 || reason.length > 400) throw new FleetError("MAINTENANCE_REASON_REQUIRED");
@@ -532,6 +593,21 @@ export class Store {
       [id, owner, now, release],
     );
     if (!result.rowCount) throw new FleetError("MAINTENANCE_NOT_QUIESCENT_OR_FENCED");
+  }
+  private async settleModernUndispatched(c: PoolClient, turnId: string) {
+    const present = Boolean(
+      (await c.query("SELECT 1 FROM architecture_operations WHERE turn_id=$1", [turnId])).rowCount,
+    );
+    if (!present) return false;
+    await c.query(
+      "UPDATE compute_ledger l SET status='not_dispatched' FROM architecture_allocations a WHERE l.id=a.allocation_id AND a.turn_id=$1 AND a.dispatch_state='prepared' AND l.status='reserved'",
+      [turnId],
+    );
+    await c.query(
+      "UPDATE architecture_allocations a SET dispatch_state='not_dispatched',updated_at=$2 FROM compute_ledger l WHERE a.allocation_id=l.id AND a.turn_id=$1 AND l.status='not_dispatched'",
+      [turnId, this.now()],
+    );
+    return true;
   }
   async recoverExpired() {
     const now = this.now();
@@ -562,15 +638,16 @@ export class Store {
             [t.id],
           )
         ).rows[0];
-        // A parent phase cannot prove that every sibling was never dispatched.
-        if (
-          operation?.profile_id !== "specialist-coordinator" &&
-          ["model_preparing_tracked", "model_reserved_tracked"].includes(operation?.phase)
-        )
+        const modern = await this.settleModernUndispatched(c, t.id);
+        if (!modern && legacyUndispatchedPhase(operation))
           await c.query("UPDATE compute_ledger SET status='not_dispatched' WHERE turn_id=$1 AND status='reserved'", [
             t.id,
           ]);
         await c.query("UPDATE compute_ledger SET status='unknown' WHERE turn_id=$1 AND status='reserved'", [t.id]);
+        await c.query(
+          "UPDATE architecture_allocations a SET dispatch_state='unknown',updated_at=$2 FROM compute_ledger l WHERE a.allocation_id=l.id AND a.turn_id=$1 AND l.status='unknown'",
+          [t.id, now],
+        );
         const unknown = Boolean(
           (await c.query("SELECT 1 FROM compute_ledger WHERE turn_id=$1 AND status='unknown' LIMIT 1", [t.id]))
             .rowCount,
@@ -663,6 +740,15 @@ export class Store {
       ]);
     });
   }
+  private async architectureMetadataAvailable(c: PoolClient) {
+    const row = (
+      await c.query(
+        "SELECT to_regclass('architecture_operations') AS operations,to_regclass('architecture_allocations') AS allocations",
+      )
+    ).rows[0];
+    if (Boolean(row.operations) !== Boolean(row.allocations)) throw new FleetError("ARCHITECTURE_MIGRATION_INCOMPLETE");
+    return Boolean(row.operations);
+  }
   async reserveCall(claim: Claim, reserveCalls = 0) {
     if (!Number.isSafeInteger(reserveCalls) || reserveCalls < 0 || reserveCalls > 2)
       throw new FleetError("MODEL_RETRY_BUDGET", true);
@@ -705,6 +791,11 @@ export class Store {
         "INSERT INTO compute_ledger(id,cohort_id,turn_id,period,tokens,created_at) VALUES($1,$2,$3,$4,$5,$6)",
         [id, claim.cohortId, claim.id, period, b.perCallTokenLimit, now],
       );
+      if (await this.architectureMetadataAvailable(c))
+        await c.query(
+          "INSERT INTO architecture_allocations(allocation_id,turn_id,updated_at) SELECT $1,turn_id,$3 FROM architecture_operations WHERE turn_id=$2",
+          [id, claim.id, now],
+        );
       await c.query("UPDATE turns SET calls=calls+1 WHERE id=$1", [claim.id]);
       return id;
     });
@@ -720,6 +811,12 @@ export class Store {
           [id, input, output, this.now()],
         );
       if (row?.status !== "reserved") return;
+      if (await this.architectureMetadataAvailable(c))
+        await c.query("UPDATE architecture_allocations SET dispatch_state=$2,updated_at=$3 WHERE allocation_id=$1", [
+          id,
+          input === null || output === null ? "unknown" : "settled",
+          this.now(),
+        ]);
       const reported = input !== null && output !== null;
       if (reported)
         await c.query("UPDATE compute_ledger SET tokens=greatest(tokens,$2) WHERE id=$1", [id, input + output]);
@@ -853,11 +950,18 @@ export class Store {
       const t = (await c.query("SELECT * FROM turns WHERE id=$1 FOR UPDATE", [claim.id])).rows[0];
       if (!t || !(onlyRunning ? ["running"] : ["running", "pending", "needs_owner"]).includes(t.state)) return;
       await this.settleUndispatched(c, t);
+      await this.settleModernUndispatched(c, claim.id);
       const unknown = await c.query(
         "UPDATE compute_ledger SET status='unknown' WHERE turn_id=$1 AND status='reserved' RETURNING id",
         [claim.id],
       );
-      if (unknown.rowCount) await c.query("UPDATE turns SET unknown_usage=true WHERE id=$1", [claim.id]);
+      if (unknown.rowCount) {
+        await c.query("UPDATE turns SET unknown_usage=true WHERE id=$1", [claim.id]);
+        await c.query(
+          "UPDATE architecture_allocations a SET dispatch_state='unknown',updated_at=$2 FROM compute_ledger l WHERE a.allocation_id=l.id AND a.turn_id=$1 AND l.status='unknown'",
+          [claim.id, this.now()],
+        );
+      }
       const fenced =
         (await c.query("SELECT 1 FROM agents WHERE id=$1 AND fence=$2", [claim.agentId, claim.fence])).rowCount === 0;
       const pending = Boolean(t.pending_command),

@@ -6,6 +6,7 @@ import { ReactiveEngine } from "../../src/engines/reactive/engine.js";
 import { expandFactTables } from "../../src/fact-table.js";
 import { compactEnvironment } from "../../src/games/pact/environment.js";
 import { reactiveProbe } from "../reactive-probe-context.js";
+import { continuityProbe, decisionProbe } from "../scoped-probe.js";
 
 const fixture = JSON.parse(readFileSync("tests/fixtures/production-largest-cognition.json", "utf8"));
 for (const cognition of [false, true])
@@ -51,21 +52,23 @@ for (const cognition of [false, true])
         facts: [],
       };
     const engine = cognition
-      ? new ContinuityEngine({
-          context: async () => ({
-            version: 0,
-            self: { needs: {}, dependencies: {} },
-            evidence: [],
-            memories: [],
-            beliefs: [],
-            predictions: [],
-            reflections: [],
-            plan: null,
-          }),
-          restrict: () => {},
-        } as never)
+      ? new ContinuityEngine(
+          continuityProbe({
+            context: async () => ({
+              version: 0,
+              self: { needs: {}, dependencies: {} },
+              evidence: [],
+              memories: [],
+              beliefs: [],
+              predictions: [],
+              reflections: [],
+              plan: null,
+            }),
+            restrict: () => {},
+          } as never),
+        )
       : new ReactiveEngine();
-    await engine.run(ctx);
+    await engine.run(decisionProbe(ctx));
     expect(requests).toBe(1);
     expect(ctx.observation.payload.environment).toEqual(fixture.environment);
   });
@@ -79,7 +82,7 @@ it("refuses an undeliverable whole core before invoking a model, rather than del
   ctx.packObservation = () => {
     throw Error("CONTEXT_LIMIT");
   };
-  await expect(new ReactiveEngine().run(ctx)).rejects.toThrow("CONTEXT_LIMIT");
+  await expect(new ReactiveEngine().run(decisionProbe(ctx))).rejects.toThrow("CONTEXT_LIMIT");
   expect(called).toBe(false);
 });
 it.each([false, true])("uses the actual remaining envelope for a core above half, cognition=%s", async (cognition) => {
@@ -120,21 +123,23 @@ it.each([false, true])("uses the actual remaining envelope for a core above half
         }
       : { valid: true, code: "VALID" };
   const engine = cognition
-    ? new ContinuityEngine({
-        context: async () => ({
-          version: 0,
-          self: {},
-          evidence: [],
-          memories: [],
-          beliefs: [],
-          predictions: [],
-          reflections: [],
-          plan: null,
-        }),
-        restrict: () => {},
-      } as never)
+    ? new ContinuityEngine(
+        continuityProbe({
+          context: async () => ({
+            version: 0,
+            self: {},
+            evidence: [],
+            memories: [],
+            beliefs: [],
+            predictions: [],
+            reflections: [],
+            plan: null,
+          }),
+          restrict: () => {},
+        } as never),
+      )
     : new ReactiveEngine();
-  await engine.run(ctx);
+  await engine.run(decisionProbe(ctx));
   expect(calls).toBe(2);
   expect(ctx.observation.payload).toEqual(current);
 });
@@ -168,18 +173,20 @@ it("reduces optional continuity records further when they crowd out an otherwise
     if (Buffer.byteLength(JSON.stringify(packed)) > limit) throw new FleetError("CONTEXT_LIMIT", true);
     return packed;
   };
-  await new ContinuityEngine({
-    context: async () => ({
-      version: 0,
-      self: { needs: { feasibility: Array.from({ length: 3 }, () => ({ value: "f".repeat(5000) })) } },
-      evidence: [],
-      memories: [],
-      beliefs: [],
-      predictions: [],
-      reflections: [],
-      plan: null,
-    }),
-    restrict: () => {},
-  } as never).run(ctx);
+  await new ContinuityEngine(
+    continuityProbe({
+      context: async () => ({
+        version: 0,
+        self: { needs: { feasibility: Array.from({ length: 3 }, () => ({ value: "f".repeat(5000) })) } },
+        evidence: [],
+        memories: [],
+        beliefs: [],
+        predictions: [],
+        reflections: [],
+        plan: null,
+      }),
+      restrict: () => {},
+    } as never),
+  ).run(decisionProbe(ctx));
   expect(requests).toBe(1);
 });

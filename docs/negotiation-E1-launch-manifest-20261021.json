@@ -1,0 +1,610 @@
+{
+  "privatePreparationEvidence": {
+    "encryptedOutsideGit": true,
+    "separateOwnerOnlyKey": true,
+    "archiveSha256": "2d1694cef0ba3ab55d60b740065113c1ce10ed91ec1c2bb5500eb134619f8015",
+    "files": 27,
+    "authenticatedDecryptVerified": true
+  },
+  "schemaVersion": "fleet.negotiation-E1-launch-manifest-draft.v1",
+  "recordedAt": "2026-10-21T00:43:11.751Z",
+  "status": "baseline_amendment_review_required_launch_not_ready",
+  "approved": false,
+  "ready": false,
+  "realProviderAuthorized": false,
+  "reviewScope": "separate packing candidate and baseline amendment only; not launch approval",
+  "verifiedPreparationSources": {
+    "fleet": "7bb9313efd5e90ffa4f4406b0de5bfa8e96d9b32",
+    "pact": "eaf382f85f570d5e6341f358adefbf20fbd1084b"
+  },
+  "executionSources": null,
+  "operationalBundle": null,
+  "originalProposal": {
+    "path": "negotiation-E1-approval-20261021.json",
+    "sha256": "7f57d47b5e3b8df769e35ccd69ed471117da247bd5c5db43f4c5e2aef132e2b0",
+    "preserved": true
+  },
+  "model": {
+    "route": "ollama",
+    "model": "nemotron-3-nano:4b",
+    "thinking": true,
+    "artifact": {
+      "manifestSha256": "6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197",
+      "modelFormat": "gguf",
+      "family": "nemotron_h",
+      "parameters": "4.0B",
+      "quantization": "Q4_K_M",
+      "layers": [
+        {
+          "mediaType": "application/vnd.docker.container.image.v1+json",
+          "sha256": "1c309ae5e93ede03f48f4bdbfd1b50d1780f2c3bcdc82f4569e20f0c33878db9",
+          "bytes": 499
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "sha256": "527db2cf6c705d8fabb95693d038d9c06b4a2b0b8b0a4bbdbd01212d37242970",
+          "bytes": 2837586496
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.license",
+          "sha256": "355e036064fa9b3a96ce0cdbb69abe54f5c7ce0b6aa2c7d5f8ec8580b011c20e",
+          "bytes": 10124
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.params",
+          "sha256": "12e88b2a8727339b5a4a8b3e2d0d637ac1c61085b1072e77865f0c25d6e468eb",
+          "bytes": 28
+        }
+      ]
+    },
+    "runtime": {
+      "platform": "windows-amd64",
+      "version": "0.35.1",
+      "versionEvidence": "embedded_binary_string_and_prior_report; live_api_not_queried",
+      "executable": {
+        "sha256": "3cc17c238b081adf2bd3a206e52a063b637af1bf283d95b4ffd73a2bdec8b027",
+        "bytes": 26676104,
+        "fileVersion": null,
+        "productVersion": null
+      },
+      "libraryTree": {
+        "files": 989,
+        "bytes": 2930392048,
+        "digest": "f06576561d9fa0049ee9c3db227ff3542cff33423e3cdf73bfcd8182a103efeb",
+        "algorithm": "designDigest of array sorted by UTF8 relativePath; entries {relativePath with /,bytes,sha256}; includes lib/ollama recursively"
+      }
+    },
+    "renderer": "nemotron-3-nano",
+    "parser": "nemotron-3-nano",
+    "template": "bundled renderer plus GGUF metadata; pinned binary and model bytes; no custom template or adapter",
+    "sampling": {
+      "temperature": 1,
+      "top_p": 1,
+      "source": "pinned model params layer",
+      "wireOverrides": [],
+      "otherParameters": "inherited from pinned Ollama runtime",
+      "seed": "not supplied; scenario seed does not seed sampling"
+    }
+  },
+  "modelDescriptorDigest": "d2119dbb017e6ec2383dd7aaa7c5df702dcaecdcce147d7c372172efbcb160e5",
+  "proposedSettings": {
+    "schemaVersion": "fleet.negotiation-E1-settings.v1",
+    "controller": {
+      "platform": "windows-amd64",
+      "nodeVersion": "24.19.0",
+      "nodeExeSha256": "3602f2bb1a10f2cbab4c36886218a33c1ab3db87290e73b033c46c77147d0237",
+      "status": "selected; owned Windows execution path requires offline acceptance"
+    },
+    "provider": {
+      "runtimeRootTemplate": "%LOCALAPPDATA%/PACT/Negotiation/E1/<batchNonce>/runtime",
+      "baseUrl": "http://127.0.0.1:11436",
+      "reuseExistingService": false,
+      "childEnvironment": {
+        "OLLAMA_HOST": "127.0.0.1:11436",
+        "OLLAMA_VULKAN": "true",
+        "OLLAMA_MODELS": "%LOCALAPPDATA%/PACT/Negotiation/E1/<batchNonce>/models"
+      },
+      "backend": "pinned runtime automatic selection; no per-cell tuning; capture actual backend on first metered response",
+      "knownDisplayAdapters": [
+        {
+          "name": "NVIDIA GeForce RTX 5070 Ti",
+          "driverVersion": "32.0.16.1088"
+        },
+        {
+          "name": "Intel(R) Graphics",
+          "driverVersion": "32.0.101.5869"
+        }
+      ],
+      "startPolicy": "after separate execution approval only; fail if port busy; no service setting changes",
+      "request": {
+        "path": "/api/chat",
+        "stream": false,
+        "keep_alive": 0,
+        "think": true,
+        "format": "native generation schema supplied unchanged",
+        "options": {
+          "num_predict": 2000,
+          "num_ctx": 32768
+        }
+      },
+      "fallbacks": [],
+      "downloads": false
+    },
+    "databases": {
+      "host": "Ubuntu WSL Docker",
+      "image": "postgres:17-alpine",
+      "imageId": "sha256:79bd7c99e923138f136f8009d6bffa66e21e9d4fda5c0c561b00fc9c90cfe537",
+      "pull": false,
+      "hostBinding": "127.0.0.1 random port",
+      "databaseNames": ["fleet_test", "pact_test"],
+      "retainedPortsForbidden": [5432, 5436, 5437, 5438, 5439, 5451, 5452],
+      "ownership": "fresh random 64-hex nonce on container, persistent volume and each database marker; verify before migration/write",
+      "retention": "retain real-run database and original nonce; disconnect and archive, never test-driver drop/truncate/finally rm",
+      "reachability": "prove Windows loopback to owned WSL database before any provider dispatch; no gateway fallback"
+    },
+    "budget": {
+      "mode": "finite",
+      "perCell": {
+        "callLimit": 72,
+        "tokenLimit": 2880000,
+        "perCallTokenLimit": 40000,
+        "maxOutputTokens": 2000,
+        "inputByteLimit": 24000,
+        "maxCallsPerTurn": 3,
+        "maxActionsPerTurn": 3,
+        "concurrency": 1,
+        "turnsPerActor": 12,
+        "gameHorizonMinutes": 180,
+        "wallDeadlineMs": 10800000,
+        "deadlinePolicy": "min(actual cell startsAt +180m, approved batch cutoff)"
+      },
+      "batch": {
+        "calls": 144,
+        "reservedTokens": 5760000,
+        "turns": 48,
+        "wallDeadlineMs": 21600000,
+        "providerSlots": 1,
+        "helpers": 0
+      },
+      "accounting": "existing native compute_ledger and dispatch facts only; all corrections/read/reflection calls counted; full unknown reservation retained"
+    },
+    "leases": {
+      "ttlMs": 900000,
+      "renewEveryMs": 300000,
+      "clock": "real UTC",
+      "scope": "four fresh model actors only; same account/holder/lease IDs",
+      "renewal": "atomic same-live-lease renewal only; expired/released/replaced lease or changed authority stops the batch; never reacquire automatically",
+      "inferenceCalls": 0
+    },
+    "isolation": {
+      "installedConfigurationRead": false,
+      "retainedWorldAccess": false,
+      "existingWorkersStarted": false,
+      "gameHttpListeners": 0,
+      "fleetHttpListeners": 0,
+      "fixturePrincipals": "normal guest authentication then synthetic server-derived external-agent principals; normal mandates/delegation/write leases/dispatcher",
+      "observationScope": "self/authorized peer facts only; no opponent goals, controls, reference policy or evaluator ledger in model packets"
+    }
+  },
+  "settingsDescriptorDigest": "32a5d5d845d2454a90913f9b76f635fff9d87ed03edd74c11c24dd8535e7d349",
+  "proposedSettingsApplied": false,
+  "candidatePolicy": {
+    "schemaVersion": "fleet.negotiation-packing-candidate-policy.v1",
+    "candidate": {
+      "id": "reactive-cognition",
+      "version": "1.1"
+    },
+    "registered": false,
+    "architectureConfig": {},
+    "persona": "merchant",
+    "inherits": "reactive-cognition@1 decision/continuity/controller",
+    "schemaSharing": "generation-schema-sharing@1; assertion-equivalent after delivered evidence IDs are bound",
+    "observationPolicy": {
+      "id": "negotiation",
+      "version": "1",
+      "selectionChanged": true,
+      "losslessOnly": false,
+      "omissions": "construction, military and full rule detail marked unavailable; normal scoped reads retained"
+    },
+    "memory": {
+      "codec": "continuity@1",
+      "namespace": "reactive-cognition@1.1",
+      "inheritsV2": false,
+      "optional": true
+    },
+    "sources": {
+      "fleet": "7bb9313efd5e90ffa4f4406b0de5bfa8e96d9b32",
+      "pact": "eaf382f85f570d5e6341f358adefbf20fbd1084b"
+    },
+    "files": [
+      {
+        "path": "src/engines/continuity/engine.ts",
+        "sha256": "eaa6eb17dc0d20103fbc8785df30d16eb64fe2798343ed881bb931388641f1f1"
+      },
+      {
+        "path": "src/engines/continuity/manifest.ts",
+        "sha256": "b2c45bcfae0cb1e6dc912ad237901bc27e33b1ae616eb41b55202a1cd3fdc8e1"
+      },
+      {
+        "path": "src/modules/decision-step/v1/context.ts",
+        "sha256": "882a04e9c842e912d1709002428a48a549ed7859cb1b3ec865d152122a31eb3d"
+      },
+      {
+        "path": "src/modules/decision-step/v1/engine.ts",
+        "sha256": "c2e8d5937de60b031b3e3d992077e72e0dec6aac2a3429a696b440fa07385466"
+      },
+      {
+        "path": "src/modules/continuity/v1/decision.ts",
+        "sha256": "90632da55c9e5ccf210be81d6e07997451611404eefe9769149d0e6011eab6f9"
+      },
+      {
+        "path": "src/modules/continuity/v1/state.ts",
+        "sha256": "00b7a55f699860757f7235963d825f3a70a3d8d682745d9af1ea6f0147b7bc86"
+      },
+      {
+        "path": "src/modules/continuity/v1/ports.ts",
+        "sha256": "4b6f3969546903b3f2a5c699677991f56c7d53dd7053ae62922e761a4192a9be"
+      },
+      {
+        "path": "src/app/continuity-v1-repository.ts",
+        "sha256": "9627746e929a6d064191fba79ccba8cacf1a139fbce42a7bf69e2b94556632d7"
+      },
+      {
+        "path": "src/model.ts",
+        "sha256": "ea352f3f8e23af9466db668d24e5a281a516e6b8aef859765d7668bc7f1c9a3f"
+      },
+      {
+        "path": "src/environments/pact.ts",
+        "sha256": "8266736ed5230d57dc5302b8b595b60127b518d93a4eaf80e526b53461f9e729"
+      },
+      {
+        "path": "src/games/pact/packing.ts",
+        "sha256": "ea15f01e0e23cd4e9a957507b9c551ec5286e55c25fe25ddf8feb89662c74750"
+      },
+      {
+        "path": "src/engines/continuity/engine-packing-repair.ts",
+        "sha256": "554fb043f3d09b8be4d36bee08ef988d297505301b92a0e702f5d2e775de5158"
+      },
+      {
+        "path": "src/app/host-services.ts",
+        "sha256": "b18b7aded5f482e95950ccd47c0fc5dd539d2b205f7aa942e7d2adf640c89f38"
+      },
+      {
+        "path": "src/db.ts",
+        "sha256": "e0d6f00de6739ed8215b16eaea69bd5c85986416ba798a3b835e88f17fef1de4"
+      },
+      {
+        "path": "migrations/017_specialist_continuity.sql",
+        "sha256": "0652d8ad2b877c29be90077dce7a79cad63e96f7f12ac6f66b6ff741ae93ba74"
+      },
+      {
+        "path": "migrations/023_packing_candidate_continuity.sql",
+        "sha256": "930bef25beaac0d11b6a3add4ebacb6bb2c1a446edf8e923b4ba3d9cae892feb"
+      }
+    ]
+  },
+  "candidatePolicyDigest": "655c26f86cff3026bd3a9d062a7b419febf3fb2fd01bbbd920c03c31db3a19f6",
+  "frozenDesignSha256": "c3f2b0664e620852aa8da6cd976c8bda5eddb0fd781438db1b293fa3a451c306",
+  "frozenProtocolSelectorExpanded": false,
+  "fixtures": [
+    {
+      "cellId": "negotiation-v1:E1:C01:default:11:1:v1:AB",
+      "initialStateDigest": "2b70eaa2daf8de0f536e73f32ba778e690ec6a6f1b00333f476e1423d17e5ef4",
+      "worldSeed": "5e8979297154d8ffdd31e947514ab156fb4a538c06248469b4f1dd152c396b5b",
+      "clockMode": "controlled",
+      "rolesReversed": false,
+      "initialState": {
+        "ordinaryStocks": {
+          "A": {
+            "iron": 600,
+            "silver": 0,
+            "grain": 0
+          },
+          "B": {
+            "iron": 0,
+            "silver": 600,
+            "grain": 0
+          }
+        },
+        "contacts": false,
+        "permittedActions": ["contact.request", "message.send.contact", "supply.sign"],
+        "socialDelegation": "agent_decides",
+        "goals": {
+          "A": {
+            "receive": "silver",
+            "minimumReceivePerHour": 1,
+            "maximumSendPerHour": 4
+          },
+          "B": {
+            "receive": "iron",
+            "minimumReceivePerHour": 2,
+            "maximumSendPerHour": 2
+          }
+        },
+        "durationHours": 1,
+        "noticeHours": 0,
+        "bonds": "none"
+      },
+      "treatmentSlot": "C01-treatment",
+      "controlSlot": "C01-matched-solo",
+      "worldId": null,
+      "controlWorldId": null,
+      "cohortId": null,
+      "actorIds": [],
+      "bindingIds": [],
+      "fixtureNonce": null,
+      "provisioned": false
+    },
+    {
+      "cellId": "negotiation-v1:E1:C02:default:11:1:v1:AB",
+      "initialStateDigest": "e5a3c732e27138727a75a53a622e41c6be47c80a2c3e9bc06c09c5c2a439f3e0",
+      "worldSeed": "f8f9e53df3e370487168067018c3fd2bbf32817c4686cbaf17760bac8e34bf5c",
+      "clockMode": "controlled",
+      "rolesReversed": false,
+      "initialState": {
+        "ordinaryStocks": {
+          "A": {
+            "iron": 600,
+            "silver": 0,
+            "grain": 0
+          },
+          "B": {
+            "iron": 0,
+            "silver": 600,
+            "grain": 0
+          }
+        },
+        "contacts": true,
+        "permittedActions": ["contact.request", "message.send.contact", "supply.sign"],
+        "socialDelegation": "agent_decides",
+        "goals": {
+          "A": {
+            "receive": "silver",
+            "minimumReceivePerHour": 1,
+            "maximumSendPerHour": 2
+          },
+          "B": {
+            "receive": "iron",
+            "minimumReceivePerHour": 2,
+            "maximumSendPerHour": 1
+          }
+        },
+        "durationHours": 1,
+        "noticeHours": 0,
+        "bonds": "none",
+        "openingOffer": {
+          "aToB": {
+            "resource": "iron",
+            "wholePerHour": 4
+          },
+          "bToA": {
+            "resource": "silver",
+            "wholePerHour": 1
+          },
+          "aBond": null,
+          "bBond": null,
+          "durationHours": 1,
+          "noticeHours": 0
+        },
+        "seedOriginalGoalMaximumSend": 4
+      },
+      "treatmentSlot": "C02-treatment",
+      "controlSlot": "C02-matched-solo",
+      "worldId": null,
+      "controlWorldId": null,
+      "cohortId": null,
+      "actorIds": [],
+      "bindingIds": [],
+      "fixtureNonce": null,
+      "provisioned": false
+    }
+  ],
+  "expectedRoster": {
+    "treatmentWorlds": 2,
+    "controlWorlds": 2,
+    "kingdomsPerWorld": 2,
+    "totalFreshAccounts": 8,
+    "modelControlledActors": 4,
+    "modelControlledCohorts": 2,
+    "activeModelBindings": 4,
+    "controlModelCalls": 0,
+    "crossWorldContact": false,
+    "actorIdKind": "kingdom UUID; not Fleet agent/account ID",
+    "bindingIdKind": "native Fleet environment_binding UUID; private mapping also retains account and Fleet agent IDs"
+  },
+  "actualFixtureBindings": null,
+  "privateLaunchManifest": null,
+  "startsAt": null,
+  "cutoffAt": null,
+  "previousWindowCarriedForward": false,
+  "preflight": {
+    "kind": "offline_fake_provider_only",
+    "formalE1Started": false,
+    "realProviderCalls": 0,
+    "realGameRuns": 0,
+    "originalFrozenBaseline": [
+      {
+        "schemaVersion": "fleet.negotiation-packet-preflight.v1",
+        "family": "C01",
+        "actor": 0,
+        "profile": {
+          "id": "reactive-cognition",
+          "version": "1"
+        },
+        "ready": false,
+        "clock": "actual-utc",
+        "failure": "CONTEXT_LIMIT",
+        "observationBytes": 28862,
+        "maximumObservationAllowance": 10831,
+        "packingAttempts": 13,
+        "inputCeiling": 24000,
+        "outputCeiling": 2000,
+        "providerCalls": 0,
+        "allocations": 0,
+        "actions": 0,
+        "correctiveAndReadPackets": "blocked_by_initial_packet"
+      },
+      {
+        "schemaVersion": "fleet.negotiation-packet-preflight.v1",
+        "family": "C01",
+        "actor": 1,
+        "profile": {
+          "id": "reactive-cognition",
+          "version": "1"
+        },
+        "ready": false,
+        "clock": "actual-utc",
+        "failure": "CONTEXT_LIMIT",
+        "observationBytes": 28859,
+        "maximumObservationAllowance": 10837,
+        "packingAttempts": 13,
+        "inputCeiling": 24000,
+        "outputCeiling": 2000,
+        "providerCalls": 0,
+        "allocations": 0,
+        "actions": 0,
+        "correctiveAndReadPackets": "blocked_by_initial_packet"
+      },
+      {
+        "schemaVersion": "fleet.negotiation-packet-preflight.v1",
+        "family": "C02",
+        "actor": 0,
+        "profile": {
+          "id": "reactive-cognition",
+          "version": "1"
+        },
+        "ready": false,
+        "clock": "actual-utc",
+        "failure": "CONTEXT_LIMIT",
+        "observationBytes": 32190,
+        "maximumObservationAllowance": 7045,
+        "packingAttempts": 12,
+        "inputCeiling": 24000,
+        "outputCeiling": 2000,
+        "providerCalls": 0,
+        "allocations": 0,
+        "actions": 0,
+        "correctiveAndReadPackets": "blocked_by_initial_packet"
+      },
+      {
+        "schemaVersion": "fleet.negotiation-packet-preflight.v1",
+        "family": "C02",
+        "actor": 1,
+        "profile": {
+          "id": "reactive-cognition",
+          "version": "1"
+        },
+        "ready": false,
+        "clock": "actual-utc",
+        "failure": "CONTEXT_LIMIT",
+        "observationBytes": 32187,
+        "maximumObservationAllowance": 7051,
+        "packingAttempts": 12,
+        "inputCeiling": 24000,
+        "outputCeiling": 2000,
+        "providerCalls": 0,
+        "allocations": 0,
+        "actions": 0,
+        "correctiveAndReadPackets": "blocked_by_initial_packet"
+      }
+    ],
+    "separateCandidate": [
+      {
+        "schemaVersion": "fleet.negotiation-packing-candidate-preflight.v1",
+        "family": "C01",
+        "candidate": {
+          "id": "reactive-cognition",
+          "version": "1.1"
+        },
+        "failures": [],
+        "inputRange": [23003, 23961],
+        "allocations": 29,
+        "turns": 24,
+        "corrective": [
+          {
+            "code": "INVALID_MODEL_OUTPUT",
+            "attempt": 2,
+            "correctionDelivered": true,
+            "policy": "One corrective attempt within existing allowance; no command replay or mode change."
+          }
+        ],
+        "scopedRead": true,
+        "memoryNamespaces": ["reactive-cognition@1.1"],
+        "installments": [[60, 60]]
+      },
+      {
+        "schemaVersion": "fleet.negotiation-packing-candidate-preflight.v1",
+        "family": "C02",
+        "candidate": {
+          "id": "reactive-cognition",
+          "version": "1.1"
+        },
+        "failures": [],
+        "inputRange": [23002, 23994],
+        "allocations": 30,
+        "turns": 24,
+        "corrective": [
+          {
+            "code": "INVALID_MODEL_OUTPUT",
+            "attempt": 2,
+            "correctionDelivered": false,
+            "policy": "One corrective attempt within existing allowance; no command replay or mode change."
+          }
+        ],
+        "scopedRead": true,
+        "memoryNamespaces": [],
+        "installments": [[60, 60]]
+      }
+    ],
+    "unitChecks": 432,
+    "integrationChecks": 455,
+    "pairedAcceptanceChecks": 29,
+    "pactUnitChecks": 414,
+    "pactIntegrationChecks": 491,
+    "pactOptionalRealModelSkipped": 1,
+    "acceptanceMeaning": "known source/packet/accounting proof only; fake-authored negotiation does not qualify a real model"
+  },
+  "stopConditions": {
+    "batch": [
+      "ownership/isolation/private-evidence mismatch",
+      "committed authority violation or duplicate effect",
+      "pending/uncertain command or unknown model allocation",
+      "source/model/template/parser/settings/limit drift",
+      "dispatch guard violation including budget/UTC cutoff",
+      "requested model/backend manual switch or unavailable pinned artifact",
+      "provider or transport failure without exact known usage"
+    ],
+    "cell": [
+      "critical false peer/consent/activation/delivery/resource/authority/validity claim; continue only other prelisted E1 cell if native accounting fully known and safe",
+      "normal cell caps reached: close without attempt beyond cap; retain failed/unresolved verdict"
+    ],
+    "noAutomatic": [
+      "new cells",
+      "replacement worlds",
+      "extra turns",
+      "inference after cutoff",
+      "owner uncertainty review",
+      "reset/replay/cancel",
+      "model fallback",
+      "unused allowance reuse",
+      "E2/E3/E4"
+    ]
+  },
+  "unresolvedReadiness": [
+    "explicit adoption/review of revised baseline and amended cell/configuration/policy/source definitions",
+    "P2 fixed owned native execution composition with per-boundary drift/accounting/UTC guards and post-usage manual response review",
+    "verified Windows controller/provider bundle and owned loopback database route; five-minute same-live renewal loop",
+    "P3 actual fenced eight-account/four-model-actor roster, separate protected keys/evidence and final-roster encrypted restore proof",
+    "confirmed UTC window and exact private one-shot approval grant"
+  ],
+  "retainedWorld": {
+    "accessed": false,
+    "changed": false,
+    "executionSettingsChanged": false,
+    "workersStarted": false
+  },
+  "sourceInstallation": false,
+  "push": false,
+  "delegation": false,
+  "digest": "447197f151975bd1bbd8082174c0033223c11160c658eaa344e7fbfbc6c8dc12"
+}

@@ -15,7 +15,11 @@ const root = process.env.PACT_ACCEPTANCE_ROOT;
 const databaseUrl = process.env.PACT_ACCEPTANCE_DATABASE_URL;
 if (!root || !databaseUrl) throw Error("EXPLICIT_ISOLATED_PACT_ACCEPTANCE_REQUIRED");
 const target = new URL(databaseUrl);
-if (!["127.0.0.1", "localhost"].includes(target.hostname) || target.pathname !== "/pact_test" || target.port !== "5438")
+if (
+  !["127.0.0.1", "localhost"].includes(target.hostname) ||
+  target.pathname !== "/pact_test" ||
+  (process.env.FLEET_ARCHITECTURE_TEST !== "1" && target.port !== "5438")
+)
   throw Error("ISOLATED_PACT_ACCEPTANCE_DATABASE_REQUIRED");
 const moduleAt = (path: string) => import(pathToFileURL(resolve(root, path)).href);
 const db = await moduleAt("packages/db/dist/index.js");

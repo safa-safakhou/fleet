@@ -38,8 +38,10 @@ export class EventIntake {
       if (!["draft", "paused"].includes(c.state)) throw new FleetError("COHORT_NOT_EDITABLE");
       const profile = (await db.query("SELECT * FROM cohort_engine_profiles WHERE cohort_id=$1", [cohortId])).rows[0];
       if (
-        !["reactive-basic", "reactive-cognition", "specialist-coordinator"].includes(profile?.profile_id) ||
-        profile.profile_version !== "1"
+        !profile ||
+        !this.tasks.store.architectures
+          .resolve({ id: profile.profile_id, version: profile.profile_version })
+          .manifest.triggers.includes("event")
       )
         throw new FleetError("UNSUPPORTED_ENGINE");
       await db.query(
@@ -99,7 +101,7 @@ export class EventIntake {
             this.environments.resolve(binding.environment).capabilities.events,
           ],
         );
-        await this.tasks.upsertWithin(
+        await this.tasks.publishWithin(
           db,
           binding,
           {
@@ -138,7 +140,7 @@ export class EventIntake {
           );
           if (!receipt.rowCount) continue;
           if (admitted) {
-            await this.tasks.upsertWithin(
+            await this.tasks.publishWithin(
               db,
               binding,
               event,
@@ -221,7 +223,7 @@ export class EventIntake {
         .rows[0];
       if (!state.next_review_at || state.next_review_at > now) return;
       const due = state.next_review_at.toISOString();
-      await this.tasks.upsertWithin(
+      await this.tasks.publishWithin(
         db,
         binding,
         {

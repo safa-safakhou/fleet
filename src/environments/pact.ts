@@ -1,8 +1,10 @@
 import { type Data, FleetError, type GamePort, object, safeCode } from "../domain.js";
+import { normalizePactEffects, pactEffectCommand, pactRemoteGuard } from "../games/pact/action-effects.js";
 import { pactAdapter } from "../games/pact/adapter.js";
 import { pactAgentBriefing } from "../games/pact/briefing.js";
 import { pactEvents } from "../games/pact/events.js";
 import { pactCurrentObjective, pactWaitSchema, validatePactWait } from "../games/pact/goal-state.js";
+import { projectPactObservation } from "../games/pact/negotiation-state.js";
 import { pactContinuity } from "../games/pact/outlook.js";
 import { packPactObservation } from "../games/pact/packing.js";
 import { pactActionContracts, pactProposalGuide, validatePactProposal } from "../games/pact/proposals.js";
@@ -11,6 +13,8 @@ import type { Bindings } from "../platform/bindings.js";
 import type { ActionOutcome, BindingRef, EnvironmentAdapter } from "../platform/contracts.js";
 import type { Store } from "../store.js";
 import { validateTool } from "../tools.js";
+import { pactSpecialistPresets } from "./pact-presets.js";
+import { createPactSkillSupport } from "./pact-skills.js";
 
 /** Preserve the agent UUID used as the existing vault associated-data identity. */
 export class PactBindings {
@@ -68,9 +72,13 @@ export function createPactEnvironment(ports: {
   now: () => Date;
   eventFeedVersion?: "pact.agent-events.v1";
   outlookVersion?: "pact.agent-outlook.v1";
+  actionEffectsVersion?: "fleet.action-effects.v1";
 }): EnvironmentAdapter {
   return {
     ref: { id: "pact", version: "1" },
+    specialistPresets: pactSpecialistPresets,
+    specialistObservationPolicy: { id: "specialists", version: "1" },
+    ...(ports.actionEffectsVersion ? { skillSupport: createPactSkillSupport() } : {}),
     instructions: pactAdapter.instructions,
     accountObjective: (observation) => pactCurrentObjective(observation.payload),
     schemas: { observations: ["pact.observation.v1"], actions: ["pact.action.v1"] },
@@ -90,17 +98,38 @@ export function createPactEnvironment(ports: {
       social: true,
       simulationControls: false,
       continuity: Boolean(ports.outlookVersion),
+      ...(ports.actionEffectsVersion ? { actionEffects: true } : {}),
     },
     async connect(binding) {
       const agentId = await ports.bindings.agentFor(binding),
         game = await ports.game(agentId);
       try {
         if ((await game.profile()).accountId !== binding.accountRef) throw new FleetError("IDENTITY_MISMATCH");
+        if (ports.actionEffectsVersion) {
+          const tools = await game.tools();
+          if (
+            !game.effects ||
+            !game.submitGuarded ||
+            !tools.some((t) => t.name === "pact_action_effects_quote_v1" && t.annotations?.readOnlyHint === true) ||
+            !tools.some((t) => t.name === "pact_action_effects_execute_v1" && t.annotations?.readOnlyHint === false)
+          )
+            throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED", true);
+        }
       } catch (error) {
         await game.close();
         throw error;
       }
       return {
+        ...(ports.actionEffectsVersion
+          ? {
+              effects: async (intent: import("../platform/contracts.js").ActionIntent) => {
+                await ports.bindings.agentFor(binding);
+                const command = pactEffectCommand(binding, intent, ports.now());
+                if (!game.effects) throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED", true);
+                return normalizePactEffects(intent, command, await game.effects(command));
+              },
+            }
+          : {}),
         async observe(query) {
           if (query.continuity === true) {
             if (!ports.outlookVersion) throw new FleetError("UNSUPPORTED_CAPABILITY");
@@ -209,12 +238,14 @@ export function createPactEnvironment(ports: {
           pactAdapter.validateCatalog?.(tools);
           return tools;
         },
+        projectObservation: projectPactObservation,
         packObservation: packPactObservation,
         validateProposal: async (proposal, observation) =>
           validatePactProposal(proposal.intent.payload, observation.payload, proposal.expectedOutcome),
         waitSchema: async (observation) => pactWaitSchema(observation.payload),
         validateWait: async (basis, observation) => validatePactWait(basis, observation.payload),
-        actionContracts: async (observation) => pactActionContracts(observation.payload),
+        actionContracts: async (observation, allowedActionKeys) =>
+          pactActionContracts(observation.payload, allowedActionKeys),
         async execute(intent) {
           try {
             if (intent.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH");
@@ -232,6 +263,15 @@ export function createPactEnvironment(ports: {
             throw new FleetError(safeCode(error), true);
           }
           try {
+            if (intent.guard) {
+              if (!ports.actionEffectsVersion || !game.submitGuarded)
+                throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED", true);
+              const command = pactEffectCommand(binding, intent, ports.now());
+              return receipt(
+                intent.commandId,
+                await game.submitGuarded(command, pactRemoteGuard(intent, intent.guard, command)),
+              );
+            }
             return receipt(intent.commandId, await game.submit(intent.commandId, intent.payload));
           } catch (error) {
             const denied = pactAdapter.rejection(error, false);

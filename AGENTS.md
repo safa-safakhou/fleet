@@ -3,6 +3,10 @@
 Fleet is an independent Node 24/TypeScript/Fastify/React/PostgreSQL 17 agent controller.
 Work inline; do not delegate unless the user explicitly requests it.
 
+## Main workspace
+
+Use mine/pact and mine/fleet on master for normal work. Keep the main repositories current; do not leave completed work only on a separate branch. If temporary isolation is necessary, handle verified integration before handoff so the user never needs to manage alternate checkouts. Preserve private evidence and ignored artifacts during cleanup.
+
 ## Scope and preservation
 
 - Follow the current assignment. Historical launch/recovery/publication grants are not standing permission for new actions.

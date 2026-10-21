@@ -1,6 +1,6 @@
 {
   "$schema": "https://biomejs.dev/schemas/2.5.14/schema.json",
-  "files": { "includes": ["**", "!dist", "!.state", "!.tmp", "!node_modules"] },
+  "files": { "includes": ["**", "!dist", "!.state", "!.tmp", "!!.worktrees", "!node_modules"] },
   "formatter": { "indentStyle": "space", "lineWidth": 120 },
   "javascript": { "formatter": { "quoteStyle": "double" } },
   "linter": { "enabled": true, "rules": { "preset": "recommended" } }
