@@ -74,7 +74,7 @@ it("preserves all five existing requirements and exact unsupported versions with
       .list()
       .filter((m) => m.ref.id === "reactive-cognition")
       .map((m) => m.ref.version),
-  ).toEqual(["1", "2"]);
+  ).toEqual(["1", "2", "1.1"]);
   const expected = [
     [
       "legacy-loop",

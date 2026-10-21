@@ -7,7 +7,7 @@ import { decisionContext } from "../../modules/decision-step/v1/context.js";
 import { shareGenerationSchema } from "../../modules/generation-schema/v1.js";
 import type { ArchitectureDefinition } from "../../platform/architecture.js";
 import { manifest as original, validate } from "./manifest.js";
-/** Explicit offline candidate. Deliberately absent from builtinArchitectures. */
+/** Explicit approved baseline amendment; original @1 remains unchanged. */
 export class PackingRepairDecisionStep extends ContinuityDecisionStep {
   async runContext(ctx: DecisionContext) {
     const project = ctx.projectObservation;
@@ -28,9 +28,9 @@ export const definition: ArchitectureDefinition = {
   manifest: {
     ...original,
     ref: { id: "reactive-cognition", version: "1.1" },
-    name: "Reactive cognition packing candidate",
+    name: "Reactive cognition packing repair",
     description:
-      "Unregistered offline candidate: v1 continuity with shared schema and explicit negotiation observation view.",
+      "Approved separate baseline: v1 continuity with shared schema and explicit negotiation observation view.",
     requirements: {
       ...original.requirements,
       schemas: { observations: ["pact.observation.v1"], actions: ["pact.action.v1"] },

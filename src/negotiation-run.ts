@@ -8,7 +8,7 @@ import { immutable } from "./platform/architecture.js";
 const hash = z.string().regex(/^[a-f0-9]{64}$/),
   revision = z.string().regex(/^[a-f0-9]{40}$/);
 const sources = z.object({ fleet: revision, pact: revision }).strict();
-const profile = z.object({ id: z.literal("reactive-cognition"), version: z.enum(["1", "2"]) }).strict();
+const profile = z.object({ id: z.literal("reactive-cognition"), version: z.enum(["1", "1.1", "2"]) }).strict();
 const Selection = z
   .object({
     stage: z.enum(["E1", "E2", "E3", "E4"]).default("E1"),
@@ -18,6 +18,7 @@ const Selection = z
     settingsDigest: hash.nullable().default(null),
     selectedProfile: profile.default({ id: "reactive-cognition", version: "1" }),
     batchNonce: z.uuid().optional(),
+    baselineAmendment: hash.optional(),
   })
   .strict();
 type SelectionValue = z.infer<typeof Selection>;
@@ -55,6 +56,7 @@ function planned(selection: SelectionValue) {
     modelDigest: selection.modelDigest ?? "0".repeat(64),
     policyDigest: selection.policyDigest ?? "0".repeat(64),
     selectedProfile: selection.selectedProfile,
+    ...(selection.baselineAmendment ? { baselineAmendment: selection.baselineAmendment } : {}),
   });
 }
 /** Pure/disarmed. Unknown selections stay null; placeholder hashes never leave this function. */
@@ -254,6 +256,8 @@ export interface NegotiationExecutionPorts {
   }>;
   /** Atomic, durable one-shot control only; spending remains in native compute_ledger. */
   claimNonce(nonce: string, protocolDigest: string, grantDigest: string): Promise<boolean>;
+  /** Owned lifecycle preparation after one-shot admission, before native guards. */
+  openCell?(binding: NegotiationBinding, window: { startsAt: string; cutoffAt: string }): Promise<void>;
   accounting(binding: NegotiationBinding): Promise<NativeAccounting>;
   /** Trusted native host composition must invoke guard at native turn/call admission,
    * provider onDispatch, game admission, and controlled-clock boundaries. It keeps
@@ -416,6 +420,10 @@ export async function executeNegotiationProtocol(
       };
       const timer = setTimeout(() => controller.abort(), Math.max(1, cutoff - ports.now()));
       try {
+        await ports.openCell?.(binding, {
+          startsAt: new Date(started).toISOString(),
+          cutoffAt: new Date(cutoff).toISOString(),
+        });
         await guard({ phase: "action", actorId: binding.actorIds[0] });
         const assessment = await ports.runCell(cell, binding, {
           startsAt: new Date(started).toISOString(),
@@ -473,8 +481,21 @@ export async function executeNegotiationProtocol(
         const reason = error instanceof FleetError ? error.code : "NEGOTIATION_NATIVE_FAILURE";
         result.cells[i] = { ...result.cells[i], cellId: cell.id, status: "failed", reason };
         await ports.closeAdmission(binding, reason);
+        if (!operationalFailure && reason === "CRITICAL_CLAIM" && ["E1", "E2"].includes(cell.stage)) {
+          const native = await ports.accounting(binding);
+          if (
+            native.inFlight === 0 &&
+            native.ownershipValid &&
+            native.privacyValid &&
+            native.authorityValid &&
+            native.duplicateEffects === 0 &&
+            native.uncertainCommands.length === 0 &&
+            native.allocations.every((a) => a.status === "reported" || a.status === "not_dispatched")
+          )
+            continue;
+        }
         result.status = "stopped";
-        if (operationalFailure || reason !== "CRITICAL_CLAIM") break;
+        break;
       } finally {
         clearTimeout(timer);
         controller.abort();

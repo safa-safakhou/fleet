@@ -54,6 +54,7 @@ export function buildNegotiationStatus(sourcePassed: boolean, runs: NativeNegoti
       modelDigest: protocol.selection.modelDigest,
       policyDigest: protocol.selection.policyDigest,
       selectedProfile: protocol.selection.selectedProfile,
+      ...(protocol.selection.baselineAmendment ? { baselineAmendment: protocol.selection.baselineAmendment } : {}),
     });
     if (
       batch.cells.length !== planned.length ||

@@ -150,7 +150,19 @@ export async function runNegotiationFixture(
   if (providers.candidateDefinition && !providers.ownedUtcPreflight)
     throw Error("CANDIDATE_REQUIRES_OWNED_OFFLINE_PREFLIGHT");
   const architectures = () =>
-    builtinArchitectures({}, providers.candidateDefinition ? [providers.candidateDefinition] : []);
+    builtinArchitectures(
+      {},
+      providers.candidateDefinition &&
+        !builtinArchitectures()
+          .list()
+          .some(
+            (m) =>
+              m.ref.id === providers.candidateDefinition?.manifest.ref.id &&
+              m.ref.version === providers.candidateDefinition?.manifest.ref.version,
+          )
+        ? [providers.candidateDefinition]
+        : [],
+    );
   const retainedSchemas: string[] = [];
   const makeWorld = async (control = false): Promise<NegotiationWorld> => {
     if (!providers.ownedUtcPreflight) return worlds.createNegotiationWorld({ pactUrl, nonce }, cell, { control });

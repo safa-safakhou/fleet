@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import { FleetError } from "../../src/domain.js";
 import { negotiationCLI } from "../../src/negotiation-cli.js";
 import type { NegotiationExecutionPorts } from "../../src/negotiation-run.js";
 import {
@@ -10,6 +11,63 @@ import { selections } from "../fixtures/negotiation/evidence.js";
 import { protocolFixture } from "../fixtures/negotiation/protocol.js";
 
 const selection = { ...selections, settingsDigest: "e".repeat(64), stage: "E1" };
+it.each(["E1", "E3"] as const)(
+  "a response-review critical exception obeys the %s diagnostic/held-out boundary",
+  async (stage) => {
+    const f = protocolFixture(stage),
+      run = f.ports.runCell;
+    let attempts = 0;
+    f.ports.runCell = async (...args) => {
+      attempts++;
+      if (attempts === 1) throw new FleetError("CRITICAL_CLAIM", true);
+      return run(...args);
+    };
+    const result = await executeNegotiationProtocol(f.protocol, f.grant, f.ports);
+    expect(attempts).toBe(stage === "E1" ? 2 : 1);
+    expect(result.status).toBe(stage === "E1" ? "complete" : "stopped");
+    expect(result.cells[0].status).toBe("failed");
+  },
+);
+it("loads the fixed owned composition lazily only after complete grant validation", async () => {
+  const f = protocolFixture();
+  let loaded = 0;
+  const io = {
+    readJSON: async (path: string) => (path === "protocol" ? f.protocol : path === "grant" ? f.grant : null),
+    prepareExecution: async (path: string) => {
+      loaded++;
+      expect(path).toBe("prepared");
+      return f.ports;
+    },
+  };
+  await expect(
+    negotiationCLI(["--protocol", "protocol", "--execute-approved", "missing", "--prepared", "prepared"], io),
+  ).rejects.toThrow();
+  expect(loaded).toBe(0);
+  await negotiationCLI([], io);
+  expect(loaded).toBe(0);
+  // Fixture's grant clock is deliberately historical; use a live protocol clone.
+  f.grant.startsAt = new Date(Date.now() - 1000).toISOString();
+  f.grant.cutoffAt = new Date(Date.now() + 10000).toISOString();
+  f.ports.now = () => Date.now();
+  for (const a of f.records.values()) a.deadlineAt = f.grant.cutoffAt;
+  await negotiationCLI(["--protocol", "protocol", "--execute-approved", "grant", "--prepared", "prepared"], io);
+  expect(loaded).toBe(1);
+});
+it("opens each owned cell only after nonce admission and before checking its exact native cutoff", async () => {
+  const f = protocolFixture();
+  for (const a of f.records.values()) a.deadlineAt = "1970-01-01T00:00:00Z";
+  let opened = 0;
+  Object.assign(f.ports, {
+    openCell: async (binding: { cellId: string }, window: { cutoffAt: string }) => {
+      expect(f.counts().nonceClaims).toBe(1);
+      opened++;
+      f.records.get(binding.cellId)!.deadlineAt = window.cutoffAt;
+    },
+  });
+  await executeNegotiationProtocol(f.protocol, f.grant, f.ports);
+  expect(opened).toBe(2);
+  expect(f.counts().runs).toBe(2);
+});
 it("preview is disarmed, exposes missing selections, and computes caps without execution capability", () => {
   const preview = prepareNegotiationProtocol({ stage: "E1" });
   expect(preview).toMatchObject({

@@ -60,18 +60,8 @@
   "totalPassed": 1960,
   "totalSkipped": 1,
   "sourceChecks": {
-    "fleet": [
-      "check",
-      "build",
-      "check:boundaries"
-    ],
-    "pact": [
-      "typecheck",
-      "lint",
-      "build",
-      "check:contracts",
-      "check:boundaries"
-    ]
+    "fleet": ["check", "build", "check:boundaries"],
+    "pact": ["typecheck", "lint", "build", "check:contracts", "check:boundaries"]
   },
   "evidence": {
     "schemaVersion": "fleet.source-evidence-metadata.v1",

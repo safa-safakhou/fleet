@@ -80,13 +80,13 @@ it.each([
       expect(candidate(output)).toBe(original(output));
     }
 });
-it("candidate is explicit and cannot resolve through the unchanged default registry", () => {
+it("approved candidate resolves as a separate exact version without changing original @1", () => {
   expect(definition.manifest.ref).toEqual({ id: "reactive-cognition", version: "1.1" });
-  expect(() => builtinArchitectures().resolve(definition.manifest.ref)).toThrow("UNSUPPORTED_ARCHITECTURE");
+  expect(builtinArchitectures().resolve(definition.manifest.ref).manifest.ref).toEqual(definition.manifest.ref);
   expect(builtinArchitectures().resolve({ id: "reactive-cognition", version: "1" }).manifest.ref.version).toBe("1");
 });
 
-it("frozen negotiation protocol cannot authorize the unregistered candidate", () => {
+it("unamended frozen negotiation protocol cannot authorize the separate candidate", () => {
   expect(() => prepareNegotiationProtocol({ selectedProfile: definition.manifest.ref })).toThrow();
 });
 it("candidate refuses a missing trusted observation policy before any model call", async () => {

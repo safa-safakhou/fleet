@@ -3,15 +3,27 @@ import { z } from "zod";
 import manifest from "./negotiation/design.json" with { type: "json" };
 
 const digest = z.string().regex(/^[a-f0-9]{64}$/);
-const profile = z.object({ id: z.literal("reactive-cognition"), version: z.enum(["1", "2"]) }).strict();
+const profile = z.object({ id: z.literal("reactive-cognition"), version: z.enum(["1", "1.1", "2"]) }).strict();
 const selectionSchema = z
   .object({
     sources: z.object({ fleet: z.string().regex(/^[a-f0-9]{40}$/), pact: z.string().regex(/^[a-f0-9]{40}$/) }).strict(),
     modelDigest: digest,
     policyDigest: digest,
     selectedProfile: profile,
+    baselineAmendment: digest.optional(),
   })
   .strict();
+export const negotiationBaselineAmendment = Object.freeze({
+  schemaVersion: "fleet.negotiation-baseline-amendment.v1",
+  approvedDate: "2026-10-21",
+  original: "reactive-cognition@1",
+  amended: "reactive-cognition@1.1",
+  observationPolicy: "negotiation@1",
+  generationSchema: "shared-generation-schema@1",
+  continuity: "continuity@1",
+  limitsChanged: false,
+  originalCellsPreserved: true,
+});
 export type FrozenSelections = z.infer<typeof selectionSchema>;
 export type CellLimits = typeof manifest.classes.P;
 export type NegotiationCell = {
@@ -33,6 +45,7 @@ export type NegotiationCell = {
   realProviderAuthorized: false;
   limits: CellLimits;
   sources: FrozenSelections["sources"];
+  baselineAmendment?: string;
 };
 export function designDigest(value: unknown): string {
   const canonical = (v: unknown): unknown =>
@@ -51,6 +64,13 @@ export function designDigest(value: unknown): string {
 }
 export function negotiationPlan(stage: NegotiationCell["stage"], raw: unknown): NegotiationCell[] {
   const selected = selectionSchema.parse(raw);
+  if (
+    (selected.baselineAmendment !== undefined &&
+      selected.baselineAmendment !== designDigest(negotiationBaselineAmendment)) ||
+    (selected.selectedProfile.version === "1.1" && !selected.baselineAmendment)
+  )
+    throw Error("BASELINE_AMENDMENT_REQUIRED");
+  const baselineVersion = selected.baselineAmendment ? "1.1" : "1";
   if (!["E1", "E2", "E3", "E4"].includes(stage)) throw Error("UNKNOWN_NEGOTIATION_STAGE");
   if (manifest.schemaVersion !== "pact.negotiation-design.v1" || manifest.realProviderAuthorized !== false)
     throw Error("FROZEN_NEGOTIATION_DESIGN_REQUIRED");
@@ -85,6 +105,7 @@ export function negotiationPlan(stage: NegotiationCell["stage"], raw: unknown): 
       modelDigest: selected.modelDigest,
       policyDigest: selected.policyDigest,
       sources: selected.sources,
+      ...(selected.baselineAmendment ? { baselineAmendment: selected.baselineAmendment } : {}),
       initialStateDigest,
       worldSeed: designDigest({ id, seed }),
       rolesReversed,
@@ -96,10 +117,10 @@ export function negotiationPlan(stage: NegotiationCell["stage"], raw: unknown): 
       Object.freeze({ ...cell, configurationDigest: designDigest({ cell, designDigest: designDigest(manifest) }) }),
     );
   };
-  if (stage === "E1") for (const family of ["C01", "C02"]) add(family, "default", 11, 1, "1", false);
+  if (stage === "E1") for (const family of ["C01", "C02"]) add(family, "default", 11, 1, baselineVersion, false);
   if (stage === "E2")
     for (const seed of [11, 29])
-      for (const version of ["1", "2"])
+      for (const version of [baselineVersion, "2"])
         for (const family of ["C01", "C02", "C05"]) add(family, "default", seed, 1, version, seed === 29);
   if (stage === "E3")
     for (let rep = 1; rep <= 5; rep++)

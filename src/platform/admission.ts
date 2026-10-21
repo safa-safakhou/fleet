@@ -168,9 +168,31 @@ export class ModelAdmission {
     private capacity: RouteCapacity,
     private guard?: (claim: TaskClaim) => Promise<void>,
     private siblingWorkers = false,
+    private settledReview?: (claim: TaskClaim, result: ModelResult) => Promise<void>,
   ) {}
   guarded(guard: (claim: TaskClaim) => Promise<void>, siblingWorkers = false) {
-    return new ModelAdmission(this.store, this.tasks, this.provider, this.capacity, guard, siblingWorkers);
+    return new ModelAdmission(
+      this.store,
+      this.tasks,
+      this.provider,
+      this.capacity,
+      guard,
+      siblingWorkers,
+      this.settledReview,
+    );
+  }
+  /** Operator review happens after known usage is durably settled, outside the
+   * provider uncertainty handler, and before any correction or engine action. */
+  reviewed(review: (claim: TaskClaim, result: ModelResult) => Promise<void>) {
+    return new ModelAdmission(
+      this.store,
+      this.tasks,
+      this.provider,
+      this.capacity,
+      this.guard,
+      this.siblingWorkers,
+      review,
+    );
   }
   supportsSiblingReasoning(model: ModelSettings) {
     return this.siblingWorkers && this.capacity.supportsOverlap(model);
@@ -245,7 +267,7 @@ export class ModelAdmission {
         budget.inputByteLimit
     )
       throw new FleetError("MODEL_REQUEST_NOT_ADMITTED", true);
-    return this.capacity.run(
+    const settled = await this.capacity.run(
       turn,
       request,
       async () => {
@@ -351,5 +373,10 @@ export class ModelAdmission {
       },
       this.siblingWorkers && stage?.kind === "worker",
     );
+    if (this.settledReview) {
+      await this.settledReview(claim, settled);
+      await this.tasks.check(claim);
+    }
+    return settled;
   }
 }

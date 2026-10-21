@@ -262,6 +262,7 @@ function canonicalCell(cell: NegotiationCell) {
     modelDigest: cell.modelDigest,
     policyDigest: cell.policyDigest,
     selectedProfile: cell.profile,
+    ...(cell.baselineAmendment ? { baselineAmendment: cell.baselineAmendment } : {}),
   }).find((c) => c.id === cell.id);
   if (!found || designDigest(found) !== designDigest(cell)) throw Error("UNPLANNED_OR_CHANGED_CELL");
 }
@@ -592,6 +593,7 @@ export function summarizeNegotiation(assessments: NegotiationAssessment[]) {
     modelDigest: first.cell.modelDigest,
     policyDigest: first.cell.policyDigest,
     selectedProfile: first.cell.profile,
+    ...(first.cell.baselineAmendment ? { baselineAmendment: first.cell.baselineAmendment } : {}),
   }).filter((c) => c.profile.version === first.cell.profile.version);
   const complete =
     expected.length === assessments.length && expected.every((c) => assessments.some((a) => a.cell.id === c.id));

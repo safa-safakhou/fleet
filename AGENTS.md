@@ -1,3 +1,9 @@
+# Approved qualification and release continuation —21 October2026
+
+Founder explicitly approved all six remaining tasks: separate packing-baseline amendment, owned launcher, final fixtures/manifest, isolated real E1–E4, specialist/skill KQ1 and verified release. This supersedes earlier preparation-only/no-inference wording solely for these new owned qualification worlds and the approved release path. Work remains inline without delegation. Preserve the retained paused world by non-access, all prior identities/history/unknowns and other populations. Do not reset/replay, replace failed cells, clear historical uncertainty or reuse consumed/unused grants automatically.
+
+Keep exact stage ceilings144/672/1230/144 calls and proposed KQ1 ceiling288, all existing per-call/turn/non-model bounds and critical stop conditions. Complete source/package/ownership/preflight/restore evidence before dispatching a new one-shot grant with exact source/model/settings/bindings and absolute UTC window. No unmetered model canary/helper/warmup. Never mark a failed behavioral gate passed or activate production before qualification/release acceptance. Deployment target clarification is pending while independent preparation proceeds. See the dated qualification progress/report for actual achieved scope; source acceptance is not live acceptance.
+
 # Master publication assignment —20 October2026
 
 Founder explicitly requests committing the local-world changes, reports and result documents and pushing both Fleet and PACT to master. This covers integration/publication and supersedes older no-push notes for this work. Preserve both histories, the independent specialist architecture plans, private evidence and the paused local world. Verify the merged source with isolated synthetic fixtures. No new model/game run, deployment, reset, replay, recovery review or execution-setting change is implied. Work remains inline without delegation.
