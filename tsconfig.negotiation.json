@@ -6,6 +6,7 @@
     "scripts/qualify-negotiation.ts",
     "scripts/negotiation-owned-control.ts",
     "scripts/prepare-negotiation-database.ts",
+    "scripts/backup-negotiation-fixture.ts",
     "scripts/lib/negotiation-*.ts"
   ],
   "exclude": ["web", "tests"]

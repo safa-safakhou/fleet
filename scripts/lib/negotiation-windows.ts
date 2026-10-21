@@ -17,6 +17,7 @@ import { NegotiationGrantSchema, type ProtocolPreview } from "../../src/negotiat
 import { Store } from "../../src/store.js";
 import { Vault } from "../../src/vault.js";
 import { createPinnedArtifactVerifier, fileSha256, validateOwnedDatabaseTarget } from "./negotiation-artifacts.js";
+import { loadPreparationRestoreGate } from "./negotiation-backup-proof.js";
 import { createOwnedNegotiationExecution, type PreparedNegotiationCell } from "./negotiation-owned-run.js";
 import { PrivateNegotiationReview } from "./negotiation-review-channel.js";
 
@@ -196,6 +197,11 @@ export async function createWindowsNegotiationExecution(path: string, protocol: 
     throw new FleetError("OWNED_MANIFEST_GRANT_DRIFT", true);
   const verifyPackage = await verifyOwnedWindowsPackage(m),
     manifestDigest = designDigest(JSON.parse(raw));
+  const verifyBackup = await loadPreparationRestoreGate(m.privateRoot, {
+    sources: grant.sources,
+    protocolDigest: protocol.digest,
+    fixtureNonce: m.fixture.nonce,
+  });
   const storeKey = (await readFile(privateChild(m.privateRoot, m.vaultKeyRef), "utf8")).trim(),
     reviewKey = (await readFile(privateChild(m.privateRoot, m.reviewKeyRef), "utf8")).trim();
   const review = new PrivateNegotiationReview(join(m.privateRoot, "reviews"), reviewKey, grant.batchNonce),
@@ -256,6 +262,7 @@ export async function createWindowsNegotiationExecution(path: string, protocol: 
       if (designDigest(JSON.parse(await readFile(path, "utf8"))) !== manifestDigest)
         throw new FleetError("OWNED_MANIFEST_CHANGED", true);
       await verifyPackage();
+      await verifyBackup();
       const marker = (await pool.query("SELECT nonce FROM public.architecture_fixture_owner")).rows;
       if (marker.length !== 1 || marker[0].nonce !== m.fixture.nonce)
         throw new FleetError("OWNED_DATABASE_MARKER", true);
