@@ -61,6 +61,7 @@ export class LaunchService {
         environment: adapter.ref,
         compatible: true,
         code: "COMPATIBLE",
+        triggers: this.architectures.resolve(profile).manifest.triggers,
         coverage:
           "Capability compatibility only; real-provider/release qualification is separate. Drafts never create game accounts or call models.",
       };

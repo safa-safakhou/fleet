@@ -142,7 +142,10 @@ export function buildServer(options: {
     if (!launcher) throw new FleetError("LAUNCH_UNAVAILABLE");
     return launcher;
   };
-  app.get("/api/architectures", async () => ({ architectures: requireLauncher().catalog() }));
+  app.get("/api/architectures", async () => ({
+    architectures: requireLauncher().catalog(),
+    environment: options.environments?.selected,
+  }));
   app.post("/api/launch/check", async (r) => requireLauncher().check(r.body));
   app.post("/api/launch/drafts", async (r) => requireLauncher().draft(r.body));
   app.get<{ Params: { id: string } }>("/api/launch/drafts/:id", async (r) =>
