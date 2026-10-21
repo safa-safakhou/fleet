@@ -5,6 +5,7 @@ import {
   supplyReserveConstraints,
   supplyRoutineCandidate,
 } from "../../src/environments/pact-skills.js";
+import type { PrimitiveContext } from "../../src/modules/skills/v1/primitives.js";
 import { qualifyRecipe, runTrustedCases } from "../../src/modules/skills/v1/qualification.js";
 import { type SkillVersion, skillContentDigest } from "../../src/modules/skills/v1/schema.js";
 
@@ -62,4 +63,100 @@ it("derives reserve floors from full own exposure and actual immediate debits", 
     ],
   } as never;
   expect(supplyReserveConstraints(inputs, effects)).toEqual({ iron: "1400", silver: "200", grain: "0" });
+});
+it("does not accept delivery rows from a future clock as fulfilled evidence", async () => {
+  const owner = randomUUID(),
+    peer = randomUUID(),
+    offer = randomUUID(),
+    terms = {
+      aToB: { resource: "iron", wholePerHour: 1 },
+      bToA: { resource: "silver", wholePerHour: 2 },
+      aBond: null,
+      bBond: null,
+      durationHours: 1,
+      noticeHours: 0,
+    };
+  const inputs = {
+    offerId: offer,
+    version: 1,
+    counterpartyKingdomId: peer,
+    termsJson: JSON.stringify(terms),
+    minimumIron: "0",
+    minimumSilver: "0",
+    minimumGrain: "0",
+    assessmentDeadlineGameTimeMs: "7200000",
+  };
+  const payload = {
+    requestedRead: {
+      schemaVersion: "pact.observation-section.v1",
+      section: "agreements",
+      ownerKingdomId: owner,
+      asOfGameTimeMs: 0,
+      records: [
+        {
+          id: randomUUID(),
+          type: "SupplyContract",
+          ownerKingdomId: owner,
+          kingdomA: peer,
+          kingdomB: owner,
+          counterpartyKingdomId: peer,
+          offerId: offer,
+          offerVersion: 1,
+          terms,
+          status: "expired",
+          startGameTimeMs: "60000",
+          endGameTimeMs: "3660000",
+          deliveries: [
+            {
+              resource: "iron",
+              direction: "received",
+              installments: 60,
+              dueMarked: "600",
+              deliveredMarked: "600",
+              overflowMarked: "0",
+              failedInstallments: 0,
+              lastGameTimeMs: "3600000",
+            },
+            {
+              resource: "silver",
+              direction: "sent",
+              installments: 60,
+              dueMarked: "1200",
+              deliveredMarked: "1200",
+              overflowMarked: "0",
+              failedInstallments: 0,
+              lastGameTimeMs: "3600000",
+            },
+          ],
+        },
+      ],
+    },
+  };
+  const c = {
+    inputs,
+    values: {},
+    goal: {},
+    signal: new AbortController().signal,
+    observe: async () => payload,
+    submit: async () => ({}),
+    request: async () => ({}),
+    resolve: async () => ({}),
+  } satisfies PrimitiveContext;
+  const result = await createPactSkillSupport().registry.invoke(
+    { id: "pact.existing-supply.delivery", version: "1" },
+    "await",
+    {},
+    c,
+  );
+  expect(result.value?.fulfilled).toBe(false);
+  expect(result.returnToReasoning).toBe("DELIVERY_TIME_INCONSISTENT");
+  payload.requestedRead.records[0].status = "active";
+  payload.requestedRead.records[0].deliveries = [];
+  const pending = await createPactSkillSupport().registry.invoke(
+    { id: "pact.existing-supply.delivery", version: "1" },
+    "await",
+    {},
+    c,
+  );
+  expect(pending).toMatchObject({ wait: true, value: { fulfilled: false, reason: "DELIVERY_NOT_STARTED" } });
 });

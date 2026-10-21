@@ -192,6 +192,8 @@ it("signs only a prior exact goal through native guards with zero reuse model ca
     (await f.pool.query("SELECT * FROM architecture_scoped_evidence WHERE kind='specialist-outcome.v1'")).rowCount,
   ).toBe(1);
   expect((await f.pact.pool.query("SELECT * FROM supply_installments")).rowCount).toBe(120);
+  expect((await f.pact.pool.query("SELECT * FROM world_ticks")).rowCount).toBe(61);
+  expect((await f.pact.world.read()).gameTimeMs).toBe(Number(contract.end_game_time_ms));
   expect((await new SpecialistRepository(f.store, f.scope).load(f.scope)).goals[0].status).toBe("completed");
   learning = true;
   f.advanceBoth(16 * 60000);

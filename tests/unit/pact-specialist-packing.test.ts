@@ -1,4 +1,5 @@
 import { expect, it } from "vitest";
+import type { Data } from "../../src/domain.js";
 import { expandFactTables } from "../../src/fact-table.js";
 import { projectPactObservation } from "../../src/games/pact/negotiation-state.js";
 import { packPactObservation } from "../../src/games/pact/packing.js";
@@ -84,4 +85,19 @@ it("keeps mandatory own goal/stock/authority/building/training facts and whole s
   expect(() => packPactObservation(projected, 100)).toThrow("SPECIALIST_CONTEXT_INCOMPLETE");
   expect(input.schemaId).toBe("pact.observation.v1");
   expect(input.payload.world).toEqual(world);
+  const grown = structuredClone(input),
+    authority = (grown.payload.world as Data).authority as Data,
+    resources = authority.resources as Data;
+  resources.iron = {
+    ...(resources.iron as Data),
+    releaseSchedule: Array.from({ length: 60 }, (_, i) => ({ gameTimeMs: 86400000 + i * 60000, units: "10" })),
+  };
+  const later = expandFactTables(
+      packPactObservation(projectPactObservation(grown, { id: "specialists", version: "1" }), 5000).payload.environment,
+    ) as Data,
+    iron = ((later.authority as Data).resources as Data).iron as Data;
+  expect(iron.headroomUnits).toBe("60000");
+  expect(iron.releaseCount).toBe(60);
+  expect(iron).not.toHaveProperty("releaseSchedule");
+  expect(iron).not.toHaveProperty("reservationCount");
 });

@@ -149,7 +149,29 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
       ? { coverage: "Authority unavailable; read fresh authorized facts." }
       : {
           ...object(originalAuthority),
-          resources: factTable(object(originalAuthority).resources),
+          resources: factTable(
+            Object.fromEntries(
+              Object.entries(object(object(originalAuthority).resources)).map(([asset, value]) => {
+                const { releaseSchedule, reservations, ...totals } = object(value);
+                return [
+                  asset,
+                  {
+                    ...totals,
+                    ...(Array.isArray(releaseSchedule)
+                      ? { releaseCount: releaseSchedule.length, nextSpendRelease: releaseSchedule[0] ?? null }
+                      : {}),
+                    ...(Array.isArray(reservations) ? { reservationCount: reservations.length } : {}),
+                    ...(releaseSchedule !== undefined || reservations !== undefined
+                      ? {
+                          coverage:
+                            "Current permission totals retained. Release/commitment rows are unavailable in this view; observed array counts are not additional authority. Read current server quotes for details.",
+                        }
+                      : {}),
+                  },
+                ];
+              }),
+            ),
+          ),
         };
   const omitted = Object.keys(compact).filter((k) => !keys.includes(k)),
     pages: Data = {};

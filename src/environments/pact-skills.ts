@@ -1,6 +1,6 @@
 import { Ajv } from "ajv";
 import { type Data, FleetError } from "../domain.js";
-import { actionContract } from "../games/pact/contracts.js";
+import { actionContract, allActionSchemas } from "../games/pact/contracts.js";
 import { type PrimitiveContext, PrimitiveRegistry } from "../modules/skills/v1/primitives.js";
 import { QualificationPolicy, TrustedCaseSet } from "../modules/skills/v1/qualification.js";
 import type { RecipeNode, SkillCandidate, SkillVersion } from "../modules/skills/v1/schema.js";
@@ -182,6 +182,31 @@ function delivery(payload: Data, inputs: Data): Data {
   const count = (BigInt(String(contract.endGameTimeMs)) - BigInt(String(contract.startGameTimeMs))) / 60000n,
     rows = Array.isArray(contract.deliveries) ? contract.deliveries.map(obj) : [];
   if (count <= 0n) return { satisfied: false, fulfilled: false, waiting: false, reason: "INVALID_CONTRACT_INTERVAL" };
+  if (
+    digits(String(s.asOfGameTimeMs)) &&
+    BigInt(String(s.asOfGameTimeMs)) < BigInt(String(contract.startGameTimeMs)) &&
+    contract.status === "active" &&
+    rows.length === 0
+  )
+    return {
+      satisfied: false,
+      fulfilled: false,
+      waiting: true,
+      reason: "DELIVERY_NOT_STARTED",
+      contractId: contract.id,
+    };
+  if (
+    !digits(String(s.asOfGameTimeMs)) ||
+    BigInt(String(s.asOfGameTimeMs)) < BigInt(String(contract.startGameTimeMs)) ||
+    (contract.status === "expired" && BigInt(String(s.asOfGameTimeMs)) < BigInt(String(contract.endGameTimeMs)))
+  )
+    return {
+      satisfied: false,
+      fulfilled: false,
+      waiting: false,
+      reason: "DELIVERY_TIME_INCONSISTENT",
+      contractId: contract.id,
+    };
   const ownA = contract.kingdomA === s.ownerKingdomId,
     flows = [
       { flow: obj(ownA ? terms.aToB : terms.bToA), direction: "sent" },
@@ -194,6 +219,18 @@ function delivery(payload: Data, inputs: Data): Data {
       complete = false;
       continue;
     }
+    if (
+      !digits(r.lastGameTimeMs) ||
+      BigInt(String(r.lastGameTimeMs)) > BigInt(String(s.asOfGameTimeMs)) ||
+      BigInt(String(r.lastGameTimeMs)) < BigInt(String(contract.startGameTimeMs))
+    )
+      return {
+        satisfied: false,
+        fulfilled: false,
+        waiting: false,
+        reason: "DELIVERY_TIME_INCONSISTENT",
+        contractId: contract.id,
+      };
     if (
       !Number.isInteger(r.installments) ||
       Number(r.failedInstallments) !== 0 ||
@@ -325,7 +362,26 @@ export function createPactSkillSupport(): SkillSupport {
       launchDigest(s.body.effects.actionKeys) === launchDigest(["game.supply.sign"]) &&
       launchDigest(s.body.compatibility.environment) === launchDigest({ id: "pact", version: "1" }),
   };
-  const policy = new QualificationPolicy([procedureClass], "pact-existing-supply.v1");
+  const policy = new QualificationPolicy(
+    [procedureClass],
+    launchDigest({
+      id: "pact-existing-supply.v1",
+      inputs: supplyRoutineInputs,
+      contracts: allActionSchemas,
+      logic: [
+        obj,
+        digits,
+        parameters,
+        section,
+        exact,
+        checkOffer,
+        delivery,
+        read,
+        supplyReserveConstraints,
+        actionContract,
+      ].map((fn) => fn.toString()),
+    }),
+  );
   const inputs: Data = {
     offerId: "00000000-0000-4000-a000-000000000001",
     version: 1,
