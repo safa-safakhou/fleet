@@ -52,6 +52,9 @@ export class BoundedDecisionStep {
   protected modelObservation(observation: DecisionContext["observation"]) {
     return observation;
   }
+  protected packEveryObservation() {
+    return false;
+  }
   protected fitExtension(_payload: Data): void {}
   protected reduceExtension(_payload: Data): boolean {
     return false;
@@ -111,6 +114,8 @@ export class BoundedDecisionStep {
         coverage: { delivery: "event_or_periodic_review", omitted: [] as string[] },
       };
       const omitted = payload.coverage as { omitted: string[] };
+      if (this.packEveryObservation() && ctx.packObservation)
+        payload.observation = ctx.packObservation(this.modelObservation(observation), budget.inputByteLimit);
       const messages = () => [
         { role: "system", content: system },
         { role: "user", content: JSON.stringify(payload) },

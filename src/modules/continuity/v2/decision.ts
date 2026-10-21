@@ -44,6 +44,9 @@ const rows = (v: unknown): Data[] => (Array.isArray(v) ? v.map(object) : []);
  * Original observations/receipts are deterministic evidence, never authored learning.
  */
 export class NegotiationDecisionStep extends BoundedDecisionStep {
+  protected packEveryObservation() {
+    return true;
+  }
   protected decisionSchema: Data = z.toJSONSchema(Envelope, { target: "draft-7" });
   private schemaCache = new WeakMap<Data, Data>();
   protected generationSchema(_payload: Data, base: Data) {
@@ -58,7 +61,7 @@ export class NegotiationDecisionStep extends BoundedDecisionStep {
   private saved: State = { index: [], memories: [], ack: { status: "no_op", reason: "no_prior_write" } };
   private selection?: EvidenceSelection;
   protected additionalInstructions() {
-    return " Version two: return {decision:<advertised decision>,memory?:{memories:[{id,text,evidenceRefs}]}}. Memory is optional subjective interpretation, not owner intent or a command. Cite only delivered original IDs. Summary narration never writes memory. memoryWriteAck reports the previous accepted/rejected/no_op attempt. Original receipts remain factual evidence when no memory is written. Missing or omitted support is unavailable; never reconstruct it from a summary. Signature is not income; closed status is not proof of fulfillment. Read current scope when needed.";
+    return " Version two: return {decision:<advertised decision>,memory?:{memories:[{id,text,evidenceRefs}]}}. Memory is optional subjective interpretation, not owner intent or a command. Cite only delivered original IDs. Summary narration never writes memory. memoryWriteAck reports the previous accepted/rejected/no_op attempt. Original receipts remain factual evidence when no memory is written. Missing or omitted support is unavailable; never reconstruct it from a summary. An open offer is a proposal, not a contract: selfConsent and peerConsent are separate, and no signature, income, delivery or immediate stock transfer follows from proposing it. Use only the observed current offer version and your own youSend/youReceive directions. Founding allowance and authority ceilings are not ordinary trade stock. A resource-receive objective is not fulfilled by sending that resource or by waiting on own production. Signature is not income; closed status is not proof of fulfillment. Read current scope when needed.";
   }
   async runContext(ctx: DecisionContext) {
     const loaded = await ctx.state.load(codec);
@@ -70,7 +73,7 @@ export class NegotiationDecisionStep extends BoundedDecisionStep {
         ack: object(loaded.value.ack),
       };
     }
-    const project = (o: Observation) => ctx.projectObservation?.(o, { id: "negotiation", version: "1" }) ?? o;
+    const project = (o: Observation) => ctx.projectObservation?.(o, { id: "negotiation", version: "2" }) ?? o;
     return super.runContext({
       ...ctx,
       observation: project(ctx.observation),

@@ -5,11 +5,41 @@ import { compactFacts } from "./adapter.js";
 import { compactEnvironment } from "./environment.js";
 import { fitNegotiationState, type NegotiationState } from "./negotiation-state.js";
 
+function ordinaryNegotiationStock(balances: Data): Data {
+  const split = (v: unknown) =>
+    typeof v === "string" && /^\d+$/.test(v)
+      ? { floor: (BigInt(v) / 600n).toString(), remainder: (BigInt(v) % 600n).toString() }
+      : { floor: null, remainder: null };
+  return Object.fromEntries(
+    Object.entries(balances).map(([resource, raw]) => {
+      const b = object(raw),
+        ordinary = split(b.ordinaryUnits),
+        locked = split(b.lockedUnits),
+        capacity = split(b.capacityUnits);
+      return [
+        resource,
+        {
+          ordinaryWholeFloor: ordinary.floor,
+          ordinaryRemainderMarked: ordinary.remainder,
+          lockedWholeFloor: locked.floor,
+          lockedRemainderMarked: locked.remainder,
+          capacityWholeFloor: capacity.floor,
+          capacityRemainderMarked: capacity.remainder,
+          ratesWholePerHour: Object.fromEntries(
+            Object.entries(object(object(b.facts).rates)).map(([kind, v]) => [kind, object(v).perHourWhole]),
+          ),
+        },
+      ];
+    }),
+  );
+}
+
 /** PACT owns which facts are essential; generic engines must never delete world keys. */
 export function packPactObservation(observation: Observation, byteLimit: number): Observation {
   if (observation.schemaId === "pact.observation.specialists.v1")
     return packSpecialistObservation(observation, byteLimit);
-  if (observation.schemaId === "pact.observation.negotiation.v1") {
+  if (["pact.observation.negotiation.v1", "pact.observation.negotiation.v2"].includes(observation.schemaId)) {
+    const v2 = observation.schemaId === "pact.observation.negotiation.v2";
     const { negotiation, requestedRead } = observation.payload;
     const compact: Data = compactFacts(observation.payload),
       world = object(observation.payload.world),
@@ -29,7 +59,12 @@ export function packPactObservation(observation: Observation, byteLimit: number)
     const environment = Object.fromEntries(keys.filter((k) => compact[k] !== undefined).map((k) => [k, compact[k]]));
     // The trusted candidate policy is a negotiation view. Other game detail is
     // available by ordinary scoped reads; omitted construction is never absence.
-    environment.balances = factTable(environment.balances);
+    environment.balances = factTable(
+      v2 ? ordinaryNegotiationStock(object(environment.balances)) : environment.balances,
+    );
+    if (v2)
+      environment.stockMeaning =
+        "Ordinary stock only. WholeFloor plus RemainderMarked/600 is the exact balance; null is unknown. Rates are whole/hour. Founding allowance is not ordinary trade stock. Authority ceilings are permission, not stock. Unsigned offers create no income, delivery or immediate stock transfer.";
     environment.authority = {
       ...object(environment.authority),
       resources: factTable(object(environment.authority).resources),
@@ -63,8 +98,13 @@ export function packPactObservation(observation: Observation, byteLimit: number)
       coverage: {
         ...observation.coverage,
         packed: true,
-        policy: "pact.negotiation-view.v1",
-        omitted: ["construction, military and full guide/rule detail; use normal scoped reads"],
+        policy: v2 ? "pact.negotiation-view.v2" : "pact.negotiation-view.v1",
+        omitted: [
+          "construction, military and full guide/rule detail; use normal scoped reads",
+          ...(v2
+            ? ["founding allowance omitted from negotiation stock; use scoped world read for founding supplies"]
+            : []),
+        ],
         time: world.asOfGameTimeMs,
       },
     };
@@ -74,6 +114,13 @@ export function packPactObservation(observation: Observation, byteLimit: number)
       (base.coverage.omitted as string[]).push("discovery page unavailable; use scoped discovery read");
     }
     const state = structuredClone(negotiation) as NegotiationState;
+    if (v2)
+      state.units = {
+        stock: "whole floor plus remainderMarked/600",
+        flow: "whole/hour",
+        bond: "whole",
+        internalPerWhole: 600,
+      };
     state.constraints = null;
     state.constraintRefs = {
       stock: "environment.balances",

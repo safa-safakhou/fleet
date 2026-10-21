@@ -117,7 +117,7 @@ it("trusted v2 projection preserves the original packet and protected record aft
   const projected = projectPactObservation(original, { id: "negotiation", version: "1" });
   expect(JSON.stringify(original)).toBe(before);
   expect(v1.payload.negotiation).toBeUndefined();
-  expect(() => projectPactObservation(original, { id: "negotiation", version: "2" })).toThrow(
+  expect(() => projectPactObservation(original, { id: "negotiation", version: "3" })).toThrow(
     "UNSUPPORTED_OBSERVATION_POLICY",
   );
   const packed = packPactObservation(projected, 8000);
