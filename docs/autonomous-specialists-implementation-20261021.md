@@ -50,4 +50,8 @@ A07/A08 implement the complete initial eight-action PACT matrix and default-off 
 
 Verification: both presets use actual native hosts and PACT handlers with authored model responses; contact, building and training receipts are independently read back. New adapter/digest, all environment compatibility and original architecture parity checks pass11/11. PACT's focused effects/interface/fault/social/outlook checks pass87/87; type/lint/contracts/boundaries/package builds pass. No provider or retained game was contacted. Broader final acceptance follows the skill tasks.
 
-K01–K07 and X01/X02 remain open. E1 operational preparation and E1–E4 behavioral gates remain separate. No production-readiness claim is made by this interim report.
+K01 stores encrypted immutable skill versions, canonical content digests, explicit same-binding publication and pinned recipient adoption. An edit starts a new candidate without inherited qualification. Model-authored status/test fields are rejected; guarded promotion requires a separately stored host evaluation. Support deletion/expiry or consent removal redacts private derived content and suspends use. The engine-facing library port has no qualification mutation.
+
+Verification: schema/library/state/old-continuity25/25, type/style/build/boundaries and clean diff checks pass. Concurrent proposals deduplicate transactionally; foreign binding, unsupported recipient actions and forged evaluation IDs are rejected. These mechanisms are not skill effectiveness evidence.
+
+K02–K07 and X01/X02 remain open. E1 operational preparation and E1–E4 behavioral gates remain separate. No production-readiness claim is made by this interim report.

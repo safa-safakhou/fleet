@@ -64,5 +64,6 @@ export async function migrate(pool: Pool) {
     await c.query(await readFile(resolve("migrations/030_specialist_work_cursors.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/031_specialist_conflicts.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/032_specialist_planning.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/033_skill_library.sql"), "utf8"));
   });
 }

@@ -42,6 +42,17 @@ export function createMaintenance(store: Store) {
     ["oauth_attempts", "expires_at"],
   ] as const;
   registry.register({
+    id: "skill-private-content",
+    run: async (limit, signal) => {
+      if (signal.aborted) return 0;
+      const rows = await store.pool.query(
+        "UPDATE skill_versions SET body_cipher=NULL,summary_cipher=NULL,status='suspended' WHERE ctid IN(SELECT ctid FROM skill_versions WHERE (body_cipher IS NOT NULL OR summary_cipher IS NOT NULL) AND created_at<$1 ORDER BY created_at LIMIT $2)",
+        [new Date(store.now().getTime() - 30 * 86400000), limit],
+      );
+      return rows.rowCount ?? 0;
+    },
+  });
+  registry.register({
     id: "specialist-private-state",
     run: async (limit, signal) => {
       if (signal.aborted) return 0;
