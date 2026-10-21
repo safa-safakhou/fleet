@@ -1,6 +1,6 @@
 # PACT/Fleet continuation gates — 21 October 2026
 
-The platform source is integrated; real qualification and release remain blocked. This continuation defines the next candidate and the evidence needed to proceed. It creates no execution grant, fixture, installation or activation. Work is inline on the two main master checkouts.
+The platform source is integrated; real qualification and release remain blocked. This continuation defines operational gates and creates no execution grant, installation or activation. The subsequent [RC2 local acceptance record](RC2-local-acceptance-20261021.md) supersedes its earlier source-implementation status. Work is inline on the two main master checkouts.
 
 ## Execution-policy investigation
 
@@ -14,7 +14,7 @@ Before any retry, require a platform-issued resolution that actually covers the 
 
 ## Candidate after E3
 
-[RC1 candidate and separate evaluation boundary](superpowers/specs/2026-10-21-post-E3-candidate-design.md) selects the already implemented specialist source with one explicit full/guarded configuration as a **repair hypothesis**, not a qualified release. Its source-level memory and context repairs are present; prevention of E3's prose authority failure is unproven. It does not modify the sealed E3/E4 or passive KQ1 artifacts. The new two-model-kingdom evaluation composition is not implemented by the existing KQ1 runner and must pass offline acceptance before use.
+[RC1 candidate and separate evaluation boundary](superpowers/specs/2026-10-21-post-E3-candidate-design.md) selects the already implemented specialist source with one explicit full/guarded configuration as a **repair hypothesis**, not a qualified release. Its owned two-model-kingdom composition is now implemented separately from KQ1. RC1's 24000-byte positive fake attempt stalled at the action-context fence; the [separate RC2 candidate](superpowers/specs/2026-10-21-RC2-input-cap.md) increases input to 32000 bytes and uses user-selected 30-minute reviews without raising the call ceiling. Prevention of E3's real-model prose authority failure is unproven. Sealed E3/E4 and passive KQ1 artifacts are unchanged.
 
 E1/E2/E3 remain terminal failures. The complete old E3 registry is treated as development/exposed material for future candidate selection; its 34 unstarted cells are not a replacement held-out set. E4 measures the old frozen candidate and cannot repair that candidate's failed G3 result. KQ1 remains an eight-cell specialist diagnostic with disclosed scripted peers, not proof of autonomous two-sided negotiation. Neither result alone can qualify RC1.
 
@@ -53,12 +53,12 @@ After any real dispatch: settle known usage before inline response review; stop 
 
 ## Release acceptance
 
-No installation or activation is authorized by diagnostic success. Require valid RC1 qualification on its own exact release configuration and unseen evaluation boundary, together with the applicable specialist/skill diagnostic. Source integration and historical E3 failure remain separate facts.
+No installation or activation is authorized by diagnostic success. Require valid qualification of the selected repaired candidate on its own exact release configuration and unseen evaluation boundary, together with the applicable specialist/skill diagnostic. Source integration and historical E3 failure remain separate facts.
 
 Then prepare a concrete isolated, disabled candidate installation with exact package/configuration digests, owned paths/service names/ports/database/vault, no automatic enrollment and no scheduler/autostart activation. Verify migration only against a fresh candidate database, authenticated backup/restore to a separate clone, disabled restart/health/authentication, isolation from preserved services and a rollback rehearsal. The rollback proof must preserve identities, ledgers, unknown allocations, pending command IDs and matching vault material; an old backup cannot overwrite newer writes. Never run two controllers for the same accounts.
 
 Only after those results can an exact activation package identify its new accounts/mandates/lease IDs, permitted services, bounded allowance and UTC observation window, stop conditions, responsible operator and rollback decision. Actual activation needs covering authorization and a permitted execution route. No public deployment or push follows from this document.
 
-## Continuation acceptance
+## Earlier documentation-only continuation acceptance
 
 Documentation/content checks passed across the five changed/new documents: 27 local links resolve, the RC1 JSON configuration matches the selected source configuration, old frozen records/ceilings remain unchanged, and text/secret-pattern checks found no copied private paths or credential material. `git diff --check` passed. Review was inline author review, without delegation. Application checks remain the historical results in [current state](current-state.md); no new full-suite, model, runtime-preflight, backup/restore or operational acceptance is claimed. Existing private artifacts, grants, archives, frozen bundles and the paused world are preserved by non-access.

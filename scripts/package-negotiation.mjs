@@ -20,7 +20,7 @@ for (let i = 0; i < args.length; i += 2) {
 }
 if (
   !["--output", "--node", "--ollama", "--models"].every((key) => options[key]) ||
-  (options["--stage"] !== undefined && options["--stage"] !== "KQ1") ||
+  (options["--stage"] !== undefined && !["KQ1", "R1", "R2"].includes(options["--stage"])) ||
   !isAbsolute(options["--output"])
 )
   throw Error("PACKAGE_ARGUMENTS");
@@ -147,33 +147,57 @@ for (const layer of descriptor.model.artifact.layers)
   );
 const { negotiationBaselineAmendment } = await import("../dist/negotiation/fleet/src/negotiation-plan.js");
 const { pinnedProviderMetadata } = await import("../dist/negotiation/fleet/scripts/lib/negotiation-model-store.js");
-const specialist = options["--stage"] === "KQ1";
-const settings = specialist
-  ? (await import("../dist/negotiation/fleet/scripts/lib/specialist-package.js")).specialistPackageSettings(
+const specialist = options["--stage"] === "KQ1",
+  repair = ["R1", "R2"].includes(options["--stage"]);
+const settings = repair
+  ? (await import("../dist/negotiation/fleet/scripts/lib/post-e3-package.js")).postE3PackageSettings(
       descriptor.proposedSettings,
+      options["--stage"] === "R2" ? "RC2" : "RC1",
     )
-  : descriptor.proposedSettings;
+  : specialist
+    ? (await import("../dist/negotiation/fleet/scripts/lib/specialist-package.js")).specialistPackageSettings(
+        descriptor.proposedSettings,
+      )
+    : descriptor.proposedSettings;
 await writeFile(join(out, "execution-settings.json"), JSON.stringify(settings) + "\n", {
   flag: "wx",
 });
 await writeFile(
   join(out, "execution-policy.json"),
   JSON.stringify({
-    schemaVersion: specialist ? "fleet.owned-specialist-policy.v1" : "fleet.owned-negotiation-policy.v1",
-    ...(specialist
+    schemaVersion: repair
+      ? options["--stage"] === "R2"
+        ? "fleet.rc2-policy.v1"
+        : "fleet.rc1-policy.v2"
+      : specialist
+        ? "fleet.owned-specialist-policy.v1"
+        : "fleet.owned-negotiation-policy.v1",
+    ...(repair
       ? {
-          stage: "KQ1",
-          profile: { id: "autonomous-specialists", version: "1" },
-          plannedCounterexample: {
-            cycle: 0,
-            gameMinute: 0,
-            beforeFirstModelDecision: true,
-            change:
-              "Revoke own supply.sign and withdraw the exact scripted peer offer once; all other authority/goal fields unchanged",
-          },
-          diagnosticOnly: true,
+          study: settings.study,
+          protocolVersion: options["--stage"] === "R2" ? "fleet.rc2-protocol.v1" : "fleet.rc1-protocol.v2",
+          grantVersion: options["--stage"] === "R2" ? "fleet.rc2-grant.v1" : "fleet.rc1-grant.v2",
+          profile: settings.architecture,
+          candidateSources: settings.candidateSources,
+          realProviderAuthorized: false,
+          productionQualification: false,
+          installation: false,
+          activation: false,
         }
-      : { baselineAmendment: negotiationBaselineAmendment }),
+      : specialist
+        ? {
+            stage: "KQ1",
+            profile: { id: "autonomous-specialists", version: "1" },
+            plannedCounterexample: {
+              cycle: 0,
+              gameMinute: 0,
+              beforeFirstModelDecision: true,
+              change:
+                "Revoke own supply.sign and withdraw the exact scripted peer offer once; all other authority/goal fields unchanged",
+            },
+            diagnosticOnly: true,
+          }
+        : { baselineAmendment: negotiationBaselineAmendment }),
     sources: sourcePins,
     review: "inline-after-native-usage-before-next-dispatch",
     model: descriptor.model,

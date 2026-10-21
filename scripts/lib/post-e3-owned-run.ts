@@ -18,12 +18,12 @@ import {
 import { createPactEnvironment, PactBindings } from "../../src/environments/pact.js";
 import { pactSpecialistPresets } from "../../src/environments/pact-presets.js";
 import {
-  assessRC1Negotiation,
+  assessPostE3Negotiation,
   type NegotiationAssessment,
   type NegotiationClaimReviews,
   type NegotiationEvidence,
   rc1MechanicallyComplete,
-  summarizeRC1Negotiation,
+  summarizePostE3Negotiation,
 } from "../../src/negotiation-evaluation.js";
 import { designDigest } from "../../src/negotiation-plan.js";
 import { ModelAdmission, type ModelResult, RouteCapacity } from "../../src/platform/admission.js";
@@ -33,23 +33,24 @@ import { EnvironmentRegistry } from "../../src/platform/environment-registry.js"
 import { CommandExecutor } from "../../src/platform/execution.js";
 import { OperationSupervisor, PlatformHost } from "../../src/platform/supervisor.js";
 import { type TaskClaim, TaskStore } from "../../src/platform/tasks.js";
-import { type RC1Cell, type RC1Protocol, rc1Configuration, validateRC1Cell } from "../../src/post-e3-plan.js";
-import { type RC1Grant, validateRC1Grant } from "../../src/post-e3-run.js";
+import { rc1Configuration } from "../../src/post-e3-plan.js";
+import { type PostE3Cell, type PostE3Protocol, validatePostE3Cell } from "../../src/post-e3-rc2-plan.js";
+import { type PostE3Grant, validatePostE3Grant } from "../../src/post-e3-run.js";
 import type { Store } from "../../src/store.js";
 import { nativeCompletionReady } from "./negotiation-native-run.js";
 import { facade, type PreparedNegotiationCell, prepareOwnedNegotiationCohort } from "./negotiation-owned-run.js";
 
-export type PreparedRC1Cell = PreparedNegotiationCell<RC1Cell> & { model: ModelSettings; budgetDeadline: string };
+export type PreparedPostE3Cell = PreparedNegotiationCell<PostE3Cell> & { model: ModelSettings; budgetDeadline: string };
 export async function prepareOwnedRC1Cohort(
   store: Store,
-  world: OwnedNegotiationWorld<RC1Cell>,
-  control: OwnedNegotiationWorld<RC1Cell>,
-  cell: RC1Cell,
+  world: OwnedNegotiationWorld<PostE3Cell>,
+  control: OwnedNegotiationWorld<PostE3Cell>,
+  cell: PostE3Cell,
   model: ModelSettings,
   fixtureNonce: string,
   evidenceRef: string,
   keyRef: string,
-): Promise<PreparedRC1Cell> {
+): Promise<PreparedPostE3Cell> {
   const p = await prepareOwnedNegotiationCohort(store, world, control, cell, model, fixtureNonce, evidenceRef, keyRef);
   await store.pool.query(
     "UPDATE cohort_engine_profiles SET architecture_config=$2,non_model_limits=$3 WHERE cohort_id=$1",
@@ -68,25 +69,33 @@ export async function prepareOwnedRC1Cohort(
 }
 type Dependencies = {
   store: Store;
-  prepared: PreparedRC1Cell[];
+  prepared: PreparedPostE3Cell[];
   provider: ModelPort;
   evidenceLevel: "fake-provider" | "real-provider";
   verifyArtifacts(): Promise<void>;
   reviewResponse(claim: TaskClaim, result: ModelResult): Promise<void>;
-  reviewOutcome(cell: RC1Cell, e: NegotiationEvidence): Promise<Pick<NegotiationClaimReviews, "claims" | "reviews">>;
+  reviewOutcome(cell: PostE3Cell, e: NegotiationEvidence): Promise<Pick<NegotiationClaimReviews, "claims" | "reviews">>;
   persist(kind: string, detail: unknown): Promise<void>;
 };
 type CellResult = {
   cellId: string;
   status: "completed" | "failed" | "not_started";
   reason?: string;
-  assessment?: NegotiationAssessment<RC1Cell>;
+  assessment?: NegotiationAssessment<PostE3Cell>;
 };
 
 /** Source-owned composition only. No provider startup, fixture reset, uncertain
  * command replay or owner review exists on this path. */
-export async function executeOwnedRC1Protocol(protocol: RC1Protocol, grant: RC1Grant, d: Dependencies) {
-  const check = validateRC1Grant(protocol, grant, Date.now());
+export function executeOwnedRC1Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
+  if (protocol.study !== "negotiation-r1") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
+  return executeOwnedPostE3Protocol(protocol, grant, d);
+}
+export function executeOwnedRC2Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
+  if (protocol.study !== "negotiation-r2") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
+  return executeOwnedPostE3Protocol(protocol, grant, d);
+}
+async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
+  const check = validatePostE3Grant(protocol, grant, Date.now());
   if (!check.valid) throw new FleetError(check.reasons[0] ?? "RC1_GRANT_REQUIRED", true);
   const nonces = new NegotiationNonceStore(d.store);
   if (await nonces.consumed(grant.batchNonce)) throw new FleetError("RC1_NONCE_CONSUMED", true);
@@ -104,7 +113,7 @@ export async function executeOwnedRC1Protocol(protocol: RC1Protocol, grant: RC1G
     throw new FleetError("RC1_PREPARED_SCOPE", true);
   await d.verifyArtifacts();
   for (const p of d.prepared) {
-    validateRC1Cell(protocol, p.cell);
+    validatePostE3Cell(protocol, p.cell);
     const count = (
       await d.store.pool.query("SELECT count(*)::int n FROM turns WHERE cohort_id=$1", [p.binding.cohortId])
     ).rows[0].n;
@@ -146,12 +155,12 @@ export async function executeOwnedRC1Protocol(protocol: RC1Protocol, grant: RC1G
   }
   if (parkFailed) throw new FleetError("RC1_PARK_FAILED", true);
   const result = {
-    schemaVersion: "fleet.rc1-batch.v1",
+    schemaVersion: protocol.study === "negotiation-r2" ? "fleet.rc2-batch.v1" : "fleet.rc1-batch.v1",
     protocolDigest: protocol.digest,
     batchNonce: grant.batchNonce,
     status: stopped ? ("stopped" as const) : ("complete" as const),
     cells,
-    summary: summarizeRC1Negotiation(
+    summary: summarizePostE3Negotiation(
       protocol,
       cells.flatMap((c) => (c.assessment ? [c.assessment] : [])),
     ),
@@ -162,7 +171,7 @@ export async function executeOwnedRC1Protocol(protocol: RC1Protocol, grant: RC1G
   return result;
 }
 
-async function runCell(protocol: RC1Protocol, grant: RC1Grant, p: PreparedRC1Cell, d: Dependencies) {
+async function runCell(protocol: PostE3Protocol, grant: PostE3Grant, p: PreparedPostE3Cell, d: Dependencies) {
   const { store } = d,
     { cell, binding, world, control } = p,
     stop = new AbortController(),
@@ -208,6 +217,7 @@ async function runCell(protocol: RC1Protocol, grant: RC1Grant, p: PreparedRC1Cel
     if (
       designDigest(group.model) !== designDigest(p.model) ||
       group.budget?.deadlineAt !== expectedDeadline ||
+      group.interval_minutes !== protocol.native.periodicMinutes ||
       designDigest(profile?.architecture_config) !== designDigest(rc1Configuration) ||
       designDigest(profile?.non_model_limits) !== designDigest(cell.workLimits) ||
       profile?.timed_reviews !== (cell.clockMode === "native") ||
@@ -572,8 +582,8 @@ async function runCell(protocol: RC1Protocol, grant: RC1Grant, p: PreparedRC1Cel
       await control.pauseClock("RC1_NATIVE_TERMINAL");
     } else {
       let complete = false;
-      for (let round = 0; round < cell.limits.gameHorizonMinutes / 15; round++) {
-        const minute = start + round * 15;
+      for (let round = 0; round < cell.limits.gameHorizonMinutes / protocol.native.periodicMinutes; round++) {
+        const minute = start + round * protocol.native.periodicMinutes;
         await guard();
         await advance(minute);
         for (const bindingId of binding.bindingIds) {
@@ -605,7 +615,7 @@ async function runCell(protocol: RC1Protocol, grant: RC1Grant, p: PreparedRC1Cel
       solo = await readNegotiationEvidence(control);
     evidence.lifecycle.push(...lifecycle);
     const reviews = await d.reviewOutcome(cell, evidence);
-    const assessment = assessRC1Negotiation(protocol, cell, evidence, solo, {
+    const assessment = assessPostE3Negotiation(protocol, cell, evidence, solo, {
       evidenceLevel: d.evidenceLevel,
       allocations: await allocations(),
       ...reviews,
@@ -630,3 +640,5 @@ async function runCell(protocol: RC1Protocol, grant: RC1Grant, p: PreparedRC1Cel
     await supervisor.drain();
   }
 }
+
+export const prepareOwnedRC2Cohort = prepareOwnedRC1Cohort;

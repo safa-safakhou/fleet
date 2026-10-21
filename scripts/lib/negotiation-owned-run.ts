@@ -32,7 +32,7 @@ import { EnvironmentRegistry } from "../../src/platform/environment-registry.js"
 import { CommandExecutor } from "../../src/platform/execution.js";
 import { OperationSupervisor, PlatformHost } from "../../src/platform/supervisor.js";
 import { type TaskClaim, TaskStore } from "../../src/platform/tasks.js";
-import type { RC1Cell } from "../../src/post-e3-plan.js";
+import type { PostE3Cell } from "../../src/post-e3-rc2-plan.js";
 import type { Store } from "../../src/store.js";
 import { runNativeOwnedCell } from "./negotiation-native-run.js";
 
@@ -76,7 +76,7 @@ const tools: Tool[] = [
     annotations: { readOnlyHint: false },
   },
 ];
-export type PreparedNegotiationCell<C extends NegotiationCell | RC1Cell = NegotiationCell> = {
+export type PreparedNegotiationCell<C extends NegotiationCell | PostE3Cell = NegotiationCell> = {
   cell: C;
   binding: NegotiationBinding;
   world: OwnedNegotiationWorld<C>;
@@ -140,7 +140,7 @@ export function facade(
     },
   };
 }
-export async function prepareOwnedNegotiationCohort<C extends NegotiationCell | RC1Cell>(
+export async function prepareOwnedNegotiationCohort<C extends NegotiationCell | PostE3Cell>(
   store: Store,
   world: OwnedNegotiationWorld<C>,
   control: OwnedNegotiationWorld<C>,
@@ -165,7 +165,7 @@ export async function prepareOwnedNegotiationCohort<C extends NegotiationCell | 
   const group = await store.create({
     name: `Negotiation ${cell.id}`.slice(0, 80),
     count: 2,
-    intervalMinutes: 15,
+    intervalMinutes: "study" in cell && cell.study === "negotiation-r2" ? cell.periodicReviewMinutes : 15,
     seed: cell.worldSeed.slice(0, 40),
     strategies: ["merchant"],
   });
@@ -178,7 +178,7 @@ export async function prepareOwnedNegotiationCohort<C extends NegotiationCell | 
       deadlineAt: new Date(Date.now() + cell.limits.wallDeadlineMs).toISOString(),
       perCallTokenLimit: 40000,
       maxOutputTokens: 2000,
-      inputByteLimit: 24000,
+      inputByteLimit: cell.limits.inputBytes,
       maxCallsPerTurn: 3,
       maxActionsPerTurn: 3,
       concurrency: 1,

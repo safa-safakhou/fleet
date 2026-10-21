@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
 import { prepareRC1Protocol } from "../../src/post-e3-plan.js";
-import { validateRC1Grant } from "../../src/post-e3-run.js";
+import { prepareRC2Protocol } from "../../src/post-e3-rc2-plan.js";
+import { validateRC1Grant, validateRC2Grant } from "../../src/post-e3-run.js";
 
 const now = Date.parse("2026-10-21T10:00:00Z");
 function fixture() {
@@ -63,4 +64,20 @@ it("rejects cross-world identity sharing and allowance expansion before any exec
     false,
   );
   expect(validateRC1Grant(protocol, { ...grant, approved: false }, now).valid).toBe(false);
+});
+
+it("refuses RC1 grants for RC2 and binds the larger input cap to a separately canonical protocol", () => {
+  const old = fixture(),
+    p = prepareRC2Protocol({ ...old.protocol.selection, stage: "R2-D" });
+  const g = {
+    ...old.grant,
+    schemaVersion: "fleet.rc2-grant.v1",
+    protocolDigest: p.digest,
+    bindings: old.grant.bindings.map((b, i) => ({ ...b, cellId: p.cells[i].id })),
+  };
+  expect(validateRC2Grant(p, g, now).valid).toBe(true);
+  expect(validateRC2Grant(p, old.grant, now).valid).toBe(false);
+  expect(validateRC1Grant(old.protocol, g, now).valid).toBe(false);
+  expect(validateRC2Grant({ ...p, native: { ...p.native, inputBytes: 40000 } }, g, now).valid).toBe(false);
+  expect(validateRC2Grant(p, g, now, [g.batchNonce]).valid).toBe(false);
 });

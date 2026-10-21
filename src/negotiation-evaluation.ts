@@ -1,7 +1,16 @@
 import { z } from "zod";
 import design from "./negotiation/design.json" with { type: "json" };
 import { designDigest, type NegotiationCell, negotiationPlan } from "./negotiation-plan.js";
-import { prepareRC1Protocol, type RC1Cell, type RC1Protocol, validateRC1Cell } from "./post-e3-plan.js";
+import { type RC1Cell, type RC1Protocol, validateRC1Cell } from "./post-e3-plan.js";
+import {
+  canonicalPostE3Protocol,
+  type PostE3Cell,
+  type PostE3Protocol,
+  type RC2Cell,
+  type RC2Protocol,
+  validatePostE3Cell,
+  validateRC2Cell,
+} from "./post-e3-rc2-plan.js";
 
 const id = z.string().min(1).max(200),
   source = z.string().min(1).max(8000),
@@ -241,7 +250,7 @@ const ReviewSchema = z
   .strict();
 export type NegotiationClaimReviews = z.infer<typeof ReviewSchema>;
 export type Grade = "pass" | "fail" | "unresolved";
-export type NegotiationAssessment<C extends NegotiationCell | RC1Cell = NegotiationCell> = {
+export type NegotiationAssessment<C extends NegotiationCell | PostE3Cell = NegotiationCell> = {
   schemaVersion: "fleet.negotiation-assessment.v1";
   cell: C;
   worldId: string;
@@ -287,16 +296,36 @@ export function assessRC1Negotiation(
   validateRC1Cell(protocol, cell);
   return assessEvidence(cell, raw, rawSolo, rawReviews);
 }
+export function assessRC2Negotiation(
+  protocol: RC2Protocol,
+  cell: RC2Cell,
+  raw: unknown,
+  rawSolo: unknown,
+  rawReviews: unknown,
+): NegotiationAssessment<RC2Cell> {
+  validateRC2Cell(protocol, cell);
+  return assessEvidence(cell, raw, rawSolo, rawReviews);
+}
+export function assessPostE3Negotiation(
+  protocol: PostE3Protocol,
+  cell: PostE3Cell,
+  raw: unknown,
+  rawSolo: unknown,
+  rawReviews: unknown,
+) {
+  validatePostE3Cell(protocol, cell);
+  return assessEvidence(cell, raw, rawSolo, rawReviews);
+}
 /** Mechanical completion only; prose review and real-provider acceptance are
  * still required. Stops redundant admission once actual lifecycle facts exist. */
 export function rc1MechanicallyComplete(
-  protocol: RC1Protocol,
-  cell: RC1Cell,
+  protocol: PostE3Protocol,
+  cell: PostE3Cell,
   e: NegotiationEvidence,
   solo: NegotiationEvidence,
   allocations: NegotiationClaimReviews["allocations"],
 ) {
-  const a = assessRC1Negotiation(protocol, cell, e, solo, {
+  const a = assessPostE3Negotiation(protocol, cell, e, solo, {
     evidenceLevel: "fake-provider",
     allocations,
     claims: [],
@@ -317,7 +346,7 @@ export function rc1MechanicallyComplete(
       ))
   );
 }
-function assessEvidence<C extends NegotiationCell | RC1Cell>(
+function assessEvidence<C extends NegotiationCell | PostE3Cell>(
   cell: C,
   raw: unknown,
   rawSolo: unknown,
@@ -587,6 +616,39 @@ function assessEvidence<C extends NegotiationCell | RC1Cell>(
   const latencyMs: Record<string, number | null> = {};
   for (const stage of ["contact", "dialogue", "activation", "delivery", "closure", "later_decision"]) {
     const start = e?.lifecycle.find((l) => l.stage === "opportunity" && !l.scriptedPrefix) ?? e?.lifecycle[0];
+    if (
+      stage === "later_decision" &&
+      "study" in cell &&
+      cell.study === "negotiation-r2" &&
+      e &&
+      ["C01", "C02"].includes(cell.family)
+    ) {
+      if (!e.contracts.length) {
+        latencyMs[stage] = null;
+        continue;
+      }
+      const closedAt = e.contracts.reduce(
+        (last, c) => (BigInt(c.endGameTimeMs) > last ? BigInt(c.endGameTimeMs) : last),
+        0n,
+      );
+      const decisions = e.actors.map(
+        (a) =>
+          e.lifecycle
+            .filter(
+              (l) =>
+                l.stage === "later_decision" &&
+                !l.scriptedPrefix &&
+                l.actorId === a.actorId &&
+                BigInt(l.gameTimeMs) >= closedAt,
+            )
+            .sort((a, b) => Date.parse(a.wallTime) - Date.parse(b.wallTime))[0],
+      );
+      latencyMs[stage] =
+        start && decisions.length && decisions.every(Boolean)
+          ? Math.max(0, ...decisions.map((l) => Date.parse(l.wallTime) - Date.parse(start.wallTime)))
+          : null;
+      continue;
+    }
     const end = e?.lifecycle.find((l) => l.stage === stage && !l.scriptedPrefix);
     latencyMs[stage] = start && end ? Math.max(0, Date.parse(end.wallTime) - Date.parse(start.wallTime)) : null;
   }
@@ -646,9 +708,16 @@ export function summarizeNegotiation(assessments: NegotiationAssessment[]) {
   return summarizeCells(assessments, expected, first.cell.stage === "E3", false);
 }
 export function summarizeRC1Negotiation(protocol: RC1Protocol, assessments: NegotiationAssessment<RC1Cell>[]) {
-  if (designDigest(prepareRC1Protocol(protocol.selection)) !== designDigest(protocol))
-    throw Error("RC1_PROTOCOL_CHANGED");
-  for (const a of assessments) validateRC1Cell(protocol, a.cell);
+  if (protocol.study !== "negotiation-r1") throw Error("POST_E3_STUDY_MISMATCH");
+  return summarizePostE3Negotiation(protocol, assessments);
+}
+export function summarizeRC2Negotiation(protocol: RC2Protocol, assessments: NegotiationAssessment<RC2Cell>[]) {
+  if (protocol.study !== "negotiation-r2") throw Error("POST_E3_STUDY_MISMATCH");
+  return summarizePostE3Negotiation(protocol, assessments);
+}
+export function summarizePostE3Negotiation(protocol: PostE3Protocol, assessments: NegotiationAssessment<PostE3Cell>[]) {
+  if (designDigest(canonicalPostE3Protocol(protocol)) !== designDigest(protocol)) throw Error("RC1_PROTOCOL_CHANGED");
+  for (const a of assessments) validatePostE3Cell(protocol, a.cell);
   if (
     new Set(assessments.map((a) => a.cell.id)).size !== assessments.length ||
     new Set(assessments.map((a) => a.worldId)).size !== assessments.length
@@ -661,7 +730,7 @@ export function summarizeRC1Negotiation(protocol: RC1Protocol, assessments: Nego
     throw Error("MIXED_CONFIGURATION_OR_EVIDENCE_LEVEL");
   if (!assessments.length)
     return {
-      schemaVersion: "fleet.rc1-summary.v1",
+      schemaVersion: protocol.study === "negotiation-r2" ? "fleet.rc2-summary.v1" : "fleet.rc1-summary.v1",
       stage: protocol.selection.stage,
       assigned: protocol.cells.length,
       passed: 0,
@@ -685,12 +754,12 @@ export function summarizeRC1Negotiation(protocol: RC1Protocol, assessments: Nego
       ),
     };
   return {
-    ...summarizeCells(assessments, protocol.cells, protocol.selection.stage === "R1-H", true),
-    schemaVersion: "fleet.rc1-summary.v1",
+    ...summarizeCells(assessments, protocol.cells, ["R1-H", "R2-H"].includes(protocol.selection.stage), true),
+    schemaVersion: protocol.study === "negotiation-r2" ? "fleet.rc2-summary.v1" : "fleet.rc1-summary.v1",
     productionQualified: false as const,
   };
 }
-function summarizeCells<C extends NegotiationCell | RC1Cell>(
+function summarizeCells<C extends NegotiationCell | PostE3Cell>(
   assessments: NegotiationAssessment<C>[],
   expected: C[],
   heldOut: boolean,

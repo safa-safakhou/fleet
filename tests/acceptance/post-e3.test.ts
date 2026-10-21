@@ -1,8 +1,9 @@
 import { randomBytes } from "node:crypto";
 import { expect, it } from "vitest";
 import { readNegotiationEvidence } from "../../../pact/tests/evaluation/negotiation-outcome.js";
-import { prepareOwnedRC1World } from "../../../pact/tests/evaluation/post-e3-owned-world.js";
+import { prepareOwnedRC1World, prepareOwnedRC2World } from "../../../pact/tests/evaluation/post-e3-owned-world.js";
 import { prepareRC1Protocol } from "../../src/post-e3-plan.js";
+import { prepareRC2Protocol } from "../../src/post-e3-rc2-plan.js";
 
 it("creates two independent canonical RC1 actors and solo controls without borrowing an old study world", async () => {
   if (process.env.FLEET_ARCHITECTURE_TEST !== "1") throw Error("OWNED_PAIRED_REQUIRED");
@@ -51,5 +52,52 @@ it("creates two independent canonical RC1 actors and solo controls without borro
     await control?.pauseClock();
     await world.disconnect();
     await control?.disconnect();
+  }
+}, 60000);
+
+it("reopens an exact serialized R2 checkpoint without creating replacement identities or accepting an R1 checkpoint", async () => {
+  const pactUrl = process.env.PACT_ACCEPTANCE_DATABASE_URL,
+    nonce = process.env.FLEET_ARCHITECTURE_NONCE;
+  if (process.env.FLEET_ARCHITECTURE_TEST !== "1" || !pactUrl || !nonce) throw Error("OWNED_PAIRED_REQUIRED");
+  const protocol = prepareRC2Protocol({
+    stage: "R2-D",
+    sources: { fleet: "a".repeat(40), pact: "b".repeat(40) },
+    modelDigest: "c".repeat(64),
+    policyDigest: "d".repeat(64),
+    settingsDigest: "e".repeat(64),
+    bundleDigest: "f".repeat(64),
+    seedNonce: "1".repeat(64),
+  });
+  const secrets = {
+    rulesKey: randomBytes(32).toString("base64"),
+    tokenKey: randomBytes(32).toString("base64"),
+    encryptionKey: randomBytes(32).toString("base64"),
+  };
+  const world = await prepareOwnedRC2World({ pactUrl, nonce }, protocol, protocol.cells[0], {
+    secrets,
+    retention: "preserve",
+  });
+  await world.pauseClock("R2_CHECKPOINT_REOPEN");
+  const checkpoint = JSON.parse(JSON.stringify(world.checkpoint()));
+  await world.disconnect();
+  const reopened = await prepareOwnedRC2World({ pactUrl, nonce }, protocol, protocol.cells[0], {
+    secrets,
+    retention: "preserve",
+    checkpoint,
+  });
+  try {
+    expect(reopened.worldId).toBe(checkpoint.worldId);
+    expect(reopened.checkpoint()).toEqual(checkpoint);
+    expect((await reopened.pool.query("SELECT status FROM world_clocks")).rows[0].status).toBe("paused");
+    expect((await reopened.pool.query("SELECT count(*)::int n FROM negotiation_fixture_commands")).rows[0].n).toBe(0);
+    await expect(
+      prepareOwnedRC2World({ pactUrl, nonce }, protocol, protocol.cells[0], {
+        secrets,
+        retention: "preserve",
+        checkpoint: { ...checkpoint, schemaVersion: "pact.rc1-owned-world.v1" },
+      }),
+    ).rejects.toThrow("OWNED_CHECKPOINT_MISMATCH");
+  } finally {
+    await reopened.disconnect();
   }
 }, 60000);

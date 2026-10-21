@@ -1,6 +1,6 @@
 import {
   assessNegotiation,
-  assessRC1Negotiation,
+  assessPostE3Negotiation,
   type NegotiationClaimReviews,
   type NegotiationEvidence,
 } from "../../src/negotiation-evaluation.js";
@@ -8,7 +8,7 @@ import type { NegotiationCell } from "../../src/negotiation-plan.js";
 import type { NegotiationBinding, NegotiationGuardInput } from "../../src/negotiation-run.js";
 import type { PlatformHost } from "../../src/platform/supervisor.js";
 import type { TaskClaim, TaskStore } from "../../src/platform/tasks.js";
-import type { RC1Cell, RC1Protocol } from "../../src/post-e3-plan.js";
+import type { PostE3Cell, PostE3Protocol } from "../../src/post-e3-rc2-plan.js";
 
 /** Ordinary scheduler and clock workers. No periodic event synthesis, clock
  * jump, due-time rewrite or lease reacquisition is available on this path. */
@@ -151,11 +151,11 @@ export async function runNativeOwnedCell(input: {
 /** Mechanical readiness only. Manual reviews remain unresolved and a later
  * exact source-backed review is mandatory before returning any assessment. */
 export function nativeCompletionReady(
-  cell: NegotiationCell | RC1Cell,
+  cell: NegotiationCell | PostE3Cell,
   e: NegotiationEvidence,
   solo: NegotiationEvidence,
   allocations: NegotiationClaimReviews["allocations"],
-  protocol?: RC1Protocol,
+  protocol?: PostE3Protocol,
 ) {
   if (cell.clockMode !== "native" || cell.family !== "C01") return false;
   const review = {
@@ -167,7 +167,7 @@ export function nativeCompletionReady(
   const provisional =
     "study" in cell
       ? protocol
-        ? assessRC1Negotiation(protocol, cell, e, solo, review)
+        ? assessPostE3Negotiation(protocol, cell, e, solo, review)
         : null
       : assessNegotiation(cell, e, solo, review);
   if (!provisional) return false;

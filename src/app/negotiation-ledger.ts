@@ -47,7 +47,7 @@ type WorldAccounting = Pick<
 export async function readNativeNegotiationAccounting(
   store: Store,
   binding: NegotiationBinding,
-  cell: Pick<NegotiationCell, "limits" | "profile">,
+  cell: Pick<NegotiationCell, "limits" | "profile"> & { periodicReviewMinutes?: number },
   world: WorldAccounting,
 ): Promise<NativeAccounting> {
   const cohort = await store.cohort(binding.cohortId),
@@ -109,7 +109,7 @@ export async function readNativeNegotiationAccounting(
       budget.maxOutputTokens === cell.limits.outputTokens &&
       budget.inputByteLimit === cell.limits.inputBytes &&
       budget.concurrency === 1 &&
-      cohort.interval_minutes === 15 &&
+      cohort.interval_minutes === (cell.periodicReviewMinutes ?? 15) &&
       !wake,
   );
   return {

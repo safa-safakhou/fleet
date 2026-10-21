@@ -8,7 +8,7 @@
 
 **Tech Stack:** Existing Node 24/TypeScript/PostgreSQL 17/Vitest; no new dependencies.
 
-**Spec:** [RC1 design](../specs/2026-10-21-post-E3-candidate-design.md).
+**Spec:** [RC1 design](../specs/2026-10-21-post-E3-candidate-design.md), followed by the user-selected [RC2 input/cadence boundary](../specs/2026-10-21-RC2-input-cap.md).
 
 ## Global constraints
 
@@ -31,10 +31,10 @@
 
 **Interfaces:** `prepareRC1Protocol(selection)` returns canonical R1-D/H/N cells, exact source/configuration/seed commitment and stage ceilings; `validateRC1Grant(protocol, grant, now, usedNonces)` rejects drift/reuse. `prepareOwnedRC1World(target, protocol, cell, options)` uses the same normal PACT fixture construction after canonical R1 validation. Original negotiation entrypoints continue accepting only their original stages/profiles.
 
-- [ ] Write and run failing tests for stage sizes/caps, seed/role separation, candidate/configuration drift, grant identity/time/nonce fences and refusal of old-stage grants.
-- [ ] Implement the smallest pure protocol/grant code and mirrored fixture support; no provider/fixture side effects from preview.
-- [ ] Exercise canonical/tampered fixtures and shared mechanical assessment with fresh owned fake fixtures; preserve old planner outputs.
-- [ ] Run affected checks and commit verified changes.
+- [x] Write and run failing tests for stage sizes/caps, seed/role separation, candidate/configuration drift, grant identity/time/nonce fences and refusal of old-stage grants.
+- [x] Implement the smallest pure protocol/grant code and mirrored fixture support; no provider/fixture side effects from preview.
+- [x] Exercise canonical/tampered fixtures and shared mechanical assessment with fresh owned fake fixtures; preserve old planner outputs.
+- [x] Run affected checks and commit verified changes.
 
 ## Task 2 — Owned two-kingdom host composition
 
@@ -42,15 +42,17 @@
 
 **Interfaces:** `prepareOwnedRC1Cohort(...)` initializes both kingdoms with empty participant/skill state; `executeOwnedRC1Protocol(...)` validates exact bindings, consumes one durable nonce, bounds all role turns/calls/work and parks all owned worlds on terminal completion/failure.
 
-- [ ] Write and run failing paired tests for two model actors/eight roles, shared allowance, source-backed state/effects, review stop after settlement, unknown transport, drift, lease loss and start-evidence failure.
-- [ ] Implement normal controlled/native scheduling and authoritative actor adapters without scripted negotiation or hidden model turns; use original material/dialogue/history scoring.
-- [ ] Verify fake failures remain failures, no replay/resets, all clocks park, source modules remain unchanged, and original suites still pass.
-- [ ] Run appropriate unit/paired/type/build/boundary checks and commit verified changes.
+- [x] Write and run failing paired tests for two model actors/eight roles, shared allowance, source-backed state/effects, review stop after settlement, unknown transport, drift, lease loss and start-evidence failure.
+- [x] Implement normal controlled/native scheduling and authoritative actor adapters without scripted negotiation or hidden model turns; use original material/dialogue/history scoring.
+- [x] Verify fake failures remain failures, no replay/resets, all clocks park, source modules remain unchanged, and original suites still pass.
+- [x] Run appropriate unit/paired/type/build/boundary checks and commit verified changes.
 
 ## Task 3 — Operational gates and handoff
 
+The implemented composition is source/fake acceptance only. RC1 positive packet fitting failed at 24000 bytes; RC2 uses 32000 bytes and user-selected 30-minute external reviews without enlarging calls. See the [local acceptance record](../../RC2-local-acceptance-20261021.md) for current evidence. Real operational/release prerequisites remain pending; a supported denial route was documented but clearance was not obtained.
+
 - [ ] Verify source changes and report exact checks and limitations in both current-state files.
-- [ ] Recheck supported resolution of the recorded provider denial without attempting the denied outcome or changing review policy.
+- [x] Recheck supported resolution of the recorded provider denial without attempting the denied outcome or changing review policy.
 - [ ] Complete only operational/release steps whose actual prerequisites are satisfied; do not invent grants, provider acceptance or qualification. Preserve unresolved blockers explicitly.
 
 ## Dependency review
