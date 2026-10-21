@@ -244,7 +244,8 @@ export function createPactEnvironment(ports: {
           validatePactProposal(proposal.intent.payload, observation.payload, proposal.expectedOutcome),
         waitSchema: async (observation) => pactWaitSchema(observation.payload),
         validateWait: async (basis, observation) => validatePactWait(basis, observation.payload),
-        actionContracts: async (observation) => pactActionContracts(observation.payload),
+        actionContracts: async (observation, allowedActionKeys) =>
+          pactActionContracts(observation.payload, allowedActionKeys),
         async execute(intent) {
           try {
             if (intent.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH");

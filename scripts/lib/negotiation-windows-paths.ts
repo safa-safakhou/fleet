@@ -24,7 +24,7 @@ export function validateWindowsOwnedRoots(
     r = path.relative(base, path.resolve(root));
   if (
     !/^[a-f0-9-]{36}$/i.test(b) ||
-    !/^E[1-4]\\[a-f0-9-]{36}$/i.test(r) ||
+    !/^(?:E[1-4]|KQ1)\\[a-f0-9-]{36}$/i.test(r) ||
     path.resolve(canonicalBundle).toLowerCase() !== path.join(canonicalBase, "bundles", b).toLowerCase() ||
     path.resolve(canonicalRoot).toLowerCase() !== path.join(canonicalBase, r).toLowerCase()
   )

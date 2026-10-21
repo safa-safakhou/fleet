@@ -9,6 +9,28 @@ const binding = {
   actorRef: "seat:red",
   entityRef: "board:room-east",
 };
+it("forwards immutable specialist action restrictions through the scoped environment boundary", async () => {
+  const board = boardEnvironment(),
+    connect = board.adapter.connect;
+  board.adapter.connect = async (b) => ({
+    ...(await connect(b)),
+    actionContracts: async (_observation, keys) => [
+      {
+        schemaId: "board.move.v1",
+        payloadSchema: { type: "object", properties: { move: { enum: keys ?? ["unrestricted"] } } },
+      },
+    ],
+  });
+  const session = await new EnvironmentRegistry([board.adapter], boardRef).connect(binding),
+    observation = await session.observe({});
+  expect(await session.actionContracts?.(observation, ["step"])).toEqual([
+    { schemaId: "board.move.v1", payloadSchema: { type: "object", properties: { move: { enum: ["step"] } } } },
+  ]);
+  expect(await session.actionContracts?.(observation, [])).toEqual([
+    { schemaId: "board.move.v1", payloadSchema: { type: "object", properties: { move: { enum: [] } } } },
+  ]);
+  await session.close();
+});
 it("resolves only reviewed versions within the selected environment", () => {
   const board = boardEnvironment(),
     registry = new EnvironmentRegistry([board.adapter], boardRef);

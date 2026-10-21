@@ -62,3 +62,28 @@ it("anchors app-container redirection at its canonical base while rejecting chil
     ),
   ).toThrow();
 });
+
+it("permits a separate canonical KQ1 root without accepting arbitrary qualification names", () => {
+  const base = "C:\\Owner\\PACT\\Negotiation",
+    id = "1eb99a67-c484-45d1-8c79-38da135d45fb";
+  expect(() =>
+    validateWindowsOwnedRoots(
+      base,
+      `${base}\\bundles\\${id}`,
+      `${base}\\KQ1\\${id}`,
+      base,
+      `${base}\\bundles\\${id}`,
+      `${base}\\KQ1\\${id}`,
+    ),
+  ).not.toThrow();
+  expect(() =>
+    validateWindowsOwnedRoots(
+      base,
+      `${base}\\bundles\\${id}`,
+      `${base}\\KQ2\\${id}`,
+      base,
+      `${base}\\bundles\\${id}`,
+      `${base}\\KQ2\\${id}`,
+    ),
+  ).toThrow();
+});

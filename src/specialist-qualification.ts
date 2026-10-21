@@ -30,6 +30,8 @@ export function prepareSpecialistQualification(raw: unknown) {
             preset,
             skillMode,
             scenario,
+            counterexampleTiming:
+              scenario === "changed-consent-reserve" ? "before_first_model_decision" : "not_applicable",
             roles,
             limits: {
               turnsPerRole: 4,

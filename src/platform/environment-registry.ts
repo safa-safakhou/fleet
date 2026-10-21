@@ -137,8 +137,8 @@ export class EnvironmentRegistry {
       ...(session.validateProposal ? { validateProposal: session.validateProposal.bind(session) } : {}),
       ...(session.actionContracts
         ? {
-            actionContracts: async (observation: import("./contracts.js").Observation) => {
-              const contracts = (await session.actionContracts?.(observation)) ?? [];
+            actionContracts: async (...args: Parameters<NonNullable<EnvironmentSession["actionContracts"]>>) => {
+              const contracts = (await session.actionContracts?.(...args)) ?? [];
               if (contracts.some((c) => !adapter.schemas.actions.includes(c.schemaId)))
                 throw new FleetError("UNSUPPORTED_SCHEMA", true);
               return contracts;

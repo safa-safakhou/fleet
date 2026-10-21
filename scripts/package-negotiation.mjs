@@ -11,14 +11,19 @@ const args = process.argv.slice(2),
   options = {};
 for (let i = 0; i < args.length; i += 2) {
   if (
-    !["--output", "--node", "--ollama", "--models"].includes(args[i]) ||
+    !["--output", "--node", "--ollama", "--models", "--stage"].includes(args[i]) ||
     !args[i + 1] ||
     Object.hasOwn(options, args[i])
   )
     throw Error("PACKAGE_ARGUMENTS");
-  options[args[i]] = resolve(args[i + 1]);
+  options[args[i]] = args[i] === "--stage" ? args[i + 1] : resolve(args[i + 1]);
 }
-if (Object.keys(options).length !== 4 || !isAbsolute(options["--output"])) throw Error("PACKAGE_ARGUMENTS");
+if (
+  !["--output", "--node", "--ollama", "--models"].every((key) => options[key]) ||
+  (options["--stage"] !== undefined && options["--stage"] !== "KQ1") ||
+  !isAbsolute(options["--output"])
+)
+  throw Error("PACKAGE_ARGUMENTS");
 const sha = async (file) => {
   const h = createHash("sha256");
   for await (const c of createReadStream(file)) h.update(c);
@@ -140,18 +145,35 @@ for (const layer of descriptor.model.artifact.layers)
     join(options["--models"], `blobs/sha256-${layer.sha256}`),
     join(out, "models/blobs", `sha256-${layer.sha256}`),
   );
-const { designDigest, negotiationBaselineAmendment } = await import(
-  "../dist/negotiation/fleet/src/negotiation-plan.js"
-);
+const { negotiationBaselineAmendment } = await import("../dist/negotiation/fleet/src/negotiation-plan.js");
 const { pinnedProviderMetadata } = await import("../dist/negotiation/fleet/scripts/lib/negotiation-model-store.js");
-await writeFile(join(out, "execution-settings.json"), JSON.stringify(descriptor.proposedSettings) + "\n", {
+const specialist = options["--stage"] === "KQ1";
+const settings = specialist
+  ? (await import("../dist/negotiation/fleet/scripts/lib/specialist-package.js")).specialistPackageSettings(
+      descriptor.proposedSettings,
+    )
+  : descriptor.proposedSettings;
+await writeFile(join(out, "execution-settings.json"), JSON.stringify(settings) + "\n", {
   flag: "wx",
 });
 await writeFile(
   join(out, "execution-policy.json"),
   JSON.stringify({
-    schemaVersion: "fleet.owned-negotiation-policy.v1",
-    baselineAmendment: negotiationBaselineAmendment,
+    schemaVersion: specialist ? "fleet.owned-specialist-policy.v1" : "fleet.owned-negotiation-policy.v1",
+    ...(specialist
+      ? {
+          stage: "KQ1",
+          profile: { id: "autonomous-specialists", version: "1" },
+          plannedCounterexample: {
+            cycle: 0,
+            gameMinute: 0,
+            beforeFirstModelDecision: true,
+            change:
+              "Revoke own supply.sign and withdraw the exact scripted peer offer once; all other authority/goal fields unchanged",
+          },
+          diagnosticOnly: true,
+        }
+      : { baselineAmendment: negotiationBaselineAmendment }),
     sources: sourcePins,
     review: "inline-after-native-usage-before-next-dispatch",
     model: descriptor.model,
@@ -175,15 +197,16 @@ async function scan(dir, rel = "") {
 }
 await scan(out);
 pins.sort((a, b) => Buffer.compare(Buffer.from(a.relativePath), Buffer.from(b.relativePath)));
-const metadata = {
-  schemaVersion: "fleet.owned-negotiation-bundle.v1",
+const { packageSelectionMetadata } = await import(
+  "../dist/negotiation/fleet/scripts/lib/negotiation-package-metadata.js"
+);
+const metadata = packageSelectionMetadata({
   sources: sourcePins,
   pins,
-  bundleDigest: designDigest(pins),
-  modelDigest: designDigest(descriptor.model),
-  policyDigest: designDigest(JSON.parse(await readFile(join(out, "execution-policy.json"), "utf8"))),
-};
-metadata.settingsDigest = designDigest({ settings: descriptor.proposedSettings, bundleDigest: metadata.bundleDigest });
+  model: descriptor.model,
+  policy: JSON.parse(await readFile(join(out, "execution-policy.json"), "utf8")),
+  settings,
+});
 // Pin metadata lives beside, not recursively inside, the hashed bundle.
 await writeFile(`${out}.manifest.json`, JSON.stringify(metadata, null, 2) + "\n", { flag: "wx", mode: 0o600 });
 process.stdout.write(

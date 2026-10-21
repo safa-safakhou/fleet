@@ -124,7 +124,7 @@ export interface ScopedServices {
     validateProposal?(proposal: Proposal, observation: Observation): Promise<ProposalValidation>;
     waitSchema?(observation: Observation): Promise<Data | undefined>;
     validateWait?(basis: Data, observation: Observation): Promise<ProposalValidation>;
-    actionContracts?(observation: Observation): Promise<ActionContract[]>;
+    actionContracts?(observation: Observation, allowedActionKeys?: readonly string[]): Promise<ActionContract[]>;
     projectObservation?(observation: Observation, policy: { id: string; version: string }): Observation;
     packObservation?(observation: Observation, byteLimit: number): Observation;
   };

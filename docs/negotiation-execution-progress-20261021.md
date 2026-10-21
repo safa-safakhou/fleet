@@ -1,5 +1,7 @@
 # Negotiation and production qualification —21 October2026
 
+Latest continuation: the separate specialist KQ1 source and offline acceptance are described in [source acceptance](specialist-KQ1-source-acceptance-20261021.md). Real E4/KQ1 are blocked before provider startup by automatic approval review; E3 independently blocks release. See the [completion record](negotiation-completion-record-20261021.md) and [disarmed launch record](negotiation-blocked-launch-manifest-20261021.json). The remaining paragraphs retain their historical checkpoint wording.
+
 Latest: [E3 stopped on a critical unsupported claim](negotiation-E3-result-20261021.md):3finished turns/4reported calls/0commands; one failed cell and34unstarted. E1 and E2 remain terminal failures. All70 E3 clocks are parked, the owned provider stopped and final encrypted restore verified. The separate candidate release cannot pass or activate on this result. The earlier paragraphs below identify their historical source-only or preparation checkpoint.
 
 The founder explicitly approved all six remaining tasks: baseline amendment, owned launcher, final fixtures/manifest, E1–E4, specialist/skill KQ1 and verified release. Work remains inline, with no delegation. This supersedes the earlier preparation-only/no-inference restriction solely for the new isolated qualification worlds and the approved release path. The retained paused world and all other populations/historical unknowns remain preserved; no reset/replay or historical owner recovery review is authorized.

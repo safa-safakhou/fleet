@@ -4,10 +4,12 @@
   "include": [
     "src",
     "scripts/qualify-negotiation.ts",
+    "scripts/qualify-specialists.ts",
     "scripts/negotiation-owned-control.ts",
     "scripts/prepare-negotiation-database.ts",
     "scripts/backup-negotiation-fixture.ts",
-    "scripts/lib/negotiation-*.ts"
+    "scripts/lib/negotiation-*.ts",
+    "scripts/lib/specialist-*.ts"
   ],
   "exclude": ["web", "tests"]
 }

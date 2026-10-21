@@ -50,7 +50,13 @@
 **Files:** `scripts/lib/specialist-owned-run.ts`, `scripts/qualify-specialists.ts`, `tests/integration/specialist-owned-run.test.ts`, private operator preparation and public result report.
 **Interfaces:** strict prepared manifest and actual native ledger/nonces; fixed Windows provider; response review after settlement; atomic batch close and normal park. Reuse artifact/ACL/route/backup checks without arbitrary code paths or environment-selected adapters.
 
-- [ ] Write native RED cases for four turns/role maximum, exact parent work limits, zero-call reuse retained across waits, critical stop before sibling call/action, unknown usage and grant replay.
-- [ ] Implement bounded retained host/CLI, authenticated before/after restore, manifest/preflight and separately bound exact KQ1 grant under the existing founder approval.
-- [ ] Run all eight fake cases with actual native handlers and full source checks; freeze/pin KQ1 before model inspection. Execute the diagnostic only after its prerequisites pass, review every response inline and retain all failed/unstarted cases.
-- [ ] Park/verify restore, publish honest complete-cost/outcome report and commit verified changes. Real E4 remains a separate same-frozen-artifact task; neither result repairs failed E3. Candidate acceptance/activation stays closed.
+- [x] Write native RED cases for four turns/role maximum, exact parent work limits, zero-call reuse retained across waits, critical stop before sibling call/action, unknown usage and grant replay.
+- [x] Implement the bounded retained host/CLI, fixed Windows manifest/composition and authenticated restore prerequisite. Live process/route acceptance, roster preparation and real grants remain blocked; no operational pass is claimed.
+- [x] Run all eight fake cases with actual native handlers, plus actual scoped learning/zero-call reuse/full settlement and adversarial no-action review. Complete source checks; retain the initial test-expectation failure and corrected2/2 result in the completion record.
+- [x] Publish source acceptance and the disarmed launch/release record. No real cost/outcome is invented; terminal E1–E3 history remains exact.
+- [ ] Freeze/pin the separate passive KQ1 package before real model inspection; complete operational Windows acceptance, fresh roster and authenticated before restore when permitted.
+- [ ] Execute the real diagnostic only after prerequisites pass, review every response inline, retain failed/unstarted cases, then park and authenticate the final restore. Blocked before provider startup by automatic approval review. Real E4 is a distinct same-frozen-artifact task; neither result repairs failed E3. Candidate acceptance/activation stays closed.
+
+## Final operational boundary
+
+Automatic approval review rejected the isolated E4 provider start with only blocked by policy as its stated reason. Do not retry through a different mechanism or KQ1. Complete offline source acceptance and passive packaging; retain a disarmed manifest with unprepared identities, provider and UTC fields unset. E3 failed independently, so neither diagnostic nor source acceptance can activate a release. See the completion record in docs/negotiation-completion-record-20261021.md.
