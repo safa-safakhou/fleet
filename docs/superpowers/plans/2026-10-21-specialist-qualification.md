@@ -32,9 +32,9 @@
 **Files:** `src/specialist-qualification.ts`, `tests/unit/specialist-qualification.test.ts`.
 **Interfaces:** `prepareSpecialistQualification(selection)` returns a canonical eight-cell protocol; `validateSpecialistGrant(protocol,grant,now)` verifies exact one-shot scope/roster/cutoffs; `assessSpecialistCell(cell,evidence)` cannot pass without native source/cost/outcome coverage.
 
-- [ ] Write cases for exact eight cells/caps, changed source/cell/roster, duplicate identities, expired grant, unknown accounting and guarded signature-without-delivery. Run focused unit tests and observe RED.
-- [ ] Implement strict canonical schemas/validation/evaluation, preserving unknown usage and diagnostic-only status.
-- [ ] Run focused and full unit suites/check/boundaries, inspect GREEN and commit.
+- [x] Write cases for exact eight cells/caps, changed source/cell/roster, duplicate identities, expired grant, unknown accounting and guarded signature-without-delivery. Run focused unit tests and observe RED.
+- [x] Implement strict canonical schemas/validation/evaluation, preserving unknown usage and diagnostic-only status.
+- [x] Run focused and full unit suites/check/boundaries, inspect GREEN and commit. Three focused/494full unit pass; type/style and boundaries pass (existing82warnings/51infos, no new warnings).
 
 ## Task2 — Retained PACT action-effect world
 
