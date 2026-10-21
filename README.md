@@ -1,5 +1,7 @@
 # Fleet
 
+For the current milestone and task-specific reading, see [current state](docs/current-state.md) and [agent instructions](AGENTS.md).
+
 An independent server controller and private console for scheduled game agents. Scheduling, budgets, model execution, memory and command recovery use an injected game adapter. PACT is the first supported integration; additional games need their own authenticated adapter and acceptance tests. Fleet has its own database, processes, credentials and repository and never connects to a game's database.
 
 Start with the [PACT and Fleet project handbook](docs/project/README.md) for the product, technical architecture, design decisions, full development/report journey, findings and presentation notes. The [19 October state](docs/project/current-state.md) separates implemented source, synthetic provider qualification, installed artifacts and remaining live/quality gates. Multiple engine packages now coexist; the legacy source snapshot is retained with explicitly documented operational repairs. Current source publication does not deploy or enable an installation.
