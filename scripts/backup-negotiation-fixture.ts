@@ -2,7 +2,6 @@ import { execFileSync } from "node:child_process";
 import { createHash, randomBytes, randomUUID } from "node:crypto";
 import { lstat, mkdir, readFile, writeFile } from "node:fs/promises";
 import { dirname, join, resolve } from "node:path";
-import { setTimeout as delay } from "node:timers/promises";
 import { fileURLToPath } from "node:url";
 import { z } from "zod";
 import { designDigest } from "../src/negotiation-plan.js";
@@ -11,6 +10,7 @@ import {
   sealPreparationArchive,
   verifyPreparationRestore,
 } from "./lib/negotiation-backup-proof.js";
+import { waitForOwnedPostgres } from "./lib/negotiation-postgres-ready.js";
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/),
   revision = z.string().regex(/^[a-f0-9]{40}$/);
@@ -144,17 +144,43 @@ export async function backupOwnedNegotiationFixture(
     JSON.stringify({ restoreId, restoreNonce, original: m.containerId }) + "\n",
     { mode: 0o600, flag: "wx" },
   );
-  let ready = false;
-  for (let n = 0; n < 100; n++) {
-    try {
-      sql(restoreId, "postgres", "SELECT 1;");
-      ready = true;
-      break;
-    } catch {
-      await delay(100);
-    }
-  }
-  if (!ready) throw Error("OWNED_RESTORE_NOT_READY");
+  return finishRestore({ directory, m, context, archive, key, restoreId, restoreNonce, restorePassword, phase });
+}
+async function finishRestore({
+  directory,
+  m,
+  context,
+  archive,
+  key,
+  restoreId,
+  restoreNonce,
+  restorePassword,
+  phase,
+}: {
+  directory: string;
+  m: z.infer<typeof manifestSchema>;
+  context: z.infer<typeof contextSchema>;
+  archive: Buffer;
+  key: Buffer;
+  restoreId: string;
+  restoreNonce: string;
+  restorePassword: string;
+  phase: "before" | "after";
+}) {
+  const verified = openPreparationArchive(archive, key);
+  if (
+    restoreId === m.containerId ||
+    owner(restoreId, "pact.negotiation.restore") !== restoreNonce ||
+    owner(restoreId, "pact.negotiation.original") !== m.containerId
+  )
+    throw Error("OWNED_RESTORE_SCOPE");
+  await waitForOwnedPostgres(restoreId, async (args) => docker(args));
+  if (
+    sql(restoreId, "postgres", "SELECT count(*) FROM pg_database WHERE datname IN ('fleet_test','pact_test');")
+      .toString()
+      .trim() !== "0"
+  )
+    throw Error("OWNED_PARTIAL_RESTORE_RETAINED");
   const restored = {} as Record<"fleet_test" | "pact_test", string>;
   for (const db of ["fleet_test", "pact_test"] as const) {
     sql(restoreId, "postgres", `CREATE DATABASE ${db};`);
@@ -201,11 +227,55 @@ export async function backupOwnedNegotiationFixture(
     phase,
   };
 }
+/** Resume only the same authenticated archive into its same still-empty owned
+ * restore container after an initialization interruption; no replacement/reset. */
+export async function resumeOwnedNegotiationRestore(
+  databasePath: string,
+  contextPath: string,
+  directory: string,
+  phase: "before" | "after",
+) {
+  const m = manifestSchema.parse(JSON.parse(await readFile(databasePath, "utf8"))),
+    context = contextSchema.parse(JSON.parse(await readFile(contextPath, "utf8"))),
+    base = dirname(resolve(databasePath));
+  if (
+    process.platform !== "linux" ||
+    dirname(resolve(directory)) !== base ||
+    !/^backup-[a-f0-9-]{36}$/.test(resolve(directory).slice(base.length + 1)) ||
+    owner(m.containerId) !== m.nonce ||
+    m.nonce !== context.fixtureNonce
+  )
+    throw Error("OWNED_BACKUP_SCOPE");
+  const record = z
+    .object({ restoreId: hash, restoreNonce: hash, original: hash })
+    .strict()
+    .parse(JSON.parse(await readFile(join(directory, "restore-container.json"), "utf8")));
+  if (record.original !== m.containerId) throw Error("OWNED_RESTORE_SCOPE");
+  const key = Buffer.from((await readFile(join(directory, "keys/backup.key"), "utf8")).trim(), "base64"),
+    archive = await readFile(join(directory, "preparation-backup.json")),
+    payload = openPreparationArchive(archive, key);
+  for (const field of ["sources", "protocolDigest", "fixtureNonce"] as const)
+    if (designDigest(payload[field]) !== designDigest(context[field])) throw Error("OWNED_RESTORE_SCOPE");
+  for (const db of ["fleet_test", "pact_test"] as const)
+    if (ownedDatabaseFingerprint(m.containerId, db) !== payload.databases[db].fingerprint)
+      throw Error("OWNED_ORIGINAL_CHANGED_DURING_RESTORE");
+  const restorePassword = (await readFile(join(directory, "restore.env"), "utf8")).match(
+    /^POSTGRES_PASSWORD=([a-f0-9]{64})$/m,
+  )?.[1];
+  if (!restorePassword) throw Error("OWNED_RESTORE_KEY");
+  return finishRestore({ directory, m, context, archive, key, ...record, restorePassword, phase });
+}
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   try {
-    const [database, context, phase] = process.argv.slice(2);
+    const [database, context, phase, resumeDirectory] = process.argv.slice(2);
     if (!database || !context || (phase !== "before" && phase !== "after")) throw Error("OWNED_BACKUP_ARGUMENTS");
-    process.stdout.write(JSON.stringify(await backupOwnedNegotiationFixture(database, context, phase)) + "\n");
+    process.stdout.write(
+      JSON.stringify(
+        resumeDirectory
+          ? await resumeOwnedNegotiationRestore(database, context, resumeDirectory, phase)
+          : await backupOwnedNegotiationFixture(database, context, phase),
+      ) + "\n",
+    );
   } catch {
     process.stderr.write("OWNED_BACKUP_FAILED_PARTIAL_STATE_RETAINED\n");
     process.exitCode = 1;
