@@ -458,7 +458,6 @@ export function hostScopeFactory(deps: {
     if (bootstrap) counts.set(claim.turn.id, 0);
     const index = counts.get(claim.turn.id) ?? 0;
     counts.set(claim.turn.id, index + 1);
-    if (counts.size > 1000) counts.delete(counts.keys().next().value!);
     await new SkillExecutionStore(
       deps.store,
       {
@@ -472,5 +471,8 @@ export function hostScopeFactory(deps: {
   return Object.assign(factory, {
     beforeConnect: (claim: TaskClaim) => work(claim, true),
     beforeObserve: (claim: TaskClaim) => work(claim, false),
+    finished: (claim: TaskClaim) => {
+      counts.delete(claim.turn.id);
+    },
   });
 }

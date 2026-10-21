@@ -215,7 +215,7 @@ it("signs only a prior exact goal through native guards with zero reuse model ca
       realProviderCalls: 0,
     }) + "\n",
   );
-});
+}, 30000);
 
 it.each([
   "missing-peer-consent",

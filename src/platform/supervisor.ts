@@ -73,6 +73,7 @@ export class PlatformHost {
     ) => Promise<{ services: ScopedServices; operation: ScopedOperation }>) & {
       beforeConnect?(claim: TaskClaim): Promise<void>;
       beforeObserve?(claim: TaskClaim): Promise<void>;
+      finished?(claim: TaskClaim): void;
     },
   ) {}
   async run(claim: TaskClaim) {
@@ -83,10 +84,10 @@ export class PlatformHost {
       const adapter = this.environments.resolve(binding.environment);
       requireCapabilities(adapter, engine.requiredCapabilities, engine.requiredSchemas);
       let session: EnvironmentSession | undefined;
-      await this.scopeFactory?.beforeConnect?.(claim);
-      if (engine.observationOwner !== "engine")
-        session = await this.environments.connect(binding, engine.requiredCapabilities, engine.requiredSchemas);
       try {
+        await this.scopeFactory?.beforeConnect?.(claim);
+        if (engine.observationOwner !== "engine")
+          session = await this.environments.connect(binding, engine.requiredCapabilities, engine.requiredSchemas);
         const observe = async (query: import("../domain.js").Data, externallyMetered = false) => {
           await this.tasks.check(claim);
           if (signal.aborted) throw new FleetError("TASK_FENCED");
@@ -192,6 +193,7 @@ export class PlatformHost {
         else await (engine as import("./engine-registry.js").AgentEngine).run(context);
       } finally {
         await session?.close().catch(() => {});
+        this.scopeFactory?.finished?.(claim);
       }
     });
   }
