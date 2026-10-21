@@ -22,4 +22,6 @@ Verification: missing-module RED→GREEN; six new unit/integration checks plus e
 
 ## Remaining
 
+A01 source verification is complete: five new scoped-state tests,16 existing continuity checks, four architecture parity checks and seeded multi-engine preservation pass; fullunit439/439, type/style/build/boundaries pass. Migration024 is additive because023 already belongs to the packing candidate. Private state has scope-bound encryption, immutable charters/rosters, version checks, operation deduplication, bounded goals and terminal history. Source deletion immediately clears derived state; expiry withholds private content and bounded maintenance redacts it. Unsupported message/delivery/intent effects reject the whole envelope until their owning tasks are implemented.
+
 A01–A08, K01–K07 and X01/X02 remain open. E1 operational preparation and E1–E4 behavioral gates remain separate. No production-readiness claim is made by this interim report.

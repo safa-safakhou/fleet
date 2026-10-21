@@ -15,10 +15,22 @@ export function createMaintenance(store: Store) {
     ["decision_states", "updated_at"],
     ["architecture_scoped_state", "updated_at"],
     ["architecture_scoped_evidence", "created_at"],
+    ["specialist_updates", "created_at"],
     ["decision_choices", "created_at"],
     ["operator_sessions", "expires_at"],
     ["oauth_attempts", "expires_at"],
   ] as const;
+  registry.register({
+    id: "specialist-private-state",
+    run: async (limit, signal) => {
+      if (signal.aborted) return 0;
+      const result = await store.pool.query(
+        "UPDATE specialist_states SET state_cipher=NULL,support_ids='{}',version=version+1 WHERE ctid IN(SELECT ctid FROM specialist_states WHERE state_cipher IS NOT NULL AND updated_at<$1 ORDER BY updated_at LIMIT $2)",
+        [new Date(store.now().getTime() - 30 * 86400000), limit],
+      );
+      return result.rowCount ?? 0;
+    },
+  });
   for (const [table, column] of tables)
     registry.register({
       id: table,

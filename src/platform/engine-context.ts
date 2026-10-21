@@ -1,5 +1,17 @@
 import type { BudgetConfig, Data, ModelPort, ModelSettings, Tool } from "../domain.js";
 import type { ArchitectureRef } from "./architecture.js";
+
+export type {
+  ParticipantStatePort,
+  SpecialistCharter,
+  SpecialistEnvelope,
+  SpecialistGoal,
+  SpecialistMemory,
+  SpecialistScope,
+  SpecialistState,
+} from "./participant-state.js";
+export { SpecialistEnvelopeSchema, SpecialistGoalSchema, SpecialistMemorySchema } from "./participant-state.js";
+
 import type {
   AccountObjective,
   ActionContract,

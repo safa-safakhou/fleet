@@ -222,6 +222,10 @@ export class Store {
       await this.cohort(id, c);
       await c.query("UPDATE cohorts SET observation_consent=$2 WHERE id=$1", [id, enabled]);
       if (!enabled) {
+        await c.query(
+          "UPDATE specialist_states s SET state_cipher=NULL,support_ids=\u0027{}\u0027,version=version+1 WHERE s.binding_id IN(SELECT b.id FROM environment_bindings b JOIN agents a ON a.id=b.agent_id WHERE a.cohort_id=$1)",
+          [id],
+        );
         await c.query("DELETE FROM communications WHERE cohort_id=$1", [id]);
         await c.query(
           "DELETE FROM architecture_scoped_state s USING environment_bindings b,agents a WHERE s.binding_id=b.id AND b.agent_id=a.id AND a.cohort_id=$1",
