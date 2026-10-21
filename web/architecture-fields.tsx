@@ -58,12 +58,13 @@ export function ArchitectureFields({
   path?: string;
 }) {
   const problem = fieldProblem(schema),
-    s = object(schema);
+    s = object(schema),
+    label = typeof s.title === "string" ? s.title : path;
   if (problem) return <p role="alert">Configuration unavailable: {problem}</p>;
   if (s.type === "object")
     return (
-      <fieldset>
-        <legend>{path}</legend>
+      <fieldset className="architecture-fields">
+        <legend>{label}</legend>
         {Object.entries(object(s.properties)).map(([key, child]) => (
           <ArchitectureFields
             key={key}
@@ -78,8 +79,8 @@ export function ArchitectureFields({
   if (s.type === "array") {
     const items = Array.isArray(value) ? value : [];
     return (
-      <fieldset>
-        <legend>{path}</legend>
+      <fieldset className="architecture-fields">
+        <legend>{label}</legend>
         {items.map((v, i) => (
           <div key={String(i)}>
             <ArchitectureFields
@@ -120,7 +121,7 @@ export function ArchitectureFields({
   if (Array.isArray(s.enum))
     return (
       <label>
-        {path}
+        {label}
         <select value={String(value ?? "")} onChange={(e) => onChange(e.target.value)}>
           <option value="" disabled>
             Select
@@ -135,14 +136,14 @@ export function ArchitectureFields({
     );
   if (s.type === "boolean")
     return (
-      <label>
+      <label className="architecture-boolean">
         <input type="checkbox" checked={value === true} onChange={(e) => onChange(e.target.checked)} />
-        {path}
+        {label}
       </label>
     );
   return (
     <label>
-      {path}
+      {label}
       <input
         type={s.type === "string" ? "text" : "number"}
         value={typeof value === "string" || typeof value === "number" ? value : ""}

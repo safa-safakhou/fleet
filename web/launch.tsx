@@ -191,6 +191,32 @@ export function LaunchWizard({
               value={c.spec.architectureConfig}
               onChange={(v) => edit({ architectureConfig: v })}
             />
+            {selected.skillModes?.includes("guarded") && (
+              <fieldset className="architecture-fields">
+                <legend>Finite automatic work allowance</legend>
+                <p>
+                  Guarded recipes require explicit parent limits. These accumulate across specialists and fallback
+                  turns; no automatic reset.
+                </p>
+                {["reads", "actions", "messages", "steps", "wallTimeMs"].map((key) => (
+                  <label key={key}>
+                    {key}
+                    <input
+                      type="number"
+                      min="0"
+                      step="1"
+                      value={String((c.spec.nonModelLimits as Obj | undefined)?.[key] ?? "")}
+                      onChange={(e) => {
+                        const limits = { ...(c.spec.nonModelLimits as Obj | undefined) };
+                        if (e.target.value === "") delete limits[key];
+                        else limits[key] = Number(e.target.value);
+                        edit({ nonModelLimits: Object.keys(limits).length ? limits : undefined });
+                      }}
+                    />
+                  </label>
+                ))}
+              </fieldset>
+            )}
             <label>
               Connected fleet
               <select

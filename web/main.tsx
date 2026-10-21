@@ -15,6 +15,7 @@ import {
 } from "./observe.js";
 import { ProfileWorkspace } from "./profiles.js";
 import { RunDetails } from "./runs.js";
+import { SpecialistWorkspace } from "./specialists.js";
 
 type Obj = Record<string, unknown>;
 type Agent = {
@@ -990,6 +991,10 @@ function App() {
         )}
         {tab === "profiles" && (
           <>
+            <SpecialistWorkspace
+              api={api}
+              consentVersion={JSON.stringify(state?.cohorts.map((c) => [c.id, c.observation_consent]))}
+            />
             <LaunchWizard
               api={api}
               onCreated={() => {}}

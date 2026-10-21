@@ -16,19 +16,21 @@ export const manifest: ArchitectureManifest = {
     "Persistent specialists with separate goals and memory, addressed work and one shared guarded action lane.",
   configSchema: {
     type: "object",
+    title: "Specialist configuration",
     properties: {
-      preset: { type: "string", enum: ["resources-diplomacy", "full"] },
-      learning: { type: "boolean" },
-      skillMode: { type: "string", enum: ["off", "advisory", "guarded"] },
-      qualificationPolicy: { type: "string", enum: ["skills-policy.v1"] },
-      maxActiveGoals: { type: "integer", minimum: 1, maximum: 8 },
-      memoryBytes: { type: "integer", minimum: 1024, maximum: 12000 },
+      preset: { type: "string", title: "Role preset", enum: ["resources-diplomacy", "full"] },
+      learning: { type: "boolean", title: "Learn from observed episodes" },
+      skillMode: { type: "string", title: "Skill reuse", enum: ["off", "advisory", "guarded"] },
+      qualificationPolicy: { type: "string", title: "Trusted qualification policy", enum: ["skills-policy.v1"] },
+      maxActiveGoals: { type: "integer", title: "Active goals per specialist", minimum: 1, maximum: 8 },
+      memoryBytes: { type: "integer", title: "Evidence packet bytes", minimum: 1024, maximum: 12000 },
       ownerPriorities: {
         type: "object",
+        title: "Owner priorities",
         properties: Object.fromEntries(
           ["resources", "diplomacy", "defense", "development"].map((id) => [
             id,
-            { type: "integer", minimum: 0, maximum: 100 },
+            { type: "integer", title: id.charAt(0).toUpperCase() + id.slice(1), minimum: 0, maximum: 100 },
           ]),
         ),
         additionalProperties: false,

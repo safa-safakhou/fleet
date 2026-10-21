@@ -28,6 +28,7 @@ const Link = z
   })
   .strict();
 
+export { evaluateSkillReuse } from "../modules/skills/v1/evaluation.js";
 export { evidenceChain } from "./evidence.js";
 
 import { evidenceChain } from "./evidence.js";
@@ -194,13 +195,9 @@ export class PlatformReports {
           group: `group-${i + 1}`,
           profile:
             row.profile &&
-            [
-              "legacy-loop",
-              "legacy-cognition",
-              "reactive-basic",
-              "reactive-cognition",
-              "specialist-coordinator",
-            ].includes(row.profile.id)
+            this.store.architectures
+              .list()
+              .some((m) => m.ref.id === row.profile?.id && m.ref.version === row.profile.version)
               ? row.profile
               : null,
           state: row.state,

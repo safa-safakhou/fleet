@@ -3,6 +3,7 @@ import { readFile } from "node:fs/promises";
 import { resolve, sep } from "node:path";
 import Fastify from "fastify";
 import { z } from "zod";
+import { SpecialistInspection } from "./app/specialist-inspection.js";
 import { Comparisons, comparisonPreview } from "./comparisons.js";
 import { transaction } from "./db.js";
 import { DecisionSupport, VwDecision } from "./decision.js";
@@ -146,6 +147,13 @@ export function buildServer(options: {
     architectures: requireLauncher().catalog(),
     environment: options.environments?.selected,
   }));
+  const specialistInspection = new SpecialistInspection(store);
+  app.get("/api/instances", async () => specialistInspection.list());
+  for (const kind of ["specialists", "skills"] as const)
+    app.get<{ Params: { id: string }; Querystring: { scope?: string } }>(`/api/instances/:id/${kind}`, async (r) => {
+      const scope = z.enum(["private", "shareable"]).default("private").parse(r.query.scope);
+      return specialistInspection.read(r.params.id, kind, scope === "shareable");
+    });
   app.post("/api/launch/check", async (r) => requireLauncher().check(r.body));
   app.post("/api/launch/drafts", async (r) => requireLauncher().draft(r.body));
   app.get<{ Params: { id: string } }>("/api/launch/drafts/:id", async (r) =>
