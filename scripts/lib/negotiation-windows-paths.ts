@@ -1,4 +1,7 @@
 import { win32 as path } from "node:path";
+export function windowsInspectionEnvironment(parent: NodeJS.ProcessEnv) {
+  return Object.fromEntries(Object.entries(parent).filter(([key]) => key.toLowerCase() !== "psmodulepath"));
+}
 /** Windows app-container redirection applies to the base, not permission to
  * redirect a bundle or private child outside that same canonical base. */
 export function validateWindowsOwnedRoots(

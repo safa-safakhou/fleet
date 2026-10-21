@@ -1,5 +1,19 @@
 import { expect, it } from "vitest";
-import { validateWindowsOwnedRoots } from "../../scripts/lib/negotiation-windows-paths.js";
+import {
+  validateWindowsOwnedRoots,
+  windowsInspectionEnvironment,
+} from "../../scripts/lib/negotiation-windows-paths.js";
+
+it("does not pass host PowerShell module overrides into system inspection", () => {
+  const parent = {
+    SystemRoot: "C:\\Windows",
+    PSModulePath: "incompatible-host-modules",
+    psmodulepath: "second-case",
+    LOCALAPPDATA: "private-root",
+  };
+  expect(windowsInspectionEnvironment(parent)).toEqual({ SystemRoot: "C:\\Windows", LOCALAPPDATA: "private-root" });
+  expect(parent.PSModulePath).toBe("incompatible-host-modules");
+});
 
 it("anchors app-container redirection at its canonical base while rejecting child redirection", () => {
   const logical = "C:\\Users\\Owner\\AppData\\Local\\PACT\\Negotiation",

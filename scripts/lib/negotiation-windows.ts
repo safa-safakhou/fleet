@@ -20,7 +20,7 @@ import { createPinnedArtifactVerifier, fileSha256, validateOwnedDatabaseTarget }
 import { loadPreparationRestoreGate } from "./negotiation-backup-proof.js";
 import { createOwnedNegotiationExecution, type PreparedNegotiationCell } from "./negotiation-owned-run.js";
 import { PrivateNegotiationReview } from "./negotiation-review-channel.js";
-import { validateWindowsOwnedRoots } from "./negotiation-windows-paths.js";
+import { validateWindowsOwnedRoots, windowsInspectionEnvironment } from "./negotiation-windows-paths.js";
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/),
   revision = z.string().regex(/^[a-f0-9]{40}$/);
@@ -159,11 +159,16 @@ export async function verifyOwnedWindowsPackage(m: OwnedNegotiationManifest) {
       .map(quote)
       .join(",");
     const script = `$ErrorActionPreference='Stop'; $sid=[System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value; $allowed=@($sid,'S-1-5-18','S-1-5-32-544'); $unsafe=$false; foreach($path in @(${paths})){foreach($rule in (Get-Acl -LiteralPath $path).Access){if($rule.AccessControlType -eq 'Allow' -and $allowed -notcontains $rule.IdentityReference.Translate([System.Security.Principal.SecurityIdentifier]).Value){$unsafe=$true}}}; $p=Get-CimInstance Win32_Process -Filter 'ProcessId=${m.providerPid}'; $t=@(Get-NetTCPConnection -State Listen -LocalAddress '127.0.0.1' -LocalPort 11436 -ErrorAction SilentlyContinue); [PSCustomObject]@{unsafe=$unsafe;path=$p.ExecutablePath;command=$p.CommandLine;owners=@($t|Select-Object -ExpandProperty OwningProcess)}|ConvertTo-Json -Compress`;
-    const { stdout } = await exec("powershell.exe", ["-NoProfile", "-NonInteractive", "-Command", script], {
-      windowsHide: true,
-      timeout: 10000,
-      maxBuffer: 64000,
-    });
+    const { stdout } = await exec(
+      join(process.env.SystemRoot ?? "C:\\Windows", "System32/WindowsPowerShell/v1.0/powershell.exe"),
+      ["-NoProfile", "-NonInteractive", "-Command", script],
+      {
+        windowsHide: true,
+        env: windowsInspectionEnvironment(process.env),
+        timeout: 10000,
+        maxBuffer: 64000,
+      },
+    );
     const observed = JSON.parse(stdout);
     if (
       observed.unsafe !== false ||
