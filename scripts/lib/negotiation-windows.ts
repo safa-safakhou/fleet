@@ -1,7 +1,7 @@
 import { execFile } from "node:child_process";
 import { randomUUID } from "node:crypto";
 import { lstat, readFile, realpath, writeFile } from "node:fs/promises";
-import { join, relative, resolve } from "node:path";
+import { join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { z } from "zod";
 import {
@@ -20,6 +20,7 @@ import { createPinnedArtifactVerifier, fileSha256, validateOwnedDatabaseTarget }
 import { loadPreparationRestoreGate } from "./negotiation-backup-proof.js";
 import { createOwnedNegotiationExecution, type PreparedNegotiationCell } from "./negotiation-owned-run.js";
 import { PrivateNegotiationReview } from "./negotiation-review-channel.js";
+import { validateWindowsOwnedRoots } from "./negotiation-windows-paths.js";
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/),
   revision = z.string().regex(/^[a-f0-9]{40}$/);
@@ -78,16 +79,15 @@ export async function verifyOwnedWindowsPackage(m: OwnedNegotiationManifest) {
     throw new FleetError("OWNED_WINDOWS_CONTROLLER_REQUIRED", true);
   const appData = process.env.LOCALAPPDATA;
   if (!appData) throw new FleetError("OWNED_PRIVATE_PATH_REQUIRED", true);
-  const base = resolve(appData, "PACT/Negotiation"),
-    bundleRelative = relative(join(base, "bundles"), resolve(m.bundleRoot)),
-    privateRelative = relative(base, resolve(m.privateRoot));
-  if (
-    !/^[a-f0-9-]{36}$/i.test(bundleRelative) ||
-    !/^E[1-4]\\[a-f0-9-]{36}$/i.test(privateRelative) ||
-    (await realpath(m.bundleRoot)).toLowerCase() !== resolve(m.bundleRoot).toLowerCase() ||
-    (await realpath(m.privateRoot)).toLowerCase() !== resolve(m.privateRoot).toLowerCase()
-  )
-    throw new FleetError("OWNED_PRIVATE_PATH_REQUIRED", true);
+  const base = resolve(appData, "PACT/Negotiation");
+  validateWindowsOwnedRoots(
+    base,
+    m.bundleRoot,
+    m.privateRoot,
+    await realpath(base),
+    await realpath(m.bundleRoot),
+    await realpath(m.privateRoot),
+  );
   if (
     resolve(m.vaultKeyRef).toLowerCase() !== join(resolve(m.privateRoot), "keys/vault.key").toLowerCase() ||
     resolve(m.reviewKeyRef).toLowerCase() !== join(resolve(m.privateRoot), "keys/review.key").toLowerCase()
@@ -100,7 +100,7 @@ export async function verifyOwnedWindowsPackage(m: OwnedNegotiationManifest) {
   const node = join(m.bundleRoot, "controller/node.exe"),
     provider = join(m.bundleRoot, "runtime/ollama.exe");
   if (
-    resolve(process.execPath).toLowerCase() !== resolve(node).toLowerCase() ||
+    (await realpath(process.execPath)).toLowerCase() !== (await realpath(node)).toLowerCase() ||
     (await fileSha256(node)) !== expectedNode
   )
     throw new FleetError("OWNED_CONTROLLER_DIGEST", true);
@@ -168,7 +168,7 @@ export async function verifyOwnedWindowsPackage(m: OwnedNegotiationManifest) {
     if (
       observed.unsafe !== false ||
       typeof observed.path !== "string" ||
-      resolve(observed.path).toLowerCase() !== resolve(provider).toLowerCase() ||
+      (await realpath(observed.path)).toLowerCase() !== (await realpath(provider)).toLowerCase() ||
       !Array.isArray(observed.owners) ||
       observed.owners.length !== 1 ||
       observed.owners[0] !== m.providerPid ||
