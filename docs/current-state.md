@@ -6,6 +6,7 @@ Documentary checkpoint: 21 October 2026. This is source/report state, not a fres
 
 - The latest negotiation and specialist implementation is integrated into master in both main repositories: mine/pact and mine/fleet. Use these folders for normal work. Source integration does not install or activate anything.
 - [Latest qualification record](negotiation-completion-record-20261021.md)
+- [Latest continuation and policy investigation](negotiation-continuation-20261021.md): original denial located; no matching platform clearance found in the inspected local records. No retry or permission change. RC1 full/guarded specialist source/configuration is defined as an unqualified repair hypothesis with a separate evaluation boundary; its two-model-kingdom composition is not yet implemented or frozen.
 - E1/E2/E3 are terminal failures. E3 stopped on an unsupported authority claim; 1 failed/34 unstarted cells, 3 turns/4 reported calls/0 commands. All 70 owned clocks were parked; final encrypted restore verified.
 - Combined real E1–E3 usage remains 14 calls/560000 reserved/71886 measured tokens. Failed grants and spare allowance cannot be reopened, replayed or transferred.
 - Real E4 and KQ1 remain unrun. Automatic approval review rejected the isolated E4 provider start with only blocked by policy as its stated reason; do not retry through another mechanism. E4 marker-only storage was stopped and retained.
@@ -17,7 +18,7 @@ The [last local-world result](reasoning-outcomes-20261020.md) records 12 matched
 
 ## Next work and reading
 
-Latest maintenance: integrate completed source into both main master checkouts; retain concise instructions and task-specific reading. Verification of the combined source is recorded below. Future implementation needs a current user assignment; qualification failure does not authorize retries or production rollout.
+Latest continuation: defined the RC1 candidate/new study boundary and concrete preflight, exact-grant and isolated-release requirements. The execution-policy blocker remains unresolved after bounded local-record inspection. Operational preparation/execution cannot proceed until a supported platform resolution is established; no alternate launcher or settings change is permitted. The existing E4/KQ1 ceilings, failed grants and frozen artifacts remain unchanged. The new RC1 evaluation composition needs separate source/offline acceptance and newly bound operational grants; no new study allowance exists.
 For a new task, read only its applicable guide/spec and affected source/tests. Detailed plans, reports and historical evidence remain at their existing paths.
 Update this file when a verified milestone changes; do not append execution diaries to AGENTS.md. Read the [original instruction snapshot](reference/agent-instructions-before-20261021.txt) only for a specific historical question; past grants there are not current authority.
 
