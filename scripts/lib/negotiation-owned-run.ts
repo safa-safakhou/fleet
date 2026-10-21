@@ -1,4 +1,3 @@
-import { setTimeout as delay } from "node:timers/promises";
 import { readNegotiationEvidence } from "../../../pact/tests/evaluation/negotiation-outcome.js";
 import type { OwnedNegotiationWorld } from "../../../pact/tests/evaluation/negotiation-owned-run.js";
 import { builtinArchitectures } from "../../src/app/builtins.js";
@@ -34,6 +33,7 @@ import { CommandExecutor } from "../../src/platform/execution.js";
 import { OperationSupervisor, PlatformHost } from "../../src/platform/supervisor.js";
 import { type TaskClaim, TaskStore } from "../../src/platform/tasks.js";
 import type { Store } from "../../src/store.js";
+import { runNativeOwnedCell } from "./negotiation-native-run.js";
 
 const readTool = (name: string, inputSchema: Data): Tool => ({
   name,
@@ -192,7 +192,7 @@ export async function prepareOwnedNegotiationCohort(
     );
     bindingIds.push((await pact.attach(a.id)).id);
   }
-  await tasks.enroll(group.id, cell.profile);
+  await tasks.enroll(group.id, cell.profile, cell.clockMode === "native");
   return {
     cell,
     world,
@@ -221,7 +221,15 @@ export function createOwnedNegotiationExecution(
   deps: OwnedExecutionDependencies,
 ): NegotiationExecutionPorts {
   const { store } = deps,
-    nonceStore = new NegotiationNonceStore(store);
+    nonceStore = new NegotiationNonceStore(store),
+    native = protocol.selection.stage === "E4",
+    nativeStop = new AbortController();
+  const abortNative = () => {
+    if (native) {
+      closed = true;
+      nativeStop.abort();
+    }
+  };
   let running: PreparedNegotiationCell | undefined,
     nextGame: string | null = null,
     closed = false;
@@ -262,6 +270,7 @@ export function createOwnedNegotiationExecution(
     };
   };
   const ports: NegotiationExecutionPorts = {
+    ...(native ? { timingMode: "native" as const } : {}),
     now: () => Date.now(),
     preflight: async () => {
       await deps.verifyArtifacts();
@@ -309,6 +318,7 @@ export function createOwnedNegotiationExecution(
     accounting: async (b) => readNativeNegotiationAccounting(store, b, prepared(b).cell, await state(prepared(b))),
     closeAdmission: async (b, reason) => {
       closed = true;
+      abortNative();
       await store.setState(b.cohortId, "paused", true);
       await deps.persist("admission-closed", { cellId: b.cellId, reason });
     },
@@ -316,7 +326,7 @@ export function createOwnedNegotiationExecution(
     runCell: async (cell, binding, controls) => {
       const p = prepared(binding);
       running = p;
-      closed = false;
+      if (!native) closed = false;
       const cutoff = Date.parse(controls.cutoffAt);
       // Preparation sets a conservative draft deadline; execution can only narrow it.
       const cohort = await store.cohort(binding.cohortId);
@@ -337,7 +347,8 @@ export function createOwnedNegotiationExecution(
         tasks = new TaskStore(store, bindings, 1);
       let claim: TaskClaim | undefined, renewalError: unknown;
       const check = async (input: NegotiationGuardInput) => {
-        if (closed || controls.signal.aborted || Date.now() >= cutoff) throw new FleetError("NEGOTIATION_CUTOFF", true);
+        if (closed || controls.signal.aborted || nativeStop.signal.aborted || Date.now() >= cutoff)
+          throw new FleetError("NEGOTIATION_CUTOFF", true);
         if (renewalError) throw new FleetError("NEGOTIATION_LEASE_LOST", true);
         await controls.guard(input);
         if (cell.clockMode === "controlled") {
@@ -352,6 +363,7 @@ export function createOwnedNegotiationExecution(
       const renewal = setInterval(() => {
         void renew().catch((e) => {
           renewalError = e;
+          abortNative();
         });
       }, 300000);
       const adapter = createPactEnvironment({
@@ -377,7 +389,7 @@ export function createOwnedNegotiationExecution(
           const current = claim;
           return deps.provider.decide({
             ...request,
-            signal: AbortSignal.any([request.signal, controls.signal]),
+            signal: AbortSignal.any([request.signal, controls.signal, nativeStop.signal]),
             onDispatch: async () => {
               await check({
                 phase: "dispatch",
@@ -395,7 +407,14 @@ export function createOwnedNegotiationExecution(
         provider,
         new RouteCapacity(store, () => ({ key: `negotiation:${grant.batchNonce}`, capacity: 1 })),
         async (c) => check({ phase: "call", actorId: c.turn.agent.kingdom_id ?? undefined, turnId: c.turn.id }),
-      ).reviewed(deps.reviewResponse);
+      ).reviewed(async (c, result) => {
+        try {
+          await deps.reviewResponse(c, result);
+        } catch (error) {
+          abortNative();
+          throw error;
+        }
+      });
       const commands = new CommandExecutor(store, tasks, bindings, environments),
         supervisor = new OperationSupervisor(tasks);
       const host = new PlatformHost(
@@ -411,17 +430,11 @@ export function createOwnedNegotiationExecution(
       const start = p.world.decisionStartGameTimeMs / 60000;
       const lifecycle: NegotiationEvidence["lifecycle"] = [];
       const clock = async (target: number) => {
+        if (cell.clockMode !== "controlled") throw new FleetError("NEGOTIATION_CLOCK_ADVANCE_FORBIDDEN", true);
         let current = Number((await state(p)).gameTimeMs) / 60000;
         while (current < target) {
           nextGame = String((current + 1) * 60000);
-          if (cell.clockMode === "native") {
-            const scheduled = Date.parse(controls.startsAt) + (current + 1 - start) * 60000;
-            while (Date.now() < scheduled) {
-              await delay(Math.min(1000, scheduled - Date.now()), undefined, { signal: controls.signal });
-              if (renewalError) throw new FleetError("NEGOTIATION_LEASE_LOST", true);
-            }
-            if (Date.now() >= cutoff) throw new FleetError("NEGOTIATION_CUTOFF", true);
-          } else await check({ phase: "clock", targetGameTimeMs: nextGame });
+          await check({ phase: "clock", targetGameTimeMs: nextGame });
           await p.world.advanceTo(current + 1);
           await p.control.advanceTo(current + 1);
           current++;
@@ -429,6 +442,30 @@ export function createOwnedNegotiationExecution(
         nextGame = null;
       };
       try {
+        if (native)
+          return await runNativeOwnedCell({
+            cell,
+            binding,
+            world: p.world,
+            control: p.control,
+            tasks,
+            host,
+            signal: AbortSignal.any([controls.signal, nativeStop.signal]),
+            cutoff,
+            check,
+            setClaim: (c) => {
+              claim = c;
+            },
+            abortBatch: abortNative,
+            persist: deps.persist,
+            allocations: async () =>
+              (await ports.accounting(binding)).allocations.map((a) => ({
+                ...a,
+                status: a.status as "reported" | "unknown",
+              })),
+            reviewOutcome: deps.reviewOutcome,
+            evidenceLevel: deps.evidenceLevel,
+          });
         for (let round = 0; round < cell.limits.turnsPerActor; round++) {
           await clock(start + round * 15);
           const first = (((cell.seed + 1) % 2) + round) % 2;

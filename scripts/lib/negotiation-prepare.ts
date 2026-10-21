@@ -23,7 +23,6 @@ export const OwnedRosterPreparationSchema = OwnedNegotiationManifestSchema.omit(
 export async function prepareWindowsNegotiationRoster(raw: unknown) {
   const input = OwnedRosterPreparationSchema.parse(raw),
     protocol = input.protocol as ProtocolPreview;
-  if (protocol.selection.stage === "E4") throw new FleetError("OWNED_NATIVE_SCHEDULER_ACCEPTANCE_REQUIRED", true);
   if (
     designDigest(prepareNegotiationProtocol(protocol.selection)) !== designDigest(protocol) ||
     designDigest(protocol.selection.sources) !== designDigest(input.sources) ||

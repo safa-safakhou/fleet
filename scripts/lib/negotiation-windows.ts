@@ -203,7 +203,6 @@ export async function verifyOwnedWindowsPackage(m: OwnedNegotiationManifest) {
 /** Only the fixed built Windows entrypoint invokes this factory after grant
  * validation. The prepared JSON cannot select code, providers or adapters. */
 export async function createWindowsNegotiationExecution(path: string, protocol: ProtocolPreview, rawGrant: unknown) {
-  if (protocol.selection.stage === "E4") throw new FleetError("OWNED_NATIVE_SCHEDULER_ACCEPTANCE_REQUIRED", true);
   const grant = NegotiationGrantSchema.parse(rawGrant),
     raw = await readFile(path, "utf8"),
     m = OwnedNegotiationManifestSchema.parse(JSON.parse(raw));
