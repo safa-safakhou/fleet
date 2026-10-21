@@ -77,6 +77,7 @@ export function createPactEnvironment(ports: {
   return {
     ref: { id: "pact", version: "1" },
     specialistPresets: pactSpecialistPresets,
+    specialistObservationPolicy: { id: "specialists", version: "1" },
     ...(ports.actionEffectsVersion ? { skillSupport: createPactSkillSupport() } : {}),
     instructions: pactAdapter.instructions,
     accountObjective: (observation) => pactCurrentObjective(observation.payload),

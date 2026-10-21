@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { afterEach, expect, it } from "vitest";
 import { hostScopeFactory } from "../../src/app/host-services.js";
-import type { GamePort } from "../../src/domain.js";
+import type { Data, GamePort } from "../../src/domain.js";
 import { createPactEnvironment, PactBindings } from "../../src/environments/pact.js";
 import { ModelAdmission, RouteCapacity } from "../../src/platform/admission.js";
 import { Bindings } from "../../src/platform/bindings.js";
@@ -84,7 +84,7 @@ it.each(["resources-diplomacy", "full"])(
       });
     await f.store.configure(group.id, {
       model: { route: "ollama", model: "authored-fake" },
-      budget: { ...budget, deadlineAt: new Date(f.now().getTime() + 3 * 3600000).toISOString(), inputByteLimit: 40000 },
+      budget: { ...budget, deadlineAt: new Date(f.now().getTime() + 3 * 3600000).toISOString(), inputByteLimit: 24000 },
     });
     await tasks.enroll(group.id, { id: "autonomous-specialists", version: "1" });
     await f.pool.query("UPDATE cohort_engine_profiles SET architecture_config=$2 WHERE cohort_id=$1", [
@@ -105,8 +105,12 @@ it.each(["resources-diplomacy", "full"])(
     await f.store.consent(group.id, true);
     await f.store.setState(group.id, "running", true);
     const seen: string[] = [];
+    const inputSizes: number[] = [];
     const model = {
-      decide: async (request: { messages: { content: string }[] }) => {
+      decide: async (request: { messages: { content: string }[]; schema: Data }) => {
+        inputSizes.push(
+          Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.schema)),
+        );
         const packet = JSON.parse(request.messages[1].content),
           role = packet.specialist.id;
         seen.push(role);
@@ -178,5 +182,7 @@ it.each(["resources-diplomacy", "full"])(
     expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(seen.length);
     expect((await f.pool.query("SELECT * FROM specialist_states")).rowCount).toBe(preset === "full" ? 4 : 2);
     expect(adapter.capabilities).not.toHaveProperty("coordination", true);
+    expect(Math.max(...inputSizes)).toBeLessThanOrEqual(24000);
+    process.stdout.write(JSON.stringify({ fixture: preset, inputBytes: inputSizes, realProviderCalls: 0 }) + "\n");
   },
 );

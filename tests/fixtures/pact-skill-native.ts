@@ -12,7 +12,7 @@ import { CommandExecutor } from "../../src/platform/execution.js";
 import { OperationSupervisor, PlatformHost } from "../../src/platform/supervisor.js";
 import { TaskStore } from "../../src/platform/tasks.js";
 import { budget, fixture, tools } from "../helpers.js";
-export async function pactSkillNativeFixture(model: ModelPort) {
+export async function pactSkillNativeFixture(model: ModelPort, options: { learning?: boolean } = {}) {
   const root = process.env.PACT_ACCEPTANCE_ROOT;
   if (!root || process.env.FLEET_ARCHITECTURE_TEST !== "1") throw Error("OWNED_PAIRED_FIXTURE_REQUIRED");
   const { actionEffectsFixture } = await import(pathToFileURL(resolve(root, "tests/fixtures/action-effects.ts")).href),
@@ -76,14 +76,20 @@ export async function pactSkillNativeFixture(model: ModelPort) {
     });
   await f.store.configure(group.id, {
     model: { route: "ollama", model: "authored-fake" },
-    budget: { ...budget, deadlineAt: new Date(f.now().getTime() + 8 * 3600000).toISOString(), inputByteLimit: 64000 },
+    budget: { ...budget, deadlineAt: new Date(f.now().getTime() + 8 * 3600000).toISOString(), inputByteLimit: 24000 },
   });
   await tasks.enroll(group.id, { id: "autonomous-specialists", version: "1" });
   await f.pool.query(
     "UPDATE cohort_engine_profiles SET architecture_config=$2,non_model_limits=$3 WHERE cohort_id=$1",
     [
       group.id,
-      { preset: "resources-diplomacy", maxActiveGoals: 8, memoryBytes: 6000, skillMode: "guarded", learning: false },
+      {
+        preset: "resources-diplomacy",
+        maxActiveGoals: 8,
+        memoryBytes: 6000,
+        skillMode: "guarded",
+        learning: options.learning ?? false,
+      },
       { reads: 200, actions: 4, messages: 0, steps: 300, wallTimeMs: 8 * 3600000 },
     ],
   );
@@ -100,10 +106,19 @@ export async function pactSkillNativeFixture(model: ModelPort) {
   });
   await f.store.consent(group.id, true);
   await f.store.setState(group.id, "running", true);
+  const inputSizes: number[] = [];
   const admission = new ModelAdmission(
       f.store,
       tasks,
-      model,
+      {
+        decide: async (request) => {
+          const size =
+            Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.schema));
+          inputSizes.push(size);
+          if (size > 24000) throw Error("FIXTURE_PACKET_LIMIT");
+          return model.decide(request);
+        },
+      },
       new RouteCapacity(f.store, () => ({ key: "owned-skill", capacity: 1 })),
     ),
     commands = new CommandExecutor(f.store, tasks, bindings, environments),
@@ -150,6 +165,9 @@ export async function pactSkillNativeFixture(model: ModelPort) {
     run,
     get reads() {
       return reads;
+    },
+    get inputSizes() {
+      return [...inputSizes];
     },
     advanceBoth: (ms: number) => {
       f.advance(ms);

@@ -580,3 +580,32 @@ it("runs the four-role adapter preset with separate decisions and one canonical 
     true,
   );
 });
+it("does not guess a foreign adapter observation policy", async () => {
+  const f = await setup(),
+    connect = f.board.adapter.connect;
+  f.board.adapter.connect = async (binding) => ({
+    ...(await connect(binding)),
+    projectObservation: () => {
+      throw Error("UNADVERTISED_POLICY");
+    },
+  });
+  const [id] = await f.enqueue("resource"),
+    claim = await f.tasks.claim("foreign-policy", f.now(), id);
+  if (!claim) throw Error("CLAIM_REQUIRED");
+  await f
+    .host(
+      {
+        decide: async () => ({
+          decision: { decision: { kind: "wait", summary: "Own small board observation" } },
+          inputTokens: 10,
+          outputTokens: 10,
+        }),
+      },
+      undefined,
+      {},
+      f.store.architectures,
+    )
+    .host.run(claim);
+  expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(1);
+  expect(f.board.executions).toBe(0);
+});

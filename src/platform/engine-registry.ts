@@ -13,6 +13,7 @@ export interface EngineContext {
   commands: CommandExecutor;
   observe: (query: Data, externallyMetered?: boolean) => Promise<Observation>;
   skillSupport?: import("../modules/skills/v1/support.js").SkillSupport;
+  specialistObservationPolicy?: { id: string; version: string };
   eventRefs: string[];
   signal: AbortSignal;
   goal?: string;

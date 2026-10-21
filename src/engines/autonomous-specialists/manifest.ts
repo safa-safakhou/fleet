@@ -53,6 +53,7 @@ export const manifest: ArchitectureManifest = {
     { id: "negotiation-evidence", version: "1" },
     { id: "action-admission", version: "1" },
     { id: "skills", version: "1" },
+    { id: "specialist-input", version: "1" },
   ],
   stateCodecs: [{ id: "participant-state", version: "1" }],
   skillModes: ["off", "advisory", "guarded"],

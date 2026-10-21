@@ -150,6 +150,7 @@ export class PlatformHost {
           schemas: adapter.schemas,
           specialistPresets: adapter.specialistPresets,
           skillSupport: adapter.skillSupport,
+          specialistObservationPolicy: adapter.specialistObservationPolicy,
           conditionPredicates: adapter.wakePredicates,
           conditionContracts: adapter.conditionContracts,
           goal: adapter.presentation.defaultGoal,

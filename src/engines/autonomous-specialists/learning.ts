@@ -20,7 +20,7 @@ export class LearningPolicy {
         outcome: o.detail.fulfilled === true ? "observed_success" : "observed_failure",
         reason: "Observed outcome supports a bounded hypothesis, not mastery",
       }));
-    const repeated = originals.filter((o) => o.kind === "observation").slice(0, 2);
+    const repeated = originals.filter((o) => o.kind === "observation" && o.detail.payloadOmitted !== true).slice(0, 2);
     return repeated.length === 2
       ? [
           {

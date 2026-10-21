@@ -81,6 +81,10 @@ export class AutonomousSpecialistsEngine {
       });
     }
     for (let call = 0; call < budget.maxCallsPerTurn; call++) {
+      if (services.environment.specialistObservationPolicy)
+        observation =
+          services.environment.projectObservation?.(observation, services.environment.specialistObservationPolicy) ??
+          observation;
       if (operation.signal.aborted) throw new FleetError("TASK_FENCED", true);
       await p.captureOriginal({
         kind: "observation",

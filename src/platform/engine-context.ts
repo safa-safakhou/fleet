@@ -113,6 +113,7 @@ export interface ScopedServices {
   tasks: { waitForEvent(): Promise<void> };
   trace(stage: "thinking" | "deciding", label: string, detail: Data): Promise<void>;
   environment: {
+    specialistObservationPolicy?: { id: string; version: string };
     skillTemplates?: Data[];
     capabilities: Capabilities;
     schemas: { observations: string[]; actions: string[] };

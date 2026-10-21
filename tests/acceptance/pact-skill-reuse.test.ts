@@ -12,45 +12,82 @@ afterEach(async () => {
 });
 it("signs only a prior exact goal through native guards with zero reuse model calls, then waits for actual delivery", async () => {
   let calls = 0,
+    learning = false,
     parameters: Data = {},
     goalId = randomUUID();
-  f = await pactSkillNativeFixture({
-    decide: async (r) => {
-      calls++;
-      const packet = JSON.parse(r.messages[1].content),
-        source = packet.evidence.bundles
-          .flatMap((b: Data) => b.originals as Data[])
-          .find((o: Data) => o.kind === "observation");
-      if (!source) throw Error("ORIGINAL_REQUIRED");
-      return {
-        decision: {
-          decision: { kind: "wait", summary: "Existing exact owner goal" },
-          update: {
-            goals: [
-              {
-                id: goalId,
-                parentId: null,
-                objective: "Receive exact agreed supply",
-                rationale: "Owner specified this existing exchange",
-                status: "active",
-                evidenceIds: [source.id],
-                assessment: "Actual full installments",
-                routine: { kind: supplyRoutineKind, parameters },
-                wake: "delivery/default event",
+  f = await pactSkillNativeFixture(
+    {
+      decide: async (r) => {
+        calls++;
+        const packet = JSON.parse(r.messages[1].content),
+          source = packet.evidence.bundles
+            .flatMap((b: Data) => b.originals as Data[])
+            .find((o: Data) => o.kind === "observation");
+        if (learning) {
+          if (packet.skills.templates.length) {
+            const opportunity = packet.skills.opportunities[0],
+              outcome = packet.evidence.bundles
+                .flatMap((b: Data) => b.originals as Data[])
+                .find((o: Data) => o.kind === "outcome");
+            if (!outcome) throw Error("ACTUAL_OUTCOME_REQUIRED");
+            const guide = supplyRoutineCandidate(String(outcome.id), opportunity.episodeIds[0]);
+            guide.representation = "guide";
+            guide.procedure = {
+              guide:
+                "Observed full delivery after exact prior consent. Future decisions still require fresh owner intent, authority and reserves.",
+              nodes: [],
+              children: [],
+            };
+            return {
+              decision: { decision: { kind: "wait", summary: "Bounded source-backed guide" }, proposals: [guide] },
+              inputTokens: 20,
+              outputTokens: 20,
+            };
+          }
+          return {
+            decision: {
+              decision: {
+                kind: "read",
+                query: { skillSchema: true },
+                summary: "Request bounded extraction from the observed delivery",
               },
-            ],
-            memories: [],
-            predictions: [],
-            plan: null,
-            messages: [],
-            wakeConditions: [],
+            },
+            inputTokens: 20,
+            outputTokens: 20,
+          };
+        }
+        if (!source) throw Error("ORIGINAL_REQUIRED");
+        return {
+          decision: {
+            decision: { kind: "wait", summary: "Existing exact owner goal" },
+            update: {
+              goals: [
+                {
+                  id: goalId,
+                  parentId: null,
+                  objective: "Receive exact agreed supply",
+                  rationale: "Owner specified this existing exchange",
+                  status: "active",
+                  evidenceIds: [source.id],
+                  assessment: "Actual full installments",
+                  routine: { kind: supplyRoutineKind, parameters },
+                  wake: "delivery/default event",
+                },
+              ],
+              memories: [],
+              predictions: [],
+              plan: null,
+              messages: [],
+              wakeConditions: [],
+            },
           },
-        },
-        inputTokens: 20,
-        outputTokens: 20,
-      };
+          inputTokens: 20,
+          outputTokens: 20,
+        };
+      },
     },
-  });
+    { learning: true },
+  );
   const terms = {
     aToB: { resource: "iron", wholePerHour: 1 },
     bToA: { resource: "silver", wholePerHour: 2 },
@@ -140,6 +177,28 @@ it("signs only a prior exact goal through native guards with zero reuse model ca
   ).toBe(1);
   expect((await f.pact.pool.query("SELECT * FROM supply_installments")).rowCount).toBe(120);
   expect((await new SpecialistRepository(f.store, f.scope).load(f.scope)).goals[0].status).toBe("completed");
+  learning = true;
+  f.advanceBoth(16 * 60000);
+  await f.run();
+  expect(calls).toBe(3);
+  expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(3);
+  expect(
+    (await f.pool.query("SELECT allocation_ids FROM skill_learning_operations")).rows[0].allocation_ids,
+  ).toHaveLength(2);
+  expect((await f.pool.query("SELECT * FROM skill_learning_operations")).rowCount).toBe(1);
+  expect(
+    (await f.pool.query("SELECT status FROM skill_versions ORDER BY created_at")).rows.map((r) => r.status),
+  ).toEqual(["guarded", "advisory"]);
+  expect((await f.pact.pool.query("SELECT * FROM supply_contracts")).rowCount).toBe(1);
+  expect(Math.max(...f.inputSizes)).toBeLessThanOrEqual(24000);
+  process.stdout.write(
+    JSON.stringify({
+      fixture: "pact-skill-native",
+      inputBytes: f.inputSizes,
+      modelCalls: calls,
+      realProviderCalls: 0,
+    }) + "\n",
+  );
 });
 
 it.each([

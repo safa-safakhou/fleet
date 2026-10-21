@@ -64,4 +64,6 @@ it("offers learning from observed successes and failures while unresolved outcom
   expect(policy.opportunities([{ ...original, detail: { receiptOnly: true } }], true, 1)).toEqual([]);
   expect(policy.opportunities([original], false, 1)).toEqual([]);
   expect(policy.opportunities([original], true, 0)).toEqual([]);
+  const referenceOnly = { ...original, kind: "observation" as const, detail: { payloadOmitted: true } };
+  expect(policy.opportunities([referenceOnly, { ...referenceOnly, id: randomUUID() }], true, 1)).toEqual([]);
 });

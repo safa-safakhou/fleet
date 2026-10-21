@@ -304,6 +304,9 @@ export async function createScopedServices(
       await guard();
     },
     environment: {
+      specialistObservationPolicy: context.specialistObservationPolicy
+        ? immutable(structuredClone(context.specialistObservationPolicy))
+        : undefined,
       skillTemplates: context.skillSupport?.templates
         ? immutable(structuredClone(context.skillSupport.templates))
         : undefined,
