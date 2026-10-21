@@ -340,6 +340,10 @@ export function createOwnedNegotiationExecution(
         if (closed || controls.signal.aborted || Date.now() >= cutoff) throw new FleetError("NEGOTIATION_CUTOFF", true);
         if (renewalError) throw new FleetError("NEGOTIATION_LEASE_LOST", true);
         await controls.guard(input);
+        if (cell.clockMode === "controlled") {
+          await p.world.refreshControlledSchedule();
+          await p.control.refreshControlledSchedule();
+        }
       };
       const renew = async () => {
         for (const q of deps.prepared) await q.world.renewLeases();
