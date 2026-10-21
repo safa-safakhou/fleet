@@ -54,7 +54,8 @@
 - [x] Implement the bounded retained host/CLI, fixed Windows manifest/composition and authenticated restore prerequisite. Live process/route acceptance, roster preparation and real grants remain blocked; no operational pass is claimed.
 - [x] Run all eight fake cases with actual native handlers, plus actual scoped learning/zero-call reuse/full settlement and adversarial no-action review. Complete source checks; retain the initial test-expectation failure and corrected2/2 result in the completion record.
 - [x] Publish source acceptance and the disarmed launch/release record. No real cost/outcome is invented; terminal E1–E3 history remains exact.
-- [ ] Freeze/pin the separate passive KQ1 package before real model inspection; complete operational Windows acceptance, fresh roster and authenticated before restore when permitted.
+- [x] Freeze/pin the separate passive KQ1 package before real model inspection. Windows full14,313-file hash/import/settings/runtime-library acceptance passed; immutable source and artifact pins are in the completion record.
+- [ ] Complete operational Windows process/route acceptance, fresh roster and authenticated before restore when permitted. Passive packaging does not clear these prerequisites.
 - [ ] Execute the real diagnostic only after prerequisites pass, review every response inline, retain failed/unstarted cases, then park and authenticate the final restore. Blocked before provider startup by automatic approval review. Real E4 is a distinct same-frozen-artifact task; neither result repairs failed E3. Candidate acceptance/activation stays closed.
 
 ## Final operational boundary

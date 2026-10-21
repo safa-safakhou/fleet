@@ -131,9 +131,12 @@
       ]
     },
     "KQ1": {
-      "state": "offline_source_only",
-      "sources": null,
-      "bundleDigest": null,
+      "state": "passive_bundle_verified_runtime_blocked",
+      "sources": {
+        "fleet": "7ca67b2891c511a33ad129396ac5aaeed1305fb7",
+        "pact": "81007a449aab049bbb0beb9ccef18eca0b6d40aa"
+      },
+      "bundleDigest": "218801a698939102649d50d18354257e7d20f2061a7559dd137feeeda6c4dcf3",
       "profile": {
         "id": "autonomous-specialists",
         "version": "1"
@@ -164,14 +167,29 @@
       "protocolDigest": null,
       "grant": null,
       "pending": [
-        "freeze verified separate KQ1 bundle",
         "policy-permitted real-provider Windows acceptance",
         "fresh retained roster",
         "authenticated before restore",
         "exact one-shot grant and UTC interval",
         "real diagnostic with source-backed learning/reuse/full-delivery assessment",
         "terminal park and authenticated final restore"
-      ]
+      ],
+      "modelDigest": "d2119dbb017e6ec2383dd7aaa7c5df702dcaecdcce147d7c372172efbcb160e5",
+      "policyDigest": "86829dfed86a8a2cc5503638ff5ac0ccc6a86701a40156e7a460aef350e3fc70",
+      "settingsDigest": "9287609769183150267824cfc9b50354603c024c4d14cd36609091d52f658dac",
+      "passiveAcceptance": {
+        "files": 14313,
+        "fullBytesVerified": true,
+        "windowsModuleImport": true,
+        "settingsRoundTrip": true,
+        "pinnedRuntimeAndRequestVerified": true,
+        "libraryFiles": 989,
+        "providerCalls": 0,
+        "runtimePreflightPassed": false,
+        "installed": false,
+        "activated": false,
+        "productionQualified": false
+      }
     }
   },
   "perCall": {

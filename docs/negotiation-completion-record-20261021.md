@@ -24,6 +24,12 @@
 
 PACT application checkpoint53468d4 remains the implemented retained-world source; its subsequent report commit81007a4 changes documentation only. The separate passive KQ1 artifact pins are recorded after packaging below. The selected E3/E4 artifact and failed grants remain immutable.
 
+## Passive KQ1 artifact
+
+The separate bundle pins Fleet7ca67b2891c511a33ad129396ac5aaeed1305fb7 and PACT81007a449aab049bbb0beb9ccef18eca0b6d40aa. Its14,313-file inventory digest is218801a698939102649d50d18354257e7d20f2061a7559dd137feeeda6c4dcf3. Windows verified every file byte, imported the fixed specialist composition and checked the settings round trip. Pinned Node, Ollama, all989libraries, model and wire settings matched. Model digest:d2119dbb017e6ec2383dd7aaa7c5df702dcaecdcce147d7c372172efbcb160e5; policy:86829dfed86a8a2cc5503638ff5ac0ccc6a86701a40156e7a460aef350e3fc70; settings:9287609769183150267824cfc9b50354603c024c4d14cd36609091d52f658dac.
+
+The new private bundle shares14,294identical immutable files and copies19changed files; old bytes and ACLs remain unchanged. Its location and raw proof stay outside Git. This is passive packaging only: runtime preflight:false, provider processes/calls:0, installation:false, activation:false, production qualification:false. No KQ1 operational root, roster, protocol or grant was created. Later report-only commits do not rewrite these source/artifact pins.
+
 ## What remains blocked
 
 1. Complete real E4 operational preflight, native timing observation, inline response review and final authenticated restore under its unchanged frozen artifact and independent144call/5.76M/6h ceiling. Partial marker-only staging and private keys are retained; no roster or grant exists.
