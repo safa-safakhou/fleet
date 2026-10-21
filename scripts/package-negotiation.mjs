@@ -64,8 +64,7 @@ await writeFile(join(out, "package.json"), '{"type":"module"}\n', { flag: "wx" }
 await writeFile(join(out, "fleet/package.json"), '{"type":"module"}\n', { flag: "wx" });
 await writeFile(join(out, "pact/package.json"), '{"type":"module"}\n', { flag: "wx" });
 await writeFile(join(out, "bundle-sources.json"), JSON.stringify(sourcePins) + "\n", { flag: "wx" });
-const pending = [],
-  seen = new Map();
+const pending = [];
 async function locate(name, from) {
   let dir = from;
   for (;;) {
@@ -83,27 +82,9 @@ async function locate(name, from) {
 }
 for (const name of Object.keys(JSON.parse(await readFile(join(fleet, "package.json"), "utf8")).dependencies))
   pending.push(await locate(name, fleet));
-for (const name of [
-  "application",
-  "authority",
-  "contracts",
-  "db",
-  "domain",
-  "identity",
-  "kingdom",
-  "onboarding",
-  "runs",
-])
-  pending.push(await locate(`@pact/${name}`, pact));
-while (pending.length) {
-  const pkg = pending.shift(),
-    old = seen.get(pkg.json.name);
-  if (old) {
-    if (old !== pkg.json.version) throw Error(`RUNTIME_DEPENDENCY_VERSION_CONFLICT:${pkg.json.name}`);
-    continue;
-  }
-  seen.set(pkg.json.name, pkg.json.version);
-  const target = join(out, "node_modules", pkg.json.name);
+for (const name of (await readdir(join(pact, "packages"))).sort()) pending.push(await locate(`@pact/${name}`, pact));
+const { planRuntimePackages } = await import("../dist/negotiation/fleet/scripts/lib/negotiation-package-graph.js");
+for (const { pkg, target } of await planRuntimePackages(out, pending, locate)) {
   await mkdir(dirname(target), { recursive: true });
   if (pkg.json.name.startsWith("@pact/")) {
     await mkdir(target);
@@ -126,7 +107,6 @@ while (pending.length) {
       dereference: true,
       filter: (path) => !path.slice(pkg.directory.length).split("/").includes("node_modules"),
     });
-  for (const name of Object.keys(pkg.json.dependencies ?? {})) pending.push(await locate(name, pkg.directory));
 }
 // The DB migrator enumerates all product migration directories even when a
 // qualification does not import that module's runtime exports.
