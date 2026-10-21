@@ -211,6 +211,18 @@ export function qualifyProfile(
   if (requirements.capabilities.continuity) checks.push("continuity");
   if (requirements.capabilities.coordination) checks.push("coordination");
   if (requirements.capabilities.actionEffects) checks.push("actionEffects");
+  const modules = architectures.resolve(profile).manifest.modules;
+  if (modules.some((m) => m.id === "participant-state"))
+    checks.push("specialistState", "addressedDelivery", "independentActions");
+  if (modules.some((m) => m.id === "skills"))
+    checks.push(
+      "skillsAdvisory",
+      "skillsGuarded",
+      "skillRecovery",
+      "skillInvalidation",
+      "nonModelLimits",
+      "completeSkillCost",
+    );
   const subjects = new Set<string>(),
     providers = new Set<string>();
   let fake = false,

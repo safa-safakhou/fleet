@@ -14,6 +14,15 @@ export const requiredChecks = [
   "continuity",
   "coordination",
   "actionEffects",
+  "specialistState",
+  "addressedDelivery",
+  "independentActions",
+  "skillsAdvisory",
+  "skillsGuarded",
+  "skillRecovery",
+  "skillInvalidation",
+  "nonModelLimits",
+  "completeSkillCost",
 ];
 export function evidence(
   adapter: EnvironmentAdapter,
