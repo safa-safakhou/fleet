@@ -1,5 +1,7 @@
 # Negotiation and production qualification —21 October2026
 
+Latest: [E1 terminated with a retained operational failure](negotiation-E1-result-20261021.md), one reported model call and zero commands. E2 preparation continues under its separate approval; production remains unqualified. The earlier paragraphs below identify their source-only or preparation checkpoint.
+
 The founder explicitly approved all six remaining tasks: baseline amendment, owned launcher, final fixtures/manifest, E1–E4, specialist/skill KQ1 and verified release. Work remains inline, with no delegation. This supersedes the earlier preparation-only/no-inference restriction solely for the new isolated qualification worlds and the approved release path. The retained paused world and all other populations/historical unknowns remain preserved; no reset/replay or historical owner recovery review is authorized.
 
 Existing per-stage budgets, exact rosters, model/settings, source/ownership fences and hard stop conditions remain binding. Approval is not unlimited retry allowance. No stage result may be fabricated or relabelled as a pass. A failed qualification blocks production acceptance; repair must retain the original result and follow the approved development/freeze boundaries.
