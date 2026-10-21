@@ -21,6 +21,8 @@ export function createNegotiationCellGuard(input: {
   const { ports, protocol, grant, cell, binding, cutoff, controller, onOperationalFailure } = input;
   return async (input: NegotiationGuardInput) => {
     try {
+      const nativeClock = input.phase === "native_clock";
+      if (nativeClock && cell.clockMode !== "native") throw new FleetError("NEGOTIATION_CLOCK_ADVANCE_FORBIDDEN", true);
       if (controller.signal.aborted) throw new FleetError("NEGOTIATION_ADMISSION_CLOSED", true);
       if (!Number.isSafeInteger(ports.now())) throw new FleetError("NEGOTIATION_CLOCK_UNAVAILABLE", true);
       if (ports.now() < Date.parse(grant.startsAt) || ports.now() >= cutoff)
@@ -63,7 +65,10 @@ export function createNegotiationCellGuard(input: {
             row.reservedTokens !== 40000 ||
             (row.outputTokens ?? 0) > cell.limits.outputTokens ||
             (row.inputTokens ?? 0) + (row.outputTokens ?? 0) > row.reservedTokens ||
-            (row.status === "reserved" && row.turnId !== input.turnId),
+            (row.status === "reserved" &&
+              (nativeClock
+                ? a.inFlight === 0 || !a.turns.some((t) => t.turnId === row.turnId && t.actorId === row.actorId)
+                : row.turnId !== input.turnId)),
         )
       )
         throw new FleetError("NEGOTIATION_ALLOCATION_SCOPE", true);
@@ -78,7 +83,7 @@ export function createNegotiationCellGuard(input: {
       )
         throw new FleetError("NEGOTIATION_NATIVE_BUDGET_EXHAUSTED", true);
       if (input.phase === "turn" && a.inFlight !== 0) throw new FleetError("NEGOTIATION_OPERATION_IN_FLIGHT", true);
-      if (input.phase !== "clock") {
+      if (input.phase !== "clock" && !nativeClock) {
         if (!input.actorId || !binding.actorIds.includes(input.actorId))
           throw new FleetError("NEGOTIATION_ACTOR_SCOPE", true);
         const turns = new Set(a.turns.filter((t) => t.actorId === input.actorId).map((t) => t.turnId));

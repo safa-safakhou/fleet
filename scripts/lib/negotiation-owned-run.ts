@@ -346,15 +346,19 @@ export function createOwnedNegotiationExecution(
         pb = new PactBindings(store, bindings),
         tasks = new TaskStore(store, bindings, 1);
       let claim: TaskClaim | undefined, renewalError: unknown;
-      const check = async (input: NegotiationGuardInput) => {
+      const assertOpen = () => {
         if (closed || controls.signal.aborted || nativeStop.signal.aborted || Date.now() >= cutoff)
           throw new FleetError("NEGOTIATION_CUTOFF", true);
         if (renewalError) throw new FleetError("NEGOTIATION_LEASE_LOST", true);
+      };
+      const check = async (input: NegotiationGuardInput) => {
+        assertOpen();
         await controls.guard(input);
         if (cell.clockMode === "controlled") {
           await p.world.refreshControlledSchedule();
           await p.control.refreshControlledSchedule();
         }
+        assertOpen();
       };
       const renew = async () => {
         for (const q of deps.prepared) await q.world.renewLeases();

@@ -12,7 +12,7 @@ import { type NegotiationGrant, prepareNegotiationProtocol } from "../../src/neg
 import { Store } from "../../src/store.js";
 import { Vault } from "../../src/vault.js";
 
-it.each(["normal", "dispatch-refused"] as const)(
+it.each(["normal", "dispatch-refused", "guard-aborted"] as const)(
   "%s owned execution uses native accounting without invented spend",
   async (kind) => {
     const nonce = process.env.FLEET_ARCHITECTURE_NONCE!,
@@ -108,14 +108,23 @@ it.each(["normal", "dispatch-refused"] as const)(
         },
         reviewOutcome: async () => ({ claims: [], reviews: [] }),
       });
+      const cancellation = new AbortController();
       const operation = ports.runCell(planned, p.binding, {
         startsAt: grant.startsAt,
         cutoffAt: new Date(started + planned.limits.wallDeadlineMs).toISOString(),
-        signal: new AbortController().signal,
+        signal: cancellation.signal,
         guard: async (input) => {
           if (kind === "dispatch-refused" && input.phase === "dispatch") throw Error("PROVEN_BEFORE_NETWORK");
+          if (kind === "guard-aborted" && input.phase === "turn") cancellation.abort();
         },
       });
+      if (kind === "guard-aborted") {
+        await expect(operation).rejects.toThrow("NEGOTIATION_CUTOFF");
+        expect(calls).toBe(0);
+        expect((await ports.accounting(p.binding)).turns).toHaveLength(0);
+        expect((await ports.accounting(p.binding)).allocations).toHaveLength(0);
+        return;
+      }
       if (kind === "dispatch-refused") {
         await expect(operation).rejects.toThrow("PROVEN_BEFORE_NETWORK");
         expect(calls).toBe(0);

@@ -236,7 +236,7 @@ export type NativeAccounting = {
   nextScheduledGameTimeMs: string | null;
 };
 export type NegotiationGuardInput = {
-  phase: "turn" | "call" | "dispatch" | "action" | "clock";
+  phase: "turn" | "call" | "dispatch" | "action" | "clock" | "native_clock";
   actorId?: string;
   turnId?: string;
   targetGameTimeMs?: string;

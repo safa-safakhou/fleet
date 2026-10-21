@@ -43,7 +43,7 @@ export async function runNativeOwnedCell(input: {
     });
   const pump = async (w: OwnedNegotiationWorld) => {
     while (!pumpStop.signal.aborted && !signal.aborted) {
-      await check();
+      await input.check({ phase: "native_clock" });
       await w.tickNativeClock();
       await delay(1000, undefined, { signal: AbortSignal.any([pumpStop.signal, signal]) });
     }
@@ -141,7 +141,7 @@ export async function runNativeOwnedCell(input: {
     throw new FleetError("NEGOTIATION_CUTOFF", true);
   } catch (error) {
     input.abortBatch();
-    throw error;
+    throw pumpError ?? error;
   } finally {
     await stopClocks();
   }

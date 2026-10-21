@@ -1,5 +1,8 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { expect, it } from "vitest";
+import { createNegotiationCellGuard } from "../../src/negotiation-guard.js";
+import type { NegotiationCell } from "../../src/negotiation-plan.js";
+import type { NegotiationGuardInput } from "../../src/negotiation-run.js";
 import { executeNegotiationProtocol } from "../../src/negotiation-run.js";
 import { protocolFixture } from "../fixtures/negotiation/protocol.js";
 
@@ -10,6 +13,68 @@ it("E4 refuses missing trusted native timing capability before nonce admission",
     "OWNED_NATIVE_SCHEDULER_ACCEPTANCE_REQUIRED",
   );
   expect(f.counts()).toMatchObject({ runs: 0, nonceClaims: 0 });
+});
+
+it("a native clock inspection tolerates a same-world reservation admitted during its preflight", async () => {
+  const f = protocolFixture("E4"),
+    cell = f.protocol.cells[0] as NegotiationCell,
+    binding = f.grant.bindings[0],
+    row = f.records.get(cell.id)!,
+    controller = new AbortController();
+  const preflight = f.ports.preflight;
+  f.ports.preflight = async (...args) => {
+    row.turns.push({ actorId: binding.actorIds[0], turnId: "actual-native-turn" });
+    row.inFlight = 1;
+    row.allocations.push({
+      id: "native-allocation",
+      actorId: binding.actorIds[0],
+      turnId: "actual-native-turn",
+      status: "reserved",
+      reservedTokens: 40000,
+      inputTokens: null,
+      outputTokens: null,
+    });
+    return preflight(...args);
+  };
+  const guard = createNegotiationCellGuard({
+    ports: f.ports,
+    protocol: f.protocol,
+    grant: f.grant,
+    cell,
+    binding,
+    cutoff: Date.parse(row.deadlineAt),
+    controller,
+    onOperationalFailure: () => {},
+  });
+  await expect(guard({ phase: "native_clock" as NegotiationGuardInput["phase"] })).resolves.toBeUndefined();
+  expect(controller.signal.aborted).toBe(false);
+});
+
+it.each(["orphan", "unknown", "controlled"])("native clock admission still refuses %s state", async (kind) => {
+  const f = protocolFixture(kind === "controlled" ? "E1" : "E4"),
+    cell = f.protocol.cells[0] as NegotiationCell,
+    binding = f.grant.bindings[0],
+    row = f.records.get(cell.id)!;
+  row.allocations.push({
+    id: "allocation",
+    actorId: binding.actorIds[0],
+    turnId: "unowned-turn",
+    status: kind === "unknown" ? "unknown" : "reserved",
+    reservedTokens: 40000,
+    inputTokens: null,
+    outputTokens: null,
+  });
+  const guard = createNegotiationCellGuard({
+    ports: f.ports,
+    protocol: f.protocol,
+    grant: f.grant,
+    cell,
+    binding,
+    cutoff: Date.parse(row.deadlineAt),
+    controller: new AbortController(),
+    onOperationalFailure: () => {},
+  });
+  await expect(guard({ phase: "native_clock" as NegotiationGuardInput["phase"] })).rejects.toThrow();
 });
 it("native world hosts start together only after both scoped windows open", async () => {
   const f = protocolFixture("E4"),
