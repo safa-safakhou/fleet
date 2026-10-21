@@ -14,7 +14,10 @@ const recipientSchema = z
   })
   .strict();
 export class ParticipantDelivery {
-  constructor(private tasks: TaskStore) {}
+  constructor(
+    private tasks: TaskStore,
+    private limits = { concerns: 100, critical: 1000 },
+  ) {}
   async ingestWithin(
     db: PoolClient,
     binding: BindingRef,
@@ -23,6 +26,15 @@ export class ParticipantDelivery {
     lineage?: { rootId: string; parentId: string; depth: number },
   ) {
     const recipients = z.array(recipientSchema).max(4).parse(raw);
+    if (
+      !Number.isInteger(this.limits.concerns) ||
+      this.limits.concerns < 1 ||
+      this.limits.concerns > 100 ||
+      !Number.isInteger(this.limits.critical) ||
+      this.limits.critical < 1 ||
+      this.limits.critical > 1000
+    )
+      throw new FleetError("INVALID_INBOX_LIMITS");
     if (
       new Set(recipients.map((r) => JSON.stringify([r.participantId, r.subscriptionVersion]))).size !==
       recipients.length
@@ -78,6 +90,30 @@ export class ParticipantDelivery {
       }
       const taskId = await this.tasks.upsertRecipientWithin(db, binding, event, recipient, instanceId),
         id = randomUUID();
+      const critical =
+        ["contract", "deadline", "result"].includes(String(event.metadata.category)) || event.type === "command_result";
+      if (critical) {
+        const count = (
+          await db.query(
+            "SELECT count(*)::int n FROM specialist_deliveries WHERE instance_id=$1 AND binding_id=$2 AND recipient=$3 AND status='pending' AND critical",
+            [instanceId, binding.id, recipient.participantId],
+          )
+        ).rows[0].n;
+        if (count >= this.limits.critical) throw new FleetError("CRITICAL_INBOX_BACKPRESSURE");
+      } else {
+        const count = (
+          await db.query(
+            "SELECT count(DISTINCT task_id)::int n FROM specialist_deliveries WHERE instance_id=$1 AND binding_id=$2 AND recipient=$3 AND status='pending' AND NOT critical AND task_id<>$4",
+            [instanceId, binding.id, recipient.participantId, taskId],
+          )
+        ).rows[0].n;
+        if (count >= this.limits.concerns) throw new FleetError("INBOX_BACKPRESSURE");
+        if (["resource_changed", "stock_changed", "snapshot"].includes(event.type))
+          await db.query(
+            "UPDATE specialist_deliveries SET status='superseded' WHERE task_id=$1 AND status='pending' AND NOT critical",
+            [taskId],
+          );
+      }
       await db.query(
         "INSERT INTO specialist_deliveries(id,instance_id,binding_id,event_id,recipient,subscription_version,task_id,source_ref,observed_at,environment_time,root_id,parent_id,depth,critical,detail_cipher,received_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16)",
         [

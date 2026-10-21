@@ -101,6 +101,7 @@ export async function launchFixture(liveAllowed = true, providerConfigured = tru
     budget,
     accounts: { agentIds: [agent] },
   };
+  let closed = false;
   return {
     ...f,
     store,
@@ -115,8 +116,13 @@ export async function launchFixture(liveAllowed = true, providerConfigured = tru
     id,
     agent,
     async close() {
-      await app.close();
-      await f.pool.end();
+      if (closed) return;
+      closed = true;
+      try {
+        await app.close();
+      } finally {
+        await f.pool.end();
+      }
     },
   };
 }

@@ -2,6 +2,22 @@ import { MaintenanceRegistry } from "../platform/maintenance.js";
 import type { Store } from "../store.js";
 export function createMaintenance(store: Store) {
   const registry = new MaintenanceRegistry();
+  for (const [table, column, time] of [
+    ["specialist_deliveries", "detail_cipher", "received_at"],
+    ["specialist_outbox", "payload_cipher", "created_at"],
+    ["specialist_wakes", "condition_cipher", "created_at"],
+  ])
+    registry.register({
+      id: `${table}-private`,
+      run: async (limit, signal) => {
+        if (signal.aborted) return 0;
+        const result = await store.pool.query(
+          `UPDATE ${table} SET ${column}=NULL WHERE ctid IN(SELECT ctid FROM ${table} WHERE ${column} IS NOT NULL AND ${time}<$1 ORDER BY ${time} LIMIT $2)`,
+          [new Date(store.now().getTime() - 30 * 86400000), limit],
+        );
+        return result.rowCount ?? 0;
+      },
+    });
   const tables = [
     ["environment_event_receipts", "received_at"],
     ["environment_event_gaps", "observed_at"],
