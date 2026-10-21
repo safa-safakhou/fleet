@@ -1,5 +1,7 @@
 # E1 negotiation pilot: approval package and preparation plan
 
+> **Latest checkpoint,21 October:** the founder subsequently approved all six continuation tasks and chose a **separate isolated candidate installation**. The [E1 result](../../negotiation-E1-result-20261021.md) and [E2 result](../../negotiation-E2-result-20261021.md) are terminal failures with known usage and encrypted restore proofs; their consumed grants cannot reopen. `@1.1` is now separately adopted/registered. Native timing and version-2 source repairs are being verified before a fresh held-out manifest. No milestone, specialist qualification or production release gate has passed. The older preparation statuses below are historical, not current readiness or permission.
+
 > **Preparation update, 21 October:** P1 is implemented and verified. The actual @1 preflight fails `CONTEXT_LIMIT` before inference. The founder explicitly selected a separate offline packing repair; [the resulting unregistered @1.1 candidate and readiness report](../../negotiation-E1-readiness-20261021.md) preserve that failure. P2 and final P3 launch readiness remain incomplete. The historical proposal below is not an execution grant.
 
 > **For agentic workers:** Future preparation uses `superpowers:executing-plans` inline, without delegation. Checkboxes below are unstarted preparation tasks. This document is a proposal, not an execution grant.

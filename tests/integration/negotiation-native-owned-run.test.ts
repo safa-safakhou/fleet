@@ -4,11 +4,12 @@ import { expect, it } from "vitest";
 import { prepareOwnedNegotiationWorld } from "../../../pact/tests/evaluation/negotiation-owned-run.js";
 import {
   createOwnedNegotiationExecution,
+  type PreparedNegotiationCell,
   prepareOwnedNegotiationCohort,
 } from "../../scripts/lib/negotiation-owned-run.js";
 import { builtinArchitectures } from "../../src/app/builtins.js";
 import { connect, migrate } from "../../src/db.js";
-import { FleetError } from "../../src/domain.js";
+import { FleetError, object } from "../../src/domain.js";
 import { createNegotiationCellGuard } from "../../src/negotiation-guard.js";
 import { negotiationPlan } from "../../src/negotiation-plan.js";
 import { type NegotiationGrant, prepareNegotiationProtocol } from "../../src/negotiation-run.js";
@@ -18,9 +19,12 @@ import { Vault } from "../../src/vault.js";
 it.each(["normal", "critical-review"])(
   "%s native owned hosts keep ordinary clocks and one shared turn lane",
   async (kind) => {
-    if (process.env.FLEET_ARCHITECTURE_TEST !== "1") throw Error("OWNED_FIXTURE_REQUIRED");
-    const nonce = process.env.FLEET_ARCHITECTURE_NONCE!,
-      sources = { fleet: "a".repeat(40), pact: "b".repeat(40) },
+    const nonce = process.env.FLEET_ARCHITECTURE_NONCE,
+      fleetUrl = process.env.FLEET_TEST_DATABASE_URL,
+      pactUrl = process.env.PACT_ACCEPTANCE_DATABASE_URL;
+    if (process.env.FLEET_ARCHITECTURE_TEST !== "1" || !nonce || !fleetUrl || !pactUrl)
+      throw Error("OWNED_FIXTURE_REQUIRED");
+    const sources = { fleet: "a".repeat(40), pact: "b".repeat(40) },
       selection = {
         stage: "E4",
         sources,
@@ -38,19 +42,26 @@ it.each(["normal", "critical-review"])(
       }),
       key = () => randomBytes(32).toString("base64"),
       secrets = () => ({ rulesKey: key(), tokenKey: key(), encryptionKey: key() }),
-      pool = connect(process.env.FLEET_TEST_DATABASE_URL!);
+      pool = connect(fleetUrl);
     await migrate(pool);
     const store = new Store(pool, new Vault(key()), () => new Date(), builtinArchitectures()),
-      prepared = [],
+      prepared: PreparedNegotiationCell[] = [],
       controllers = [new AbortController(), new AbortController()];
     let release!: () => void;
     const blocked = new Promise<void>((r) => {
       release = r;
     });
     const operations: Promise<unknown>[] = [];
+    const ownCommands = async () =>
+      (
+        await pool.query(
+          "SELECT count(*)::int n FROM platform_commands c JOIN turns t ON t.id=c.turn_id WHERE t.cohort_id=ANY($1::uuid[])",
+          [prepared.map((p) => p.binding.cohortId)],
+        )
+      ).rows[0].n;
     try {
       for (const cell of cells) {
-        const fixture = { pactUrl: process.env.PACT_ACCEPTANCE_DATABASE_URL!, nonce },
+        const fixture = { pactUrl, nonce },
           world = await prepareOwnedNegotiationWorld(fixture, cell, { retention: "preserve", secrets: secrets() }),
           control = await prepareOwnedNegotiationWorld(fixture, cell, {
             retention: "preserve",
@@ -91,13 +102,16 @@ it.each(["normal", "critical-review"])(
         active = 0,
         peak = 0,
         firstCompleted = false;
+      const completedDecisions: unknown[] = [];
       const ports = createOwnedNegotiationExecution(protocol, grant, {
         store,
         prepared,
         model: { route: "ollama", model: "authored-fake" },
         evidenceLevel: "fake-provider",
         verifyArtifacts: async () => {},
-        persist: async () => {},
+        persist: async (kind, detail) => {
+          if (kind === "turn-finish") completedDecisions.push(object(detail).decision);
+        },
         reviewResponse: async () => {
           if (kind === "critical-review") throw new FleetError("CRITICAL_CLAIM", true);
         },
@@ -175,7 +189,7 @@ it.each(["normal", "critical-review"])(
             ])
           ).rows,
         ).toEqual([{ status: "reported" }]);
-        expect((await pool.query("SELECT count(*)::int n FROM platform_commands")).rows[0].n).toBe(0);
+        expect(await ownCommands()).toBe(0);
         for (const p of prepared)
           for (const w of [p.world, p.control])
             expect((await w.pool.query("SELECT status FROM world_clocks")).rows[0].status).toBe("paused");
@@ -196,6 +210,7 @@ it.each(["normal", "critical-review"])(
       expect(peak).toBe(1);
       for (const c of controllers) c.abort();
       await Promise.all(operations);
+      expect(object(completedDecisions[0]).gameTimeMs).toBe("0");
       expect(
         (
           await pool.query("SELECT status FROM compute_ledger WHERE cohort_id=ANY($1::uuid[]) ORDER BY created_at", [
@@ -203,7 +218,7 @@ it.each(["normal", "critical-review"])(
           ])
         ).rows,
       ).toEqual([{ status: "reported" }, { status: "reported" }]);
-      expect((await pool.query("SELECT count(*)::int n FROM platform_commands")).rows[0].n).toBe(0);
+      expect(await ownCommands()).toBe(0);
       for (const p of prepared)
         for (const w of [p.world, p.control])
           expect((await w.pool.query("SELECT status FROM world_clocks")).rows[0].status).toBe("paused");

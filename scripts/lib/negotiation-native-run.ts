@@ -98,19 +98,20 @@ export async function runNativeOwnedCell(input: {
       }
       await input.persist("turn-start", { cellId: cell.id, actorId, turnId: active.turn.id, native: true });
       await input.host.run(active);
-      const after = String(
-        (await world.pool.query("SELECT committed_game_time_ms FROM world_clocks")).rows[0].committed_game_time_ms,
-      );
-      lifecycle.push({
-        stage: "later_decision",
+      // A response finishing after a tick may have observed the pre-tick world.
+      // Claim-start GAME time is a conservative lower bound on its observation;
+      // completion time must never manufacture a post-settlement decision.
+      const decision = {
+        stage: "later_decision" as const,
         actorId,
         referenceId: active.turn.id,
-        gameTimeMs: after,
+        gameTimeMs: time,
         wallTime: new Date().toISOString(),
         sourceRefs: [`fleet-turn:${active.turn.id}`],
         scriptedPrefix: false,
-      });
-      await input.persist("turn-finish", { cellId: cell.id, actorId, turnId: active.turn.id, native: true });
+      };
+      lifecycle.push(decision);
+      await input.persist("turn-finish", { cellId: cell.id, actorId, turnId: active.turn.id, native: true, decision });
       active = undefined;
       input.setClaim(undefined);
       const evidence = await readNegotiationEvidence(world),
