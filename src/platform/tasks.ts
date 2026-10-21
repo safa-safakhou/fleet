@@ -1,11 +1,12 @@
-import { randomUUID } from "node:crypto";
+import { createHash, randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { transaction } from "../db.js";
 import { type Data, FleetError } from "../domain.js";
 import type { Claim, Store } from "../store.js";
-import type { EngineProfileRef } from "./architecture.js";
+import type { EngineProfileRef, RecipientSpec } from "./architecture.js";
 import type { Bindings } from "./bindings.js";
 import type { BindingRef, DomainTime, EnvironmentEvent } from "./contracts.js";
+import { ParticipantDelivery } from "./participant-delivery.js";
 export type TaskState = "ready" | "running" | "waiting" | "completed" | "blocked" | "cancelled";
 export interface TaskRecord {
   id: string;
@@ -20,6 +21,8 @@ export interface TaskRecord {
   wake?: Data;
   revision: number;
   code: string | null;
+  participantId?: string;
+  instanceId?: string;
 }
 export interface TaskClaim {
   turn: Claim;
@@ -68,6 +71,76 @@ export class TaskStore {
   async upsertFromEvent(binding: BindingRef, event: EnvironmentEvent, key: string): Promise<TaskRecord> {
     const id = await transaction(this.store.pool, (db) => this.upsertWithin(db, binding, event, key));
     return this.get(id);
+  }
+  /** Pure registered routing is evaluated before any inference; legacy source keys stay unchanged. */
+  async publishWithin(db: PoolClient, binding: BindingRef, event: EnvironmentEvent, key: string): Promise<string[]> {
+    const agentId = await this.bindings.agentFor(binding, db),
+      agent = await this.store.agent(agentId, db);
+    const p = (
+      await db.query(
+        "SELECT profile_id,profile_version,architecture_config FROM cohort_engine_profiles WHERE cohort_id=$1",
+        [agent.cohort_id],
+      )
+    ).rows[0];
+    const manifest =
+        p &&
+        this.store.architectures.list().find((m) => m.ref.id === p.profile_id && m.ref.version === p.profile_version),
+      definition = manifest && this.store.architectures.resolve(manifest.ref);
+    if (!definition?.route) return [await this.upsertWithin(db, binding, event, key)];
+    const instanceId = `${binding.id}:${p.profile_id}@${p.profile_version}`,
+      recipients = definition.route({ instanceId, binding, event }, structuredClone(p.architecture_config));
+    return new ParticipantDelivery(this).ingestWithin(db, binding, event, recipients);
+  }
+  async upsertRecipientWithin(
+    db: PoolClient,
+    binding: BindingRef,
+    event: EnvironmentEvent,
+    recipient: RecipientSpec,
+    instanceId: string,
+  ): Promise<string> {
+    const agentId = await this.bindings.agentFor(binding, db),
+      agent = await this.store.agent(agentId, db);
+    const profile = (await db.query("SELECT * FROM cohort_engine_profiles WHERE cohort_id=$1", [agent.cohort_id]))
+      .rows[0];
+    if (!profile || instanceId !== `${binding.id}:${profile.profile_id}@${profile.profile_version}`)
+      throw new FleetError("SPECIALIST_SCOPE_MISMATCH");
+    const key = `participant:${recipient.participantId}:${createHash("sha256")
+      .update(JSON.stringify([instanceId, recipient.taskKey]))
+      .digest("hex")}`;
+    const old = (
+      await db.query(
+        "SELECT id,deadline FROM platform_tasks WHERE binding_id=$1 AND task_key=$2 AND state IN('ready','running','waiting','blocked') FOR UPDATE",
+        [binding.id, key],
+      )
+    ).rows[0];
+    const deadline = earliestDeadline(old?.deadline ?? undefined, event.deadline),
+      deadlineAt = deadline?.clockId === "utc" ? new Date(deadline.value) : null;
+    if (deadlineAt && !Number.isFinite(deadlineAt.getTime())) throw new FleetError("INVALID_DEADLINE");
+    if (old) {
+      await db.query(
+        "UPDATE platform_tasks SET revision=revision+1,state=CASE WHEN state='waiting' THEN 'ready' ELSE state END,wake=NULL,deadline=$2,deadline_at=$3 WHERE id=$1",
+        [old.id, deadline ?? null, deadlineAt],
+      );
+      return old.id;
+    }
+    const id = randomUUID();
+    await db.query(
+      "INSERT INTO platform_tasks(id,binding_id,cohort_id,profile_id,profile_version,task_key,due_at,deadline,deadline_at,created_at,participant_id,architecture_instance_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$7,$10,$11)",
+      [
+        id,
+        binding.id,
+        agent.cohort_id,
+        profile.profile_id,
+        profile.profile_version,
+        key,
+        this.store.now(),
+        deadline ?? null,
+        deadlineAt,
+        recipient.participantId,
+        instanceId,
+      ],
+    );
+    return id;
   }
   /** Caller owns the transaction: source/task/cursor effects commit together. */
   async upsertWithin(db: PoolClient, binding: BindingRef, event: EnvironmentEvent, key: string): Promise<string> {
@@ -136,12 +209,19 @@ export class TaskStore {
     if (!row) throw new FleetError("TASK_NOT_FOUND");
     const refs = (
       await this.store.pool.query(
-        "SELECT source_ref FROM (SELECT source_ref,sequence FROM platform_task_sources WHERE task_id=$1 ORDER BY sequence DESC LIMIT 100) s ORDER BY sequence",
+        row.participant_id
+          ? "SELECT source_ref FROM (SELECT source_ref,sequence FROM specialist_deliveries WHERE task_id=$1 ORDER BY sequence DESC LIMIT 100) s ORDER BY sequence"
+          : "SELECT source_ref FROM (SELECT source_ref,sequence FROM platform_task_sources WHERE task_id=$1 ORDER BY sequence DESC LIMIT 100) s ORDER BY sequence",
         [id],
       )
     ).rows;
     const sourceCount = (
-      await this.store.pool.query("SELECT count(*)::int n FROM platform_task_sources WHERE task_id=$1", [id])
+      await this.store.pool.query(
+        row.participant_id
+          ? "SELECT count(*)::int n FROM specialist_deliveries WHERE task_id=$1"
+          : "SELECT count(*)::int n FROM platform_task_sources WHERE task_id=$1",
+        [id],
+      )
     ).rows[0].n;
     return {
       id: row.id,
@@ -156,6 +236,7 @@ export class TaskStore {
       ...(row.wake ? { wake: row.wake } : {}),
       revision: Number(row.revision),
       code: row.code,
+      ...(row.participant_id ? { participantId: row.participant_id, instanceId: row.architecture_instance_id } : {}),
     };
   }
   async seedScheduled() {

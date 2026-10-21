@@ -16,6 +16,7 @@ export type ArchitectureDefinition = {
   manifest: ArchitectureManifest;
   validate(config: Data, launch: Data): ValidationIssue[];
   create(services: ScopedServices): ArchitectureRuntime;
+  route?(event: ScopedEvent, configuration: Data): RecipientSpec[];
   prepareModel?(model: ModelSettings): ModelSettings;
 };
 export function immutable<T>(value: T): T {
@@ -54,6 +55,7 @@ export class ArchitectureRegistry {
         manifest,
         validate: definition.validate,
         create: definition.create,
+        ...(definition.route ? { route: definition.route } : {}),
         ...(definition.prepareModel ? { prepareModel: definition.prepareModel } : {}),
       }),
     );

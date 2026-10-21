@@ -101,7 +101,7 @@ export class EventIntake {
             this.environments.resolve(binding.environment).capabilities.events,
           ],
         );
-        await this.tasks.upsertWithin(
+        await this.tasks.publishWithin(
           db,
           binding,
           {
@@ -140,7 +140,7 @@ export class EventIntake {
           );
           if (!receipt.rowCount) continue;
           if (admitted) {
-            await this.tasks.upsertWithin(
+            await this.tasks.publishWithin(
               db,
               binding,
               event,
@@ -223,7 +223,7 @@ export class EventIntake {
         .rows[0];
       if (!state.next_review_at || state.next_review_at > now) return;
       const due = state.next_review_at.toISOString();
-      await this.tasks.upsertWithin(
+      await this.tasks.publishWithin(
         db,
         binding,
         {
