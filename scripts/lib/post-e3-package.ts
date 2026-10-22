@@ -1,5 +1,5 @@
 import { prepareRC1Protocol, rc1Configuration } from "../../src/post-e3-plan.js";
-import { prepareRC2Protocol } from "../../src/post-e3-rc2-plan.js";
+import { prepareRC2Protocol, prepareRC3Protocol, rc3Configuration } from "../../src/post-e3-rc2-plan.js";
 /** Passive package description, never an operational grant or launcher. */
 export function postE3PackageSettings<
   T extends {
@@ -7,11 +7,13 @@ export function postE3PackageSettings<
     provider: { request: unknown; childEnvironment: Record<string, unknown> };
     leases: unknown;
   },
->(base: T, candidate: "RC1" | "RC2" = "RC1") {
+>(base: T, candidate: "RC1" | "RC2" | "RC3" = "RC1") {
   const original = structuredClone(base);
   const stages = (["D", "H", "N"] as const).map((suffix) => {
-    const stage = `${candidate === "RC2" ? "R2" : "R1"}-${suffix}`;
-    const protocol = (candidate === "RC2" ? prepareRC2Protocol : prepareRC1Protocol)({
+    const stage = `${candidate === "RC3" ? "R3" : candidate === "RC2" ? "R2" : "R1"}-${suffix}`;
+    const protocol = (
+      candidate === "RC3" ? prepareRC3Protocol : candidate === "RC2" ? prepareRC2Protocol : prepareRC1Protocol
+    )({
       stage,
       sources: { fleet: "0".repeat(40), pact: "0".repeat(40) },
       modelDigest: "0".repeat(64),
@@ -41,8 +43,13 @@ export function postE3PackageSettings<
   });
   return {
     ...original,
-    schemaVersion: candidate === "RC2" ? "fleet.rc2-settings.v1" : "fleet.rc1-settings.v2",
-    study: candidate === "RC2" ? "negotiation-r2" : "negotiation-r1",
+    schemaVersion:
+      candidate === "RC3"
+        ? "fleet.rc3-settings.v1"
+        : candidate === "RC2"
+          ? "fleet.rc2-settings.v1"
+          : "fleet.rc1-settings.v2",
+    study: candidate === "RC3" ? "negotiation-r3" : candidate === "RC2" ? "negotiation-r2" : "negotiation-r1",
     provider: {
       ...original.provider,
       runtimeRootTemplate: "%LOCALAPPDATA%/PACT/Negotiation/bundles/<artifactUUID>/runtime",
@@ -51,13 +58,17 @@ export function postE3PackageSettings<
         OLLAMA_MODELS: "%LOCALAPPDATA%/PACT/Negotiation/provider-stores/<storeUUID>",
       },
     },
-    architecture: { id: "autonomous-specialists", version: "1", configuration: rc1Configuration },
+    architecture: {
+      id: "autonomous-specialists",
+      version: "1",
+      configuration: candidate === "RC3" ? rc3Configuration : rc1Configuration,
+    },
     scheduling: {
-      periodicMinutes: candidate === "RC2" ? 30 : 15,
+      periodicMinutes: candidate !== "RC1" ? 30 : 15,
       eventTriggeredTurns: false,
       providerSlots: 1,
       callsPerTurn: 3,
-      inputBytes: candidate === "RC2" ? 32000 : 24000,
+      inputBytes: candidate !== "RC1" ? 32000 : 24000,
       outputTokens: 2000,
       reservationPerCall: 40000,
       helpers: 0,
@@ -72,10 +83,13 @@ export function postE3PackageSettings<
       scope:
         "Only newly assigned study treatment kingdoms; solo controls have separate identities. Preserve same account/holder/lease IDs.",
     },
-    candidateSources: {
-      fleet: "7ca67b2891c511a33ad129396ac5aaeed1305fb7",
-      pact: "81007a449aab049bbb0beb9ccef18eca0b6d40aa",
-    },
+    candidateSources:
+      candidate === "RC3"
+        ? { fleet: "0476150fa74e01cb9972b85e4c67119a2221a48d", pact: "737ac87f5618c4c32ca0d0faae44d78ad3c2af29" }
+        : {
+            fleet: "7ca67b2891c511a33ad129396ac5aaeed1305fb7",
+            pact: "81007a449aab049bbb0beb9ccef18eca0b6d40aa",
+          },
     realProviderAuthorized: false,
     productionQualification: false,
     installation: false,

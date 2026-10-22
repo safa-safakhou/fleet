@@ -20,7 +20,7 @@ for (let i = 0; i < args.length; i += 2) {
 }
 if (
   !["--output", "--node", "--ollama", "--models"].every((key) => options[key]) ||
-  (options["--stage"] !== undefined && !["KQ1", "R1", "R2"].includes(options["--stage"])) ||
+  (options["--stage"] !== undefined && !["KQ1", "R1", "R2", "R3"].includes(options["--stage"])) ||
   !isAbsolute(options["--output"])
 )
   throw Error("PACKAGE_ARGUMENTS");
@@ -153,11 +153,11 @@ for (const layer of descriptor.model.artifact.layers)
 const { negotiationBaselineAmendment } = await import("../dist/negotiation/fleet/src/negotiation-plan.js");
 const { pinnedProviderMetadata } = await import("../dist/negotiation/fleet/scripts/lib/negotiation-model-store.js");
 const specialist = options["--stage"] === "KQ1",
-  repair = ["R1", "R2"].includes(options["--stage"]);
+  repair = ["R1", "R2", "R3"].includes(options["--stage"]);
 const settings = repair
   ? (await import("../dist/negotiation/fleet/scripts/lib/post-e3-package.js")).postE3PackageSettings(
       descriptor.proposedSettings,
-      options["--stage"] === "R2" ? "RC2" : "RC1",
+      options["--stage"] === "R3" ? "RC3" : options["--stage"] === "R2" ? "RC2" : "RC1",
     )
   : specialist
     ? (await import("../dist/negotiation/fleet/scripts/lib/specialist-package.js")).specialistPackageSettings(
@@ -171,17 +171,29 @@ await writeFile(
   join(out, "execution-policy.json"),
   JSON.stringify({
     schemaVersion: repair
-      ? options["--stage"] === "R2"
-        ? "fleet.rc2-policy.v1"
-        : "fleet.rc1-policy.v2"
+      ? options["--stage"] === "R3"
+        ? "fleet.rc3-policy.v1"
+        : options["--stage"] === "R2"
+          ? "fleet.rc2-policy.v1"
+          : "fleet.rc1-policy.v2"
       : specialist
         ? "fleet.owned-specialist-policy.v1"
         : "fleet.owned-negotiation-policy.v1",
     ...(repair
       ? {
           study: settings.study,
-          protocolVersion: options["--stage"] === "R2" ? "fleet.rc2-protocol.v1" : "fleet.rc1-protocol.v2",
-          grantVersion: options["--stage"] === "R2" ? "fleet.rc2-grant.v1" : "fleet.rc1-grant.v2",
+          protocolVersion:
+            options["--stage"] === "R3"
+              ? "fleet.rc3-protocol.v1"
+              : options["--stage"] === "R2"
+                ? "fleet.rc2-protocol.v1"
+                : "fleet.rc1-protocol.v2",
+          grantVersion:
+            options["--stage"] === "R3"
+              ? "fleet.rc3-grant.v1"
+              : options["--stage"] === "R2"
+                ? "fleet.rc2-grant.v1"
+                : "fleet.rc1-grant.v2",
           profile: settings.architecture,
           candidateSources: settings.candidateSources,
           realProviderAuthorized: false,

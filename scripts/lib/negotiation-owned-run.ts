@@ -165,7 +165,7 @@ export async function prepareOwnedNegotiationCohort<C extends NegotiationCell | 
   const group = await store.create({
     name: `Negotiation ${cell.id}`.slice(0, 80),
     count: 2,
-    intervalMinutes: "study" in cell && cell.study === "negotiation-r2" ? cell.periodicReviewMinutes : 15,
+    intervalMinutes: "periodicReviewMinutes" in cell ? cell.periodicReviewMinutes : 15,
     seed: cell.worldSeed.slice(0, 40),
     strategies: ["merchant"],
   });

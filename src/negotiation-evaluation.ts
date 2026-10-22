@@ -619,7 +619,7 @@ function assessEvidence<C extends NegotiationCell | PostE3Cell>(
     if (
       stage === "later_decision" &&
       "study" in cell &&
-      cell.study === "negotiation-r2" &&
+      cell.study !== "negotiation-r1" &&
       e &&
       ["C01", "C02"].includes(cell.family)
     ) {
@@ -730,7 +730,12 @@ export function summarizePostE3Negotiation(protocol: PostE3Protocol, assessments
     throw Error("MIXED_CONFIGURATION_OR_EVIDENCE_LEVEL");
   if (!assessments.length)
     return {
-      schemaVersion: protocol.study === "negotiation-r2" ? "fleet.rc2-summary.v1" : "fleet.rc1-summary.v1",
+      schemaVersion:
+        protocol.study === "negotiation-r3"
+          ? "fleet.rc3-summary.v1"
+          : protocol.study === "negotiation-r2"
+            ? "fleet.rc2-summary.v1"
+            : "fleet.rc1-summary.v1",
       stage: protocol.selection.stage,
       assigned: protocol.cells.length,
       passed: 0,
@@ -754,8 +759,13 @@ export function summarizePostE3Negotiation(protocol: PostE3Protocol, assessments
       ),
     };
   return {
-    ...summarizeCells(assessments, protocol.cells, ["R1-H", "R2-H"].includes(protocol.selection.stage), true),
-    schemaVersion: protocol.study === "negotiation-r2" ? "fleet.rc2-summary.v1" : "fleet.rc1-summary.v1",
+    ...summarizeCells(assessments, protocol.cells, ["R1-H", "R2-H", "R3-H"].includes(protocol.selection.stage), true),
+    schemaVersion:
+      protocol.study === "negotiation-r3"
+        ? "fleet.rc3-summary.v1"
+        : protocol.study === "negotiation-r2"
+          ? "fleet.rc2-summary.v1"
+          : "fleet.rc1-summary.v1",
     productionQualified: false as const,
   };
 }

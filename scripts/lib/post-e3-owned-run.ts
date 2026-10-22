@@ -33,7 +33,6 @@ import { EnvironmentRegistry } from "../../src/platform/environment-registry.js"
 import { CommandExecutor } from "../../src/platform/execution.js";
 import { OperationSupervisor, PlatformHost } from "../../src/platform/supervisor.js";
 import { type TaskClaim, TaskStore } from "../../src/platform/tasks.js";
-import { rc1Configuration } from "../../src/post-e3-plan.js";
 import { type PostE3Cell, type PostE3Protocol, validatePostE3Cell } from "../../src/post-e3-rc2-plan.js";
 import { type PostE3Grant, validatePostE3Grant } from "../../src/post-e3-run.js";
 import type { Store } from "../../src/store.js";
@@ -54,7 +53,7 @@ export async function prepareOwnedRC1Cohort(
   const p = await prepareOwnedNegotiationCohort(store, world, control, cell, model, fixtureNonce, evidenceRef, keyRef);
   await store.pool.query(
     "UPDATE cohort_engine_profiles SET architecture_config=$2,non_model_limits=$3 WHERE cohort_id=$1",
-    [p.binding.cohortId, rc1Configuration, cell.workLimits],
+    [p.binding.cohortId, cell.configuration, cell.workLimits],
   );
   const preset = pactSpecialistPresets.find((p) => p.id === "full");
   if (!preset) throw new FleetError("RC1_PRESET_REQUIRED", true);
@@ -92,6 +91,10 @@ export function executeOwnedRC1Protocol(protocol: PostE3Protocol, grant: PostE3G
 }
 export function executeOwnedRC2Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
   if (protocol.study !== "negotiation-r2") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
+  return executeOwnedPostE3Protocol(protocol, grant, d);
+}
+export function executeOwnedRC3Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
+  if (protocol.study !== "negotiation-r3") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
   return executeOwnedPostE3Protocol(protocol, grant, d);
 }
 async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
@@ -155,7 +158,12 @@ async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE
   }
   if (parkFailed) throw new FleetError("RC1_PARK_FAILED", true);
   const result = {
-    schemaVersion: protocol.study === "negotiation-r2" ? "fleet.rc2-batch.v1" : "fleet.rc1-batch.v1",
+    schemaVersion:
+      protocol.study === "negotiation-r3"
+        ? "fleet.rc3-batch.v1"
+        : protocol.study === "negotiation-r2"
+          ? "fleet.rc2-batch.v1"
+          : "fleet.rc1-batch.v1",
     protocolDigest: protocol.digest,
     batchNonce: grant.batchNonce,
     status: stopped ? ("stopped" as const) : ("complete" as const),
@@ -218,7 +226,7 @@ async function runCell(protocol: PostE3Protocol, grant: PostE3Grant, p: Prepared
       designDigest(group.model) !== designDigest(p.model) ||
       group.budget?.deadlineAt !== expectedDeadline ||
       group.interval_minutes !== protocol.native.periodicMinutes ||
-      designDigest(profile?.architecture_config) !== designDigest(rc1Configuration) ||
+      designDigest(profile?.architecture_config) !== designDigest(cell.configuration) ||
       designDigest(profile?.non_model_limits) !== designDigest(cell.workLimits) ||
       profile?.timed_reviews !== (cell.clockMode === "native") ||
       group.budget?.maxActionsPerTurn !== 3 ||
@@ -642,3 +650,5 @@ async function runCell(protocol: PostE3Protocol, grant: PostE3Grant, p: Prepared
 }
 
 export const prepareOwnedRC2Cohort = prepareOwnedRC1Cohort;
+
+export const prepareOwnedRC3Cohort = prepareOwnedRC1Cohort;

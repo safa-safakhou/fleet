@@ -2,7 +2,12 @@ import { z } from "zod";
 import { designDigest } from "./negotiation-plan.js";
 import { NegotiationGrantSchema } from "./negotiation-run.js";
 import type { RC1Protocol } from "./post-e3-plan.js";
-import { canonicalPostE3Protocol, type PostE3Protocol, type RC2Protocol } from "./post-e3-rc2-plan.js";
+import {
+  canonicalPostE3Protocol,
+  type PostE3Protocol,
+  type RC2Protocol,
+  type RC3Protocol,
+} from "./post-e3-rc2-plan.js";
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
 export const RC1GrantSchema = NegotiationGrantSchema.extend({
@@ -13,7 +18,9 @@ export const RC1GrantSchema = NegotiationGrantSchema.extend({
 export type RC1Grant = z.infer<typeof RC1GrantSchema>;
 export const RC2GrantSchema = RC1GrantSchema.extend({ schemaVersion: z.literal("fleet.rc2-grant.v1") }).strict();
 export type RC2Grant = z.infer<typeof RC2GrantSchema>;
-export type PostE3Grant = RC1Grant | RC2Grant;
+export const RC3GrantSchema = RC1GrantSchema.extend({ schemaVersion: z.literal("fleet.rc3-grant.v1") }).strict();
+export type RC3Grant = z.infer<typeof RC3GrantSchema>;
+export type PostE3Grant = RC1Grant | RC2Grant | RC3Grant;
 /** Validation is not an authorization source. Private operator grants and
  * platform policy approval are distinct from this pure scope/time check. */
 export function validateRC1Grant(protocol: RC1Protocol, raw: unknown, now: number, usedNonces: readonly string[] = []) {
@@ -22,6 +29,10 @@ export function validateRC1Grant(protocol: RC1Protocol, raw: unknown, now: numbe
 }
 export function validateRC2Grant(protocol: RC2Protocol, raw: unknown, now: number, usedNonces: readonly string[] = []) {
   if (protocol.study !== "negotiation-r2") return { valid: false, reasons: ["POST_E3_STUDY_MISMATCH"] };
+  return validatePostE3Grant(protocol, raw, now, usedNonces);
+}
+export function validateRC3Grant(protocol: RC3Protocol, raw: unknown, now: number, usedNonces: readonly string[] = []) {
+  if (protocol.study !== "negotiation-r3") return { valid: false, reasons: ["POST_E3_STUDY_MISMATCH"] };
   return validatePostE3Grant(protocol, raw, now, usedNonces);
 }
 export function validatePostE3Grant(
@@ -38,7 +49,13 @@ export function validatePostE3Grant(
     /* Refuse malformed selections. */
   }
   if (!canonical || designDigest(canonical) !== designDigest(protocol)) reasons.push("RC1_PROTOCOL_CHANGED");
-  const parsed = (protocol.study === "negotiation-r2" ? RC2GrantSchema : RC1GrantSchema).safeParse(raw);
+  const parsed = (
+    protocol.study === "negotiation-r3"
+      ? RC3GrantSchema
+      : protocol.study === "negotiation-r2"
+        ? RC2GrantSchema
+        : RC1GrantSchema
+  ).safeParse(raw);
   if (!parsed.success) return { valid: false, reasons: [...reasons, "RC1_EXACT_GRANT_REQUIRED"] };
   const grant = parsed.data;
   if (
