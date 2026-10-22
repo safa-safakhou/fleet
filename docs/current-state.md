@@ -1,6 +1,6 @@
 # Fleet current state
 
-Documentary checkpoint: 21 October 2026. This is source/report state, not a fresh runtime inspection or execution grant.
+Documentary checkpoint: 22 October 2026. This is source/report state, not a fresh runtime inspection or execution grant.
 
 ## Source and milestone
 
@@ -18,7 +18,7 @@ The [last local-world result](reasoning-outcomes-20261020.md) records 12 matched
 
 ## Next work and reading
 
-Current user restriction: **do not start a local Ollama server; use only what is already working**. The [existing-service inspection](existing-model-service-readiness.md) verified the Windows 11434 listener's same-user ownership and pinned executable, all 989 library files and selected Nemotron model bytes. Windows metadata access works; Fleet's WSL loopback connection is refused. No model was loaded and no inference occurred. The empty local PACT web/API and Fleet console remain healthy, with Fleet live execution disabled and zero model providers recorded in its deployment metadata. No service, route, grant or frozen artifact changed; the existing service does not satisfy E4/KQ1's isolated 11436 bindings.
+Current user restriction: **do not start Ollama**. At the [22 October recovery check](existing-model-service-readiness.md), the separately owned empty PACT web/API (3410/3411) and Fleet console (8840) were restored using their original container and volume; all six owned app processes are alive. Both Windows and WSL health checks pass. Fleet remains live-disabled, with zero kingdoms, agents, turns or model allocations. Its Ollama route now uses a WSL loopback bridge at 11435, which invokes Windows curl to reach Windows loopback 11434 without firewall or WSL configuration changes. Synthetic Windows GET/POST and error forwarding passed; the real endpoint reports unavailable because Windows Ollama is stopped. No Ollama server was started, no inference occurred, and the old world/services and frozen E4/KQ1 routes were untouched. The isolated startup denial and real qualification remain unresolved.
 
 RC2 has a separate canonical study/grant boundary; see the local acceptance record for source checks, passive artifact status and limitations. Operational preflight, fresh rosters and encrypted restore proof, exact grants, real held-out qualification and isolated release/rollback/activation acceptance remain unfinished. Existing E4/KQ1 ceilings, failed grants and frozen artifacts remain unchanged; existing service availability does not replace their exact provider/model bindings or create a new study allowance. The recorded startup denial remains unresolved historical evidence and is not an instruction to retry.
 For a new task, read only its applicable guide/spec and affected source/tests. Detailed plans, reports and historical evidence remain at their existing paths.

@@ -1,4 +1,25 @@
-# Existing model service: read-only readiness
+# Existing model service and empty-instance recovery
+
+## Latest recovery: 22 October 2026
+
+The user authorized restarting only the empty local PACT/Fleet instance and fixing Windows/WSL connectivity, while forbidding Ollama startup and preserving the old world. At `2026-10-22T11:11:02Z`, all six empty-instance app processes are alive, PACT web/API on 3410/3411 and Fleet on 8840 return HTTP 200 from Windows and WSL, and Fleet reports `liveEnabled: false`. The original empty database container and volume were reused. There are zero accounts/kingdoms, agents/cohorts, turns, model attempts, compute entries or architecture allocations. A second restart call preserved the same process IDs. The old Fleet on 8820 remains healthy and live-disabled; its and the existing helper's process IDs are unchanged.
+
+The prior running-service observations below are historical. Windows Ollama is currently stopped: no Ollama process and no listener on 11434 or 11436. The empty instance's saved `running` record had survived a WSL restart even though its app processes were gone; fresh process/health checks supersede that record.
+
+Direct WSL access to a synthetic Windows listener on the WSL gateway address timed out, while Windows could reach it. Windows curl invoked from WSL successfully reaches Windows loopback. The [loopback bridge](../scripts/windows-loopback-bridge.py) uses that existing mechanism: Linux `127.0.0.1:11435` forwards `/api/` requests through Windows curl to Windows `127.0.0.1:11434`. It starts no model server, reads no curl configuration, uses no shell command interpolation, logs no bodies/credentials and changes no firewall, WSL network mode, listen address or unrelated service. It binds only Linux loopback. Synthetic Windows GET, byte-preserving UTF-8 POST and upstream 404 forwarding passed; non-API paths are refused. The installed private copy matches the repository source SHA-256 `d903557cdcec41d1283bb686e20e9c6b3a60709471ddb09e2a2d988984eba150`.
+
+Only the empty Fleet console/worker received `OLLAMA_BASE_URL=http://127.0.0.1:11435`; their running environments were verified and live execution remains disabled. The real metadata probe returns HTTP 502 with `WINDOWS_UPSTREAM_UNAVAILABLE`, reflecting the stopped Windows service. Transport is demonstrated with a synthetic Windows endpoint; actual Ollama inference, streaming/cancellation behavior and qualification have not been accepted. No real generation request was sent. E4/KQ1 retain their frozen isolated route and budgets; this bridge cannot substitute for them.
+
+Private instance configuration, credentials, process identities, verification proofs and the guarded restart helper remain with the existing empty instance. From WSL, an idempotent restart of only this instance is:
+
+```sh
+empty_root="$(cat "$HOME/.local/share/pact-fleet-local/latest-empty-path.txt")"
+python3 "$empty_root/restart-empty.py"
+```
+
+The helper reuses the recorded container/volume, checks exact local database targets, validates process IDs/start times, starts the bridge if configured, and leaves Fleet live-disabled. It never starts Ollama. It is an explicit local recovery command, not boot automation or permission to resume historical work. Its private bridge copy is an installed operational artifact; the repository script is its source. Restored application availability does not resolve model availability or the qualification/release gates.
+
+## Historical inspection: 21 October 2026
 
 The user authorized inspection of the already running service and forbids starting a local Ollama server or changing unrelated services. This check found a compatible existing Windows service and verified its selected runtime/model files. It did not establish an inference-qualified route or complete a qualification stage.
 
