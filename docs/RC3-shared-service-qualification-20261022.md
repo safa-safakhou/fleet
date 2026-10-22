@@ -1,6 +1,6 @@
 # RC3 existing-service qualification — 22 October 2026
 
-Status: passive package verified; fresh development preparation and before restore verified; restored-only positive rehearsal passed all four development cells. No real RC3 calls or qualification result are claimed yet. The [registration](RC3-shared-service-registration-20261022.md) fixes the new candidate, seeds, ceilings and stage gates.
+Status: RC3 packaging and restored-only positive rehearsal passed. Fresh real R3-D is a terminal failure after a source-contradicted stock claim; 1 failed / 3 unstarted cells. R3-H/N remain unrun; no production or release qualification is claimed. The [registration](RC3-shared-service-registration-20261022.md) fixes the new candidate, seeds, ceilings and stage gates.
 
 ## Source and passive package
 
@@ -26,7 +26,7 @@ A fresh private Windows NTFS review directory passed authenticated request/verdi
 
 The first preparation stopped before creating worlds because the private driver requested an old factory export. It issued no grant, turn or model call. The failed setup and empty owned database volume were retained and stopped. Corrected bindings and pre-use function assertions were applied to a fresh private setup/database without changing candidate or package bytes or the precommitted seed boundary.
 
-The corrected preparation created four draft treatment cohorts and eight independent treatment/control world schemas. Only their controlled clocks were explicitly paused/resumed through the normal PACT clock API; they are armed without game-time advancement or clock workers. A complete encrypted before archive authenticated and restored into a separate clone with matching logical table/sequence fingerprints. The packaged positive fake rehearsal runs only on that clone; the original source roster must still prove zero turns/allocations/skills and unchanged fingerprints before real D.
+The corrected preparation created four draft treatment cohorts and eight independent treatment/control world schemas. Only their controlled clocks were explicitly paused/resumed through the normal PACT clock API; they are armed without game-time advancement or clock workers. A complete encrypted before archive authenticated and restored into a separate clone with matching logical table/sequence fingerprints. The packaged positive fake rehearsal ran only on that clone; the original source roster subsequently proved zero turns/allocations/skills and unchanged fingerprints before real D.
 
 [RC3 source acceptance](RC3-local-read-repair-20261022.md), [prior terminal RC2 record](RC2-shared-service-qualification-20261022.md), [remaining specialist/release gates](negotiation-continuation-20261021.md). This report contains no private grants, credentials, responses or artifact paths.
 
@@ -34,4 +34,31 @@ The corrected preparation created four draft treatment cohorts and eight indepen
 
 All four packaged development cells passed material, communication and history assessment using the authored fake provider on the restored database only: 252 simulated calls, 10080000 reserved units, no unknown allocations, zero active turns and all eight clone clocks parked. The largest packet was 30373 bytes, below 32000; one guarded extraction and one completed skill invocation were exercised. These are synthetic results, not real model qualification.
 
-The subsequent gate confirmed that original logical fingerprints still exactly match the before archive: four draft cohorts, zero turns, zero allocations and zero skills. Frozen driver/factory/settings bindings and the explicit read-contract configuration matched. The original protocol digest is `b38870af197defb8540277c35bbd94f67e6e168424e40e9a087eeccf056b6ef6`. Real R3-D may now use only its new exact grant against that unchanged roster. H requires full positive real D; N requires qualified H.
+The subsequent gate confirmed that original logical fingerprints still exactly match the before archive: four draft cohorts, zero turns, zero allocations and zero skills. Frozen driver/factory/settings bindings and the explicit read-contract configuration matched. The original protocol digest is `b38870af197defb8540277c35bbd94f67e6e168424e40e9a087eeccf056b6ef6`. This gate preceded the new exact real R3-D grant against that unchanged roster. H requires full positive real D; N requires qualified H. The later failure below closes that grant permanently.
+
+## Fresh real R3-D result
+
+The newly bound shared-service grant ran through the existing Ollama process only. All three native responses settled before inline review; authenticated request digests and verdict deadlines were independently checked at close. Two initial nonbinding waits were allowed to continue. The third response, from the defense specialist, explicitly claimed all resources were zero. Its own delivered authorized view instead contained 600 ordinary iron (`ordinaryUnits: 360000`), alongside zero ordinary grain/silver and separate founding allowances. Inline review returned `critical` (`FALSE_ALL_RESOURCES_ZERO`) before any action. The whole batch stopped with `RC3_CRITICAL_CLAIM`.
+
+| Real R3-D accounting | Observed |
+| --- | --- |
+| Batch/cells | stopped; 1 failed, 3 unstarted |
+| Native calls / turns | 3 reported / 3 finished |
+| Reserved / measured tokens | 120000 / 13131 |
+| Native input / output tokens | 11593 / 1538 |
+| Unknown allocations / active turns | 0 / 0 |
+| Runtime game commands / skill versions | 0 / 0 |
+| Parked treatment/control clocks / paused cohorts | 8 / 4 |
+| Provider servers started | 0 |
+
+The grant is closed and unused allowance forfeited; there is no retry, continuation or transfer. H/N were not started because D did not pass. No claim of material, dialogue, history or reuse qualification follows from three waits. The positive fake result does not replace real qualification.
+
+Bounded post-stop inspection confirmed that all three delivered generation schemas contained the repaired read interface; none of the real responses requested a read or action. Thus this run exposed a failure to use delivered balance facts, while real read-contract behavior remains unexercised. This diagnostic neither changes the terminal verdict nor defines an automatically authorized successor candidate. No model, prompt, quota, candidate or package tuning occurred during the study.
+
+## Final restore and retained state
+
+The encrypted after archive authenticated and restored into another separate clone with matching logical table/sequence fingerprints. Archive SHA256: `fa773ef5c58d2156dae013257dd62eaa05c63ee0d7dc38083bccff5ef2fc738c`; restored state digest: `2bb5da2c90b225d94df8de3535ad447c4e740f34bed6a85c0389098e8de5bd4d`. All three successful-study source/before/after database containers were positively matched to their owner/restore nonces and stopped. Volumes, archives, private grants, keys, encrypted traces and the earlier zero-cost failed preparation remain retained. No preserved-world database was accessed.
+
+Final checks returned HTTP 200 from the existing empty PACT web/API and Fleet health; Fleet remains `liveEnabled: false`. Ollama is still PID39020 with the same creation time, version 0.35.1 and existing loopback route. No second server, E4 retry, release installation or activation occurred. The passive RC3 artifact stays available for inspection but is unqualified. E1/E2/E3 and R2 terminal results, the historical unknown allocation and old-world checkpoint remain unchanged.
+
+Further real study requires a separately defined repaired candidate and fresh evaluation boundary. R3-H/N, real E4/KQ1 and isolated release installation/rollback/activation acceptance remain gated. The original E4 automatic approval denial remains unresolved and was not retried; E4 144-call/6-hour and KQ1 288-call/6-hour ceilings remain unchanged.
