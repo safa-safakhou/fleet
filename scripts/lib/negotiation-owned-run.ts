@@ -1,17 +1,12 @@
 import { readNegotiationEvidence } from "../../../pact/tests/evaluation/negotiation-outcome.js";
 import type { OwnedNegotiationWorld } from "../../../pact/tests/evaluation/negotiation-owned-run.js";
+import { nativeEvaluationRejection } from "../../../pact/tests/evaluation/negotiation-world.js";
 import { builtinArchitectures } from "../../src/app/builtins.js";
 import { hostScopeFactory } from "../../src/app/host-services.js";
 import { NegotiationNonceStore, readNativeNegotiationAccounting } from "../../src/app/negotiation-ledger.js";
-import {
-  type Data,
-  FleetError,
-  type GamePort,
-  type ModelPort,
-  type ModelSettings,
-  type Tool,
-} from "../../src/domain.js";
+import { type Data, FleetError, type GamePort, type ModelPort, type ModelSettings } from "../../src/domain.js";
 import { createPactEnvironment, PactBindings } from "../../src/environments/pact.js";
+import { RemoteRejection } from "../../src/http.js";
 import {
   assessNegotiation,
   type NegotiationClaimReviews,
@@ -36,46 +31,16 @@ import type { PostE3Cell } from "../../src/post-e3-rc2-plan.js";
 import type { Store } from "../../src/store.js";
 import { runNativeOwnedCell } from "./negotiation-native-run.js";
 
-const readTool = (name: string, inputSchema: Data): Tool => ({
-  name,
-  inputSchema,
-  annotations: { readOnlyHint: true },
-});
-const tools: Tool[] = [
-  readTool("pact_agent_guide_v1", { type: "object" }),
-  readTool("pact_world_read_v1", {
-    type: "object",
-    properties: { forecastMinutes: { type: "integer", minimum: 1, maximum: 60 } },
-  }),
-  readTool("pact_council_thread_v1", {
-    type: "object",
-    required: ["kingdomId"],
-    properties: { kingdomId: { type: "string" } },
-  }),
-  readTool("pact_kingdom_discover_v2", {
-    type: "object",
-    properties: { rotation: { type: "integer" }, limit: { type: "integer" } },
-  }),
-  readTool("pact_observation_read_v2", {
-    type: "object",
-    properties: {
-      section: { enum: ["social_attention", "agreements", "requests"] },
-      limit: { type: "integer" },
-      recordId: { type: "string" },
-    },
-  }),
-  readTool("pact_agent_outlook_v1", { type: "object" }),
-  {
-    name: "pact_game_action_v2",
-    inputSchema: {
-      type: "object",
-      required: ["commandId", "action"],
-      properties: { commandId: { type: "string" }, action: { type: "object" } },
-      additionalProperties: false,
-    },
-    annotations: { readOnlyHint: false },
-  },
-];
+/** Mirror native transport failures without trusting arbitrary code properties. */
+export async function nativePortCall<T>(operation: () => Promise<T>): Promise<T> {
+  try {
+    return await operation();
+  } catch (error) {
+    const denied = nativeEvaluationRejection(error);
+    if (denied) throw new RemoteRejection(denied.code, denied.status, denied.detail);
+    throw error;
+  }
+}
 export type PreparedNegotiationCell<C extends NegotiationCell | PostE3Cell = NegotiationCell> = {
   cell: C;
   binding: NegotiationBinding;
@@ -120,24 +85,17 @@ export function facade(
   const a = world.actor(p.kingdomId);
   return {
     profile: async () => ({ accountId: p.accountId }),
-    tools: async () => tools,
+    tools: () => a.tools(),
     open: async () => {},
     close: async () => {},
     receipt: async (id) => ((await a.receipt(id)) as unknown as Data) ?? { commandId: id, code: "RECEIPT_NOT_FOUND" },
     submit: async (id, action) => {
       await guard();
-      return (await a.dispatch(action as Parameters<typeof a.dispatch>[0], id)) as unknown as Data;
+      return (await nativePortCall(() =>
+        a.dispatch(action as Parameters<typeof a.dispatch>[0], id),
+      )) as unknown as Data;
     },
-    read: async (tool, args) => {
-      if (tool === "pact_agent_guide_v1") return await a.guide(args.topic as Parameters<typeof a.guide>[0]);
-      if (tool === "pact_world_read_v1") return (await a.readSelf()) as unknown as Data;
-      if (tool === "pact_kingdom_discover_v2") return (await a.discover(args)) as unknown as Data;
-      if (tool === "pact_observation_read_v2")
-        return (await a.readSection(args as unknown as Parameters<typeof a.readSection>[0])) as unknown as Data;
-      if (tool === "pact_council_thread_v1") return (await a.thread(String(args.kingdomId))) as unknown as Data;
-      if (tool === "pact_agent_outlook_v1") return (await a.outlook()) as unknown as Data;
-      throw new FleetError("UNSUPPORTED_SCOPED_READ", true);
-    },
+    read: (tool, args) => nativePortCall(() => a.readTool(tool, args)),
   };
 }
 export async function prepareOwnedNegotiationCohort<C extends NegotiationCell | PostE3Cell>(

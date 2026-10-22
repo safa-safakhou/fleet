@@ -312,6 +312,7 @@ export function createPactEnvironment(ports: {
             }
             return receipt(intent.commandId, await game.submit(intent.commandId, intent.payload));
           } catch (error) {
+            if (error instanceof FleetError && error.notDispatched) throw error;
             const denied = pactAdapter.rejection(error, false);
             return {
               commandId: intent.commandId,
