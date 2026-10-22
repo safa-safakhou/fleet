@@ -246,13 +246,15 @@ it("prepares the exact RC4 actor configuration and reopens only its own checkpoi
     });
     try {
       expect(reopened.checkpoint()).toEqual(checkpoint);
-      await expect(
-        prepareOwnedRC4World({ pactUrl, nonce }, protocol, protocol.cells[0], {
-          secrets,
-          retention: "preserve",
-          checkpoint: { ...checkpoint, schemaVersion: "pact.rc2-owned-world.v1" },
-        }),
-      ).rejects.toThrow("OWNED_CHECKPOINT_MISMATCH");
+      for (const schemaVersion of ["pact.rc1-owned-world.v1", "pact.rc2-owned-world.v1", "pact.rc3-owned-world.v1"]) {
+        await expect(
+          prepareOwnedRC4World({ pactUrl, nonce }, protocol, protocol.cells[0], {
+            secrets,
+            retention: "preserve",
+            checkpoint: { ...checkpoint, schemaVersion },
+          }),
+        ).rejects.toThrow("OWNED_CHECKPOINT_MISMATCH");
+      }
       expect(() => executeOwnedRC2Protocol(protocol, {} as never, {} as never)).toThrow("POST_E3_STUDY_MISMATCH");
     } finally {
       await reopened.disconnect();
