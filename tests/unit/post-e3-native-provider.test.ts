@@ -54,3 +54,10 @@ it("pins installed Gemma separately and rejects prior model or digest drift", ()
   expect(() => native.validateNativeProviderIdentity(gemma, { ...gemma, model: "qwen3.5:9b" })).toThrow();
   expect(() => native.validateNativeProviderIdentity(gemma, { ...gemma, modelDigest: "d".repeat(64) })).toThrow();
 });
+
+it("pins the separately selected installed Qwen14B identity without allowing model/digest drift", () => {
+  const qwen = { ...pinned, model: "qwen3:14b", modelDigest: "e".repeat(64) };
+  expect(() => native.validateNativeProviderIdentity(qwen, structuredClone(qwen))).not.toThrow();
+  expect(() => native.validateNativeProviderIdentity(qwen, { ...qwen, model: "gemma4:12b" })).toThrow();
+  expect(() => native.validateNativeProviderIdentity(qwen, { ...qwen, modelDigest: "f".repeat(64) })).toThrow();
+});

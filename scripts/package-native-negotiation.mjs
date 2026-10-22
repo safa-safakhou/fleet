@@ -37,10 +37,10 @@ if (
   !(await readFile(options["--node"])).subarray(0, 4).equals(Buffer.from([127, 69, 76, 70]))
 )
   throw Error("NATIVE_NODE_24_REQUIRED");
-const descriptor = JSON.parse(await readFile(join(fleet, "docs/negotiation-RC16-model-20261022.json"), "utf8"));
-const manifestRel = "manifests/registry.ollama.ai/library/gemma4/12b";
+const descriptor = JSON.parse(await readFile(join(fleet, "docs/negotiation-RC17-model-20261022.json"), "utf8"));
+const manifestRel = "manifests/registry.ollama.ai/library/qwen3/14b";
 if (
-  descriptor.model.model !== "gemma4:12b" ||
+  descriptor.model.model !== "qwen3:14b" ||
   descriptor.model.thinking !== false ||
   descriptor.model.artifact.manifestRelativePath !== manifestRel
 )
@@ -65,8 +65,8 @@ for (const name of await readdir(join(fleet, "dist/negotiation")))
 for (const name of ["migrations", "vendor"]) await cp(join(fleet, name), join(out, "fleet", name), { recursive: true });
 await mkdir(join(out, "fleet/docs"), { recursive: true });
 await cp(
-  join(fleet, "docs/negotiation-RC16-model-20261022.json"),
-  join(out, "fleet/docs/negotiation-RC16-model-20261022.json"),
+  join(fleet, "docs/negotiation-RC17-model-20261022.json"),
+  join(out, "fleet/docs/negotiation-RC17-model-20261022.json"),
 );
 await writeFile(join(out, "package.json"), '{"type":"module"}\n', { flag: "wx" });
 await writeFile(join(out, "fleet/package.json"), '{"type":"module"}\n', { flag: "wx" });
@@ -137,10 +137,10 @@ for (const name of await readdir(join(out, "node_modules/@pact")))
   await cp(join(out, "node_modules/@pact", name), join(out, "pact/packages", name), { recursive: true });
 await mkdir(join(out, "controller"));
 await cp(options["--node"], join(out, "controller/node"));
-const { rc16Configuration } = await import("../dist/negotiation/fleet/src/post-e3-rc2-plan.js");
+const { rc17Configuration } = await import("../dist/negotiation/fleet/src/post-e3-rc2-plan.js");
 const settings = {
-  schemaVersion: "fleet.rc16-native-settings.v1",
-  study: "negotiation-r16",
+  schemaVersion: "fleet.rc17-native-settings.v1",
+  study: "negotiation-r17",
   sources: sourcePins,
   actorSources: sourcePins,
   controller: {
@@ -148,12 +148,12 @@ const settings = {
     nodeVersion: execFileSync(options["--node"], ["--version"], { encoding: "utf8" }).trim(),
     nodeSha256: await sha(options["--node"]),
   },
-  architecture: { id: "autonomous-specialists", version: "1", configuration: rc16Configuration },
+  architecture: { id: "autonomous-specialists", version: "1", configuration: rc17Configuration },
   provider: {
     existingServiceOnly: true,
     route: "http://127.0.0.1:11434",
     version: "0.35.1",
-    model: "gemma4:12b",
+    model: "qwen3:14b",
     isolatedModelStoreCertified: false,
     globalGpuExclusive: false,
     request: { think: false, stream: false, keep_alive: 0, options: { num_ctx: 32768, num_predict: 2000 } },
@@ -174,8 +174,8 @@ const settings = {
   activation: false,
 };
 const policy = {
-  schemaVersion: "fleet.rc16-native-policy.v1",
-  study: "negotiation-r16",
+  schemaVersion: "fleet.rc17-native-policy.v1",
+  study: "negotiation-r17",
   sources: sourcePins,
   model: descriptor.model,
   scope: "new_owned_synthetic_worlds",
