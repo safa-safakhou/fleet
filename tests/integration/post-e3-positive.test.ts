@@ -10,6 +10,7 @@ import {
   executeOwnedRC10Protocol,
   executeOwnedRC11Protocol,
   executeOwnedRC12Protocol,
+  executeOwnedRC13Protocol,
 } from "../../scripts/lib/post-e3-owned-run.js";
 import { SpecialistRepository } from "../../src/app/participant-services.js";
 import {
@@ -23,6 +24,7 @@ import {
   ownedRC10Fixture,
   ownedRC11Fixture,
   ownedRC12Fixture,
+  ownedRC13Fixture,
 } from "../fixtures/post-e3.js";
 import { positiveSpecialistProvider } from "../fixtures/post-e3-provider.js";
 
@@ -42,6 +44,7 @@ it.each([
   ["RC10 scoped clock contract", ownedRC10Fixture, executeOwnedRC10Protocol],
   ["RC11 read/final contract", ownedRC11Fixture, executeOwnedRC11Protocol],
   ["RC12 named rate facts", ownedRC12Fixture, executeOwnedRC12Protocol],
+  ["RC13 installed Gemma4 model", ownedRC13Fixture, executeOwnedRC13Protocol],
 ] as const)(
   "%s completes both positive families and role reversals through eight native participants, actual delivery and later decisions",
   async (_name, create, execute) => {
@@ -55,7 +58,11 @@ it.each([
       _name.startsWith("RC6") ||
       _name.startsWith("RC7") ||
       _name.startsWith("RC8") ||
-      _name.startsWith("RC9")
+      _name.startsWith("RC9") ||
+      _name.startsWith("RC10") ||
+      _name.startsWith("RC11") ||
+      _name.startsWith("RC12") ||
+      _name.startsWith("RC13")
     ) {
       const originalDecide = fake.provider.decide;
       fake.provider.decide = async (request) => {
@@ -64,13 +71,24 @@ it.each([
           _name.startsWith("RC9") ||
           _name.startsWith("RC10") ||
           _name.startsWith("RC11") ||
-          _name.startsWith("RC12")
+          _name.startsWith("RC12") ||
+          _name.startsWith("RC13")
         )
-          expect(request.model).toEqual({ route: "ollama", model: "qwen3.5:9b", thinking: false });
+          expect(request.model).toEqual({
+            route: "ollama",
+            model: _name.startsWith("RC13") ? "gemma4:12b" : "qwen3.5:9b",
+            thinking: false,
+          });
         const packet = JSON.parse(request.messages[1].content);
-        if (_name.startsWith("RC11") || _name.startsWith("RC12"))
+        if (_name.startsWith("RC11") || _name.startsWith("RC12") || _name.startsWith("RC13"))
           expect(packet.readInterface.meaning).toContain("provenance");
-        if (_name.startsWith("RC9") || _name.startsWith("RC10") || _name.startsWith("RC11") || _name.startsWith("RC12"))
+        if (
+          _name.startsWith("RC9") ||
+          _name.startsWith("RC10") ||
+          _name.startsWith("RC11") ||
+          _name.startsWith("RC12") ||
+          _name.startsWith("RC13")
+        )
           expect(packet.observationSemantics).toContain(
             namedMeanings ? "actual external delivery" : "stock, founding allowance, own production",
           );
@@ -80,7 +98,10 @@ it.each([
           _name.startsWith("RC7") ||
           _name.startsWith("RC8") ||
           _name.startsWith("RC9") ||
-          _name.startsWith("RC10")
+          _name.startsWith("RC10") ||
+          _name.startsWith("RC11") ||
+          _name.startsWith("RC12") ||
+          _name.startsWith("RC13")
         ) {
           expect(packet.participantInterface).toBeDefined();
           if (
@@ -89,7 +110,8 @@ it.each([
               _name.startsWith("RC9") ||
               _name.startsWith("RC10") ||
               _name.startsWith("RC11") ||
-              _name.startsWith("RC12")) &&
+              _name.startsWith("RC12") ||
+              _name.startsWith("RC13")) &&
             packet.participantInterface.mode === "scoped_update"
           )
             expect(packet.participantInterface.temporalEvidence).toContain("never their promises");

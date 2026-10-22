@@ -1,0 +1,13 @@
+# RC13 installed Gemma model qualification
+
+The current user explicitly requests continuous inline repair/new qualification until all registered scenarios pass. RC12 is terminal and cannot resume; game execution stays disabled, E4/KQ1 blocked/excluded, prior worlds/unknowns/private evidence retained.
+
+## Diagnosis and model boundary
+
+RC12 supplied correct named local production facts, but the9b model compared them with the external receipt minimum despite explicit domain meaning. More label-only changes have not established behavioral acceptance. RC13 changes the frozen model to already installed gemma4:12b Q4_K_M/11.9B with explicit thinking=false. It retains RC12 actor contracts/configuration, named facts and every ceiling. This is a model capability hypothesis, not a claim of proven superiority. No extra prompt tailoring or synthetic semantic autopass. Local read-only metadata confirms completion/tools/thinking support; exact manifest/config/model/projector/draft/template/license/params and runtime are independently hashed. Installed params include draft_num_predict3,temperature1,top_k64,top_p0.95; no wire sampling overrides. [Official Ollama catalog](https://ollama.com/library/gemma4) describes supported capabilities; qualification, not that documentation, decides acceptance. No download, parallel provider, service management or E4 retry.
+
+## Required fresh gates
+
+Independent R13-D4/H35/N2 identities/seeds/grants/checkpoints/results, with unchanged32000 input bytes,2000 output,32768 context,40000 reservation/call,3calls/turn,1slot,0helpers/fallback,keepalive0,30GAME-minute review and D288calls/12h,H1230/51h15m,N144/6h limits. Bound model guards reject prior9b/missing/true thinking before effects, preserving older studies. Commit verified mirrored registration and new profile. Freeze immutable package/operator/native pins; prepare only new synthetic DB/worlds; encrypted before/after backup authenticated through separate restores, restored-only schema/profile/factual rehearsal and untouched-original zero-use proof. Record each settled real response verdict promptly, before diagnosis. D pass before H; H pass before N. Critical/unresolved terminates its entire batch; close/park/archive/restore/retain and concrete tested repair/new boundary required for successor. No production installation/activation/deployment/push or old world/settings access.
+
+Fresh seed commitment before responses: `6c60ec38ddbf008d414548f5dd13d6574896014cfe820f3ab21dd7eadaa18f76`; nonce private. Work inline with no delegation. All real scenarios must pass honestly; fake acceptance alone is insufficient.
