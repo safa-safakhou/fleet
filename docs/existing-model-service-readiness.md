@@ -1,10 +1,29 @@
 # Existing model service and empty-instance recovery
 
+## Real response and isolated accounting check: 22 October 2026
+
+The subsequent user request authorized a real Fleet response using the already running Ollama service, preservation of the old world, no additional server and no retry of blocked E4. The service was available again at the 11:27 UTC metadata check. At `2026-10-22T11:34:40.820Z`, a separate, terminal local connection probe completed with these results:
+
+| Check | Result |
+| --- | --- |
+| Actual path | Fleet `ModelAdmission` → `HttpModel` → WSL loopback bridge → existing Windows Ollama 0.35.1 |
+| Model | `nemotron-3-nano:4b`; expected manifest digest and signed executable matched before dispatch |
+| Scope | Fresh owned PostgreSQL 17 fixture and synthetic Fleet binding, no PACT accounts or game access; one call, no retries/helpers, 40000-token reservation and an absolute 15-minute cutoff |
+| Response | Valid schema-constrained JSON: `{"kind":"wait","summary":"Local Fleet model connection works."}`; native provider completion reason `stop` |
+| Accounting | Exactly one `reported` native ledger row: 63 input / 83 output / 146 measured tokens; 40000 reserved tokens; zero unknown allocations |
+| Final state | Zero active turns or game commands; probe cohort terminal/stopped; no scheduler or app execution switch enabled |
+| Archive and restore | AES-256-GCM authenticated before/after archives, each restored to a separate owned clone; complete logical table/sequence fingerprints match; after-clone ledger matches exactly; modified authentication tags rejected |
+| Preservation | Same Windows Ollama PID/creation time before/after; zero provider starts; original probe and two restore containers stopped and retained; old world and frozen studies not accessed |
+
+Source pins for this local probe were Fleet `13b20552757ab4ae2a83975a5992ccaf461f405f` and PACT `931f27d2b01bf569cd3ce1f5bacb7de093c5036e`; its own scope, fixture nonce, UTC cutoff, vault key, responses, ledger and archive/restore proofs are private. No E-stage, KQ1 or RC2 study grant/allowance was consumed or reopened. The ordinary adapter settings remained thinking enabled, 32768-token provider context, 2000 output tokens, non-streaming and `keep_alive: 0`. As disclosed before dispatch, the selected model unloaded afterward while the server stayed running.
+
+This demonstrates real structured response delivery through Fleet's admission and accounting components. It does not exercise the Fleet UI scheduler, PACT gameplay, candidate authority behavior, held-out negotiation, full packet capacity, streaming/cancellation or release installation. The backup scope is this synthetic Fleet probe plus an empty ownership-marker database; it is not a restored PACT world, RC2 roster or packaged Windows rehearsal. The empty PACT/Fleet applications remain healthy and live-disabled with zero game accounts/agents/model allocations of their own. Repaired-candidate qualification, frozen E4/KQ1 and release/activation remain pending; the old policy rejection is unchanged.
+
 ## Latest recovery: 22 October 2026
 
 The user authorized restarting only the empty local PACT/Fleet instance and fixing Windows/WSL connectivity, while forbidding Ollama startup and preserving the old world. At `2026-10-22T11:11:02Z`, all six empty-instance app processes are alive, PACT web/API on 3410/3411 and Fleet on 8840 return HTTP 200 from Windows and WSL, and Fleet reports `liveEnabled: false`. The original empty database container and volume were reused. There are zero accounts/kingdoms, agents/cohorts, turns, model attempts, compute entries or architecture allocations. A second restart call preserved the same process IDs. The old Fleet on 8820 remains healthy and live-disabled; its and the existing helper's process IDs are unchanged.
 
-The prior running-service observations below are historical. Windows Ollama is currently stopped: no Ollama process and no listener on 11434 or 11436. The empty instance's saved `running` record had survived a WSL restart even though its app processes were gone; fresh process/health checks supersede that record.
+The prior running-service observations below are historical. At that recovery checkpoint, Windows Ollama was stopped: no Ollama process and no listener on 11434 or 11436. The empty instance's saved `running` record had survived a WSL restart even though its app processes were gone; fresh process/health checks supersede that record.
 
 Direct WSL access to a synthetic Windows listener on the WSL gateway address timed out, while Windows could reach it. Windows curl invoked from WSL successfully reaches Windows loopback. The [loopback bridge](../scripts/windows-loopback-bridge.py) uses that existing mechanism: Linux `127.0.0.1:11435` forwards `/api/` requests through Windows curl to Windows `127.0.0.1:11434`. It starts no model server, reads no curl configuration, uses no shell command interpolation, logs no bodies/credentials and changes no firewall, WSL network mode, listen address or unrelated service. It binds only Linux loopback. Synthetic Windows GET, byte-preserving UTF-8 POST and upstream 404 forwarding passed; non-API paths are refused. The installed private copy matches the repository source SHA-256 `d903557cdcec41d1283bb686e20e9c6b3a60709471ddb09e2a2d988984eba150`.
 
