@@ -20,7 +20,11 @@ export const manifest: ArchitectureManifest = {
     properties: {
       preset: { type: "string", title: "Role preset", enum: ["resources-diplomacy", "full"] },
       learning: { type: "boolean", title: "Learn from observed episodes" },
-      decisionContract: { type: "string", title: "Read and final-decision envelope", enum: ["read-final.v1"] },
+      decisionContract: {
+        type: "string",
+        title: "Read and final-decision envelope",
+        enum: ["read-final.v1", "read-final.v2"],
+      },
       clockContract: { type: "string", title: "Scoped wake clocks", enum: ["scoped.v1", "scoped.v2"] },
       responseContract: { type: "string", enum: ["visible.v1"] },
       observationPolicyVersion: { type: "string", enum: ["2"] },

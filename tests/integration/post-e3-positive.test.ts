@@ -17,6 +17,7 @@ import {
   executeOwnedRC17Protocol,
   executeOwnedRC18Protocol,
   executeOwnedRC19Protocol,
+  executeOwnedRC20Protocol,
 } from "../../scripts/lib/post-e3-owned-run.js";
 import { SpecialistRepository } from "../../src/app/participant-services.js";
 import {
@@ -37,6 +38,7 @@ import {
   ownedRC17Fixture,
   ownedRC18Fixture,
   ownedRC19Fixture,
+  ownedRC20Fixture,
 } from "../fixtures/post-e3.js";
 import { positiveSpecialistProvider } from "../fixtures/post-e3-provider.js";
 
@@ -63,6 +65,7 @@ it.each([
   ["RC17 installed Qwen14B model", ownedRC17Fixture, executeOwnedRC17Protocol],
   ["RC18 direction-scoped objectives", ownedRC18Fixture, executeOwnedRC18Protocol],
   ["RC19 scoped goal parent references", ownedRC19Fixture, executeOwnedRC19Protocol],
+  ["RC20 explicit pre-dispatch state semantics", ownedRC20Fixture, executeOwnedRC20Protocol],
 ] as const)(
   "%s completes both positive families and role reversals through eight native participants, actual delivery and later decisions",
   async (_name, create, execute) => {
@@ -86,7 +89,8 @@ it.each([
       _name.startsWith("RC16") ||
       _name.startsWith("RC17") ||
       _name.startsWith("RC18") ||
-      _name.startsWith("RC19")
+      _name.startsWith("RC19") ||
+      _name.startsWith("RC20")
     ) {
       const originalDecide = fake.provider.decide;
       fake.provider.decide = async (request) => {
@@ -102,12 +106,16 @@ it.each([
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
           _name.startsWith("RC18") ||
-          _name.startsWith("RC19")
+          _name.startsWith("RC19") ||
+          _name.startsWith("RC20")
         )
           expect(request.model).toEqual({
             route: "ollama",
             model:
-              _name.startsWith("RC17") || _name.startsWith("RC18") || _name.startsWith("RC19")
+              _name.startsWith("RC17") ||
+              _name.startsWith("RC18") ||
+              _name.startsWith("RC19") ||
+              _name.startsWith("RC20")
                 ? "qwen3:14b"
                 : _name.startsWith("RC13") ||
                     _name.startsWith("RC14") ||
@@ -122,7 +130,8 @@ it.each([
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
           _name.startsWith("RC18") ||
-          _name.startsWith("RC19")
+          _name.startsWith("RC19") ||
+          _name.startsWith("RC20")
         ) {
           const refs = [
             ...packet.skills.index.map((s: { ref: unknown }) => s.ref),
@@ -137,7 +146,8 @@ it.each([
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
           _name.startsWith("RC18") ||
-          _name.startsWith("RC19")
+          _name.startsWith("RC19") ||
+          _name.startsWith("RC20")
         ) {
           expect(packet.responseInterface).toBeDefined();
           if (packet.participantInterface.mode === "scoped_update")
@@ -152,7 +162,8 @@ it.each([
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
           _name.startsWith("RC18") ||
-          _name.startsWith("RC19")
+          _name.startsWith("RC19") ||
+          _name.startsWith("RC20")
         )
           expect(packet.readInterface.meaning).toContain("provenance");
         if (
@@ -166,7 +177,8 @@ it.each([
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
           _name.startsWith("RC18") ||
-          _name.startsWith("RC19")
+          _name.startsWith("RC19") ||
+          _name.startsWith("RC20")
         )
           expect(packet.observationSemantics).toContain(
             namedMeanings ? "actual external delivery" : "stock, founding allowance, own production",
@@ -186,7 +198,8 @@ it.each([
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
           _name.startsWith("RC18") ||
-          _name.startsWith("RC19")
+          _name.startsWith("RC19") ||
+          _name.startsWith("RC20")
         ) {
           expect(packet.participantInterface).toBeDefined();
           if (
@@ -202,19 +215,27 @@ it.each([
               _name.startsWith("RC16") ||
               _name.startsWith("RC17") ||
               _name.startsWith("RC18") ||
-              _name.startsWith("RC19")) &&
+              _name.startsWith("RC19") ||
+              _name.startsWith("RC20")) &&
             packet.participantInterface.mode === "scoped_update"
           )
             expect(packet.participantInterface.temporalEvidence).toContain("never their promises");
           if (packet.participantInterface.mode === "scoped_update")
             expect(packet.participantInterface.recipients).not.toContain(packet.specialist.id);
         }
-        if (_name.startsWith("RC19") && packet.participantInterface.mode === "scoped_update") {
+        if (
+          (_name.startsWith("RC19") || _name.startsWith("RC20")) &&
+          packet.participantInterface.mode === "scoped_update"
+        ) {
           expect(packet.participantInterface.updates).toContain("goalIndex");
           expect(JSON.stringify(request.schema)).toContain("goalIndex");
         }
+        if (_name.startsWith("RC20")) {
+          expect(request.messages[0].content).toContain("pre-dispatch");
+          expect(request.messages[0].content).toContain("conditional plans");
+        }
         const goal = JSON.parse(packet.specialist.ownerIntent);
-        if (_name.startsWith("RC18") || _name.startsWith("RC19")) {
+        if (_name.startsWith("RC18") || _name.startsWith("RC19") || _name.startsWith("RC20")) {
           expect(goal.incoming).not.toHaveProperty("maximumPerHour");
           expect(goal.outgoing).not.toHaveProperty("minimumPerHour");
           expect(goal.incoming.resource).toMatch(/^(iron|silver)$/);
@@ -229,7 +250,8 @@ it.each([
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
           _name.startsWith("RC18") ||
-          _name.startsWith("RC19")
+          _name.startsWith("RC19") ||
+          _name.startsWith("RC20")
         )
           expect(goal.scope).toContain("external peer supply");
         return originalDecide(request);

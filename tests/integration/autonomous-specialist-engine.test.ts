@@ -1272,3 +1272,66 @@ it.each([false, true])(
     );
   },
 );
+
+it.each(["read-final.v1", "read-final.v2"])(
+  "preserves read/final and scoped reference contracts with explicit proposal timing: %s",
+  async (decisionContract) => {
+    const f = await setup();
+    let calls = 0;
+    const connect = f.board.adapter.connect;
+    f.board.adapter.connect = async (binding) => ({
+      ...(await connect(binding)),
+      readQuerySchema: async () => ({ type: "object", properties: {}, additionalProperties: false }),
+    });
+    await f.pool.query(
+      "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+      [
+        f.group.id,
+        {
+          participantContract: "scoped.v1",
+          decisionContract,
+          readQueryContract: "environment.v1",
+          skillReferenceContract: "listed.v1",
+          goalReferenceContract: "scoped.v1",
+        },
+      ],
+    );
+    vi.stubGlobal("fetch", async (_url: unknown, init: RequestInit) => {
+      calls++;
+      const wire = JSON.parse(String(init.body)),
+        packet = JSON.parse(wire.messages[1].content),
+        v = new Ajv({ strict: false, validateFormats: false }).compile(wire.format),
+        update = { goals: [], memories: [], predictions: [], plan: null, messages: [], wakeConditions: [] };
+      expect(f.board.executions).toBe(0);
+      expect(v({ decision: { kind: "read", query: {}, summary: "Read before effects" }, update })).toBe(false);
+      expect(
+        v({ decision: { kind: "wait", summary: "Conditional plan only" }, update, skills: { publish: [], adopt: [] } }),
+      ).toBe(true);
+      if (decisionContract === "read-final.v2") {
+        expect(wire.messages[0].content).toContain("pre-dispatch");
+        expect(wire.messages[0].content).toContain("conditional plans");
+        expect(wire.messages[0].content).toContain("never selected actions as already done/pending");
+        expect(wire.messages[0].content).toContain("Distinguish consent, admission, receipt and fulfillment");
+      } else
+        expect(packet.readInterface.meaning).toBe(
+          "Read returns observations, not grants. Revision/source IDs are provenance, never mandates. Updates persist only with final wait/action.",
+        );
+      return Response.json({
+        message: { content: JSON.stringify({ decision: { kind: "wait", summary: "No new effect claimed" } }) },
+        done: true,
+        done_reason: "stop",
+        prompt_eval_count: 10,
+        eval_count: 10,
+      });
+    });
+    const [id] = await f.enqueue("resource"),
+      claim = await f.tasks.claim("proposal-phase", f.now(), id);
+    if (!claim) throw Error("CLAIM_REQUIRED");
+    await f
+      .host(new HttpModel({ ollama: "http://provider.invalid" }, undefined), undefined, {}, f.store.architectures)
+      .host.run(claim);
+    expect(calls).toBe(1);
+    expect(f.board.executions).toBe(0);
+    expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([{ status: "reported" }]);
+  },
+);
