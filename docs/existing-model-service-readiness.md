@@ -1,5 +1,7 @@
 # Existing model service and empty-instance recovery
 
+Current ordinary-provider route: the [approved native WSL migration](native-wsl-ollama-migration-20261022.md) supersedes the Windows runtime/bridge observations below. All ten models were copied and verified; Windows Ollama is stopped, and the empty Fleet instance connects directly to native Linux Ollama while remaining live-disabled. The following dated Windows records remain historical evidence.
+
 ## Real response and isolated accounting check: 22 October 2026
 
 The subsequent user request authorized a real Fleet response using the already running Ollama service, preservation of the old world, no additional server and no retry of blocked E4. The service was available again at the 11:27 UTC metadata check. At `2026-10-22T11:34:40.820Z`, a separate, terminal local connection probe completed with these results:
