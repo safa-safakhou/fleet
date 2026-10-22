@@ -12,11 +12,12 @@ import {
   SpecialistEnvelopeSchema,
 } from "../../platform/engine-context.js";
 import { readFinalGenerationContract } from "./decision-interface.js";
+import { reviseGoals } from "./goals.js";
 import { LearningPolicy } from "./learning.js";
 import { defaults, manifest } from "./manifest.js";
 import { selectSpecialistContext } from "./memory.js";
 import { InternalMessageSchema } from "./messaging.js";
-import { participantGenerationContract } from "./participant-interface.js";
+import { decodeParticipantGoalParents, participantGenerationContract } from "./participant-interface.js";
 import { queryContractGuide, responseContractGuide } from "./response-interface.js";
 import { route } from "./routing.js";
 import { assertListedSkillReferences, bindListedSkillReferences } from "./skill-reference-interface.js";
@@ -73,6 +74,9 @@ export class AutonomousSpecialistsEngine {
     const budget = services.configuration.budget,
       config = { ...defaults, ...services.configuration.architectureConfig };
     const readFinalContractActive = services.configuration.architectureConfig.decisionContract === "read-final.v1";
+    const goalReferences = services.configuration.architectureConfig.goalReferenceContract === "scoped.v1";
+    if (goalReferences && services.configuration.architectureConfig.participantContract !== "scoped.v1")
+      throw new FleetError("GOAL_REFERENCE_PARTICIPANT_CONTRACT_REQUIRED", true);
     const listedSkills = services.configuration.architectureConfig.skillReferenceContract === "listed.v1";
     if (listedSkills && !readFinalContractActive)
       throw new FleetError("SKILL_REFERENCE_DECISION_CONTRACT_REQUIRED", true);
@@ -273,6 +277,7 @@ export class AutonomousSpecialistsEngine {
                 .map((r) => r.event?.metadata.replyToRequestId)
                 .filter((id): id is string => typeof id === "string" && z.uuid().safeParse(id).success),
               conditionContracts: services.environment.conditionContracts ?? [],
+              ...(goalReferences ? { goalParents: goals.map((goal) => goal.id) } : {}),
               ...(clockContractActive
                 ? {
                     clockContract: {
@@ -568,9 +573,17 @@ export class AutonomousSpecialistsEngine {
         await services.tasks.waitForEvent();
         return;
       }
-      const parsed = Decision.safeParse(result.decision);
+      const parsed = Decision.safeParse(
+        goalReferences
+          ? decodeParticipantGoalParents(
+              result.decision,
+              goals.map((goal) => goal.id),
+            )
+          : result.decision,
+      );
       if (!parsed.success) throw new FleetError("INVALID_MODEL_OUTPUT", true);
       const { decision, update, skills } = parsed.data;
+      if (goalReferences && update) reviseGoals(state.goals, update.goals, state.charter);
       if (listedSkills) {
         assertListedSkillReferences(skills, listedRefs);
         if (decision.kind === "read" && (skills?.publish || skills?.adopt))

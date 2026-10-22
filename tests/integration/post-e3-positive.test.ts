@@ -16,6 +16,7 @@ import {
   executeOwnedRC16Protocol,
   executeOwnedRC17Protocol,
   executeOwnedRC18Protocol,
+  executeOwnedRC19Protocol,
 } from "../../scripts/lib/post-e3-owned-run.js";
 import { SpecialistRepository } from "../../src/app/participant-services.js";
 import {
@@ -35,6 +36,7 @@ import {
   ownedRC16Fixture,
   ownedRC17Fixture,
   ownedRC18Fixture,
+  ownedRC19Fixture,
 } from "../fixtures/post-e3.js";
 import { positiveSpecialistProvider } from "../fixtures/post-e3-provider.js";
 
@@ -60,6 +62,7 @@ it.each([
   ["RC16 listed skill references", ownedRC16Fixture, executeOwnedRC16Protocol],
   ["RC17 installed Qwen14B model", ownedRC17Fixture, executeOwnedRC17Protocol],
   ["RC18 direction-scoped objectives", ownedRC18Fixture, executeOwnedRC18Protocol],
+  ["RC19 scoped goal parent references", ownedRC19Fixture, executeOwnedRC19Protocol],
 ] as const)(
   "%s completes both positive families and role reversals through eight native participants, actual delivery and later decisions",
   async (_name, create, execute) => {
@@ -82,7 +85,8 @@ it.each([
       _name.startsWith("RC15") ||
       _name.startsWith("RC16") ||
       _name.startsWith("RC17") ||
-      _name.startsWith("RC18")
+      _name.startsWith("RC18") ||
+      _name.startsWith("RC19")
     ) {
       const originalDecide = fake.provider.decide;
       fake.provider.decide = async (request) => {
@@ -97,12 +101,13 @@ it.each([
           _name.startsWith("RC15") ||
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
-          _name.startsWith("RC18")
+          _name.startsWith("RC18") ||
+          _name.startsWith("RC19")
         )
           expect(request.model).toEqual({
             route: "ollama",
             model:
-              _name.startsWith("RC17") || _name.startsWith("RC18")
+              _name.startsWith("RC17") || _name.startsWith("RC18") || _name.startsWith("RC19")
                 ? "qwen3:14b"
                 : _name.startsWith("RC13") ||
                     _name.startsWith("RC14") ||
@@ -113,7 +118,12 @@ it.each([
             thinking: _name.startsWith("RC14"),
           });
         const packet = JSON.parse(request.messages[1].content);
-        if (_name.startsWith("RC16") || _name.startsWith("RC17") || _name.startsWith("RC18")) {
+        if (
+          _name.startsWith("RC16") ||
+          _name.startsWith("RC17") ||
+          _name.startsWith("RC18") ||
+          _name.startsWith("RC19")
+        ) {
           const refs = [
             ...packet.skills.index.map((s: { ref: unknown }) => s.ref),
             ...packet.skills.selected.map((s: { ref: unknown }) => s.ref),
@@ -126,7 +136,8 @@ it.each([
           _name.startsWith("RC15") ||
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
-          _name.startsWith("RC18")
+          _name.startsWith("RC18") ||
+          _name.startsWith("RC19")
         ) {
           expect(packet.responseInterface).toBeDefined();
           if (packet.participantInterface.mode === "scoped_update")
@@ -140,7 +151,8 @@ it.each([
           _name.startsWith("RC15") ||
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
-          _name.startsWith("RC18")
+          _name.startsWith("RC18") ||
+          _name.startsWith("RC19")
         )
           expect(packet.readInterface.meaning).toContain("provenance");
         if (
@@ -153,7 +165,8 @@ it.each([
           _name.startsWith("RC15") ||
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
-          _name.startsWith("RC18")
+          _name.startsWith("RC18") ||
+          _name.startsWith("RC19")
         )
           expect(packet.observationSemantics).toContain(
             namedMeanings ? "actual external delivery" : "stock, founding allowance, own production",
@@ -172,7 +185,8 @@ it.each([
           _name.startsWith("RC15") ||
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
-          _name.startsWith("RC18")
+          _name.startsWith("RC18") ||
+          _name.startsWith("RC19")
         ) {
           expect(packet.participantInterface).toBeDefined();
           if (
@@ -187,15 +201,20 @@ it.each([
               _name.startsWith("RC15") ||
               _name.startsWith("RC16") ||
               _name.startsWith("RC17") ||
-              _name.startsWith("RC18")) &&
+              _name.startsWith("RC18") ||
+              _name.startsWith("RC19")) &&
             packet.participantInterface.mode === "scoped_update"
           )
             expect(packet.participantInterface.temporalEvidence).toContain("never their promises");
           if (packet.participantInterface.mode === "scoped_update")
             expect(packet.participantInterface.recipients).not.toContain(packet.specialist.id);
         }
+        if (_name.startsWith("RC19") && packet.participantInterface.mode === "scoped_update") {
+          expect(packet.participantInterface.updates).toContain("goalIndex");
+          expect(JSON.stringify(request.schema)).toContain("goalIndex");
+        }
         const goal = JSON.parse(packet.specialist.ownerIntent);
-        if (_name.startsWith("RC18")) {
+        if (_name.startsWith("RC18") || _name.startsWith("RC19")) {
           expect(goal.incoming).not.toHaveProperty("maximumPerHour");
           expect(goal.outgoing).not.toHaveProperty("minimumPerHour");
           expect(goal.incoming.resource).toMatch(/^(iron|silver)$/);
@@ -209,7 +228,8 @@ it.each([
           _name.startsWith("RC15") ||
           _name.startsWith("RC16") ||
           _name.startsWith("RC17") ||
-          _name.startsWith("RC18")
+          _name.startsWith("RC18") ||
+          _name.startsWith("RC19")
         )
           expect(goal.scope).toContain("external peer supply");
         return originalDecide(request);

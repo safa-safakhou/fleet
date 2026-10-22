@@ -968,6 +968,7 @@ it.each([
   { config: { responseContract: "visible.v1" }, code: "RESPONSE_READ_CONTRACT_REQUIRED" },
   { config: { observationPolicyVersion: "2" }, code: "SPECIALIST_OBSERVATION_POLICY_REQUIRED" },
   { config: { skillReferenceContract: "listed.v1" }, code: "SKILL_REFERENCE_DECISION_CONTRACT_REQUIRED" },
+  { config: { goalReferenceContract: "scoped.v1" }, code: "GOAL_REFERENCE_PARTICIPANT_CONTRACT_REQUIRED" },
 ])("requires profile prerequisites before scoped generation %j", async ({ config, code }) => {
   const f = await setup();
   await f.pool.query(
@@ -1178,3 +1179,96 @@ it("rejects unlisted skill responses through bounded recovery before any request
     { status: "reported" },
   ]);
 });
+
+it.each([false, true])(
+  "resolves scoped goal parents through HTTP and refuses cycles before persistence cycle=%s",
+  async (cycle) => {
+    const f = await setup(),
+      child = randomUUID(),
+      parent = randomUUID();
+    let calls = 0;
+    await f.pool.query(
+      "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+      [
+        f.group.id,
+        { participantContract: "scoped.v1", decisionContract: "read-final.v1", goalReferenceContract: "scoped.v1" },
+      ],
+    );
+    vi.stubGlobal("fetch", async (_url: unknown, init: RequestInit) => {
+      const wire = JSON.parse(String(init.body)),
+        packet = JSON.parse(wire.messages[1].content);
+      calls++;
+      const source = packet.evidence.deliveredIds[0];
+      expect(source).toBeTypeOf("string");
+      const goal = (id: string, parentId: unknown) => ({
+        id,
+        parentId,
+        objective: "Observe current board facts",
+        rationale: "Current scoped board evidence",
+        status: "active",
+        evidenceIds: [source],
+        assessment: "Read actual position",
+        wake: "Review changed evidence",
+      });
+      const response = {
+        decision: { kind: "wait", summary: "No board effect or completion claimed" },
+        update: {
+          goals:
+            calls === 1
+              ? [goal(child, { goalIndex: 1 }), goal(parent, cycle ? { goalIndex: 0 } : null)]
+              : [goal(child, parent)],
+          memories: [],
+          predictions: [],
+          plan: null,
+          messages: [],
+          wakeConditions: [],
+        },
+      };
+      const v = new Ajv({ strict: false, validateFormats: false }).compile(wire.format);
+      expect(v(response), JSON.stringify(v.errors)).toBe(true);
+      expect(v({ ...response, update: { ...response.update, goals: [goal(child, packet.inbox.records[0].id)] } })).toBe(
+        false,
+      );
+      return Response.json({
+        message: { content: JSON.stringify(response) },
+        done: true,
+        done_reason: "stop",
+        prompt_eval_count: 10,
+        eval_count: 10,
+      });
+    });
+    const run = async () => {
+      const [id] = await f.enqueue("resource"),
+        claim = await f.tasks.claim("scoped-goal-parents", f.now(), id);
+      if (!claim) throw Error("CLAIM_REQUIRED");
+      return f
+        .host(new HttpModel({ ollama: "http://provider.invalid" }, undefined), undefined, {}, f.store.architectures)
+        .host.run(claim);
+    };
+    const scope = {
+      instanceId: `${f.binding.id}:autonomous-specialists@1`,
+      bindingId: f.binding.id,
+      specialistId: "resources",
+    };
+    if (cycle) {
+      await expect(run()).rejects.toThrow("GOAL_CYCLE");
+      expect((await new SpecialistRepository(f.store, scope).load(scope)).goals).toEqual([]);
+      expect(calls).toBe(1);
+    } else {
+      await run();
+      let goals = (await new SpecialistRepository(f.store, scope).load(scope)).goals;
+      expect(goals.find((g) => g.id === child)?.parentId).toBe(parent);
+      expect(goals.find((g) => g.id === parent)?.parentId).toBe(null);
+      f.advance(16 * 60000);
+      await run();
+      goals = (await new SpecialistRepository(f.store, scope).load(scope)).goals;
+      expect(goals.find((g) => g.id === child)?.parentId).toBe(parent);
+      expect(calls).toBe(2);
+    }
+    expect(f.board.executions).toBe(0);
+    expect((await f.pool.query("SELECT * FROM platform_commands")).rowCount).toBe(0);
+    expect((await f.pool.query("SELECT status FROM compute_ledger")).rows.every((r) => r.status === "reported")).toBe(
+      true,
+    );
+  },
+);

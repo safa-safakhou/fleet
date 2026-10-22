@@ -32,6 +32,7 @@ export const manifest: ArchitectureManifest = {
       },
       temporalEvidenceContract: { type: "string", title: "Temporal evidence contract", enum: ["bounded.v1"] },
       participantContract: { type: "string", title: "Scoped participant contract", enum: ["scoped.v1"] },
+      goalReferenceContract: { type: "string", title: "Scoped goal parents", enum: ["scoped.v1"] },
       intentAuthorityContract: {
         type: "string",
         title: "Owner intent and authorization",

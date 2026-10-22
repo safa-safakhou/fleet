@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type Data, object } from "../../domain.js";
+import { type Data, FleetError, object } from "../../domain.js";
 import type { ConditionContract, DomainTime } from "../../platform/contracts.js";
 import { WakeConditionSchema } from "../../platform/engine-context.js";
 import { specialistWakeClockSchema } from "./clock-interface.js";
@@ -11,6 +11,7 @@ export type ParticipantContractContext = {
   deliveries: readonly { id: string; depth: number; event: unknown }[];
   evidenceIds: readonly string[];
   knownRequestIds: readonly string[];
+  goalParents?: readonly string[];
   conditionContracts: readonly ConditionContract[];
   conciseInstructions?: boolean;
   clockContract?: { environmentTime?: DomainTime; portableDigits?: boolean };
@@ -41,7 +42,9 @@ export function participantGenerationContract(
   const recipients = [...new Set(context.recipientIds.filter((id) => id !== context.specialistId))];
   const evidence = [...new Set(context.evidenceIds)];
   if (
-    [...parents, ...evidence, ...context.knownRequestIds].some((id) => !z.uuid().safeParse(id).success) ||
+    [...parents, ...evidence, ...context.knownRequestIds, ...(context.goalParents ?? [])].some(
+      (id) => !z.uuid().safeParse(id).success,
+    ) ||
     recipients.some((id) => !InternalMessageSchema.shape.to.safeParse(id).success)
   )
     throw Error("PARTICIPANT_IDENTIFIER_REQUIRED");
@@ -89,6 +92,27 @@ export function participantGenerationContract(
       const ids = object(object(object(records.items).properties).evidenceIds);
       ids.items = { enum: evidence };
     }
+  }
+  if (context.goalParents !== undefined) {
+    const goals = object(fields.goals),
+      goalFields = object(object(goals.items).properties);
+    if (!goalFields.parentId || !Number.isSafeInteger(goals.maxItems) || Number(goals.maxItems) < 0)
+      throw new FleetError("GOAL_REFERENCE_SCHEMA_REQUIRED", true);
+    goalFields.parentId = {
+      anyOf: [
+        { enum: [null, ...new Set(context.goalParents)] },
+        ...(Number(goals.maxItems) > 0
+          ? [
+              {
+                type: "object",
+                properties: { goalIndex: { type: "integer", minimum: 0, maximum: Number(goals.maxItems) - 1 } },
+                required: ["goalIndex"],
+                additionalProperties: false,
+              },
+            ]
+          : []),
+      ],
+    };
   }
   const categories = context.temporalEvidence ? [...new Set(context.temporalEvidence.eventCategories)] : undefined;
   if (categories?.some((category) => !WakeConditionSchema.options[0].shape.category.safeParse(category).success))
@@ -160,9 +184,12 @@ export function participantGenerationContract(
         : {}),
       parentDeliveryIds: parents,
       recipients,
-      updates: context.conciseInstructions
-        ? "Optional. Support: evidence.deliveredIds; new state IDs are not evidence."
-        : "Optional; omit if nothing durable changes. Support uses evidence.deliveredIds; new goal/memory IDs are not evidence.",
+      updates:
+        context.goalParents !== undefined
+          ? "Optional. Evidence:evidence.deliveredIds. goals.parentId:null/listed goal ID/{goalIndex:other update index}; acyclic, never delivery IDs."
+          : context.conciseInstructions
+            ? "Optional. Support: evidence.deliveredIds; new state IDs are not evidence."
+            : "Optional; omit if nothing durable changes. Support uses evidence.deliveredIds; new goal/memory IDs are not evidence.",
       messages: context.conciseInstructions
         ? "Only listed parents/other recipients; reply to delivered requests. Empty is valid."
         : "Use listed parents/other recipients. Reply only to their delivered request. Empty messages is valid.",
@@ -173,4 +200,34 @@ export function participantGenerationContract(
           : "Use kind:event(category), deadline/periodic(at:{clockId,value}), reply(requestIndex or supplied requestId,deadline), or predicate per assessmentConditions. Use future times on the stated clock. Conditions claim no observed event or extra allowance.",
     },
   };
+}
+
+/** Resolve only the typed goal-parent field. Native graph/ownership/outcome checks still apply. */
+export function decodeParticipantGoalParents(raw: unknown, goalParents: readonly string[]): unknown {
+  if (goalParents.some((id) => !z.uuid().safeParse(id).success))
+    throw new FleetError("GOAL_PARENT_SCOPE_INVALID", true);
+  const known = new Set(goalParents),
+    decoded = structuredClone(raw),
+    goals = object(object(decoded).update).goals;
+  if (!Array.isArray(goals)) return decoded;
+  for (const value of goals) {
+    const goal = object(value),
+      parent = goal.parentId;
+    if (parent === null || (typeof parent === "string" && known.has(parent))) continue;
+    const index = object(parent).goalIndex;
+    if (
+      typeof parent !== "object" ||
+      parent === null ||
+      Array.isArray(parent) ||
+      Object.keys(parent).length !== 1 ||
+      typeof index !== "number" ||
+      !Number.isSafeInteger(index) ||
+      index < 0 ||
+      index >= goals.length ||
+      !z.uuid().safeParse(object(goals[index]).id).success
+    )
+      throw new FleetError("GOAL_PARENT_NOT_DELIVERED", true);
+    goal.parentId = object(goals[index]).id;
+  }
+  return decoded;
 }
