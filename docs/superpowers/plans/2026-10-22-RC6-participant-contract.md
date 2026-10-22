@@ -27,6 +27,8 @@ Main master repos; preserve R5 and all prior terminal state/private evidence. No
 - [x] Add failing pure schema and serialized HTTP regressions for typed wakes, parent/recipient/evidence scope, empty scopes and legacy compatibility; observe RED.
 - [x] Implement minimal opt-in binder/prompt interface plus fallback binding; GREEN; verify affected synthetic composition stays within32000bytes and guarded reuse works.
 - [x] Add/test independent R6 mirrored protocols/grants/checkpoints/results; run relevant unit/integration/paired/type/build/boundary checks, review inline and commit both repos.
-- [ ] Freeze new seed/package/native/operator settings; create fresh D roster, encrypted before/restore, restored-only packaged fake and untouched-original proof.
+- [x] Freeze new seed/package/native/operator settings; create fresh D roster, encrypted before/restore, restored-only packaged fake and untouched-original proof.
 - [ ] Execute/review real D; pass before fresh H and N. On any terminal failure, park/retain/archive/restore, diagnose and repair a distinct successor rather than resume.
 - [ ] Complete all registered real scenarios honestly, preserving disabled game state and blocked E4/KQ1, with actual checks/accounting/committed checkpoints.
+
+R6-D terminal: response3 unsupported owner-decision timeline; H/N cannot open. See [terminal record](../../RC6-participant-contract-qualification-20261022.md). The user-authorized continuous investigation proceeds with a distinct successor; R6 does not resume.
