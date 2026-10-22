@@ -69,6 +69,9 @@ export class AutonomousSpecialistsEngine {
       learningMode = false;
     const budget = services.configuration.budget,
       config = { ...defaults, ...services.configuration.architectureConfig };
+    const clockContractActive = services.configuration.architectureConfig.clockContract === "scoped.v1";
+    if (clockContractActive && services.configuration.architectureConfig.participantContract !== "scoped.v1")
+      throw new FleetError("CLOCK_PARTICIPANT_CONTRACT_REQUIRED", true);
     const observationSemantics =
       services.configuration.architectureConfig.observationContract === "semantics.v1"
         ? services.environment.observationSemantics
@@ -207,6 +210,7 @@ export class AutonomousSpecialistsEngine {
                 .map((r) => r.event?.metadata.replyToRequestId)
                 .filter((id): id is string => typeof id === "string" && z.uuid().safeParse(id).success),
               conditionContracts: services.environment.conditionContracts ?? [],
+              ...(clockContractActive ? { clockContract: { environmentTime: observation.environmentTime } } : {}),
               conciseInstructions: services.configuration.architectureConfig.observationContract === "semantics.v1",
               ...(services.configuration.architectureConfig.temporalEvidenceContract === "bounded.v1"
                 ? {
@@ -304,10 +308,12 @@ export class AutonomousSpecialistsEngine {
           ? {
               intentAuthority: {
                 ownerIntent: "Objective/preferences, not an authorization grant.",
-                limits:
-                  "Numeric objective limits keep their stated domain, unit and clock. Never convert them into unrelated action allowances.",
-                permissions:
-                  "Use current authorized environment facts. An unstated action allowance is unknown; use supported reads.",
+                limits: clockContractActive
+                  ? "Keep each objective limit's domain, unit and clock; it grants no unrelated action allowance."
+                  : "Numeric objective limits keep their stated domain, unit and clock. Never convert them into unrelated action allowances.",
+                permissions: clockContractActive
+                  ? "Use current authorized facts for permissions; unknown allowances need a supported read."
+                  : "Use current authorized environment facts. An unstated action allowance is unknown; use supported reads.",
               },
             }
           : {}),
@@ -315,8 +321,9 @@ export class AutonomousSpecialistsEngine {
           ? {
               readInterface: {
                 querySchema: readQuerySchema,
-                meaning:
-                  "Read queries request authorized observations only. Schemas describe supported shapes, not permission. A read sends no message and performs no action.",
+                meaning: clockContractActive
+                  ? "Authorized reads only; a shape grants no permission. Reads send no message/action."
+                  : "Read queries request authorized observations only. Schemas describe supported shapes, not permission. A read sends no message and performs no action.",
               },
             }
           : {}),

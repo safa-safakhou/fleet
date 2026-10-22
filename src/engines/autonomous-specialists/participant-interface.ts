@@ -1,7 +1,8 @@
 import { z } from "zod";
 import { type Data, object } from "../../domain.js";
-import type { ConditionContract } from "../../platform/contracts.js";
+import type { ConditionContract, DomainTime } from "../../platform/contracts.js";
 import { WakeConditionSchema } from "../../platform/engine-context.js";
+import { specialistWakeClockSchema } from "./clock-interface.js";
 import { InternalMessageSchema } from "./messaging.js";
 
 export type ParticipantContractContext = {
@@ -12,6 +13,7 @@ export type ParticipantContractContext = {
   knownRequestIds: readonly string[];
   conditionContracts: readonly ConditionContract[];
   conciseInstructions?: boolean;
+  clockContract?: { environmentTime?: DomainTime };
   temporalEvidence?: { eventCategories: readonly string[] };
 };
 /** Generation scope only. Native transactional ownership/time checks remain authoritative. */
@@ -19,6 +21,9 @@ export function participantGenerationContract(
   base: Data,
   context: ParticipantContractContext,
 ): { schema: Data; prompt: Data } {
+  const scopedTime = context.clockContract
+    ? specialistWakeClockSchema(context.clockContract.environmentTime)
+    : undefined;
   const schema = structuredClone(base),
     update = object(object(schema.properties).update);
   if (!Object.keys(update).length)
@@ -92,6 +97,7 @@ export function participantGenerationContract(
   const variants = ((native.oneOf ?? native.anyOf) as Data[]).flatMap((variant) => {
     const properties = object(variant.properties),
       kind = object(properties.kind).const;
+    if (scopedTime) for (const name of ["at", "deadline"]) if (properties[name]) properties[name] = scopedTime;
     if (kind === "event" && categories)
       return categories.length ? [{ ...variant, properties: { ...properties, category: { enum: categories } } }] : [];
     if (kind === "reply") {
@@ -147,8 +153,9 @@ export function participantGenerationContract(
       ...(categories
         ? {
             eventCategories: categories,
-            temporalEvidence:
-              "Owner/peer decisions and response times are unknown unless supplied. Own plans/wakes are conditional review choices, never their promises.",
+            temporalEvidence: context.clockContract
+              ? "Other actors' decisions/times are unknown unless supplied. Own plans/wakes are review choices, never their promises."
+              : "Owner/peer decisions and response times are unknown unless supplied. Own plans/wakes are conditional review choices, never their promises.",
           }
         : {}),
       parentDeliveryIds: parents,
@@ -159,9 +166,11 @@ export function participantGenerationContract(
       messages: context.conciseInstructions
         ? "Only listed parents/other recipients; reply to delivered requests. Empty is valid."
         : "Use listed parents/other recipients. Reply only to their delivered request. Empty messages is valid.",
-      wakes: context.conciseInstructions
-        ? "Use typed schema and assessmentConditions; future times need the stated clock. Conditions claim no event or allowance."
-        : "Use kind:event(category), deadline/periodic(at:{clockId,value}), reply(requestIndex or supplied requestId,deadline), or predicate per assessmentConditions. Use future times on the stated clock. Conditions claim no observed event or extra allowance.",
+      wakes: context.clockContract
+        ? "UTC=ISO; supplied domain=numeric. Future times only; no event or extra allowance is implied."
+        : context.conciseInstructions
+          ? "Use typed schema and assessmentConditions; future times need the stated clock. Conditions claim no event or allowance."
+          : "Use kind:event(category), deadline/periodic(at:{clockId,value}), reply(requestIndex or supplied requestId,deadline), or predicate per assessmentConditions. Use future times on the stated clock. Conditions claim no observed event or extra allowance.",
     },
   };
 }

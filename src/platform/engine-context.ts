@@ -12,7 +12,7 @@ export type {
   SpecialistState,
 } from "./participant-state.js";
 export { SpecialistEnvelopeSchema, SpecialistGoalSchema, SpecialistMemorySchema } from "./participant-state.js";
-export { WakeConditionSchema } from "./wake-conditions.js";
+export { compareDomainTime, WakeConditionSchema } from "./wake-conditions.js";
 
 import type {
   AccountObjective,

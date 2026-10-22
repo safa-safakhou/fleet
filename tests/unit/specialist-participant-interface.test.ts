@@ -214,3 +214,46 @@ it("compacts only redundant participant wording while retaining identical native
   expect(compact.prompt.wakes).toContain("stated clock");
   expect(compact.prompt.updates).toContain("not evidence");
 });
+it.each([
+  { clockId: "sim.ms", value: "60000", expected: true },
+  { clockId: "utc", value: "2026-10-22T23:00:00.000Z", expected: true },
+  { clockId: "utc", value: "2026-10-22T23:00:00Z", expected: true },
+  { clockId: "sim.ms", value: "}", expected: false },
+  { clockId: "sim.ms", value: "1.5", expected: false },
+  { clockId: "sim.ms", value: "2026-10-22T23:00:00Z", expected: false },
+  { clockId: "utc", value: "60000", expected: false },
+  { clockId: "utc", value: "}", expected: false },
+  { clockId: "invented", value: "60000", expected: false },
+])("scopes generated timed and reply clocks to supplied native formats: %j", ({ clockId, value, expected }) => {
+  const c = contracts({ ...context, clockContract: { environmentTime: { clockId: "sim.ms", value: "0" } } });
+  for (const wake of [
+    { kind: "deadline", at: { clockId, value } },
+    { kind: "periodic", at: { clockId, value } },
+    { kind: "reply", requestIndex: 0, deadline: { clockId, value } },
+  ])
+    expect(c.accepts({ update: { ...update, wakeConditions: [wake] } })).toBe(expected);
+});
+it("keeps legacy lexical acceptance and rejects corrupt current clocks before generation", () => {
+  expect(
+    contracts().accepts({
+      update: { ...update, wakeConditions: [{ kind: "periodic", at: { clockId: "sim.ms", value: "}" } }] },
+    }),
+  ).toBe(true);
+  expect(() =>
+    contracts({ ...context, clockContract: { environmentTime: { clockId: "sim.ms", value: "}" } } }),
+  ).toThrow("PARTICIPANT_CLOCK_REQUIRED");
+});
+it("retains platform UTC wakes when there is no supplied non-UTC domain", () => {
+  const c = contracts({ ...context, clockContract: {} });
+  expect(
+    c.accepts({
+      update: {
+        ...update,
+        wakeConditions: [{ kind: "deadline", at: { clockId: "utc", value: "2026-10-22T23:00:00Z" } }],
+      },
+    }),
+  ).toBe(true);
+  expect(
+    c.accepts({ update: { ...update, wakeConditions: [{ kind: "deadline", at: { clockId: "sim.ms", value: "1" } }] } }),
+  ).toBe(false);
+});

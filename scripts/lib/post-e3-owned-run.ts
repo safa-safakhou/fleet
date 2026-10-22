@@ -56,11 +56,15 @@ export async function prepareOwnedRC1Cohort(
   keyRef: string,
 ): Promise<PreparedPostE3Cell> {
   if (
-    ["negotiation-r8", "negotiation-r9"].includes(cell.study) &&
+    ["negotiation-r8", "negotiation-r9", "negotiation-r10"].includes(cell.study) &&
     designDigest(model) !== designDigest(rc8ModelProfile)
   )
     throw new FleetError(
-      cell.study === "negotiation-r9" ? "RC9_MODEL_PROFILE_REQUIRED" : "RC8_MODEL_PROFILE_REQUIRED",
+      cell.study === "negotiation-r10"
+        ? "RC10_MODEL_PROFILE_REQUIRED"
+        : cell.study === "negotiation-r9"
+          ? "RC9_MODEL_PROFILE_REQUIRED"
+          : "RC8_MODEL_PROFILE_REQUIRED",
       true,
     );
   const p = await prepareOwnedNegotiationCohort(store, world, control, cell, model, fixtureNonce, evidenceRef, keyRef);
@@ -134,13 +138,21 @@ export function executeOwnedRC9Protocol(protocol: PostE3Protocol, grant: PostE3G
   if (protocol.study !== "negotiation-r9") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
   return executeOwnedPostE3Protocol(protocol, grant, d);
 }
+export function executeOwnedRC10Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
+  if (protocol.study !== "negotiation-r10") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
+  return executeOwnedPostE3Protocol(protocol, grant, d);
+}
 async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
   if (
-    ["negotiation-r8", "negotiation-r9"].includes(protocol.study) &&
+    ["negotiation-r8", "negotiation-r9", "negotiation-r10"].includes(protocol.study) &&
     d.prepared.some((p) => designDigest(p.model) !== designDigest(rc8ModelProfile))
   )
     throw new FleetError(
-      protocol.study === "negotiation-r9" ? "RC9_MODEL_PROFILE_REQUIRED" : "RC8_MODEL_PROFILE_REQUIRED",
+      protocol.study === "negotiation-r10"
+        ? "RC10_MODEL_PROFILE_REQUIRED"
+        : protocol.study === "negotiation-r9"
+          ? "RC9_MODEL_PROFILE_REQUIRED"
+          : "RC8_MODEL_PROFILE_REQUIRED",
       true,
     );
   const check = validatePostE3Grant(protocol, grant, Date.now());
@@ -204,23 +216,25 @@ async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE
   if (parkFailed) throw new FleetError("RC1_PARK_FAILED", true);
   const result = {
     schemaVersion:
-      protocol.study === "negotiation-r9"
-        ? "fleet.rc9-batch.v1"
-        : protocol.study === "negotiation-r8"
-          ? "fleet.rc8-batch.v1"
-          : protocol.study === "negotiation-r7"
-            ? "fleet.rc7-batch.v1"
-            : protocol.study === "negotiation-r6"
-              ? "fleet.rc6-batch.v1"
-              : protocol.study === "negotiation-r5"
-                ? "fleet.rc5-batch.v1"
-                : protocol.study === "negotiation-r4"
-                  ? "fleet.rc4-batch.v1"
-                  : protocol.study === "negotiation-r3"
-                    ? "fleet.rc3-batch.v1"
-                    : protocol.study === "negotiation-r2"
-                      ? "fleet.rc2-batch.v1"
-                      : "fleet.rc1-batch.v1",
+      protocol.study === "negotiation-r10"
+        ? "fleet.rc10-batch.v1"
+        : protocol.study === "negotiation-r9"
+          ? "fleet.rc9-batch.v1"
+          : protocol.study === "negotiation-r8"
+            ? "fleet.rc8-batch.v1"
+            : protocol.study === "negotiation-r7"
+              ? "fleet.rc7-batch.v1"
+              : protocol.study === "negotiation-r6"
+                ? "fleet.rc6-batch.v1"
+                : protocol.study === "negotiation-r5"
+                  ? "fleet.rc5-batch.v1"
+                  : protocol.study === "negotiation-r4"
+                    ? "fleet.rc4-batch.v1"
+                    : protocol.study === "negotiation-r3"
+                      ? "fleet.rc3-batch.v1"
+                      : protocol.study === "negotiation-r2"
+                        ? "fleet.rc2-batch.v1"
+                        : "fleet.rc1-batch.v1",
     protocolDigest: protocol.digest,
     batchNonce: grant.batchNonce,
     status: stopped ? ("stopped" as const) : ("complete" as const),
@@ -721,3 +735,5 @@ export const prepareOwnedRC7Cohort = prepareOwnedRC1Cohort;
 export const prepareOwnedRC8Cohort = prepareOwnedRC1Cohort;
 
 export const prepareOwnedRC9Cohort = prepareOwnedRC1Cohort;
+
+export const prepareOwnedRC10Cohort = prepareOwnedRC1Cohort;

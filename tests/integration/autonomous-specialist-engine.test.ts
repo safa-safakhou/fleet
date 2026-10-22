@@ -802,7 +802,7 @@ it.each([false, true])(
   },
 );
 
-it.each([false, true, "temporal", "semantics"] as const)(
+it.each([false, true, "temporal", "semantics", "clock"] as const)(
   "binds native participant shapes and prompt scope in actual HTTP generation enabled=%s",
   async (enabled) => {
     const f = await setup();
@@ -814,8 +814,11 @@ it.each([false, true, "temporal", "semantics"] as const)(
           f.group.id,
           {
             participantContract: "scoped.v1",
-            ...(enabled === "temporal" || enabled === "semantics" ? { temporalEvidenceContract: "bounded.v1" } : {}),
-            ...(enabled === "semantics" ? { observationContract: "semantics.v1" } : {}),
+            ...(enabled === "temporal" || enabled === "semantics" || enabled === "clock"
+              ? { temporalEvidenceContract: "bounded.v1" }
+              : {}),
+            ...(enabled === "semantics" || enabled === "clock" ? { observationContract: "semantics.v1" } : {}),
+            ...(enabled === "clock" ? { clockContract: "scoped.v1" } : {}),
           },
         ],
       );
@@ -864,11 +867,16 @@ it.each([false, true, "temporal", "semantics"] as const)(
       ).toBe(!enabled);
       expect(
         accepts(wrap({ ...update, wakeConditions: [{ kind: "event", category: "invented_future_decision" }] })),
-      ).toBe(enabled !== "temporal" && enabled !== "semantics");
-      if (enabled === "temporal" || enabled === "semantics")
+      ).toBe(enabled !== "temporal" && enabled !== "semantics" && enabled !== "clock");
+      if (enabled === "temporal" || enabled === "semantics" || enabled === "clock")
         expect(packet.participantInterface.temporalEvidence).toContain("never their promises");
-      if (enabled === "semantics") expect(packet.observationSemantics).toBe(f.board.adapter.observationSemantics);
+      if (enabled === "semantics" || enabled === "clock")
+        expect(packet.observationSemantics).toBe(f.board.adapter.observationSemantics);
       else expect(packet).not.toHaveProperty("observationSemantics");
+      const timed = (at: unknown) => wrap({ ...update, wakeConditions: [{ kind: "periodic", at }] });
+      expect(accepts(timed({ clockId: "utc", value: "}" }))).toBe(enabled !== "clock");
+      expect(accepts(timed({ clockId: "utc", value: "2026-10-22T23:00:00Z" }))).toBe(true);
+      if (enabled === "clock") expect(packet.participantInterface.wakes).toContain("UTC");
       if (enabled) {
         expect(packet.participantInterface.parentDeliveryIds).toContain(parent);
         expect(packet.participantInterface.recipients).toContain("diplomacy");
@@ -924,4 +932,25 @@ it.each([
   );
   expect(calls).toBe(0);
   expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(0);
+});
+it("requires the scoped participant base before enabling scoped clock generation", async () => {
+  const f = await setup();
+  await f.pool.query(
+    "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+    [f.group.id, { clockContract: "scoped.v1" }],
+  );
+  let calls = 0;
+  const model = {
+    decide: async () => {
+      calls++;
+      return { decision: { decision: { kind: "wait", summary: "No action" } }, inputTokens: 10, outputTokens: 10 };
+    },
+  };
+  const [id] = await f.enqueue("resource"),
+    claim = await f.tasks.claim("missing-scoped-participant", f.now(), id);
+  if (!claim) throw Error("CLAIM_REQUIRED");
+  await expect(f.host(model, undefined, {}, f.store.architectures).host.run(claim)).rejects.toThrow(
+    "CLOCK_PARTICIPANT_CONTRACT_REQUIRED",
+  );
+  expect(calls).toBe(0);
 });
