@@ -101,6 +101,7 @@ export interface EnvironmentAdapter {
   specialistPresets?: import("./participant-state.js").SpecialistPreset[];
   wakePredicates?: import("./wake-conditions.js").WakePredicates;
   observationSemantics?: string;
+  observationSemanticsFor?(observation: Observation): string;
   conditionContracts?: ConditionContract[];
   instructions?: string;
   accountObjective?(observation: Observation): AccountObjective | undefined;

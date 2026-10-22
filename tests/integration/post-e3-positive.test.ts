@@ -9,6 +9,7 @@ import {
   executeOwnedRC9Protocol,
   executeOwnedRC10Protocol,
   executeOwnedRC11Protocol,
+  executeOwnedRC12Protocol,
 } from "../../scripts/lib/post-e3-owned-run.js";
 import { SpecialistRepository } from "../../src/app/participant-services.js";
 import {
@@ -21,6 +22,7 @@ import {
   ownedRC9Fixture,
   ownedRC10Fixture,
   ownedRC11Fixture,
+  ownedRC12Fixture,
 } from "../fixtures/post-e3.js";
 import { positiveSpecialistProvider } from "../fixtures/post-e3-provider.js";
 
@@ -39,10 +41,14 @@ it.each([
   ["RC9 observation semantics", ownedRC9Fixture, executeOwnedRC9Protocol],
   ["RC10 scoped clock contract", ownedRC10Fixture, executeOwnedRC10Protocol],
   ["RC11 read/final contract", ownedRC11Fixture, executeOwnedRC11Protocol],
+  ["RC12 named rate facts", ownedRC12Fixture, executeOwnedRC12Protocol],
 ] as const)(
   "%s completes both positive families and role reversals through eight native participants, actual delivery and later decisions",
   async (_name, create, execute) => {
     f = await create();
+    const namedMeanings =
+      "observationContract" in f.protocol.configuration &&
+      f.protocol.configuration.observationContract === "semantics.v2";
     const fake = positiveSpecialistProvider();
     if (
       _name.startsWith("RC5") ||
@@ -53,12 +59,21 @@ it.each([
     ) {
       const originalDecide = fake.provider.decide;
       fake.provider.decide = async (request) => {
-        if (_name.startsWith("RC8") || _name.startsWith("RC9") || _name.startsWith("RC10") || _name.startsWith("RC11"))
+        if (
+          _name.startsWith("RC8") ||
+          _name.startsWith("RC9") ||
+          _name.startsWith("RC10") ||
+          _name.startsWith("RC11") ||
+          _name.startsWith("RC12")
+        )
           expect(request.model).toEqual({ route: "ollama", model: "qwen3.5:9b", thinking: false });
         const packet = JSON.parse(request.messages[1].content);
-        if (_name.startsWith("RC11")) expect(packet.readInterface.meaning).toContain("provenance");
-        if (_name.startsWith("RC9") || _name.startsWith("RC10") || _name.startsWith("RC11"))
-          expect(packet.observationSemantics).toContain("stock, founding allowance, own production");
+        if (_name.startsWith("RC11") || _name.startsWith("RC12"))
+          expect(packet.readInterface.meaning).toContain("provenance");
+        if (_name.startsWith("RC9") || _name.startsWith("RC10") || _name.startsWith("RC11") || _name.startsWith("RC12"))
+          expect(packet.observationSemantics).toContain(
+            namedMeanings ? "actual external delivery" : "stock, founding allowance, own production",
+          );
         expect(packet.intentAuthority?.ownerIntent).toBe("Objective/preferences, not an authorization grant.");
         if (
           _name.startsWith("RC6") ||
@@ -73,7 +88,8 @@ it.each([
               _name.startsWith("RC8") ||
               _name.startsWith("RC9") ||
               _name.startsWith("RC10") ||
-              _name.startsWith("RC11")) &&
+              _name.startsWith("RC11") ||
+              _name.startsWith("RC12")) &&
             packet.participantInterface.mode === "scoped_update"
           )
             expect(packet.participantInterface.temporalEvidence).toContain("never their promises");

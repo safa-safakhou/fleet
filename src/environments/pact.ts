@@ -5,6 +5,7 @@ import { pactAgentBriefing } from "../games/pact/briefing.js";
 import { pactEvents } from "../games/pact/events.js";
 import { pactCurrentObjective, pactWaitSchema, validatePactWait } from "../games/pact/goal-state.js";
 import { projectPactObservation } from "../games/pact/negotiation-state.js";
+import { pactNamedObservationSemantics } from "../games/pact/observation-semantics.js";
 import { pactContinuity } from "../games/pact/outlook.js";
 import { packPactObservation } from "../games/pact/packing.js";
 import { pactActionContracts, pactProposalGuide, validatePactProposal } from "../games/pact/proposals.js";
@@ -78,6 +79,7 @@ export function createPactEnvironment(ports: {
   return {
     ref: { id: "pact", version: "1" },
     specialistPresets: pactSpecialistPresets,
+    observationSemanticsFor: (observation) => pactNamedObservationSemantics(observation.payload),
     observationSemantics:
       "Amounts and rates are different. Supply goals need actual external delivery over the stated GAME window; stock, founding allowance, own production, quotes and signatures do not prove it.",
     specialistObservationPolicy: { id: "specialists", version: "1" },

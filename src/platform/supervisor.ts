@@ -155,6 +155,7 @@ export class PlatformHost {
           conditionPredicates: adapter.wakePredicates,
           conditionContracts: adapter.conditionContracts,
           observationSemantics: adapter.observationSemantics,
+          observationSemanticsFor: adapter.observationSemanticsFor?.bind(adapter),
           goal: adapter.presentation.defaultGoal,
           instructions: adapter.instructions,
           accountObjective: adapter.accountObjective?.bind(adapter),

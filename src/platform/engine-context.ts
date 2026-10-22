@@ -119,6 +119,7 @@ export interface ScopedServices {
     schemas: { observations: string[]; actions: string[] };
     specialistPresets?: import("./participant-state.js").SpecialistPreset[];
     observationSemantics?: string;
+    observationSemanticsFor?(observation: Observation): string;
     conditionContracts?: import("./contracts.js").ConditionContract[];
     accountObjective?(observation: Observation): AccountObjective | undefined;
     catalog(): Promise<Tool[]>;

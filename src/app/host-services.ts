@@ -326,6 +326,7 @@ export async function createScopedServices(
       schemas: immutable(structuredClone(context.schemas ?? { observations: [], actions: [] })),
       specialistPresets: context.specialistPresets ? immutable(structuredClone(context.specialistPresets)) : undefined,
       observationSemantics: context.observationSemantics,
+      observationSemanticsFor: context.observationSemanticsFor,
       conditionContracts: context.conditionContracts
         ? immutable(structuredClone(context.conditionContracts))
         : undefined,

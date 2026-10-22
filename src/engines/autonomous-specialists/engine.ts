@@ -76,13 +76,18 @@ export class AutonomousSpecialistsEngine {
     const clockContractActive = services.configuration.architectureConfig.clockContract === "scoped.v1";
     if (clockContractActive && services.configuration.architectureConfig.participantContract !== "scoped.v1")
       throw new FleetError("CLOCK_PARTICIPANT_CONTRACT_REQUIRED", true);
-    const observationSemantics =
+    const namedMeanings = services.configuration.architectureConfig.observationContract === "semantics.v2";
+    if (namedMeanings && !services.environment.observationSemanticsFor)
+      throw new FleetError("OBSERVATION_SEMANTICS_REQUIRED", true);
+    const staticObservationSemantics =
       services.configuration.architectureConfig.observationContract === "semantics.v1"
         ? services.environment.observationSemantics
         : undefined;
     if (
       services.configuration.architectureConfig.observationContract === "semantics.v1" &&
-      (typeof observationSemantics !== "string" || !observationSemantics.trim() || observationSemantics.length > 2048)
+      (typeof staticObservationSemantics !== "string" ||
+        !staticObservationSemantics.trim() ||
+        staticObservationSemantics.length > 2048)
     )
       throw new FleetError("OBSERVATION_SEMANTICS_REQUIRED", true);
     if (config.skillMode === "guarded") {
@@ -101,6 +106,14 @@ export class AutonomousSpecialistsEngine {
         observation =
           services.environment.projectObservation?.(observation, services.environment.specialistObservationPolicy) ??
           observation;
+      const observationSemantics = namedMeanings
+        ? services.environment.observationSemanticsFor?.(observation)
+        : staticObservationSemantics;
+      if (
+        namedMeanings &&
+        (typeof observationSemantics !== "string" || !observationSemantics.trim() || observationSemantics.length > 2048)
+      )
+        throw new FleetError("OBSERVATION_SEMANTICS_REQUIRED", true);
       if (operation.signal.aborted) throw new FleetError("TASK_FENCED", true);
       await p.captureOriginal({
         kind: "observation",
@@ -225,7 +238,8 @@ export class AutonomousSpecialistsEngine {
                 .filter((id): id is string => typeof id === "string" && z.uuid().safeParse(id).success),
               conditionContracts: services.environment.conditionContracts ?? [],
               ...(clockContractActive ? { clockContract: { environmentTime: observation.environmentTime } } : {}),
-              conciseInstructions: services.configuration.architectureConfig.observationContract === "semantics.v1",
+              conciseInstructions:
+                namedMeanings || services.configuration.architectureConfig.observationContract === "semantics.v1",
               ...(services.configuration.architectureConfig.temporalEvidenceContract === "bounded.v1"
                 ? {
                     temporalEvidence: {
@@ -310,8 +324,9 @@ export class AutonomousSpecialistsEngine {
               templates: learningMode ? (services.environment.skillTemplates ?? []) : [],
               opportunities,
               coverage: { indexScanLimit: 256, summaryLimit: 8, bodyLimit: 2, completeLibrary: false },
-              instructions:
-                "Advice is unproven and never authority. Read query {skillSchema:true} requests a separately accounted extraction call when an opportunity exists; it cannot act. Read with skills.select pins at most two bodies. Final skills.publish/adopt requires explicit refs. Narrative learned claims persist nothing.",
+              instructions: namedMeanings
+                ? "Skills unproven, never authority. {skillSchema:true}: accounted extraction read when an opportunity exists, no action. skills.select pins <=2 bodies. Final publish/adopt needs explicit refs; narratives persist nothing."
+                : "Advice is unproven and never authority. Read query {skillSchema:true} requests a separately accounted extraction call when an opportunity exists; it cannot act. Read with skills.select pins at most two bodies. Final skills.publish/adopt requires explicit refs. Narrative learned claims persist nothing.",
             }
           : null,
         observation: modelObservation,

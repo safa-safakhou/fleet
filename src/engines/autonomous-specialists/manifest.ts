@@ -22,7 +22,11 @@ export const manifest: ArchitectureManifest = {
       learning: { type: "boolean", title: "Learn from observed episodes" },
       decisionContract: { type: "string", title: "Read and final-decision envelope", enum: ["read-final.v1"] },
       clockContract: { type: "string", title: "Scoped wake clocks", enum: ["scoped.v1"] },
-      observationContract: { type: "string", title: "Environment observation semantics", enum: ["semantics.v1"] },
+      observationContract: {
+        type: "string",
+        title: "Environment observation semantics",
+        enum: ["semantics.v1", "semantics.v2"],
+      },
       temporalEvidenceContract: { type: "string", title: "Temporal evidence contract", enum: ["bounded.v1"] },
       participantContract: { type: "string", title: "Scoped participant contract", enum: ["scoped.v1"] },
       intentAuthorityContract: { type: "string", title: "Owner intent and authorization", enum: ["separate.v1"] },

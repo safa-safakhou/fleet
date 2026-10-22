@@ -29,6 +29,7 @@ export interface EngineContext {
   specialistPresets?: import("./participant-state.js").SpecialistPreset[];
   conditionPredicates?: import("./wake-conditions.js").WakePredicates;
   observationSemantics?: string;
+  observationSemanticsFor?(observation: Observation): string;
   conditionContracts?: import("./contracts.js").ConditionContract[];
   waitSchema?: (observation: Observation) => Promise<Data | undefined>;
   validateWait?: (basis: Data, observation: Observation) => Promise<import("./contracts.js").ProposalValidation>;
