@@ -100,6 +100,7 @@ export interface EnvironmentAdapter {
   skillSupport?: import("../modules/skills/v1/support.js").SkillSupport;
   specialistPresets?: import("./participant-state.js").SpecialistPreset[];
   wakePredicates?: import("./wake-conditions.js").WakePredicates;
+  observationSemantics?: string;
   conditionContracts?: ConditionContract[];
   instructions?: string;
   accountObjective?(observation: Observation): AccountObjective | undefined;

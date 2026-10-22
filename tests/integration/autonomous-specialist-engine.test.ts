@@ -802,10 +802,11 @@ it.each([false, true])(
   },
 );
 
-it.each([false, true, "temporal"] as const)(
+it.each([false, true, "temporal", "semantics"] as const)(
   "binds native participant shapes and prompt scope in actual HTTP generation enabled=%s",
   async (enabled) => {
     const f = await setup();
+    f.board.adapter.observationSemantics = "Synthetic: stock is tokens; income is arriving tokens per turn.";
     if (enabled)
       await f.pool.query(
         "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
@@ -813,7 +814,8 @@ it.each([false, true, "temporal"] as const)(
           f.group.id,
           {
             participantContract: "scoped.v1",
-            ...(enabled === "temporal" ? { temporalEvidenceContract: "bounded.v1" } : {}),
+            ...(enabled === "temporal" || enabled === "semantics" ? { temporalEvidenceContract: "bounded.v1" } : {}),
+            ...(enabled === "semantics" ? { observationContract: "semantics.v1" } : {}),
           },
         ],
       );
@@ -862,9 +864,11 @@ it.each([false, true, "temporal"] as const)(
       ).toBe(!enabled);
       expect(
         accepts(wrap({ ...update, wakeConditions: [{ kind: "event", category: "invented_future_decision" }] })),
-      ).toBe(enabled !== "temporal");
-      if (enabled === "temporal")
+      ).toBe(enabled !== "temporal" && enabled !== "semantics");
+      if (enabled === "temporal" || enabled === "semantics")
         expect(packet.participantInterface.temporalEvidence).toContain("never their promises");
+      if (enabled === "semantics") expect(packet.observationSemantics).toBe(f.board.adapter.observationSemantics);
+      else expect(packet).not.toHaveProperty("observationSemantics");
       if (enabled) {
         expect(packet.participantInterface.parentDeliveryIds).toContain(parent);
         expect(packet.participantInterface.recipients).toContain("diplomacy");
@@ -893,3 +897,31 @@ it.each([false, true, "temporal"] as const)(
     expect(f.board.executions).toBe(0);
   },
 );
+
+it.each([
+  { name: "missing", semantics: undefined },
+  { name: "empty", semantics: "" },
+  { name: "oversized", semantics: "x".repeat(2049) },
+])("refuses $name opted-in observation semantics before model admission", async ({ semantics }) => {
+  const f = await setup();
+  f.board.adapter.observationSemantics = semantics;
+  await f.pool.query(
+    "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+    [f.group.id, { observationContract: "semantics.v1" }],
+  );
+  let calls = 0;
+  const model = {
+    decide: async () => {
+      calls++;
+      return { decision: { decision: { kind: "wait", summary: "No action" } }, inputTokens: 10, outputTokens: 10 };
+    },
+  };
+  const [id] = await f.enqueue("resource"),
+    claim = await f.tasks.claim("missing-observation-semantics", f.now(), id);
+  if (!claim) throw Error("CLAIM_REQUIRED");
+  await expect(f.host(model, undefined, {}, f.store.architectures).host.run(claim)).rejects.toThrow(
+    "OBSERVATION_SEMANTICS_REQUIRED",
+  );
+  expect(calls).toBe(0);
+  expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(0);
+});

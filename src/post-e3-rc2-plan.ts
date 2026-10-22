@@ -348,7 +348,56 @@ export function prepareRC8Protocol(raw: unknown) {
   return immutable({ ...protocol, digest: designDigest(protocol) });
 }
 export type RC8Protocol = ReturnType<typeof prepareRC8Protocol>;
-export type PostE3Cell = RC1Cell | RC2Cell | RC3Cell | RC4Cell | RC5Cell | RC6Cell | RC7Cell | RC8Cell;
+export const RC9SelectionSchema = RC1SelectionSchema.extend({ stage: z.enum(["R9-D", "R9-H", "R9-N"]) }).strict();
+export const rc9Configuration = immutable({ ...rc8Configuration, observationContract: "semantics.v1" as const });
+export const rc9ModelProfile = immutable({ route: "ollama" as const, model: "qwen3.5:9b", thinking: false });
+export type RC9Cell = Omit<RC8Cell, "study" | "stage" | "configuration"> & {
+  study: "negotiation-r9";
+  stage: z.infer<typeof RC9SelectionSchema>["stage"];
+  configuration: typeof rc9Configuration;
+};
+/** New actor/configuration boundary; RC8 seeds, grants and outcomes remain closed. */
+export function prepareRC9Protocol(raw: unknown) {
+  const input = RC9SelectionSchema.parse(raw),
+    base = prepareRC8Protocol({ ...input, stage: input.stage.replace("R9-", "R8-") });
+  const cells: RC9Cell[] = base.cells.map(({ configurationDigest: _old, ...original }) => {
+    const worldSeed = createHash("sha256")
+      .update(
+        JSON.stringify([
+          "negotiation-r9",
+          input.stage,
+          original.family,
+          original.variant,
+          original.replicate,
+          input.seedNonce,
+        ]),
+      )
+      .digest("hex");
+    const cell = {
+      ...original,
+      study: "negotiation-r9" as const,
+      stage: input.stage,
+      id: original.id.replace("negotiation-r8:R8-", "negotiation-r9:R9-"),
+      worldSeed,
+      seed: Number.parseInt(worldSeed.slice(0, 8), 16),
+      configuration: rc9Configuration,
+    };
+    return { ...cell, configurationDigest: designDigest({ cell, designDigest: designDigest(design) }) };
+  });
+  const { digest: _old, ...prior } = base;
+  const protocol = {
+    ...prior,
+    schemaVersion: "fleet.rc9-protocol.v1" as const,
+    study: "negotiation-r9" as const,
+    selection: { ...input, batchNonce: base.selection.batchNonce },
+    configuration: rc9Configuration,
+    modelProfile: rc9ModelProfile,
+    cells,
+  };
+  return immutable({ ...protocol, digest: designDigest(protocol) });
+}
+export type RC9Protocol = ReturnType<typeof prepareRC9Protocol>;
+export type PostE3Cell = RC1Cell | RC2Cell | RC3Cell | RC4Cell | RC5Cell | RC6Cell | RC7Cell | RC8Cell | RC9Cell;
 export type PostE3Protocol =
   | RC1Protocol
   | RC2Protocol
@@ -357,7 +406,8 @@ export type PostE3Protocol =
   | RC5Protocol
   | RC6Protocol
   | RC7Protocol
-  | RC8Protocol;
+  | RC8Protocol
+  | RC9Protocol;
 export function validateRC2Cell(protocol: RC2Protocol, cell: RC2Cell) {
   const canonical = prepareRC2Protocol(protocol.selection);
   if (
@@ -414,7 +464,16 @@ export function validateRC8Cell(protocol: RC8Protocol, cell: RC8Cell) {
   )
     throw Error("RC8_UNPLANNED_OR_CHANGED_CELL");
 }
+export function validateRC9Cell(protocol: RC9Protocol, cell: RC9Cell) {
+  const canonical = prepareRC9Protocol(protocol.selection);
+  if (
+    designDigest(canonical) !== designDigest(protocol) ||
+    !canonical.cells.some((c) => designDigest(c) === designDigest(cell))
+  )
+    throw Error("RC9_UNPLANNED_OR_CHANGED_CELL");
+}
 export function validatePostE3Cell(protocol: PostE3Protocol, cell: PostE3Cell) {
+  if (protocol.study === "negotiation-r9" && cell.study === "negotiation-r9") return validateRC9Cell(protocol, cell);
   if (protocol.study === "negotiation-r8" && cell.study === "negotiation-r8") return validateRC8Cell(protocol, cell);
   if (protocol.study === "negotiation-r7" && cell.study === "negotiation-r7") return validateRC7Cell(protocol, cell);
   if (protocol.study === "negotiation-r6" && cell.study === "negotiation-r6") return validateRC6Cell(protocol, cell);
@@ -426,6 +485,7 @@ export function validatePostE3Cell(protocol: PostE3Protocol, cell: PostE3Cell) {
   throw Error("POST_E3_STUDY_MISMATCH");
 }
 export function canonicalPostE3Protocol(protocol: PostE3Protocol) {
+  if (protocol.study === "negotiation-r9") return prepareRC9Protocol(protocol.selection);
   if (protocol.study === "negotiation-r8") return prepareRC8Protocol(protocol.selection);
   if (protocol.study === "negotiation-r7") return prepareRC7Protocol(protocol.selection);
   if (protocol.study === "negotiation-r6") return prepareRC6Protocol(protocol.selection);

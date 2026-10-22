@@ -205,3 +205,12 @@ it("fails closed on invalid registered wake categories", () => {
     "PARTICIPANT_CATEGORY_REQUIRED",
   );
 });
+it("compacts only redundant participant wording while retaining identical native constraints", () => {
+  const before = contracts(context),
+    compact = contracts({ ...context, conciseInstructions: true });
+  expect(compact.schema).toEqual(before.schema);
+  expect(JSON.stringify(compact.prompt).length).toBeLessThan(JSON.stringify(before.prompt).length);
+  expect(compact.prompt.messages).toContain("delivered requests");
+  expect(compact.prompt.wakes).toContain("stated clock");
+  expect(compact.prompt.updates).toContain("not evidence");
+});

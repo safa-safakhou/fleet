@@ -12,6 +12,7 @@ import {
   type RC6Protocol,
   type RC7Protocol,
   type RC8Protocol,
+  type RC9Protocol,
 } from "./post-e3-rc2-plan.js";
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
@@ -35,7 +36,18 @@ export const RC7GrantSchema = RC1GrantSchema.extend({ schemaVersion: z.literal("
 export type RC7Grant = z.infer<typeof RC7GrantSchema>;
 export const RC8GrantSchema = RC1GrantSchema.extend({ schemaVersion: z.literal("fleet.rc8-grant.v1") }).strict();
 export type RC8Grant = z.infer<typeof RC8GrantSchema>;
-export type PostE3Grant = RC1Grant | RC2Grant | RC3Grant | RC4Grant | RC5Grant | RC6Grant | RC7Grant | RC8Grant;
+export const RC9GrantSchema = RC1GrantSchema.extend({ schemaVersion: z.literal("fleet.rc9-grant.v1") }).strict();
+export type RC9Grant = z.infer<typeof RC9GrantSchema>;
+export type PostE3Grant =
+  | RC1Grant
+  | RC2Grant
+  | RC3Grant
+  | RC4Grant
+  | RC5Grant
+  | RC6Grant
+  | RC7Grant
+  | RC8Grant
+  | RC9Grant;
 /** Validation is not an authorization source. Private operator grants and
  * platform policy approval are distinct from this pure scope/time check. */
 export function validateRC1Grant(protocol: RC1Protocol, raw: unknown, now: number, usedNonces: readonly string[] = []) {
@@ -70,6 +82,10 @@ export function validateRC8Grant(protocol: RC8Protocol, raw: unknown, now: numbe
   if (protocol.study !== "negotiation-r8") return { valid: false, reasons: ["POST_E3_STUDY_MISMATCH"] };
   return validatePostE3Grant(protocol, raw, now, usedNonces);
 }
+export function validateRC9Grant(protocol: RC9Protocol, raw: unknown, now: number, usedNonces: readonly string[] = []) {
+  if (protocol.study !== "negotiation-r9") return { valid: false, reasons: ["POST_E3_STUDY_MISMATCH"] };
+  return validatePostE3Grant(protocol, raw, now, usedNonces);
+}
 export function validatePostE3Grant(
   protocol: PostE3Protocol,
   raw: unknown,
@@ -85,21 +101,23 @@ export function validatePostE3Grant(
   }
   if (!canonical || designDigest(canonical) !== designDigest(protocol)) reasons.push("RC1_PROTOCOL_CHANGED");
   const parsed = (
-    protocol.study === "negotiation-r8"
-      ? RC8GrantSchema
-      : protocol.study === "negotiation-r7"
-        ? RC7GrantSchema
-        : protocol.study === "negotiation-r6"
-          ? RC6GrantSchema
-          : protocol.study === "negotiation-r5"
-            ? RC5GrantSchema
-            : protocol.study === "negotiation-r4"
-              ? RC4GrantSchema
-              : protocol.study === "negotiation-r3"
-                ? RC3GrantSchema
-                : protocol.study === "negotiation-r2"
-                  ? RC2GrantSchema
-                  : RC1GrantSchema
+    protocol.study === "negotiation-r9"
+      ? RC9GrantSchema
+      : protocol.study === "negotiation-r8"
+        ? RC8GrantSchema
+        : protocol.study === "negotiation-r7"
+          ? RC7GrantSchema
+          : protocol.study === "negotiation-r6"
+            ? RC6GrantSchema
+            : protocol.study === "negotiation-r5"
+              ? RC5GrantSchema
+              : protocol.study === "negotiation-r4"
+                ? RC4GrantSchema
+                : protocol.study === "negotiation-r3"
+                  ? RC3GrantSchema
+                  : protocol.study === "negotiation-r2"
+                    ? RC2GrantSchema
+                    : RC1GrantSchema
   ).safeParse(raw);
   if (!parsed.success) return { valid: false, reasons: [...reasons, "RC1_EXACT_GRANT_REQUIRED"] };
   const grant = parsed.data;

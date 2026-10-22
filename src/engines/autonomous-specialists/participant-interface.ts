@@ -11,6 +11,7 @@ export type ParticipantContractContext = {
   evidenceIds: readonly string[];
   knownRequestIds: readonly string[];
   conditionContracts: readonly ConditionContract[];
+  conciseInstructions?: boolean;
   temporalEvidence?: { eventCategories: readonly string[] };
 };
 /** Generation scope only. Native transactional ownership/time checks remain authoritative. */
@@ -152,11 +153,15 @@ export function participantGenerationContract(
         : {}),
       parentDeliveryIds: parents,
       recipients,
-      updates:
-        "Optional; omit if nothing durable changes. Support uses evidence.deliveredIds; new goal/memory IDs are not evidence.",
-      messages: "Use listed parents/other recipients. Reply only to their delivered request. Empty messages is valid.",
-      wakes:
-        "Use kind:event(category), deadline/periodic(at:{clockId,value}), reply(requestIndex or supplied requestId,deadline), or predicate per assessmentConditions. Use future times on the stated clock. Conditions claim no observed event or extra allowance.",
+      updates: context.conciseInstructions
+        ? "Optional. Support: evidence.deliveredIds; new state IDs are not evidence."
+        : "Optional; omit if nothing durable changes. Support uses evidence.deliveredIds; new goal/memory IDs are not evidence.",
+      messages: context.conciseInstructions
+        ? "Only listed parents/other recipients; reply to delivered requests. Empty is valid."
+        : "Use listed parents/other recipients. Reply only to their delivered request. Empty messages is valid.",
+      wakes: context.conciseInstructions
+        ? "Use typed schema and assessmentConditions; future times need the stated clock. Conditions claim no event or allowance."
+        : "Use kind:event(category), deadline/periodic(at:{clockId,value}), reply(requestIndex or supplied requestId,deadline), or predicate per assessmentConditions. Use future times on the stated clock. Conditions claim no observed event or extra allowance.",
     },
   };
 }

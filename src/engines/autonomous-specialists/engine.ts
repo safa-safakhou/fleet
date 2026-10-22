@@ -69,6 +69,15 @@ export class AutonomousSpecialistsEngine {
       learningMode = false;
     const budget = services.configuration.budget,
       config = { ...defaults, ...services.configuration.architectureConfig };
+    const observationSemantics =
+      services.configuration.architectureConfig.observationContract === "semantics.v1"
+        ? services.environment.observationSemantics
+        : undefined;
+    if (
+      services.configuration.architectureConfig.observationContract === "semantics.v1" &&
+      (typeof observationSemantics !== "string" || !observationSemantics.trim() || observationSemantics.length > 2048)
+    )
+      throw new FleetError("OBSERVATION_SEMANTICS_REQUIRED", true);
     if (config.skillMode === "guarded") {
       if (!services.skills?.tryKnownGoal) throw new FleetError("GUARDED_SKILLS_UNSUPPORTED", true);
       const routine = await services.skills.tryKnownGoal();
@@ -198,6 +207,7 @@ export class AutonomousSpecialistsEngine {
                 .map((r) => r.event?.metadata.replyToRequestId)
                 .filter((id): id is string => typeof id === "string" && z.uuid().safeParse(id).success),
               conditionContracts: services.environment.conditionContracts ?? [],
+              conciseInstructions: services.configuration.architectureConfig.observationContract === "semantics.v1",
               ...(services.configuration.architectureConfig.temporalEvidenceContract === "bounded.v1"
                 ? {
                     temporalEvidence: {
@@ -288,6 +298,7 @@ export class AutonomousSpecialistsEngine {
           : null,
         observation: modelObservation,
         actionSchemas: allowed,
+        ...(observationSemantics !== undefined ? { observationSemantics } : {}),
         ...(participantSchema.prompt ? { participantInterface: participantSchema.prompt } : {}),
         ...(services.configuration.architectureConfig.intentAuthorityContract === "separate.v1"
           ? {

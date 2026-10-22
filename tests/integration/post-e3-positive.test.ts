@@ -6,6 +6,7 @@ import {
   executeOwnedRC6Protocol,
   executeOwnedRC7Protocol,
   executeOwnedRC8Protocol,
+  executeOwnedRC9Protocol,
 } from "../../scripts/lib/post-e3-owned-run.js";
 import { SpecialistRepository } from "../../src/app/participant-services.js";
 import {
@@ -15,6 +16,7 @@ import {
   ownedRC6Fixture,
   ownedRC7Fixture,
   ownedRC8Fixture,
+  ownedRC9Fixture,
 } from "../fixtures/post-e3.js";
 import { positiveSpecialistProvider } from "../fixtures/post-e3-provider.js";
 
@@ -30,22 +32,31 @@ it.each([
   ["RC6 scoped participant contract", ownedRC6Fixture, executeOwnedRC6Protocol],
   ["RC7 temporal evidence contract", ownedRC7Fixture, executeOwnedRC7Protocol],
   ["RC8 bounded output profile", ownedRC8Fixture, executeOwnedRC8Protocol],
+  ["RC9 observation semantics", ownedRC9Fixture, executeOwnedRC9Protocol],
 ] as const)(
   "%s completes both positive families and role reversals through eight native participants, actual delivery and later decisions",
   async (_name, create, execute) => {
     f = await create();
     const fake = positiveSpecialistProvider();
-    if (_name.startsWith("RC5") || _name.startsWith("RC6") || _name.startsWith("RC7") || _name.startsWith("RC8")) {
+    if (
+      _name.startsWith("RC5") ||
+      _name.startsWith("RC6") ||
+      _name.startsWith("RC7") ||
+      _name.startsWith("RC8") ||
+      _name.startsWith("RC9")
+    ) {
       const originalDecide = fake.provider.decide;
       fake.provider.decide = async (request) => {
-        if (_name.startsWith("RC8"))
+        if (_name.startsWith("RC8") || _name.startsWith("RC9"))
           expect(request.model).toEqual({ route: "ollama", model: "qwen3.5:9b", thinking: false });
         const packet = JSON.parse(request.messages[1].content);
+        if (_name.startsWith("RC9"))
+          expect(packet.observationSemantics).toContain("stock, founding allowance, own production");
         expect(packet.intentAuthority?.ownerIntent).toBe("Objective/preferences, not an authorization grant.");
-        if (_name.startsWith("RC6") || _name.startsWith("RC7") || _name.startsWith("RC8")) {
+        if (_name.startsWith("RC6") || _name.startsWith("RC7") || _name.startsWith("RC8") || _name.startsWith("RC9")) {
           expect(packet.participantInterface).toBeDefined();
           if (
-            (_name.startsWith("RC7") || _name.startsWith("RC8")) &&
+            (_name.startsWith("RC7") || _name.startsWith("RC8") || _name.startsWith("RC9")) &&
             packet.participantInterface.mode === "scoped_update"
           )
             expect(packet.participantInterface.temporalEvidence).toContain("never their promises");

@@ -28,6 +28,7 @@ export interface EngineContext {
   schemas?: { observations: string[]; actions: string[] };
   specialistPresets?: import("./participant-state.js").SpecialistPreset[];
   conditionPredicates?: import("./wake-conditions.js").WakePredicates;
+  observationSemantics?: string;
   conditionContracts?: import("./contracts.js").ConditionContract[];
   waitSchema?: (observation: Observation) => Promise<Data | undefined>;
   validateWait?: (basis: Data, observation: Observation) => Promise<import("./contracts.js").ProposalValidation>;

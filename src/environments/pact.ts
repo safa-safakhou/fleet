@@ -78,6 +78,8 @@ export function createPactEnvironment(ports: {
   return {
     ref: { id: "pact", version: "1" },
     specialistPresets: pactSpecialistPresets,
+    observationSemantics:
+      "Amounts and rates are different. Supply goals need actual external delivery over the stated GAME window; stock, founding allowance, own production, quotes and signatures do not prove it.",
     specialistObservationPolicy: { id: "specialists", version: "1" },
     ...(ports.actionEffectsVersion ? { skillSupport: createPactSkillSupport() } : {}),
     instructions: pactAdapter.instructions,
