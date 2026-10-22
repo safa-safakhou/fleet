@@ -801,3 +801,84 @@ it.each([false, true])(
     expect(f.board.executions).toBe(0);
   },
 );
+
+it.each([false, true])(
+  "binds native participant shapes and prompt scope in actual HTTP generation enabled=%s",
+  async (enabled) => {
+    const f = await setup();
+    if (enabled)
+      await f.pool.query(
+        "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+        [f.group.id, { participantContract: "scoped.v1" }],
+      );
+    let calls = 0;
+    vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+      calls++;
+      const request = JSON.parse(String(init.body)),
+        packet = JSON.parse(request.messages[1].content),
+        accepts = new Ajv({ strict: false, validateFormats: false }).compile(request.format);
+      const parent = packet.inbox.records.find((r: { event: unknown; depth: number }) => r.event && r.depth < 4)?.id;
+      expect(parent).toBeTruthy();
+      const evidence = packet.evidence.deliveredIds[0],
+        foreign = "33333333-3333-4333-8333-333333333333";
+      const update = {
+        goals: [],
+        memories: [],
+        predictions: [],
+        plan: null,
+        messages: [
+          {
+            to: "diplomacy",
+            kind: "publish",
+            text: "Current input only",
+            parentDeliveryId: parent,
+            evidenceIds: [evidence],
+          },
+        ],
+        wakeConditions: [{ kind: "event", category: "resource" }],
+      };
+      const wrap = (u: unknown) => ({
+        decision: { kind: "wait", summary: "No new permission or delivery claimed" },
+        update: u,
+      });
+      expect(accepts(wrap(update))).toBe(true);
+      expect(accepts(wrap({ ...update, messages: [{ ...update.messages[0], parentDeliveryId: foreign }] }))).toBe(
+        !enabled,
+      );
+      expect(accepts(wrap({ ...update, messages: [{ ...update.messages[0], to: "resources" }] }))).toBe(!enabled);
+      expect(
+        accepts(
+          wrap({
+            ...update,
+            wakeConditions: [{ type: "offer", sourceRef: "invented", observedAt: "2026-10-22T19:00:00Z" }],
+          }),
+        ),
+      ).toBe(!enabled);
+      if (enabled) {
+        expect(packet.participantInterface.parentDeliveryIds).toContain(parent);
+        expect(packet.participantInterface.recipients).toContain("diplomacy");
+        expect(packet.participantInterface.recipients).not.toContain("resources");
+      } else expect(packet).not.toHaveProperty("participantInterface");
+      return new Response(
+        JSON.stringify({
+          message: {
+            role: "assistant",
+            content: JSON.stringify({ decision: { kind: "wait", summary: "No update required" } }),
+          },
+          done: true,
+          done_reason: "stop",
+          prompt_eval_count: 10,
+          eval_count: 10,
+        }),
+      );
+    });
+    const [id] = await f.enqueue("resource"),
+      claim = await f.tasks.claim("participant-contract", f.now(), id);
+    if (!claim) throw Error("CLAIM_REQUIRED");
+    await f
+      .host(new HttpModel({ ollama: "http://provider.invalid" }, undefined), undefined, {}, f.store.architectures)
+      .host.run(claim);
+    expect(calls).toBe(1);
+    expect(f.board.executions).toBe(0);
+  },
+);

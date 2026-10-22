@@ -2,7 +2,6 @@ import type { BudgetConfig, Data, ModelPort, ModelSettings, Tool } from "../doma
 import type { ArchitectureRef } from "./architecture.js";
 
 export type { ActionEffects } from "./action-effects.js";
-
 export type {
   ParticipantStatePort,
   SpecialistCharter,
@@ -13,6 +12,7 @@ export type {
   SpecialistState,
 } from "./participant-state.js";
 export { SpecialistEnvelopeSchema, SpecialistGoalSchema, SpecialistMemorySchema } from "./participant-state.js";
+export { WakeConditionSchema } from "./wake-conditions.js";
 
 import type {
   AccountObjective,

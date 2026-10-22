@@ -16,7 +16,7 @@ const singles = [
 /** Structural JSON Schema factoring only. Literal const/enum/example values are
  * never traversed as schemas. Accepted outputs and every numeric/enum bound stay exact.
  */
-export function shareGenerationSchema(input: Data): Data {
+export function shareGenerationSchema(input: Data, options: { inlineSingleUse?: boolean } = {}): Data {
   const root = structuredClone(input),
     counts = new Map<string, { count: number; node: Data }>();
   function children(node: Data, visit: (child: Data) => Data): Data {
@@ -62,11 +62,51 @@ export function shareGenerationSchema(input: Data): Data {
       name = names.get(key);
     return name && key !== skip ? { $ref: `#/$defs/${name}` } : children(node, (child) => rewrite(child));
   }
-  const result = rewrite(root, JSON.stringify(root));
+  let result = rewrite(root, JSON.stringify(root));
   result.$defs = {
     ...object(result.$defs),
     ...Object.fromEntries(candidates.map(([key, { node }]) => [names.get(key) ?? "invalid", rewrite(node, key)])),
   };
+  if (options.inlineSingleUse) {
+    const generated = new Set(names.values());
+    while (generated.size) {
+      const references = new Map<string, number>(),
+        nonBare = new Set<string>();
+      const visit = (node: Data): Data => {
+        if (typeof node.$ref === "string" && node.$ref.startsWith("#/$defs/")) {
+          const name = node.$ref.slice(8);
+          if (generated.has(name)) {
+            references.set(name, (references.get(name) ?? 0) + 1);
+            if (Object.keys(node).length !== 1) nonBare.add(name);
+          }
+        }
+        children(node, visit);
+        return node;
+      };
+      visit(result);
+      const scoped = (node: Data): boolean => {
+        let found = ["$id", "$anchor", "$dynamicAnchor"].some((key) => node[key] !== undefined);
+        children(node, (child) => {
+          found ||= scoped(child);
+          return child;
+        });
+        return found;
+      };
+      const candidate = [...generated].find(
+        (name) => (references.get(name) ?? 0) <= 1 && !nonBare.has(name) && !scoped(object(object(result.$defs)[name])),
+      );
+      if (!candidate) break;
+      const definition = object(object(result.$defs)[candidate]);
+      delete object(result.$defs)[candidate];
+      generated.delete(candidate);
+      const inline = (node: Data): Data =>
+        node.$ref === `#/$defs/${candidate}` && Object.keys(node).length === 1
+          ? structuredClone(definition)
+          : children(node, inline);
+      result = inline(result);
+    }
+    if (!Object.keys(object(result.$defs)).length) delete result.$defs;
+  }
   // Factoring is optional; use it only when it actually reduces serialized input.
   return JSON.stringify(result).length < JSON.stringify(root).length ? result : root;
 }

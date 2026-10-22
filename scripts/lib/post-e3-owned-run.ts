@@ -105,6 +105,10 @@ export function executeOwnedRC5Protocol(protocol: PostE3Protocol, grant: PostE3G
   if (protocol.study !== "negotiation-r5") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
   return executeOwnedPostE3Protocol(protocol, grant, d);
 }
+export function executeOwnedRC6Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
+  if (protocol.study !== "negotiation-r6") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
+  return executeOwnedPostE3Protocol(protocol, grant, d);
+}
 async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
   const check = validatePostE3Grant(protocol, grant, Date.now());
   if (!check.valid) throw new FleetError(check.reasons[0] ?? "RC1_GRANT_REQUIRED", true);
@@ -167,15 +171,17 @@ async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE
   if (parkFailed) throw new FleetError("RC1_PARK_FAILED", true);
   const result = {
     schemaVersion:
-      protocol.study === "negotiation-r5"
-        ? "fleet.rc5-batch.v1"
-        : protocol.study === "negotiation-r4"
-          ? "fleet.rc4-batch.v1"
-          : protocol.study === "negotiation-r3"
-            ? "fleet.rc3-batch.v1"
-            : protocol.study === "negotiation-r2"
-              ? "fleet.rc2-batch.v1"
-              : "fleet.rc1-batch.v1",
+      protocol.study === "negotiation-r6"
+        ? "fleet.rc6-batch.v1"
+        : protocol.study === "negotiation-r5"
+          ? "fleet.rc5-batch.v1"
+          : protocol.study === "negotiation-r4"
+            ? "fleet.rc4-batch.v1"
+            : protocol.study === "negotiation-r3"
+              ? "fleet.rc3-batch.v1"
+              : protocol.study === "negotiation-r2"
+                ? "fleet.rc2-batch.v1"
+                : "fleet.rc1-batch.v1",
     protocolDigest: protocol.digest,
     batchNonce: grant.batchNonce,
     status: stopped ? ("stopped" as const) : ("complete" as const),
@@ -668,3 +674,5 @@ export const prepareOwnedRC3Cohort = prepareOwnedRC1Cohort;
 export const prepareOwnedRC4Cohort = prepareOwnedRC1Cohort;
 
 export const prepareOwnedRC5Cohort = prepareOwnedRC1Cohort;
+
+export const prepareOwnedRC6Cohort = prepareOwnedRC1Cohort;

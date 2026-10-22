@@ -731,15 +731,17 @@ export function summarizePostE3Negotiation(protocol: PostE3Protocol, assessments
   if (!assessments.length)
     return {
       schemaVersion:
-        protocol.study === "negotiation-r5"
-          ? "fleet.rc5-summary.v1"
-          : protocol.study === "negotiation-r4"
-            ? "fleet.rc4-summary.v1"
-            : protocol.study === "negotiation-r3"
-              ? "fleet.rc3-summary.v1"
-              : protocol.study === "negotiation-r2"
-                ? "fleet.rc2-summary.v1"
-                : "fleet.rc1-summary.v1",
+        protocol.study === "negotiation-r6"
+          ? "fleet.rc6-summary.v1"
+          : protocol.study === "negotiation-r5"
+            ? "fleet.rc5-summary.v1"
+            : protocol.study === "negotiation-r4"
+              ? "fleet.rc4-summary.v1"
+              : protocol.study === "negotiation-r3"
+                ? "fleet.rc3-summary.v1"
+                : protocol.study === "negotiation-r2"
+                  ? "fleet.rc2-summary.v1"
+                  : "fleet.rc1-summary.v1",
       stage: protocol.selection.stage,
       assigned: protocol.cells.length,
       passed: 0,
@@ -766,19 +768,21 @@ export function summarizePostE3Negotiation(protocol: PostE3Protocol, assessments
     ...summarizeCells(
       assessments,
       protocol.cells,
-      ["R1-H", "R2-H", "R3-H", "R4-H", "R5-H"].includes(protocol.selection.stage),
+      ["R1-H", "R2-H", "R3-H", "R4-H", "R5-H", "R6-H"].includes(protocol.selection.stage),
       true,
     ),
     schemaVersion:
-      protocol.study === "negotiation-r5"
-        ? "fleet.rc5-summary.v1"
-        : protocol.study === "negotiation-r4"
-          ? "fleet.rc4-summary.v1"
-          : protocol.study === "negotiation-r3"
-            ? "fleet.rc3-summary.v1"
-            : protocol.study === "negotiation-r2"
-              ? "fleet.rc2-summary.v1"
-              : "fleet.rc1-summary.v1",
+      protocol.study === "negotiation-r6"
+        ? "fleet.rc6-summary.v1"
+        : protocol.study === "negotiation-r5"
+          ? "fleet.rc5-summary.v1"
+          : protocol.study === "negotiation-r4"
+            ? "fleet.rc4-summary.v1"
+            : protocol.study === "negotiation-r3"
+              ? "fleet.rc3-summary.v1"
+              : protocol.study === "negotiation-r2"
+                ? "fleet.rc2-summary.v1"
+                : "fleet.rc1-summary.v1",
     productionQualified: false as const,
   };
 }

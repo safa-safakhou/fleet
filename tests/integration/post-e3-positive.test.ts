@@ -3,9 +3,10 @@ import {
   executeOwnedRC2Protocol,
   executeOwnedRC3Protocol,
   executeOwnedRC5Protocol,
+  executeOwnedRC6Protocol,
 } from "../../scripts/lib/post-e3-owned-run.js";
 import { SpecialistRepository } from "../../src/app/participant-services.js";
-import { ownedRC2Fixture, ownedRC3Fixture, ownedRC5Fixture } from "../fixtures/post-e3.js";
+import { ownedRC2Fixture, ownedRC3Fixture, ownedRC5Fixture, ownedRC6Fixture } from "../fixtures/post-e3.js";
 import { positiveSpecialistProvider } from "../fixtures/post-e3-provider.js";
 
 let f: Awaited<ReturnType<typeof ownedRC2Fixture>> | undefined;
@@ -17,16 +18,22 @@ it.each([
   ["legacy RC2", ownedRC2Fixture, executeOwnedRC2Protocol],
   ["explicit environment read contract", ownedRC3Fixture, executeOwnedRC3Protocol],
   ["RC5 objective and authority separation", ownedRC5Fixture, executeOwnedRC5Protocol],
+  ["RC6 scoped participant contract", ownedRC6Fixture, executeOwnedRC6Protocol],
 ] as const)(
   "%s completes both positive families and role reversals through eight native participants, actual delivery and later decisions",
   async (_name, create, execute) => {
     f = await create();
     const fake = positiveSpecialistProvider();
-    if (_name.startsWith("RC5")) {
+    if (_name.startsWith("RC5") || _name.startsWith("RC6")) {
       const originalDecide = fake.provider.decide;
       fake.provider.decide = async (request) => {
         const packet = JSON.parse(request.messages[1].content);
         expect(packet.intentAuthority?.ownerIntent).toBe("Objective/preferences, not an authorization grant.");
+        if (_name.startsWith("RC6")) {
+          expect(packet.participantInterface).toBeDefined();
+          if (packet.participantInterface.mode === "scoped_update")
+            expect(packet.participantInterface.recipients).not.toContain(packet.specialist.id);
+        }
         const goal = JSON.parse(packet.specialist.ownerIntent);
         expect(goal.quantityUnit).toBe("whole resource units");
         expect(goal.timeUnit).toBe("GAME hour");

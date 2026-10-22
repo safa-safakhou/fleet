@@ -131,10 +131,10 @@ for (const name of await readdir(join(out, "node_modules/@pact")))
   await cp(join(out, "node_modules/@pact", name), join(out, "pact/packages", name), { recursive: true });
 await mkdir(join(out, "controller"));
 await cp(options["--node"], join(out, "controller/node"));
-const { rc5Configuration } = await import("../dist/negotiation/fleet/src/post-e3-rc2-plan.js");
+const { rc6Configuration } = await import("../dist/negotiation/fleet/src/post-e3-rc2-plan.js");
 const settings = {
-  schemaVersion: "fleet.rc5-native-settings.v1",
-  study: "negotiation-r5",
+  schemaVersion: "fleet.rc6-native-settings.v1",
+  study: "negotiation-r6",
   sources: sourcePins,
   actorSources: sourcePins,
   controller: {
@@ -142,7 +142,7 @@ const settings = {
     nodeVersion: execFileSync(options["--node"], ["--version"], { encoding: "utf8" }).trim(),
     nodeSha256: await sha(options["--node"]),
   },
-  architecture: { id: "autonomous-specialists", version: "1", configuration: rc5Configuration },
+  architecture: { id: "autonomous-specialists", version: "1", configuration: rc6Configuration },
   provider: {
     existingServiceOnly: true,
     route: "http://127.0.0.1:11434",
@@ -168,8 +168,8 @@ const settings = {
   activation: false,
 };
 const policy = {
-  schemaVersion: "fleet.rc5-native-policy.v1",
-  study: "negotiation-r5",
+  schemaVersion: "fleet.rc6-native-policy.v1",
+  study: "negotiation-r6",
   sources: sourcePins,
   model: descriptor.model,
   scope: "new_owned_synthetic_worlds",

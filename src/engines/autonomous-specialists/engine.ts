@@ -15,6 +15,7 @@ import { LearningPolicy } from "./learning.js";
 import { defaults, manifest } from "./manifest.js";
 import { selectSpecialistContext } from "./memory.js";
 import { InternalMessageSchema } from "./messaging.js";
+import { participantGenerationContract } from "./participant-interface.js";
 import { route } from "./routing.js";
 
 const Update = SpecialistEnvelopeSchema.omit({ intent: true, deliveryIds: true }).extend({
@@ -183,7 +184,23 @@ export class AutonomousSpecialistsEngine {
             }
           : environmentReadSchema
         : undefined;
-      let schema = shareGenerationSchema(
+      const bindParticipants = (candidateSchema: Data) =>
+        services.configuration.architectureConfig.participantContract === "scoped.v1"
+          ? participantGenerationContract(candidateSchema, {
+              specialistId: state.charter.id,
+              recipientIds:
+                services.environment.specialistPresets
+                  ?.find((preset) => preset.id === config.preset)
+                  ?.roles.map((role) => role.charter.id) ?? [],
+              deliveries: inbox.records,
+              evidenceIds: evidence.deliveredIds,
+              knownRequestIds: inbox.records
+                .map((r) => r.event?.metadata.replyToRequestId)
+                .filter((id): id is string => typeof id === "string" && z.uuid().safeParse(id).success),
+              conditionContracts: services.environment.conditionContracts ?? [],
+            })
+          : { schema: candidateSchema, prompt: undefined };
+      const participantSchema = bindParticipants(
         bindActionContracts(
           baseSchema,
           allowed,
@@ -192,6 +209,9 @@ export class AutonomousSpecialistsEngine {
           readQuerySchema,
         ),
       );
+      let schema = shareGenerationSchema(participantSchema.schema, {
+        inlineSingleUse: services.configuration.architectureConfig.participantContract === "scoped.v1",
+      });
       const opportunities = new LearningPolicy().opportunities(
         originals,
         Boolean(config.learning && services.skills),
@@ -258,6 +278,7 @@ export class AutonomousSpecialistsEngine {
           : null,
         observation: modelObservation,
         actionSchemas: allowed,
+        ...(participantSchema.prompt ? { participantInterface: participantSchema.prompt } : {}),
         ...(services.configuration.architectureConfig.intentAuthorityContract === "separate.v1"
           ? {
               intentAuthority: {
@@ -331,7 +352,10 @@ export class AutonomousSpecialistsEngine {
         if (!(error instanceof FleetError) || error.code !== "SPECIALIST_CONTEXT_INCOMPLETE" || !wholeEvidenceAvailable)
           throw error;
         evidenceReviewOnly = true;
-        schema = shareGenerationSchema(bindActionContracts(baseSchema, [], [], waitSchema, readQuerySchema));
+        schema = shareGenerationSchema(
+          bindParticipants(bindActionContracts(baseSchema, [], [], waitSchema, readQuerySchema)).schema,
+          { inlineSingleUse: services.configuration.architectureConfig.participantContract === "scoped.v1" },
+        );
         packet.actionSchemas = [];
         packet.observation = {
           schemaId: observation.schemaId,
