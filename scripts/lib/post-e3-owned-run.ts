@@ -33,7 +33,12 @@ import { EnvironmentRegistry } from "../../src/platform/environment-registry.js"
 import { CommandExecutor } from "../../src/platform/execution.js";
 import { OperationSupervisor, PlatformHost } from "../../src/platform/supervisor.js";
 import { type TaskClaim, TaskStore } from "../../src/platform/tasks.js";
-import { type PostE3Cell, type PostE3Protocol, validatePostE3Cell } from "../../src/post-e3-rc2-plan.js";
+import {
+  type PostE3Cell,
+  type PostE3Protocol,
+  rc8ModelProfile,
+  validatePostE3Cell,
+} from "../../src/post-e3-rc2-plan.js";
 import { type PostE3Grant, validatePostE3Grant } from "../../src/post-e3-run.js";
 import type { Store } from "../../src/store.js";
 import { nativeCompletionReady } from "./negotiation-native-run.js";
@@ -50,6 +55,8 @@ export async function prepareOwnedRC1Cohort(
   evidenceRef: string,
   keyRef: string,
 ): Promise<PreparedPostE3Cell> {
+  if (cell.study === "negotiation-r8" && designDigest(model) !== designDigest(rc8ModelProfile))
+    throw new FleetError("RC8_MODEL_PROFILE_REQUIRED", true);
   const p = await prepareOwnedNegotiationCohort(store, world, control, cell, model, fixtureNonce, evidenceRef, keyRef);
   await store.pool.query(
     "UPDATE cohort_engine_profiles SET architecture_config=$2,non_model_limits=$3 WHERE cohort_id=$1",
@@ -113,7 +120,16 @@ export function executeOwnedRC7Protocol(protocol: PostE3Protocol, grant: PostE3G
   if (protocol.study !== "negotiation-r7") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
   return executeOwnedPostE3Protocol(protocol, grant, d);
 }
+export function executeOwnedRC8Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
+  if (protocol.study !== "negotiation-r8") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
+  return executeOwnedPostE3Protocol(protocol, grant, d);
+}
 async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
+  if (
+    protocol.study === "negotiation-r8" &&
+    d.prepared.some((p) => designDigest(p.model) !== designDigest(rc8ModelProfile))
+  )
+    throw new FleetError("RC8_MODEL_PROFILE_REQUIRED", true);
   const check = validatePostE3Grant(protocol, grant, Date.now());
   if (!check.valid) throw new FleetError(check.reasons[0] ?? "RC1_GRANT_REQUIRED", true);
   const nonces = new NegotiationNonceStore(d.store);
@@ -175,19 +191,21 @@ async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE
   if (parkFailed) throw new FleetError("RC1_PARK_FAILED", true);
   const result = {
     schemaVersion:
-      protocol.study === "negotiation-r7"
-        ? "fleet.rc7-batch.v1"
-        : protocol.study === "negotiation-r6"
-          ? "fleet.rc6-batch.v1"
-          : protocol.study === "negotiation-r5"
-            ? "fleet.rc5-batch.v1"
-            : protocol.study === "negotiation-r4"
-              ? "fleet.rc4-batch.v1"
-              : protocol.study === "negotiation-r3"
-                ? "fleet.rc3-batch.v1"
-                : protocol.study === "negotiation-r2"
-                  ? "fleet.rc2-batch.v1"
-                  : "fleet.rc1-batch.v1",
+      protocol.study === "negotiation-r8"
+        ? "fleet.rc8-batch.v1"
+        : protocol.study === "negotiation-r7"
+          ? "fleet.rc7-batch.v1"
+          : protocol.study === "negotiation-r6"
+            ? "fleet.rc6-batch.v1"
+            : protocol.study === "negotiation-r5"
+              ? "fleet.rc5-batch.v1"
+              : protocol.study === "negotiation-r4"
+                ? "fleet.rc4-batch.v1"
+                : protocol.study === "negotiation-r3"
+                  ? "fleet.rc3-batch.v1"
+                  : protocol.study === "negotiation-r2"
+                    ? "fleet.rc2-batch.v1"
+                    : "fleet.rc1-batch.v1",
     protocolDigest: protocol.digest,
     batchNonce: grant.batchNonce,
     status: stopped ? ("stopped" as const) : ("complete" as const),
@@ -684,3 +702,5 @@ export const prepareOwnedRC5Cohort = prepareOwnedRC1Cohort;
 export const prepareOwnedRC6Cohort = prepareOwnedRC1Cohort;
 
 export const prepareOwnedRC7Cohort = prepareOwnedRC1Cohort;
+
+export const prepareOwnedRC8Cohort = prepareOwnedRC1Cohort;
