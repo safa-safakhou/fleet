@@ -7,6 +7,7 @@ import {
   type PostE3Protocol,
   type RC2Protocol,
   type RC3Protocol,
+  type RC4Protocol,
 } from "./post-e3-rc2-plan.js";
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
@@ -20,7 +21,9 @@ export const RC2GrantSchema = RC1GrantSchema.extend({ schemaVersion: z.literal("
 export type RC2Grant = z.infer<typeof RC2GrantSchema>;
 export const RC3GrantSchema = RC1GrantSchema.extend({ schemaVersion: z.literal("fleet.rc3-grant.v1") }).strict();
 export type RC3Grant = z.infer<typeof RC3GrantSchema>;
-export type PostE3Grant = RC1Grant | RC2Grant | RC3Grant;
+export const RC4GrantSchema = RC1GrantSchema.extend({ schemaVersion: z.literal("fleet.rc4-grant.v1") }).strict();
+export type RC4Grant = z.infer<typeof RC4GrantSchema>;
+export type PostE3Grant = RC1Grant | RC2Grant | RC3Grant | RC4Grant;
 /** Validation is not an authorization source. Private operator grants and
  * platform policy approval are distinct from this pure scope/time check. */
 export function validateRC1Grant(protocol: RC1Protocol, raw: unknown, now: number, usedNonces: readonly string[] = []) {
@@ -33,6 +36,10 @@ export function validateRC2Grant(protocol: RC2Protocol, raw: unknown, now: numbe
 }
 export function validateRC3Grant(protocol: RC3Protocol, raw: unknown, now: number, usedNonces: readonly string[] = []) {
   if (protocol.study !== "negotiation-r3") return { valid: false, reasons: ["POST_E3_STUDY_MISMATCH"] };
+  return validatePostE3Grant(protocol, raw, now, usedNonces);
+}
+export function validateRC4Grant(protocol: RC4Protocol, raw: unknown, now: number, usedNonces: readonly string[] = []) {
+  if (protocol.study !== "negotiation-r4") return { valid: false, reasons: ["POST_E3_STUDY_MISMATCH"] };
   return validatePostE3Grant(protocol, raw, now, usedNonces);
 }
 export function validatePostE3Grant(
@@ -50,11 +57,13 @@ export function validatePostE3Grant(
   }
   if (!canonical || designDigest(canonical) !== designDigest(protocol)) reasons.push("RC1_PROTOCOL_CHANGED");
   const parsed = (
-    protocol.study === "negotiation-r3"
-      ? RC3GrantSchema
-      : protocol.study === "negotiation-r2"
-        ? RC2GrantSchema
-        : RC1GrantSchema
+    protocol.study === "negotiation-r4"
+      ? RC4GrantSchema
+      : protocol.study === "negotiation-r3"
+        ? RC3GrantSchema
+        : protocol.study === "negotiation-r2"
+          ? RC2GrantSchema
+          : RC1GrantSchema
   ).safeParse(raw);
   if (!parsed.success) return { valid: false, reasons: [...reasons, "RC1_EXACT_GRANT_REQUIRED"] };
   const grant = parsed.data;

@@ -97,6 +97,10 @@ export function executeOwnedRC3Protocol(protocol: PostE3Protocol, grant: PostE3G
   if (protocol.study !== "negotiation-r3") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
   return executeOwnedPostE3Protocol(protocol, grant, d);
 }
+export function executeOwnedRC4Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
+  if (protocol.study !== "negotiation-r4") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
+  return executeOwnedPostE3Protocol(protocol, grant, d);
+}
 async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
   const check = validatePostE3Grant(protocol, grant, Date.now());
   if (!check.valid) throw new FleetError(check.reasons[0] ?? "RC1_GRANT_REQUIRED", true);
@@ -159,11 +163,13 @@ async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE
   if (parkFailed) throw new FleetError("RC1_PARK_FAILED", true);
   const result = {
     schemaVersion:
-      protocol.study === "negotiation-r3"
-        ? "fleet.rc3-batch.v1"
-        : protocol.study === "negotiation-r2"
-          ? "fleet.rc2-batch.v1"
-          : "fleet.rc1-batch.v1",
+      protocol.study === "negotiation-r4"
+        ? "fleet.rc4-batch.v1"
+        : protocol.study === "negotiation-r3"
+          ? "fleet.rc3-batch.v1"
+          : protocol.study === "negotiation-r2"
+            ? "fleet.rc2-batch.v1"
+            : "fleet.rc1-batch.v1",
     protocolDigest: protocol.digest,
     batchNonce: grant.batchNonce,
     status: stopped ? ("stopped" as const) : ("complete" as const),
@@ -652,3 +658,5 @@ async function runCell(protocol: PostE3Protocol, grant: PostE3Grant, p: Prepared
 export const prepareOwnedRC2Cohort = prepareOwnedRC1Cohort;
 
 export const prepareOwnedRC3Cohort = prepareOwnedRC1Cohort;
+
+export const prepareOwnedRC4Cohort = prepareOwnedRC1Cohort;

@@ -1,0 +1,38 @@
+import { expect, it } from "vitest";
+import * as native from "../../scripts/lib/post-e3-native-provider.js";
+
+const pinned = {
+  route: "http://127.0.0.1:11434",
+  version: "0.35.1",
+  pid: 1234,
+  startTicks: "9999",
+  serviceStart: "1234567",
+  executable: "/synthetic/ollama/bin/ollama",
+  command: ["/synthetic/ollama/bin/ollama", "serve"],
+  listenerPids: [1234],
+  model: "nemotron-3-nano:4b",
+  modelDigest: "a".repeat(64),
+};
+it("binds the existing native service without admitting inference or server management", () => {
+  expect(native.validateNativeProviderIdentity).toBeTypeOf("function");
+  expect(() => native.validateNativeProviderIdentity(pinned, structuredClone(pinned))).not.toThrow();
+});
+it.each([
+  { pid: 2345 },
+  { startTicks: "10000" },
+  { serviceStart: "1234568" },
+  { executable: "/replacement/ollama" },
+  { command: ["/synthetic/ollama/bin/ollama", "serve", "extra"] },
+  { listenerPids: [1234, 2345] },
+  { modelDigest: "b".repeat(64) },
+  { version: "0.35.2" },
+  { route: "http://127.0.0.1:11436" },
+])("refuses native provider identity drift: %j", (change) => {
+  expect(native.validateNativeProviderIdentity).toBeTypeOf("function");
+  expect(() => native.validateNativeProviderIdentity(pinned, { ...pinned, ...change })).toThrow();
+});
+it("refuses a malformed baseline instead of trusting two identical invalid identities", () => {
+  expect(native.validateNativeProviderIdentity).toBeTypeOf("function");
+  const bad = { ...pinned, listenerPids: [] };
+  expect(() => native.validateNativeProviderIdentity(bad, bad)).toThrow();
+});
