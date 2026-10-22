@@ -250,8 +250,22 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
   }
   const attention = object(compact.socialAttention),
     records = Array.isArray(attention.records) ? attention.records : [];
+  const setSocialRecords = (selected: unknown[]) => {
+    const sourceCoverage = object(attention.coverage);
+    environment.socialAttention = {
+      ...attention,
+      records: selected,
+      coverage: {
+        ...sourceCoverage,
+        sourceComplete: sourceCoverage.complete,
+        complete: sourceCoverage.complete === true && selected.length === records.length,
+        delivered: selected.length,
+        omittedFromThisInput: records.length - selected.length,
+      },
+    };
+  };
   if (compact.socialAttention !== undefined) {
-    environment.socialAttention = { ...attention, records: [] };
+    setSocialRecords([]);
     const omittedIndex = omitted.indexOf("socialAttention");
     if (omittedIndex >= 0) omitted.splice(omittedIndex, 1);
     pages.socialAttention = { observed: records.length, delivered: 0, omitted: records.length };
@@ -269,11 +283,12 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
       selected: unknown[] = [];
     for (const record of records) {
       selected.push(record);
-      if (key === "socialAttention") object(environment.socialAttention).records = selected;
+      if (key === "socialAttention") setSocialRecords(selected);
       else environment[key] = selected;
       pages[key] = { observed: records.length, delivered: selected.length, omitted: records.length - selected.length };
       if (bytes() > byteLimit) {
         selected.pop();
+        if (key === "socialAttention") setSocialRecords(selected);
         pages[key] = {
           observed: records.length,
           delivered: selected.length,

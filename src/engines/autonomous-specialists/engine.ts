@@ -258,6 +258,15 @@ export class AutonomousSpecialistsEngine {
           : null,
         observation: modelObservation,
         actionSchemas: allowed,
+        ...(readQuerySchema
+          ? {
+              readInterface: {
+                querySchema: readQuerySchema,
+                meaning:
+                  "Read queries request authorized observations only. Schemas describe supported shapes, not permission. A read sends no message and performs no action.",
+              },
+            }
+          : {}),
         coverage: { omitted: [] as string[], metadataOnlyOriginalsOmitted: withheldMetadata.map((o) => o.id) },
       };
       let evidenceReviewOnly = false;

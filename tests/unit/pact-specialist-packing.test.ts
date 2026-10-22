@@ -101,3 +101,65 @@ it("keeps mandatory own goal/stock/authority/building/training facts and whole s
   expect(iron).not.toHaveProperty("releaseSchedule");
   expect(iron).not.toHaveProperty("reservationCount");
 });
+
+it.each([
+  { name: "empty complete source", complete: true, texts: [], delivered: 0, expectedComplete: true },
+  { name: "unknown source completeness", complete: undefined, texts: [], delivered: 0, expectedComplete: false },
+  { name: "fully omitted page", complete: true, texts: ["x".repeat(10000)], delivered: 0, expectedComplete: false },
+  {
+    name: "partially delivered page",
+    complete: true,
+    texts: ["small", "x".repeat(10000)],
+    delivered: 1,
+    expectedComplete: false,
+  },
+  { name: "fully delivered page", complete: true, texts: ["first", "second"], delivered: 2, expectedComplete: true },
+  {
+    name: "already incomplete source",
+    complete: false,
+    texts: ["first", "second"],
+    delivered: 2,
+    expectedComplete: false,
+  },
+])(
+  "reports actual nested social coverage for $name without changing the source",
+  ({ complete, texts, delivered, expectedComplete }) => {
+    const input: Observation = {
+      schemaId: "pact.observation.specialists.v1",
+      revision: "synthetic",
+      observedAt: "2026-10-22T00:00:00Z",
+      environmentTime: { clockId: "pact.game-time-ms", value: "0" },
+      sourceRefs: ["synthetic-social-page"],
+      payload: {
+        world: { profile: { kingdomId: "owner" }, balances: {}, authority: { allowedActions: [], resources: {} } },
+        socialAttention: {
+          records: texts.map((text, index) => ({ id: `social-${index}`, text })),
+          coverage: {
+            ...(complete === undefined ? {} : { complete }),
+            delivered: texts.length,
+            cursor: "source-cursor",
+          },
+        },
+      },
+      coverage: { authorizedView: true },
+    };
+    const original = structuredClone(input),
+      packed = packPactObservation(input, 4000),
+      attention = (packed.payload.environment as Data).socialAttention as Data;
+    expect(attention.records).toEqual(
+      texts.slice(0, delivered).map((text, index) => ({ id: `social-${index}`, text })),
+    );
+    expect(attention.coverage).toEqual({
+      ...(complete === undefined ? {} : { sourceComplete: complete }),
+      complete: expectedComplete,
+      delivered,
+      omittedFromThisInput: texts.length - delivered,
+      cursor: "source-cursor",
+    });
+    expect(packed.coverage.pages).toMatchObject({
+      socialAttention: { observed: texts.length, delivered, omitted: texts.length - delivered },
+    });
+    expect(Buffer.byteLength(JSON.stringify(packed))).toBeLessThanOrEqual(4000);
+    expect(input).toEqual(original);
+  },
+);

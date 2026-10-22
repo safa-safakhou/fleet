@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { Ajv } from "ajv";
-import { afterEach, expect, it } from "vitest";
+import { afterEach, expect, it, vi } from "vitest";
 import { SpecialistRepository } from "../../src/app/participant-services.js";
 import { ParticipantWork } from "../../src/app/participant-work.js";
 import { transaction } from "../../src/db.js";
 import type { Data } from "../../src/domain.js";
+import { HttpModel } from "../../src/model.js";
 import { LaunchService } from "../../src/platform/launch.js";
 import { enableBoardEffects } from "../fixtures/environments/specialist-board.js";
 import { candidate } from "../fixtures/skills/candidate.js";
@@ -12,6 +13,7 @@ import { platformFixture } from "../platform-helpers.js";
 
 let end: (() => Promise<void>) | undefined;
 afterEach(async () => {
+  vi.unstubAllGlobals();
   await end?.();
   end = undefined;
 });
@@ -622,6 +624,7 @@ it.each([false, true])(
         [f.group.id, { readQueryContract: "environment.v1" }],
       );
     const readQuerySchema = {
+      description: "Inspect an advertised square in the current authorized board position.",
       type: "object",
       properties: { square: { enum: ["a1", "a2"] } },
       required: ["square"],
@@ -633,24 +636,42 @@ it.each([false, true])(
       readQuerySchema: async () => readQuerySchema,
     });
     let delivered = false;
-    const model = {
-      decide: async (request: { schema: Data; messages: { content: string }[] }) => {
-        const accepts = new Ajv({ strict: false, validateFormats: false }).compile(request.schema);
-        const read = (query: Data) => ({ decision: { kind: "read", query, summary: "Inspect the current board" } });
-        expect(accepts(read({ square: "a2" }))).toBe(true);
-        expect(accepts(read({ document: "review" }))).toBe(!enabled);
-        expect(accepts(read({ tool: "pact_world_read_v1", args: {} }))).toBe(!enabled);
-        expect(
-          Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.schema)),
-        ).toBeLessThanOrEqual(claim?.turn.cohort.budget?.inputByteLimit ?? 0);
-        delivered = true;
-        return {
-          decision: { decision: { kind: "wait", summary: "No board change needed" } },
-          inputTokens: 10,
-          outputTokens: 10,
-        };
-      },
-    };
+    vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+      const request = JSON.parse(String(init.body));
+      const packet = JSON.parse(request.messages[1].content);
+      if (enabled) {
+        expect(packet.readInterface).toBeDefined();
+        const contract = packet.readInterface.querySchema;
+        expect(JSON.stringify(contract)).toContain(readQuerySchema.description);
+        const acceptsQuery = new Ajv({ strict: false }).compile(contract);
+        expect(acceptsQuery({ square: "a2" })).toBe(true);
+        expect(acceptsQuery({ document: "review" })).toBe(false);
+        expect(acceptsQuery({ tool: "pact_world_read_v1", args: {} })).toBe(false);
+        expect(acceptsQuery({ skillSchema: true })).toBe(packet.skills !== null);
+      } else expect(packet).not.toHaveProperty("readInterface");
+      const accepts = new Ajv({ strict: false, validateFormats: false }).compile(request.format);
+      const read = (query: Data) => ({ decision: { kind: "read", query, summary: "Inspect the current board" } });
+      expect(accepts(read({ square: "a2" }))).toBe(true);
+      expect(accepts(read({ document: "review" }))).toBe(!enabled);
+      expect(accepts(read({ tool: "pact_world_read_v1", args: {} }))).toBe(!enabled);
+      expect(
+        Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.format)),
+      ).toBeLessThanOrEqual(claim?.turn.cohort.budget?.inputByteLimit ?? 0);
+      delivered = true;
+      return new Response(
+        JSON.stringify({
+          message: {
+            role: "assistant",
+            content: JSON.stringify({ decision: { kind: "wait", summary: "No board change needed" } }),
+          },
+          done: true,
+          done_reason: "stop",
+          prompt_eval_count: 10,
+          eval_count: 10,
+        }),
+      );
+    });
+    const model = new HttpModel({ ollama: "http://provider.invalid" }, undefined);
     const [id] = await f.enqueue("resource");
     const claim = await f.tasks.claim("read-contract", f.now(), id);
     if (!claim) throw Error("CLAIM_REQUIRED");
@@ -659,6 +680,51 @@ it.each([false, true])(
     expect(f.board.executions).toBe(0);
   },
 );
+
+it("counts the prompt copy of the read contract before admitting any model dispatch", async () => {
+  const f = await setup();
+  await f.pool.query(
+    "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+    [f.group.id, { readQueryContract: "environment.v1" }],
+  );
+  const connect = f.board.adapter.connect;
+  f.board.adapter.connect = async (binding) => ({
+    ...(await connect(binding)),
+    readQuerySchema: async () => ({
+      description: "x".repeat(12000),
+      type: "object",
+      properties: { square: { type: "string" } },
+      required: ["square"],
+      additionalProperties: false,
+    }),
+  });
+  let calls = 0;
+  vi.stubGlobal("fetch", async () => {
+    calls++;
+    return new Response(
+      JSON.stringify({
+        message: {
+          role: "assistant",
+          content: JSON.stringify({ decision: { kind: "wait", summary: "No board change needed" } }),
+        },
+        done: true,
+        done_reason: "stop",
+        prompt_eval_count: 10,
+        eval_count: 10,
+      }),
+    );
+  });
+  const [id] = await f.enqueue("resource"),
+    claim = await f.tasks.claim("oversized-read-contract", f.now(), id);
+  if (!claim) throw Error("CLAIM_REQUIRED");
+  await expect(
+    f
+      .host(new HttpModel({ ollama: "http://provider.invalid" }, undefined), undefined, {}, f.store.architectures)
+      .host.run(claim),
+  ).rejects.toThrow("SPECIALIST_CONTEXT_INCOMPLETE");
+  expect(calls).toBe(0);
+  expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(0);
+});
 
 it("refuses an explicit read-contract candidate when its environment supplies no contract", async () => {
   const f = await setup();
