@@ -8,3 +8,5 @@ Use [design](../specs/2026-10-22-RC15-source-unit-facts.md), both master workspa
 - [ ] All registered real scenarios pass and verified checkpoints committed; no activation/deployment/push or E4/KQ1 retry.
 
 Verified654Fleetunit/416PACTunit/35specialistHTTP, both types, Fleet style/build/controller/boundaries, selected four-positive composition (including actual delivery/extraction/guarded reuse), corrected R15 checkpoint acceptance, normalized mirrored-source parity and inline review. Existing82warnings/56infos remain. Copied checkpoint initially asserted legacy scope; only its R15 expected text was corrected; numeric-limit/identity/receipt assertions retained. No R15 real calls.
+
+R15operational package/restore/rehearsal gates passed; realD stopped unresolved on first unadvertised skill selection. Closed/parked/encrypted-restored/retained, [record](../../RC15-source-unit-qualification-20261022.md). H/N unstarted; no resume. Continue exact skill-reference contract in a fresh boundary.
