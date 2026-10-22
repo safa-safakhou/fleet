@@ -802,11 +802,23 @@ it.each([false, true])(
   },
 );
 
-it.each([false, true, "temporal", "semantics", "clock"] as const)(
+it.each([false, true, "temporal", "semantics", "clock", "decision"] as const)(
   "binds native participant shapes and prompt scope in actual HTTP generation enabled=%s",
   async (enabled) => {
     const f = await setup();
     f.board.adapter.observationSemantics = "Synthetic: stock is tokens; income is arriving tokens per turn.";
+    if (enabled === "decision") {
+      const connect = f.board.adapter.connect;
+      f.board.adapter.connect = async (binding) => ({
+        ...(await connect(binding)),
+        readQuerySchema: async () => ({
+          description: "Synthetic read documentation retained in the prompt",
+          type: "object",
+          properties: {},
+          additionalProperties: false,
+        }),
+      });
+    }
     if (enabled)
       await f.pool.query(
         "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
@@ -814,11 +826,16 @@ it.each([false, true, "temporal", "semantics", "clock"] as const)(
           f.group.id,
           {
             participantContract: "scoped.v1",
-            ...(enabled === "temporal" || enabled === "semantics" || enabled === "clock"
+            ...(enabled === "temporal" || enabled === "semantics" || enabled === "clock" || enabled === "decision"
               ? { temporalEvidenceContract: "bounded.v1" }
               : {}),
-            ...(enabled === "semantics" || enabled === "clock" ? { observationContract: "semantics.v1" } : {}),
-            ...(enabled === "clock" ? { clockContract: "scoped.v1" } : {}),
+            ...(enabled === "semantics" || enabled === "clock" || enabled === "decision"
+              ? { observationContract: "semantics.v1" }
+              : {}),
+            ...(enabled === "clock" || enabled === "decision" ? { clockContract: "scoped.v1" } : {}),
+            ...(enabled === "decision"
+              ? { decisionContract: "read-final.v1", readQueryContract: "environment.v1" }
+              : {}),
           },
         ],
       );
@@ -867,16 +884,26 @@ it.each([false, true, "temporal", "semantics", "clock"] as const)(
       ).toBe(!enabled);
       expect(
         accepts(wrap({ ...update, wakeConditions: [{ kind: "event", category: "invented_future_decision" }] })),
-      ).toBe(enabled !== "temporal" && enabled !== "semantics" && enabled !== "clock");
-      if (enabled === "temporal" || enabled === "semantics" || enabled === "clock")
+      ).toBe(enabled !== "temporal" && enabled !== "semantics" && enabled !== "clock" && enabled !== "decision");
+      if (enabled === "temporal" || enabled === "semantics" || enabled === "clock" || enabled === "decision")
         expect(packet.participantInterface.temporalEvidence).toContain("never their promises");
-      if (enabled === "semantics" || enabled === "clock")
+      if (enabled === "semantics" || enabled === "clock" || enabled === "decision")
         expect(packet.observationSemantics).toBe(f.board.adapter.observationSemantics);
       else expect(packet).not.toHaveProperty("observationSemantics");
+      const readOnly = { decision: { kind: "read", query: {}, summary: "Read only" } };
+      expect(accepts(readOnly)).toBe(true);
+      expect(accepts({ ...readOnly, update })).toBe(enabled !== "decision");
+      if (enabled === "decision") {
+        expect(packet.readInterface.meaning).toContain("provenance");
+        expect(JSON.stringify(packet.readInterface.querySchema)).toContain(
+          "Synthetic read documentation retained in the prompt",
+        );
+        expect(JSON.stringify(request.format)).not.toContain("Synthetic read documentation retained in the prompt");
+      }
       const timed = (at: unknown) => wrap({ ...update, wakeConditions: [{ kind: "periodic", at }] });
-      expect(accepts(timed({ clockId: "utc", value: "}" }))).toBe(enabled !== "clock");
+      expect(accepts(timed({ clockId: "utc", value: "}" }))).toBe(enabled !== "clock" && enabled !== "decision");
       expect(accepts(timed({ clockId: "utc", value: "2026-10-22T23:00:00Z" }))).toBe(true);
-      if (enabled === "clock") expect(packet.participantInterface.wakes).toContain("UTC");
+      if (enabled === "clock" || enabled === "decision") expect(packet.participantInterface.wakes).toContain("UTC");
       if (enabled) {
         expect(packet.participantInterface.parentDeliveryIds).toContain(parent);
         expect(packet.participantInterface.recipients).toContain("diplomacy");

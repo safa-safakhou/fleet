@@ -8,6 +8,7 @@ import {
   executeOwnedRC8Protocol,
   executeOwnedRC9Protocol,
   executeOwnedRC10Protocol,
+  executeOwnedRC11Protocol,
 } from "../../scripts/lib/post-e3-owned-run.js";
 import { SpecialistRepository } from "../../src/app/participant-services.js";
 import {
@@ -19,6 +20,7 @@ import {
   ownedRC8Fixture,
   ownedRC9Fixture,
   ownedRC10Fixture,
+  ownedRC11Fixture,
 } from "../fixtures/post-e3.js";
 import { positiveSpecialistProvider } from "../fixtures/post-e3-provider.js";
 
@@ -36,6 +38,7 @@ it.each([
   ["RC8 bounded output profile", ownedRC8Fixture, executeOwnedRC8Protocol],
   ["RC9 observation semantics", ownedRC9Fixture, executeOwnedRC9Protocol],
   ["RC10 scoped clock contract", ownedRC10Fixture, executeOwnedRC10Protocol],
+  ["RC11 read/final contract", ownedRC11Fixture, executeOwnedRC11Protocol],
 ] as const)(
   "%s completes both positive families and role reversals through eight native participants, actual delivery and later decisions",
   async (_name, create, execute) => {
@@ -50,10 +53,11 @@ it.each([
     ) {
       const originalDecide = fake.provider.decide;
       fake.provider.decide = async (request) => {
-        if (_name.startsWith("RC8") || _name.startsWith("RC9") || _name.startsWith("RC10"))
+        if (_name.startsWith("RC8") || _name.startsWith("RC9") || _name.startsWith("RC10") || _name.startsWith("RC11"))
           expect(request.model).toEqual({ route: "ollama", model: "qwen3.5:9b", thinking: false });
         const packet = JSON.parse(request.messages[1].content);
-        if (_name.startsWith("RC9") || _name.startsWith("RC10"))
+        if (_name.startsWith("RC11")) expect(packet.readInterface.meaning).toContain("provenance");
+        if (_name.startsWith("RC9") || _name.startsWith("RC10") || _name.startsWith("RC11"))
           expect(packet.observationSemantics).toContain("stock, founding allowance, own production");
         expect(packet.intentAuthority?.ownerIntent).toBe("Objective/preferences, not an authorization grant.");
         if (
@@ -68,7 +72,8 @@ it.each([
             (_name.startsWith("RC7") ||
               _name.startsWith("RC8") ||
               _name.startsWith("RC9") ||
-              _name.startsWith("RC10")) &&
+              _name.startsWith("RC10") ||
+              _name.startsWith("RC11")) &&
             packet.participantInterface.mode === "scoped_update"
           )
             expect(packet.participantInterface.temporalEvidence).toContain("never their promises");

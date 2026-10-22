@@ -11,6 +11,7 @@ import {
   type SpecialistEnvelope,
   SpecialistEnvelopeSchema,
 } from "../../platform/engine-context.js";
+import { readFinalGenerationContract } from "./decision-interface.js";
 import { LearningPolicy } from "./learning.js";
 import { defaults, manifest } from "./manifest.js";
 import { selectSpecialistContext } from "./memory.js";
@@ -69,6 +70,9 @@ export class AutonomousSpecialistsEngine {
       learningMode = false;
     const budget = services.configuration.budget,
       config = { ...defaults, ...services.configuration.architectureConfig };
+    const readFinalContractActive = services.configuration.architectureConfig.decisionContract === "read-final.v1";
+    const bindResponseEnvelope = (schema: Data) =>
+      readFinalContractActive ? readFinalGenerationContract(schema) : schema;
     const clockContractActive = services.configuration.architectureConfig.clockContract === "scoped.v1";
     if (clockContractActive && services.configuration.architectureConfig.participantContract !== "scoped.v1")
       throw new FleetError("CLOCK_PARTICIPANT_CONTRACT_REQUIRED", true);
@@ -196,6 +200,16 @@ export class AutonomousSpecialistsEngine {
             }
           : environmentReadSchema
         : undefined;
+      // The same documentation remains verbatim in readInterface.querySchema.
+      // Omit only its duplicate annotation from the generation format.
+      const generationReadQuerySchema =
+        readFinalContractActive && readQuerySchema ? structuredClone(readQuerySchema) : readQuerySchema;
+      if (readFinalContractActive && generationReadQuerySchema) {
+        const documented = services.skills
+          ? object((generationReadQuerySchema.anyOf as Data[])[0])
+          : generationReadQuerySchema;
+        delete documented.description;
+      }
       const bindParticipants = (candidateSchema: Data) =>
         services.configuration.architectureConfig.participantContract === "scoped.v1"
           ? participantGenerationContract(candidateSchema, {
@@ -230,10 +244,10 @@ export class AutonomousSpecialistsEngine {
           allowed,
           await services.environment.actionContracts?.(observation, state.charter.allowedActions),
           waitSchema,
-          readQuerySchema,
+          generationReadQuerySchema,
         ),
       );
-      let schema = shareGenerationSchema(participantSchema.schema, {
+      let schema = shareGenerationSchema(bindResponseEnvelope(participantSchema.schema), {
         inlineSingleUse: services.configuration.architectureConfig.participantContract === "scoped.v1",
       });
       const opportunities = new LearningPolicy().opportunities(
@@ -321,9 +335,11 @@ export class AutonomousSpecialistsEngine {
           ? {
               readInterface: {
                 querySchema: readQuerySchema,
-                meaning: clockContractActive
-                  ? "Authorized reads only; a shape grants no permission. Reads send no message/action."
-                  : "Read queries request authorized observations only. Schemas describe supported shapes, not permission. A read sends no message and performs no action.",
+                meaning: readFinalContractActive
+                  ? "Read returns observations, not grants. Revision/source IDs are provenance, never mandates. Updates persist only with final wait/action."
+                  : clockContractActive
+                    ? "Authorized reads only; a shape grants no permission. Reads send no message/action."
+                    : "Read queries request authorized observations only. Schemas describe supported shapes, not permission. A read sends no message and performs no action.",
               },
             }
           : {}),
@@ -381,7 +397,9 @@ export class AutonomousSpecialistsEngine {
           throw error;
         evidenceReviewOnly = true;
         schema = shareGenerationSchema(
-          bindParticipants(bindActionContracts(baseSchema, [], [], waitSchema, readQuerySchema)).schema,
+          bindResponseEnvelope(
+            bindParticipants(bindActionContracts(baseSchema, [], [], waitSchema, generationReadQuerySchema)).schema,
+          ),
           { inlineSingleUse: services.configuration.architectureConfig.participantContract === "scoped.v1" },
         );
         packet.actionSchemas = [];
