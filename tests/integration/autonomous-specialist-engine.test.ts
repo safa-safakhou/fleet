@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
+import { Ajv } from "ajv";
 import { afterEach, expect, it } from "vitest";
 import { SpecialistRepository } from "../../src/app/participant-services.js";
 import { ParticipantWork } from "../../src/app/participant-work.js";
 import { transaction } from "../../src/db.js";
+import type { Data } from "../../src/domain.js";
 import { LaunchService } from "../../src/platform/launch.js";
 import { enableBoardEffects } from "../fixtures/environments/specialist-board.js";
 import { candidate } from "../fixtures/skills/candidate.js";
@@ -608,4 +610,74 @@ it("does not guess a foreign adapter observation policy", async () => {
     .host.run(claim);
   expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(1);
   expect(f.board.executions).toBe(0);
+});
+
+it.each([false, true])(
+  "delivers an injected read contract only for the explicit candidate setting enabled=%s",
+  async (enabled) => {
+    const f = await setup();
+    if (enabled)
+      await f.pool.query(
+        "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+        [f.group.id, { readQueryContract: "environment.v1" }],
+      );
+    const readQuerySchema = {
+      type: "object",
+      properties: { square: { enum: ["a1", "a2"] } },
+      required: ["square"],
+      additionalProperties: false,
+    };
+    const connect = f.board.adapter.connect;
+    f.board.adapter.connect = async (binding) => ({
+      ...(await connect(binding)),
+      readQuerySchema: async () => readQuerySchema,
+    });
+    let delivered = false;
+    const model = {
+      decide: async (request: { schema: Data; messages: { content: string }[] }) => {
+        const accepts = new Ajv({ strict: false, validateFormats: false }).compile(request.schema);
+        const read = (query: Data) => ({ decision: { kind: "read", query, summary: "Inspect the current board" } });
+        expect(accepts(read({ square: "a2" }))).toBe(true);
+        expect(accepts(read({ document: "review" }))).toBe(!enabled);
+        expect(accepts(read({ tool: "pact_world_read_v1", args: {} }))).toBe(!enabled);
+        expect(
+          Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.schema)),
+        ).toBeLessThanOrEqual(claim?.turn.cohort.budget?.inputByteLimit ?? 0);
+        delivered = true;
+        return {
+          decision: { decision: { kind: "wait", summary: "No board change needed" } },
+          inputTokens: 10,
+          outputTokens: 10,
+        };
+      },
+    };
+    const [id] = await f.enqueue("resource");
+    const claim = await f.tasks.claim("read-contract", f.now(), id);
+    if (!claim) throw Error("CLAIM_REQUIRED");
+    await f.host(model, undefined, {}, f.store.architectures).host.run(claim);
+    expect(delivered).toBe(true);
+    expect(f.board.executions).toBe(0);
+  },
+);
+
+it("refuses an explicit read-contract candidate when its environment supplies no contract", async () => {
+  const f = await setup();
+  await f.pool.query(
+    "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+    [f.group.id, { readQueryContract: "environment.v1" }],
+  );
+  let calls = 0;
+  const model = {
+    decide: async () => {
+      calls++;
+      return { decision: { decision: { kind: "wait", summary: "No action" } }, inputTokens: 10, outputTokens: 10 };
+    },
+  };
+  const [id] = await f.enqueue("resource");
+  const claim = await f.tasks.claim("missing-read-contract", f.now(), id);
+  if (!claim) throw Error("CLAIM_REQUIRED");
+  await expect(f.host(model, undefined, {}, f.store.architectures).host.run(claim)).rejects.toThrow(
+    "READ_QUERY_CONTRACT_REQUIRED",
+  );
+  expect(calls).toBe(0);
 });

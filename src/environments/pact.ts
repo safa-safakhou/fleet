@@ -8,6 +8,7 @@ import { projectPactObservation } from "../games/pact/negotiation-state.js";
 import { pactContinuity } from "../games/pact/outlook.js";
 import { packPactObservation } from "../games/pact/packing.js";
 import { pactActionContracts, pactProposalGuide, validatePactProposal } from "../games/pact/proposals.js";
+import { pactReadQuerySchema } from "../games/pact/read-queries.js";
 import { RemoteRejection } from "../http.js";
 import type { Bindings } from "../platform/bindings.js";
 import type { ActionOutcome, BindingRef, EnvironmentAdapter } from "../platform/contracts.js";
@@ -130,7 +131,26 @@ export function createPactEnvironment(ports: {
               },
             }
           : {}),
+        async readQuerySchema() {
+          return pactReadQuerySchema(
+            (await game.tools()).filter(pactAdapter.isRead).map((tool) => tool.name),
+            Boolean(ports.outlookVersion),
+          );
+        },
         async observe(query) {
+          try {
+            validateTool(
+              { name: "pact.read-query", inputSchema: pactReadQuerySchema(undefined, Boolean(ports.outlookVersion)) },
+              query,
+            );
+          } catch {
+            throw new FleetError("INVALID_READ_QUERY", true);
+          }
+          const schemaTool =
+            typeof query.readSchema === "string"
+              ? (await game.tools()).find((tool) => tool.name === query.readSchema && pactAdapter.isRead(tool))
+              : undefined;
+          if (typeof query.readSchema === "string" && !schemaTool) throw new FleetError("READ_TOOL_FORBIDDEN");
           if (query.continuity === true) {
             if (!ports.outlookVersion) throw new FleetError("UNSUPPORTED_CAPABILITY");
             const catalog = await game.tools();
@@ -194,6 +214,14 @@ export function createPactEnvironment(ports: {
             };
           }
           const payload: Data = await pactAdapter.initial(game, binding.entityRef);
+          if (schemaTool) {
+            payload.requestedRead = {
+              name: schemaTool.name,
+              ...(schemaTool.description ? { description: schemaTool.description } : {}),
+              inputSchema: schemaTool.inputSchema,
+            };
+            payload.requestedReadTool = `schema:${schemaTool.name}`;
+          }
           if (typeof query.tool === "string") {
             const tool = (await game.tools()).find((tool) => tool.name === query.tool);
             if (!tool || !pactAdapter.isRead(tool) || tool.annotations?.readOnlyHint !== true)
@@ -222,11 +250,13 @@ export function createPactEnvironment(ports: {
             revision: typeof time === "string" ? time : "unavailable",
             observedAt: ports.now().toISOString(),
             environmentTime: { clockId: "pact.game-time-ms", value: typeof time === "string" ? time : "unavailable" },
-            sourceRefs: [`authorized-read:${String(query.tool ?? "initial")}:${String(time ?? "unavailable")}`],
+            sourceRefs: [
+              `authorized-read:${String(query.tool ?? (schemaTool ? `schema:${schemaTool.name}` : "initial"))}:${String(time ?? "unavailable")}`,
+            ],
             payload: { agentBriefing: pactAgentBriefing(payload), ...payload, actionGuide: pactProposalGuide(payload) },
             coverage: {
               authorizedView: true,
-              requestedReadSeparateSnapshot: typeof query.tool === "string",
+              requestedReadSeparateSnapshot: typeof query.tool === "string" || Boolean(schemaTool),
               environmentTimeAvailable: typeof time === "string",
               detail: "Existing authenticated reads; current snapshot with explicit coverage, no full-world guarantee.",
             },

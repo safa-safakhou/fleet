@@ -20,6 +20,7 @@ export const manifest: ArchitectureManifest = {
     properties: {
       preset: { type: "string", title: "Role preset", enum: ["resources-diplomacy", "full"] },
       learning: { type: "boolean", title: "Learn from observed episodes" },
+      readQueryContract: { type: "string", title: "Environment read contract", enum: ["environment.v1"] },
       skillMode: { type: "string", title: "Skill reuse", enum: ["off", "advisory", "guarded"] },
       qualificationPolicy: { type: "string", title: "Trusted qualification policy", enum: ["skills-policy.v1"] },
       maxActiveGoals: { type: "integer", title: "Active goals per specialist", minimum: 1, maximum: 8 },

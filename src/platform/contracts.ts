@@ -83,6 +83,7 @@ export interface EnvironmentSession {
   effects?(intent: ActionIntent): Promise<import("./action-effects.js").ActionEffects>;
   observe(query: Data): Promise<Observation>;
   catalog(): Promise<Tool[]>;
+  readQuerySchema?(): Promise<Data>;
   execute(intent: ActionIntent): Promise<ActionOutcome>;
   resolve(commandId: string): Promise<ActionOutcome>;
   events?(cursor: string | null): Promise<EventPage>;

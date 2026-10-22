@@ -254,6 +254,7 @@ export function bindActionContracts(
   allowed: string[],
   contracts?: import("../../../platform/contracts.js").ActionContract[],
   waitSchema?: Data,
+  readQuerySchema?: Data,
 ) {
   const schema = structuredClone(base),
     inner = object(object(schema.properties).decision);
@@ -263,6 +264,8 @@ export function bindActionContracts(
     if (!Array.isArray(root[key])) continue;
     root[key] = (root[key] as Data[]).flatMap((branch) => {
       const properties = object(branch.properties);
+      if (object(properties.kind).const === "read" && readQuerySchema)
+        return [{ ...branch, properties: { ...properties, query: readQuerySchema } }];
       if (object(properties.kind).const === "wait") {
         const { basis: _basis, ...waitProperties } = properties;
         return [

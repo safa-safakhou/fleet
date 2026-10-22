@@ -163,6 +163,7 @@ export class PlatformHost {
           },
           capabilities: adapter.capabilities,
           waitSchema: session?.waitSchema,
+          readQuerySchema: session?.readQuerySchema,
           validateWait: session?.validateWait,
           validateProposal: session?.validateProposal,
           actionContracts: session?.actionContracts,

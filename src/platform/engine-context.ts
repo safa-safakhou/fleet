@@ -121,6 +121,7 @@ export interface ScopedServices {
     conditionContracts?: import("./contracts.js").ConditionContract[];
     accountObjective?(observation: Observation): AccountObjective | undefined;
     catalog(): Promise<Tool[]>;
+    readQuerySchema?(): Promise<Data>;
     validateProposal?(proposal: Proposal, observation: Observation): Promise<ProposalValidation>;
     waitSchema?(observation: Observation): Promise<Data | undefined>;
     validateWait?(basis: Data, observation: Observation): Promise<ProposalValidation>;

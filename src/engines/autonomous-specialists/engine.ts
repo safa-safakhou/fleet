@@ -165,12 +165,31 @@ export class AutonomousSpecialistsEngine {
       const allowed = services.environment.schemas.actions;
       const baseSchema = learningMode ? z.toJSONSchema(LearningDecision, { target: "draft-7" }) : outputSchema;
       const waitSchema = await services.environment.waitSchema?.(observation);
+      const requiresReadContract = services.configuration.architectureConfig.readQueryContract === "environment.v1";
+      const environmentReadSchema = requiresReadContract ? await services.environment.readQuerySchema?.() : undefined;
+      if (requiresReadContract && !environmentReadSchema) throw new FleetError("READ_QUERY_CONTRACT_REQUIRED", true);
+      const readQuerySchema = environmentReadSchema
+        ? services.skills
+          ? {
+              anyOf: [
+                environmentReadSchema,
+                {
+                  type: "object",
+                  properties: { skillSchema: { const: true } },
+                  required: ["skillSchema"],
+                  additionalProperties: false,
+                },
+              ],
+            }
+          : environmentReadSchema
+        : undefined;
       let schema = shareGenerationSchema(
         bindActionContracts(
           baseSchema,
           allowed,
           await services.environment.actionContracts?.(observation, state.charter.allowedActions),
           waitSchema,
+          readQuerySchema,
         ),
       );
       const opportunities = new LearningPolicy().opportunities(
@@ -292,7 +311,7 @@ export class AutonomousSpecialistsEngine {
         if (!(error instanceof FleetError) || error.code !== "SPECIALIST_CONTEXT_INCOMPLETE" || !wholeEvidenceAvailable)
           throw error;
         evidenceReviewOnly = true;
-        schema = shareGenerationSchema(bindActionContracts(baseSchema, [], [], waitSchema));
+        schema = shareGenerationSchema(bindActionContracts(baseSchema, [], [], waitSchema, readQuerySchema));
         packet.actionSchemas = [];
         packet.observation = {
           schemaId: observation.schemaId,

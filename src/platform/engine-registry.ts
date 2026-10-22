@@ -35,6 +35,7 @@ export interface EngineContext {
   projectObservation?: (observation: Observation, policy: { id: string; version: string }) => Observation;
   packObservation?: (observation: Observation, byteLimit: number) => Observation;
   catalog?: () => Promise<Tool[]>;
+  readQuerySchema?: () => Promise<Data>;
   waitForEvent?: () => Promise<void>;
 }
 export interface AgentEngine {

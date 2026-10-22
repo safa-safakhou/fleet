@@ -345,6 +345,15 @@ export async function createScopedServices(
             return result;
           }
         : undefined,
+      readQuerySchema: context.readQuerySchema
+        ? async () => {
+            await guard();
+            const result = await context.readQuerySchema?.();
+            await guard();
+            if (!result) throw new FleetError("UNSUPPORTED_CAPABILITY");
+            return result;
+          }
+        : undefined,
       waitSchema: context.waitSchema
         ? async (...args: Parameters<NonNullable<EngineContext["waitSchema"]>>) => {
             await guard();
