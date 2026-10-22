@@ -6,3 +6,5 @@ Use [design](../specs/2026-10-22-RC16-listed-skill-refs.md), both master repos, 
 - [x] Proportional unit/HTTP/type/build/boundaries, inline review and both master commits.
 - [ ] Immutable package/pins/zero-use roster, encrypted before restore/restored-only rehearsal/untouched-original proof; real D before H before N with prompt manual review and terminal closure/park/archive/restore/retention.
 - [ ] All registered real scenarios pass and verified records committed; no activation/deployment/push/E4/KQ1 retry.
+
+Terminal R16-D critical; first native response still conflates production with external receipt. All operational closure/restore/retention gates passed; all-real-scenarios item remains incomplete. See [record](../../RC16-listed-skill-qualification-20261022.md).
