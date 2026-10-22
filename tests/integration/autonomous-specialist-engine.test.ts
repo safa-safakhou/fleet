@@ -747,3 +747,57 @@ it("refuses an explicit read-contract candidate when its environment supplies no
   );
   expect(calls).toBe(0);
 });
+
+it.each([false, true])(
+  "keeps owner intent opaque and separates permissions in the serialized prompt only when enabled=%s",
+  async (enabled) => {
+    const f = await setup();
+    const ownerIntent = '{"receive":"tokens","minimumReceivePerHour":1,"maximumSendPerHour":4}';
+    f.board.adapter.accountObjective = () => ownerIntent;
+    if (enabled)
+      await f.pool.query(
+        "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+        [f.group.id, { intentAuthorityContract: "separate.v1" }],
+      );
+    let calls = 0;
+    vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
+      calls++;
+      const request = JSON.parse(String(init.body)),
+        packet = JSON.parse(request.messages[1].content);
+      expect(packet.specialist.ownerIntent).toBe(ownerIntent);
+      if (enabled) {
+        expect(packet.intentAuthority).toMatchObject({
+          ownerIntent: "Objective/preferences, not an authorization grant.",
+          limits:
+            "Numeric objective limits keep their stated domain, unit and clock. Never convert them into unrelated action allowances.",
+          permissions:
+            "Use current authorized environment facts. An unstated action allowance is unknown; use supported reads.",
+        });
+        expect(JSON.stringify(packet.intentAuthority)).not.toContain("PACT");
+      } else expect(packet).not.toHaveProperty("intentAuthority");
+      expect(
+        Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.format)),
+      ).toBeLessThanOrEqual(claim?.turn.cohort.budget?.inputByteLimit ?? 0);
+      return new Response(
+        JSON.stringify({
+          message: {
+            role: "assistant",
+            content: JSON.stringify({ decision: { kind: "wait", summary: "No numeric permission is claimed." } }),
+          },
+          done: true,
+          done_reason: "stop",
+          prompt_eval_count: 10,
+          eval_count: 10,
+        }),
+      );
+    });
+    const [id] = await f.enqueue("resource"),
+      claim = await f.tasks.claim("intent-authority", f.now(), id);
+    if (!claim) throw Error("CLAIM_REQUIRED");
+    await f
+      .host(new HttpModel({ ollama: "http://provider.invalid" }, undefined), undefined, {}, f.store.architectures)
+      .host.run(claim);
+    expect(calls).toBe(1);
+    expect(f.board.executions).toBe(0);
+  },
+);

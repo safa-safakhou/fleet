@@ -258,6 +258,17 @@ export class AutonomousSpecialistsEngine {
           : null,
         observation: modelObservation,
         actionSchemas: allowed,
+        ...(services.configuration.architectureConfig.intentAuthorityContract === "separate.v1"
+          ? {
+              intentAuthority: {
+                ownerIntent: "Objective/preferences, not an authorization grant.",
+                limits:
+                  "Numeric objective limits keep their stated domain, unit and clock. Never convert them into unrelated action allowances.",
+                permissions:
+                  "Use current authorized environment facts. An unstated action allowance is unknown; use supported reads.",
+              },
+            }
+          : {}),
         ...(readQuerySchema
           ? {
               readInterface: {

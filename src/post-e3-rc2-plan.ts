@@ -158,8 +158,55 @@ export function prepareRC4Protocol(raw: unknown) {
   return immutable({ ...protocol, digest: designDigest(protocol) });
 }
 export type RC4Protocol = ReturnType<typeof prepareRC4Protocol>;
-export type PostE3Cell = RC1Cell | RC2Cell | RC3Cell | RC4Cell;
-export type PostE3Protocol = RC1Protocol | RC2Protocol | RC3Protocol | RC4Protocol;
+export const RC5SelectionSchema = RC1SelectionSchema.extend({ stage: z.enum(["R5-D", "R5-H", "R5-N"]) }).strict();
+export const rc5Configuration = immutable({ ...rc4Configuration, intentAuthorityContract: "separate.v1" as const });
+export type RC5Cell = Omit<RC4Cell, "study" | "stage" | "configuration"> & {
+  study: "negotiation-r5";
+  stage: z.infer<typeof RC5SelectionSchema>["stage"];
+  configuration: typeof rc5Configuration;
+};
+/** New actor/configuration boundary; RC4 seeds, grants and outcomes remain closed. */
+export function prepareRC5Protocol(raw: unknown) {
+  const input = RC5SelectionSchema.parse(raw),
+    base = prepareRC4Protocol({ ...input, stage: input.stage.replace("R5-", "R4-") });
+  const cells: RC5Cell[] = base.cells.map(({ configurationDigest: _old, ...original }) => {
+    const worldSeed = createHash("sha256")
+      .update(
+        JSON.stringify([
+          "negotiation-r5",
+          input.stage,
+          original.family,
+          original.variant,
+          original.replicate,
+          input.seedNonce,
+        ]),
+      )
+      .digest("hex");
+    const cell = {
+      ...original,
+      study: "negotiation-r5" as const,
+      stage: input.stage,
+      id: original.id.replace("negotiation-r4:R4-", "negotiation-r5:R5-"),
+      worldSeed,
+      seed: Number.parseInt(worldSeed.slice(0, 8), 16),
+      configuration: rc5Configuration,
+    };
+    return { ...cell, configurationDigest: designDigest({ cell, designDigest: designDigest(design) }) };
+  });
+  const { digest: _old, ...prior } = base;
+  const protocol = {
+    ...prior,
+    schemaVersion: "fleet.rc5-protocol.v1" as const,
+    study: "negotiation-r5" as const,
+    selection: { ...input, batchNonce: base.selection.batchNonce },
+    configuration: rc5Configuration,
+    cells,
+  };
+  return immutable({ ...protocol, digest: designDigest(protocol) });
+}
+export type RC5Protocol = ReturnType<typeof prepareRC5Protocol>;
+export type PostE3Cell = RC1Cell | RC2Cell | RC3Cell | RC4Cell | RC5Cell;
+export type PostE3Protocol = RC1Protocol | RC2Protocol | RC3Protocol | RC4Protocol | RC5Protocol;
 export function validateRC2Cell(protocol: RC2Protocol, cell: RC2Cell) {
   const canonical = prepareRC2Protocol(protocol.selection);
   if (
@@ -184,7 +231,16 @@ export function validateRC4Cell(protocol: RC4Protocol, cell: RC4Cell) {
   )
     throw Error("RC4_UNPLANNED_OR_CHANGED_CELL");
 }
+export function validateRC5Cell(protocol: RC5Protocol, cell: RC5Cell) {
+  const canonical = prepareRC5Protocol(protocol.selection);
+  if (
+    designDigest(canonical) !== designDigest(protocol) ||
+    !canonical.cells.some((c) => designDigest(c) === designDigest(cell))
+  )
+    throw Error("RC5_UNPLANNED_OR_CHANGED_CELL");
+}
 export function validatePostE3Cell(protocol: PostE3Protocol, cell: PostE3Cell) {
+  if (protocol.study === "negotiation-r5" && cell.study === "negotiation-r5") return validateRC5Cell(protocol, cell);
   if (protocol.study === "negotiation-r4" && cell.study === "negotiation-r4") return validateRC4Cell(protocol, cell);
   if (protocol.study === "negotiation-r3" && cell.study === "negotiation-r3") return validateRC3Cell(protocol, cell);
   if (protocol.study === "negotiation-r2" && cell.study === "negotiation-r2") return validateRC2Cell(protocol, cell);
@@ -192,6 +248,7 @@ export function validatePostE3Cell(protocol: PostE3Protocol, cell: PostE3Cell) {
   throw Error("POST_E3_STUDY_MISMATCH");
 }
 export function canonicalPostE3Protocol(protocol: PostE3Protocol) {
+  if (protocol.study === "negotiation-r5") return prepareRC5Protocol(protocol.selection);
   if (protocol.study === "negotiation-r4") return prepareRC4Protocol(protocol.selection);
   if (protocol.study === "negotiation-r3") return prepareRC3Protocol(protocol.selection);
   return protocol.study === "negotiation-r2"

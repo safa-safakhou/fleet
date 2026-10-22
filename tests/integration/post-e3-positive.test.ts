@@ -1,7 +1,11 @@
 import { afterEach, expect, it } from "vitest";
-import { executeOwnedRC2Protocol, executeOwnedRC3Protocol } from "../../scripts/lib/post-e3-owned-run.js";
+import {
+  executeOwnedRC2Protocol,
+  executeOwnedRC3Protocol,
+  executeOwnedRC5Protocol,
+} from "../../scripts/lib/post-e3-owned-run.js";
 import { SpecialistRepository } from "../../src/app/participant-services.js";
-import { ownedRC2Fixture, ownedRC3Fixture } from "../fixtures/post-e3.js";
+import { ownedRC2Fixture, ownedRC3Fixture, ownedRC5Fixture } from "../fixtures/post-e3.js";
 import { positiveSpecialistProvider } from "../fixtures/post-e3-provider.js";
 
 let f: Awaited<ReturnType<typeof ownedRC2Fixture>> | undefined;
@@ -12,11 +16,23 @@ afterEach(async () => {
 it.each([
   ["legacy RC2", ownedRC2Fixture, executeOwnedRC2Protocol],
   ["explicit environment read contract", ownedRC3Fixture, executeOwnedRC3Protocol],
+  ["RC5 objective and authority separation", ownedRC5Fixture, executeOwnedRC5Protocol],
 ] as const)(
   "%s completes both positive families and role reversals through eight native participants, actual delivery and later decisions",
   async (_name, create, execute) => {
     f = await create();
     const fake = positiveSpecialistProvider();
+    if (_name.startsWith("RC5")) {
+      const originalDecide = fake.provider.decide;
+      fake.provider.decide = async (request) => {
+        const packet = JSON.parse(request.messages[1].content);
+        expect(packet.intentAuthority?.ownerIntent).toBe("Objective/preferences, not an authorization grant.");
+        const goal = JSON.parse(packet.specialist.ownerIntent);
+        expect(goal.quantityUnit).toBe("whole resource units");
+        expect(goal.timeUnit).toBe("GAME hour");
+        return originalDecide(request);
+      };
+    }
     const outcomes: unknown[] = [];
     const currentFixture = f;
     const result = await execute(f.protocol, f.grant, {
