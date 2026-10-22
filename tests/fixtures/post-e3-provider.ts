@@ -92,7 +92,7 @@ export function positiveSpecialistProvider() {
         });
       if (specialist.id !== "diplomacy") return wait();
       const ownGoal = JSON.parse(String(specialist.ownerIntent));
-      const roleA = ownGoal.receive === "silver";
+      const roleA = (object(ownGoal.incoming).resource ?? ownGoal.receive) === "silver";
       const priorGoal = rows(object(specialist.state).goals).find((g) => g.id === s.goalId);
       if (rows(object(packet.skills).templates).length) {
         const opportunity = rows(object(packet.skills).opportunities)[0];

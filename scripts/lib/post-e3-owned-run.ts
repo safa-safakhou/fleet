@@ -42,6 +42,7 @@ import {
   rc15ModelProfile,
   rc16ModelProfile,
   rc17ModelProfile,
+  rc18ModelProfile,
   validatePostE3Cell,
 } from "../../src/post-e3-rc2-plan.js";
 import { type PostE3Grant, validatePostE3Grant } from "../../src/post-e3-run.js";
@@ -61,6 +62,7 @@ const boundedProfileErrors: Record<string, string> = {
   "negotiation-r15": "RC15_MODEL_PROFILE_REQUIRED",
   "negotiation-r16": "RC16_MODEL_PROFILE_REQUIRED",
   "negotiation-r17": "RC17_MODEL_PROFILE_REQUIRED",
+  "negotiation-r18": "RC18_MODEL_PROFILE_REQUIRED",
 };
 function requireBoundedModelProfile(study: string, model: ModelSettings) {
   const code = boundedProfileErrors[study];
@@ -68,17 +70,19 @@ function requireBoundedModelProfile(study: string, model: ModelSettings) {
     code &&
     designDigest(model) !==
       designDigest(
-        study === "negotiation-r17"
-          ? rc17ModelProfile
-          : study === "negotiation-r16"
-            ? rc16ModelProfile
-            : study === "negotiation-r15"
-              ? rc15ModelProfile
-              : study === "negotiation-r14"
-                ? rc14ModelProfile
-                : study === "negotiation-r13"
-                  ? rc13ModelProfile
-                  : rc8ModelProfile,
+        study === "negotiation-r18"
+          ? rc18ModelProfile
+          : study === "negotiation-r17"
+            ? rc17ModelProfile
+            : study === "negotiation-r16"
+              ? rc16ModelProfile
+              : study === "negotiation-r15"
+                ? rc15ModelProfile
+                : study === "negotiation-r14"
+                  ? rc14ModelProfile
+                  : study === "negotiation-r13"
+                    ? rc13ModelProfile
+                    : rc8ModelProfile,
       )
   )
     throw new FleetError(code, true);
@@ -197,6 +201,10 @@ export function executeOwnedRC17Protocol(protocol: PostE3Protocol, grant: PostE3
   if (protocol.study !== "negotiation-r17") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
   return executeOwnedPostE3Protocol(protocol, grant, d);
 }
+export function executeOwnedRC18Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
+  if (protocol.study !== "negotiation-r18") throw new FleetError("POST_E3_STUDY_MISMATCH", true);
+  return executeOwnedPostE3Protocol(protocol, grant, d);
+}
 async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE3Grant, d: Dependencies) {
   if (boundedProfileErrors[protocol.study])
     for (const p of d.prepared) requireBoundedModelProfile(protocol.study, p.model);
@@ -261,39 +269,41 @@ async function executeOwnedPostE3Protocol(protocol: PostE3Protocol, grant: PostE
   if (parkFailed) throw new FleetError("RC1_PARK_FAILED", true);
   const result = {
     schemaVersion:
-      protocol.study === "negotiation-r17"
-        ? "fleet.rc17-batch.v1"
-        : protocol.study === "negotiation-r16"
-          ? "fleet.rc16-batch.v1"
-          : protocol.study === "negotiation-r15"
-            ? "fleet.rc15-batch.v1"
-            : protocol.study === "negotiation-r14"
-              ? "fleet.rc14-batch.v1"
-              : protocol.study === "negotiation-r13"
-                ? "fleet.rc13-batch.v1"
-                : protocol.study === "negotiation-r12"
-                  ? "fleet.rc12-batch.v1"
-                  : protocol.study === "negotiation-r11"
-                    ? "fleet.rc11-batch.v1"
-                    : protocol.study === "negotiation-r10"
-                      ? "fleet.rc10-batch.v1"
-                      : protocol.study === "negotiation-r9"
-                        ? "fleet.rc9-batch.v1"
-                        : protocol.study === "negotiation-r8"
-                          ? "fleet.rc8-batch.v1"
-                          : protocol.study === "negotiation-r7"
-                            ? "fleet.rc7-batch.v1"
-                            : protocol.study === "negotiation-r6"
-                              ? "fleet.rc6-batch.v1"
-                              : protocol.study === "negotiation-r5"
-                                ? "fleet.rc5-batch.v1"
-                                : protocol.study === "negotiation-r4"
-                                  ? "fleet.rc4-batch.v1"
-                                  : protocol.study === "negotiation-r3"
-                                    ? "fleet.rc3-batch.v1"
-                                    : protocol.study === "negotiation-r2"
-                                      ? "fleet.rc2-batch.v1"
-                                      : "fleet.rc1-batch.v1",
+      protocol.study === "negotiation-r18"
+        ? "fleet.rc18-batch.v1"
+        : protocol.study === "negotiation-r17"
+          ? "fleet.rc17-batch.v1"
+          : protocol.study === "negotiation-r16"
+            ? "fleet.rc16-batch.v1"
+            : protocol.study === "negotiation-r15"
+              ? "fleet.rc15-batch.v1"
+              : protocol.study === "negotiation-r14"
+                ? "fleet.rc14-batch.v1"
+                : protocol.study === "negotiation-r13"
+                  ? "fleet.rc13-batch.v1"
+                  : protocol.study === "negotiation-r12"
+                    ? "fleet.rc12-batch.v1"
+                    : protocol.study === "negotiation-r11"
+                      ? "fleet.rc11-batch.v1"
+                      : protocol.study === "negotiation-r10"
+                        ? "fleet.rc10-batch.v1"
+                        : protocol.study === "negotiation-r9"
+                          ? "fleet.rc9-batch.v1"
+                          : protocol.study === "negotiation-r8"
+                            ? "fleet.rc8-batch.v1"
+                            : protocol.study === "negotiation-r7"
+                              ? "fleet.rc7-batch.v1"
+                              : protocol.study === "negotiation-r6"
+                                ? "fleet.rc6-batch.v1"
+                                : protocol.study === "negotiation-r5"
+                                  ? "fleet.rc5-batch.v1"
+                                  : protocol.study === "negotiation-r4"
+                                    ? "fleet.rc4-batch.v1"
+                                    : protocol.study === "negotiation-r3"
+                                      ? "fleet.rc3-batch.v1"
+                                      : protocol.study === "negotiation-r2"
+                                        ? "fleet.rc2-batch.v1"
+                                        : "fleet.rc1-batch.v1",
     protocolDigest: protocol.digest,
     batchNonce: grant.batchNonce,
     status: stopped ? ("stopped" as const) : ("complete" as const),
@@ -810,3 +820,5 @@ export const prepareOwnedRC15Cohort = prepareOwnedRC1Cohort;
 export const prepareOwnedRC16Cohort = prepareOwnedRC1Cohort;
 
 export const prepareOwnedRC17Cohort = prepareOwnedRC1Cohort;
+
+export const prepareOwnedRC18Cohort = prepareOwnedRC1Cohort;

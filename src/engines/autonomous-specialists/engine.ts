@@ -372,15 +372,18 @@ export class AutonomousSpecialistsEngine {
         ...(visibleContract ? { responseInterface: responseContractGuide(schema) } : {}),
         ...(observationSemantics !== undefined ? { observationSemantics } : {}),
         ...(participantSchema.prompt ? { participantInterface: participantSchema.prompt } : {}),
-        ...(["separate.v1", "separate.v2"].includes(
+        ...(["separate.v1", "separate.v2", "separate.v3"].includes(
           String(services.configuration.architectureConfig.intentAuthorityContract),
         )
           ? {
               intentAuthority: {
                 ownerIntent: "Objective/preferences, not an authorization grant.",
-                limits: clockContractActive
-                  ? "Keep each objective limit's domain, unit and clock; it grants no unrelated action allowance."
-                  : "Numeric objective limits keep their stated domain, unit and clock. Never convert them into unrelated action allowances.",
+                limits:
+                  services.configuration.architectureConfig.intentAuthorityContract === "separate.v3"
+                    ? "Keep each objective limit's domain, direction, unit and clock; outgoing maxima do not cap incoming rates or grant action allowances."
+                    : clockContractActive
+                      ? "Keep each objective limit's domain, unit and clock; it grants no unrelated action allowance."
+                      : "Numeric objective limits keep their stated domain, unit and clock. Never convert them into unrelated action allowances.",
                 permissions: clockContractActive
                   ? "Use current authorized facts for permissions; unknown allowances need a supported read."
                   : "Use current authorized environment facts. An unstated action allowance is unknown; use supported reads.",

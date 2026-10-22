@@ -35,7 +35,7 @@ export const manifest: ArchitectureManifest = {
       intentAuthorityContract: {
         type: "string",
         title: "Owner intent and authorization",
-        enum: ["separate.v1", "separate.v2"],
+        enum: ["separate.v1", "separate.v2", "separate.v3"],
       },
       readQueryContract: { type: "string", title: "Environment read contract", enum: ["environment.v1"] },
       skillMode: { type: "string", title: "Skill reuse", enum: ["off", "advisory", "guarded"] },

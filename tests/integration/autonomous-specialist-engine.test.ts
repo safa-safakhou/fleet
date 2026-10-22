@@ -748,7 +748,7 @@ it("refuses an explicit read-contract candidate when its environment supplies no
   expect(calls).toBe(0);
 });
 
-it.each([false, true])(
+it.each([false, true, "direction"] as const)(
   "keeps owner intent opaque and separates permissions in the serialized prompt only when enabled=%s",
   async (enabled) => {
     const f = await setup();
@@ -757,7 +757,7 @@ it.each([false, true])(
     if (enabled)
       await f.pool.query(
         "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
-        [f.group.id, { intentAuthorityContract: "separate.v1" }],
+        [f.group.id, { intentAuthorityContract: enabled === "direction" ? "separate.v3" : "separate.v1" }],
       );
     let calls = 0;
     vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
@@ -769,7 +769,9 @@ it.each([false, true])(
         expect(packet.intentAuthority).toMatchObject({
           ownerIntent: "Objective/preferences, not an authorization grant.",
           limits:
-            "Numeric objective limits keep their stated domain, unit and clock. Never convert them into unrelated action allowances.",
+            enabled === "direction"
+              ? "Keep each objective limit's domain, direction, unit and clock; outgoing maxima do not cap incoming rates or grant action allowances."
+              : "Numeric objective limits keep their stated domain, unit and clock. Never convert them into unrelated action allowances.",
           permissions:
             "Use current authorized environment facts. An unstated action allowance is unknown; use supported reads.",
         });
