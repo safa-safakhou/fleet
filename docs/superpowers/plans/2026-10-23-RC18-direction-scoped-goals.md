@@ -8,3 +8,5 @@ Use [design](../specs/2026-10-23-RC18-direction-scoped-goals.md), both master re
 - [ ] All real D/H/N scenarios pass in order with prompt manual review and terminal close/park/archive/restore/retention; commit actual records. No activation or grant reuse.
 
 First synthetic composition failed because the fake provider still read the old flat goal field, making both sides choose the receiving role. Updated that authored fixture to accept incoming.resource with the legacy receive fallback; rerun passed all four positive worlds and checkpoint. No real R18 allocation existed during this repair.
+
+R18-D terminal critical on first response: correct economic direction but unsupported parent goal reference. Final closure/park/encrypted independent restore/retention passed; all-real-scenarios item remains incomplete. See [record](../../RC18-direction-scoped-qualification-20261023.md).
