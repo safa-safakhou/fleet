@@ -19,6 +19,7 @@ import { InternalMessageSchema } from "./messaging.js";
 import { participantGenerationContract } from "./participant-interface.js";
 import { queryContractGuide, responseContractGuide } from "./response-interface.js";
 import { route } from "./routing.js";
+import { assertListedSkillReferences, bindListedSkillReferences } from "./skill-reference-interface.js";
 
 const Update = SpecialistEnvelopeSchema.omit({ intent: true, deliveryIds: true }).extend({
   messages: z.array(InternalMessageSchema).max(8),
@@ -72,6 +73,9 @@ export class AutonomousSpecialistsEngine {
     const budget = services.configuration.budget,
       config = { ...defaults, ...services.configuration.architectureConfig };
     const readFinalContractActive = services.configuration.architectureConfig.decisionContract === "read-final.v1";
+    const listedSkills = services.configuration.architectureConfig.skillReferenceContract === "listed.v1";
+    if (listedSkills && !readFinalContractActive)
+      throw new FleetError("SKILL_REFERENCE_DECISION_CONTRACT_REQUIRED", true);
     const bindResponseEnvelope = (schema: Data) =>
       readFinalContractActive ? readFinalGenerationContract(schema) : schema;
     const portableClocks = services.configuration.architectureConfig.clockContract === "scoped.v2";
@@ -206,6 +210,24 @@ export class AutonomousSpecialistsEngine {
         now: observation.observedAt,
         limits: { maxBytes: config.memoryBytes },
       });
+      const retrieveSkillIndex = async () =>
+        services.skills
+          ? await services.skills.retrieve({
+              goal: goals
+                .map((g) => g.objective)
+                .join(" ")
+                .slice(0, 8000),
+              event: inbox.records
+                .map((r) => r.event?.type ?? "unavailable")
+                .join(" ")
+                .slice(0, 8000),
+              limit: 8,
+            })
+          : [];
+      const skillIndex = listedSkills ? await retrieveSkillIndex() : undefined;
+      const listedRefs = [...(skillIndex ?? []).map((s) => s.ref), ...selected.map((s) => s.ref)];
+      const bindResponse = (s: Data) =>
+        listedSkills ? bindListedSkillReferences(bindResponseEnvelope(s), listedRefs) : bindResponseEnvelope(s);
       const allowed = services.environment.schemas.actions;
       const baseSchema = learningMode ? z.toJSONSchema(LearningDecision, { target: "draft-7" }) : outputSchema;
       const waitSchema = await services.environment.waitSchema?.(observation);
@@ -282,7 +304,7 @@ export class AutonomousSpecialistsEngine {
           generationReadQuerySchema,
         ),
       );
-      let schema = shareGenerationSchema(bindResponseEnvelope(participantSchema.schema), {
+      let schema = shareGenerationSchema(bindResponse(participantSchema.schema), {
         inlineSingleUse: services.configuration.architectureConfig.participantContract === "scoped.v1",
         compactNames: visibleContract,
       });
@@ -333,24 +355,16 @@ export class AutonomousSpecialistsEngine {
         coordination: await p.coordination(),
         skills: services.skills
           ? {
-              index: await services.skills.retrieve({
-                goal: goals
-                  .map((g) => g.objective)
-                  .join(" ")
-                  .slice(0, 8000),
-                event: inbox.records
-                  .map((r) => r.event?.type ?? "unavailable")
-                  .join(" ")
-                  .slice(0, 8000),
-                limit: 8,
-              }),
+              index: skillIndex ?? (await retrieveSkillIndex()),
               selected,
               templates: learningMode ? (services.environment.skillTemplates ?? []) : [],
               opportunities,
               coverage: { indexScanLimit: 256, summaryLimit: 8, bodyLimit: 2, completeLibrary: false },
-              instructions: namedMeanings
-                ? "Skills unproven, never authority. {skillSchema:true}: accounted extraction read when an opportunity exists, no action. skills.select pins <=2 bodies. Final publish/adopt needs explicit refs; narratives persist nothing."
-                : "Advice is unproven and never authority. Read query {skillSchema:true} requests a separately accounted extraction call when an opportunity exists; it cannot act. Read with skills.select pins at most two bodies. Final skills.publish/adopt requires explicit refs. Narrative learned claims persist nothing.",
+              instructions: listedSkills
+                ? "Exact refs from index/selected only; empty is valid. Selection pins bodies AND the requested read runs. Advice unproven, never authority. {skillSchema:true}: accounted extraction when offered, no action. Publish/adopt only final; narratives persist nothing."
+                : namedMeanings
+                  ? "Skills unproven, never authority. {skillSchema:true}: accounted extraction read when an opportunity exists, no action. skills.select pins <=2 bodies. Final publish/adopt needs explicit refs; narratives persist nothing."
+                  : "Advice is unproven and never authority. Read query {skillSchema:true} requests a separately accounted extraction call when an opportunity exists; it cannot act. Read with skills.select pins at most two bodies. Final skills.publish/adopt requires explicit refs. Narrative learned claims persist nothing.",
             }
           : null,
         observation: modelObservation,
@@ -443,7 +457,7 @@ export class AutonomousSpecialistsEngine {
           throw error;
         evidenceReviewOnly = true;
         schema = shareGenerationSchema(
-          bindResponseEnvelope(
+          bindResponse(
             bindParticipants(bindActionContracts(baseSchema, [], [], waitSchema, generationReadQuerySchema)).schema,
           ),
           {
@@ -507,6 +521,17 @@ export class AutonomousSpecialistsEngine {
         const learned = LearningDecision.safeParse(result.decision);
         if (!learned.success) throw new FleetError("INVALID_MODEL_OUTPUT", true);
         if (learned.data.proposals.length) {
+          if (listedSkills)
+            assertListedSkillReferences(
+              {
+                select: learned.data.proposals.flatMap((c) => [
+                  ...(c.parent ? [c.parent] : []),
+                  ...c.procedure.children,
+                  ...c.procedure.nodes.flatMap((n) => (n.kind === "invoke" ? [n.skill] : [])),
+                ]),
+              },
+              listedRefs,
+            );
           if (!services.skills || !opportunities.length) throw new FleetError("LEARNING_OPPORTUNITY_REQUIRED", true);
           const delivered = new Set(evidence.bundles.flatMap((b) => b.originals.map((o) => o.id))),
             episodes = new Set(opportunities.flatMap((o) => o.episodeIds));
@@ -543,10 +568,24 @@ export class AutonomousSpecialistsEngine {
       const parsed = Decision.safeParse(result.decision);
       if (!parsed.success) throw new FleetError("INVALID_MODEL_OUTPUT", true);
       const { decision, update, skills } = parsed.data;
+      if (listedSkills) {
+        assertListedSkillReferences(skills, listedRefs);
+        if (decision.kind === "read" && (skills?.publish || skills?.adopt))
+          throw new FleetError("SKILL_PUBLICATION_REQUIRES_FINAL_DECISION", true);
+      }
       if (evidenceReviewOnly && decision.kind === "action")
         throw new FleetError("SPECIALIST_FULL_ACTION_CONTEXT_REQUIRED", true);
       if (decision.kind === "read") {
         if (update) throw new FleetError("STATE_UPDATE_REQUIRES_FINAL_DECISION", true);
+        if (listedSkills && skills?.select) {
+          if (skills.publish || skills.adopt) throw new FleetError("SKILL_SELECTION_REQUIRED", true);
+          if (skills.select.length) {
+            if (!services.skills) throw new FleetError("SKILL_SELECTION_REQUIRED", true);
+            selected = await services.skills.loadSelected(skills.select);
+            if (selected.some((s) => !["advisory", "guarded"].includes(s.status)))
+              throw new FleetError("SKILL_NOT_ADOPTABLE", true);
+          } else selected = [];
+        }
         if (decision.query.skillSchema === true) {
           if (!services.skills || !opportunities.length) throw new FleetError("LEARNING_OPPORTUNITY_REQUIRED", true);
           if (!(await services.skills.canLearn())) throw new FleetError("URGENT_GAMEPLAY_PRECEDES_LEARNING", true);
@@ -562,7 +601,7 @@ export class AutonomousSpecialistsEngine {
           learningMode = true;
           continue;
         }
-        if (skills?.select) {
+        if (!listedSkills && skills?.select) {
           if (!services.skills || skills.publish || skills.adopt)
             throw new FleetError("SKILL_SELECTION_REQUIRED", true);
           selected = await services.skills.loadSelected(skills.select);
@@ -574,9 +613,12 @@ export class AutonomousSpecialistsEngine {
         continue;
       }
       if (skills) {
-        if (!services.skills || skills.select) throw new FleetError("SKILL_SELECTION_REQUIRES_READ", true);
-        for (const ref of skills.publish ?? []) await services.skills.publish(ref);
-        for (const ref of skills.adopt ?? []) await services.skills.adopt(ref);
+        if (skills.select || (!services.skills && (!listedSkills || skills.publish?.length || skills.adopt?.length)))
+          throw new FleetError("SKILL_SELECTION_REQUIRES_READ", true);
+        if (services.skills) {
+          for (const ref of skills.publish ?? []) await services.skills.publish(ref);
+          for (const ref of skills.adopt ?? []) await services.skills.adopt(ref);
+        }
       }
       const delivered = new Set(evidence.bundles.flatMap((b) => b.originals.map((o) => o.id)));
       if (

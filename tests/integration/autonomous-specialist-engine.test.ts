@@ -965,6 +965,7 @@ it.each([
   { config: { clockContract: "scoped.v1" }, code: "CLOCK_PARTICIPANT_CONTRACT_REQUIRED" },
   { config: { responseContract: "visible.v1" }, code: "RESPONSE_READ_CONTRACT_REQUIRED" },
   { config: { observationPolicyVersion: "2" }, code: "SPECIALIST_OBSERVATION_POLICY_REQUIRED" },
+  { config: { skillReferenceContract: "listed.v1" }, code: "SKILL_REFERENCE_DECISION_CONTRACT_REQUIRED" },
 ])("requires profile prerequisites before scoped generation %j", async ({ config, code }) => {
   const f = await setup();
   await f.pool.query(
@@ -984,13 +985,14 @@ it.each([
   await expect(f.host(model, undefined, {}, f.store.architectures).host.run(claim)).rejects.toThrow(code);
   expect(calls).toBe(0);
 });
-it.each([false, true, "named"] as const)(
+it.each([false, true, "named", "skills"] as const)(
   "delivers current named meanings and scoped response contracts after an actual read visible=%s",
   async (visible) => {
     const f = await setup(),
       seen: string[] = [];
     let currentGross = "10";
-    const named = visible === "named";
+    const named = visible === "named" || visible === "skills";
+    const skillRefs = visible === "skills";
     if (named) {
       f.board.adapter.specialistObservationPolicy = { id: "board", version: "1" };
       f.board.adapter.specialistObservationPolicies = [{ id: "board", version: "2" }];
@@ -1040,6 +1042,7 @@ it.each([false, true, "named"] as const)(
           observationContract: "semantics.v2",
           readQueryContract: "environment.v1",
           ...(named ? { observationPolicyVersion: "2", intentAuthorityContract: "separate.v2" } : {}),
+          ...(skillRefs ? { skillReferenceContract: "listed.v1", decisionContract: "read-final.v1" } : {}),
           ...(visible
             ? { responseContract: "visible.v1", clockContract: "scoped.v2", participantContract: "scoped.v1" }
             : {}),
@@ -1066,6 +1069,7 @@ it.each([false, true, "named"] as const)(
       return Response.json({
         message: {
           content: JSON.stringify({
+            ...(skillRefs ? { skills: seen.length === 1 ? { select: [] } : { publish: [], adopt: [] } } : {}),
             decision:
               seen.length === 1
                 ? { kind: "read", query: {}, summary: "Refresh current facts" }
@@ -1113,4 +1117,62 @@ it.each(["missing", "empty", "oversized"])("refuses %s v2 meanings without subst
   );
   expect(calls).toBe(0);
   expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(0);
+});
+it("rejects unlisted skill responses through bounded recovery before any requested read", async () => {
+  const f = await setup();
+  let probes = 0,
+    calls = 0;
+  const connect = f.board.adapter.connect;
+  f.board.adapter.connect = async (binding) => {
+    const session = await connect(binding);
+    return {
+      ...session,
+      readQuerySchema: async () => ({
+        type: "object",
+        properties: { probe: { const: true } },
+        additionalProperties: false,
+      }),
+      observe: async (query) => {
+        if (query.probe === true) probes++;
+        return session.observe(query);
+      },
+    };
+  };
+  await f.pool.query(
+    "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+    [
+      f.group.id,
+      { skillReferenceContract: "listed.v1", decisionContract: "read-final.v1", readQueryContract: "environment.v1" },
+    ],
+  );
+  vi.stubGlobal("fetch", async () => {
+    calls++;
+    return Response.json({
+      message: {
+        content: JSON.stringify({
+          decision: { kind: "read", query: { probe: true }, summary: "Read current authorized facts" },
+          skills: { select: [{ id: "123e4567-e89b-42d3-a456-426614174000", version: 1, digest: "a".repeat(64) }] },
+        }),
+      },
+      done: true,
+      done_reason: "stop",
+      prompt_eval_count: 10,
+      eval_count: 10,
+    });
+  });
+  const [id] = await f.enqueue("resource"),
+    claim = await f.tasks.claim("unlisted-skill", f.now(), id);
+  if (!claim) throw Error("CLAIM_REQUIRED");
+  await expect(
+    f
+      .host(new HttpModel({ ollama: "http://provider.invalid" }, undefined), undefined, {}, f.store.architectures)
+      .host.run(claim),
+  ).rejects.toThrow("INVALID_MODEL_OUTPUT");
+  expect(calls).toBe(2);
+  expect(probes).toBe(0);
+  expect(f.board.executions).toBe(0);
+  expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([
+    { status: "reported" },
+    { status: "reported" },
+  ]);
 });

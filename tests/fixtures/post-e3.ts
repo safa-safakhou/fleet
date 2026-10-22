@@ -17,6 +17,7 @@ import {
   prepareRC13Protocol,
   prepareRC14Protocol,
   prepareRC15Protocol,
+  prepareRC16Protocol,
 } from "../../src/post-e3-rc2-plan.js";
 import type { PostE3Grant } from "../../src/post-e3-run.js";
 import { Store } from "../../src/store.js";
@@ -51,7 +52,9 @@ export async function ownedRC1Fixture(
     | "R14-D"
     | "R14-N"
     | "R15-D"
-    | "R15-N" = "R1-D",
+    | "R15-N"
+    | "R16-D"
+    | "R16-N" = "R1-D",
 ) {
   const pactUrl = process.env.PACT_ACCEPTANCE_DATABASE_URL,
     nonce = process.env.FLEET_ARCHITECTURE_NONCE;
@@ -62,33 +65,35 @@ export async function ownedRC1Fixture(
     ? new Store(f.pool, f.store.vault, () => new Date(), builtinArchitectures())
     : f.store;
   const protocol = (
-    stage.startsWith("R15-")
-      ? prepareRC15Protocol
-      : stage.startsWith("R14-")
-        ? prepareRC14Protocol
-        : stage.startsWith("R13-")
-          ? prepareRC13Protocol
-          : stage.startsWith("R12-")
-            ? prepareRC12Protocol
-            : stage.startsWith("R11-")
-              ? prepareRC11Protocol
-              : stage.startsWith("R10-")
-                ? prepareRC10Protocol
-                : stage.startsWith("R9-")
-                  ? prepareRC9Protocol
-                  : stage.startsWith("R8-")
-                    ? prepareRC8Protocol
-                    : stage.startsWith("R7-")
-                      ? prepareRC7Protocol
-                      : stage.startsWith("R6-")
-                        ? prepareRC6Protocol
-                        : stage.startsWith("R5-")
-                          ? prepareRC5Protocol
-                          : stage.startsWith("R3-")
-                            ? prepareRC3Protocol
-                            : stage.startsWith("R2-")
-                              ? prepareRC2Protocol
-                              : prepareRC1Protocol
+    stage.startsWith("R16-")
+      ? prepareRC16Protocol
+      : stage.startsWith("R15-")
+        ? prepareRC15Protocol
+        : stage.startsWith("R14-")
+          ? prepareRC14Protocol
+          : stage.startsWith("R13-")
+            ? prepareRC13Protocol
+            : stage.startsWith("R12-")
+              ? prepareRC12Protocol
+              : stage.startsWith("R11-")
+                ? prepareRC11Protocol
+                : stage.startsWith("R10-")
+                  ? prepareRC10Protocol
+                  : stage.startsWith("R9-")
+                    ? prepareRC9Protocol
+                    : stage.startsWith("R8-")
+                      ? prepareRC8Protocol
+                      : stage.startsWith("R7-")
+                        ? prepareRC7Protocol
+                        : stage.startsWith("R6-")
+                          ? prepareRC6Protocol
+                          : stage.startsWith("R5-")
+                            ? prepareRC5Protocol
+                            : stage.startsWith("R3-")
+                              ? prepareRC3Protocol
+                              : stage.startsWith("R2-")
+                                ? prepareRC2Protocol
+                                : prepareRC1Protocol
   )({
     stage,
     sources: { fleet: "a".repeat(40), pact: "b".repeat(40) },
@@ -125,7 +130,7 @@ export async function ownedRC1Fixture(
           world,
           control,
           cell,
-          stage.startsWith("R15-")
+          stage.startsWith("R15-") || stage.startsWith("R16-")
             ? { route: "ollama", model: "gemma4:12b", thinking: false }
             : stage.startsWith("R14-")
               ? { route: "ollama", model: "gemma4:12b", thinking: true }
@@ -147,33 +152,35 @@ export async function ownedRC1Fixture(
     const startsAt = new Date().toISOString();
     const grant: PostE3Grant = {
       schemaVersion:
-        protocol.study === "negotiation-r15"
-          ? "fleet.rc15-grant.v1"
-          : protocol.study === "negotiation-r14"
-            ? "fleet.rc14-grant.v1"
-            : protocol.study === "negotiation-r13"
-              ? "fleet.rc13-grant.v1"
-              : protocol.study === "negotiation-r12"
-                ? "fleet.rc12-grant.v1"
-                : protocol.study === "negotiation-r11"
-                  ? "fleet.rc11-grant.v1"
-                  : protocol.study === "negotiation-r10"
-                    ? "fleet.rc10-grant.v1"
-                    : protocol.study === "negotiation-r9"
-                      ? "fleet.rc9-grant.v1"
-                      : protocol.study === "negotiation-r8"
-                        ? "fleet.rc8-grant.v1"
-                        : protocol.study === "negotiation-r7"
-                          ? "fleet.rc7-grant.v1"
-                          : protocol.study === "negotiation-r6"
-                            ? "fleet.rc6-grant.v1"
-                            : protocol.study === "negotiation-r5"
-                              ? "fleet.rc5-grant.v1"
-                              : protocol.study === "negotiation-r3"
-                                ? "fleet.rc3-grant.v1"
-                                : protocol.study === "negotiation-r2"
-                                  ? "fleet.rc2-grant.v1"
-                                  : "fleet.rc1-grant.v2",
+        protocol.study === "negotiation-r16"
+          ? "fleet.rc16-grant.v1"
+          : protocol.study === "negotiation-r15"
+            ? "fleet.rc15-grant.v1"
+            : protocol.study === "negotiation-r14"
+              ? "fleet.rc14-grant.v1"
+              : protocol.study === "negotiation-r13"
+                ? "fleet.rc13-grant.v1"
+                : protocol.study === "negotiation-r12"
+                  ? "fleet.rc12-grant.v1"
+                  : protocol.study === "negotiation-r11"
+                    ? "fleet.rc11-grant.v1"
+                    : protocol.study === "negotiation-r10"
+                      ? "fleet.rc10-grant.v1"
+                      : protocol.study === "negotiation-r9"
+                        ? "fleet.rc9-grant.v1"
+                        : protocol.study === "negotiation-r8"
+                          ? "fleet.rc8-grant.v1"
+                          : protocol.study === "negotiation-r7"
+                            ? "fleet.rc7-grant.v1"
+                            : protocol.study === "negotiation-r6"
+                              ? "fleet.rc6-grant.v1"
+                              : protocol.study === "negotiation-r5"
+                                ? "fleet.rc5-grant.v1"
+                                : protocol.study === "negotiation-r3"
+                                  ? "fleet.rc3-grant.v1"
+                                  : protocol.study === "negotiation-r2"
+                                    ? "fleet.rc2-grant.v1"
+                                    : "fleet.rc1-grant.v2",
       approved: true,
       authorizationRef: "authored-fake-only",
       protocolDigest: protocol.digest,
@@ -225,7 +232,9 @@ export function ownedRC3Fixture(
     | "R14-D"
     | "R14-N"
     | "R15-D"
-    | "R15-N" = "R3-D",
+    | "R15-N"
+    | "R16-D"
+    | "R16-N" = "R3-D",
 ) {
   return ownedRC1Fixture(stage);
 }
@@ -253,7 +262,9 @@ export function ownedRC5Fixture(
     | "R14-D"
     | "R14-N"
     | "R15-D"
-    | "R15-N" = "R5-D",
+    | "R15-N"
+    | "R16-D"
+    | "R16-N" = "R5-D",
 ) {
   return ownedRC1Fixture(stage);
 }
@@ -279,7 +290,9 @@ export function ownedRC6Fixture(
     | "R14-D"
     | "R14-N"
     | "R15-D"
-    | "R15-N" = "R6-D",
+    | "R15-N"
+    | "R16-D"
+    | "R16-N" = "R6-D",
 ) {
   return ownedRC1Fixture(stage);
 }
@@ -303,7 +316,9 @@ export function ownedRC7Fixture(
     | "R14-D"
     | "R14-N"
     | "R15-D"
-    | "R15-N" = "R7-D",
+    | "R15-N"
+    | "R16-D"
+    | "R16-N" = "R7-D",
 ) {
   return ownedRC1Fixture(stage);
 }
@@ -325,7 +340,9 @@ export function ownedRC8Fixture(
     | "R14-D"
     | "R14-N"
     | "R15-D"
-    | "R15-N" = "R8-D",
+    | "R15-N"
+    | "R16-D"
+    | "R16-N" = "R8-D",
 ) {
   return ownedRC1Fixture(stage);
 }
@@ -345,7 +362,9 @@ export function ownedRC9Fixture(
     | "R14-D"
     | "R14-N"
     | "R15-D"
-    | "R15-N" = "R9-D",
+    | "R15-N"
+    | "R16-D"
+    | "R16-N" = "R9-D",
 ) {
   return ownedRC1Fixture(stage);
 }
@@ -363,31 +382,51 @@ export function ownedRC10Fixture(
     | "R14-D"
     | "R14-N"
     | "R15-D"
-    | "R15-N" = "R10-D",
+    | "R15-N"
+    | "R16-D"
+    | "R16-N" = "R10-D",
 ) {
   return ownedRC1Fixture(stage);
 }
 
 export function ownedRC11Fixture(
-  stage: "R11-D" | "R11-N" | "R12-D" | "R12-N" | "R13-D" | "R13-N" | "R14-D" | "R14-N" | "R15-D" | "R15-N" = "R11-D",
+  stage:
+    | "R11-D"
+    | "R11-N"
+    | "R12-D"
+    | "R12-N"
+    | "R13-D"
+    | "R13-N"
+    | "R14-D"
+    | "R14-N"
+    | "R15-D"
+    | "R15-N"
+    | "R16-D"
+    | "R16-N" = "R11-D",
 ) {
   return ownedRC1Fixture(stage);
 }
 
 export function ownedRC12Fixture(
-  stage: "R12-D" | "R12-N" | "R13-D" | "R13-N" | "R14-D" | "R14-N" | "R15-D" | "R15-N" = "R12-D",
+  stage: "R12-D" | "R12-N" | "R13-D" | "R13-N" | "R14-D" | "R14-N" | "R15-D" | "R15-N" | "R16-D" | "R16-N" = "R12-D",
 ) {
   return ownedRC1Fixture(stage);
 }
 
-export function ownedRC13Fixture(stage: "R13-D" | "R13-N" | "R14-D" | "R14-N" | "R15-D" | "R15-N" = "R13-D") {
+export function ownedRC13Fixture(
+  stage: "R13-D" | "R13-N" | "R14-D" | "R14-N" | "R15-D" | "R15-N" | "R16-D" | "R16-N" = "R13-D",
+) {
   return ownedRC1Fixture(stage);
 }
 
-export function ownedRC14Fixture(stage: "R14-D" | "R14-N" | "R15-D" | "R15-N" = "R14-D") {
+export function ownedRC14Fixture(stage: "R14-D" | "R14-N" | "R15-D" | "R15-N" | "R16-D" | "R16-N" = "R14-D") {
   return ownedRC1Fixture(stage);
 }
 
-export function ownedRC15Fixture(stage: "R15-D" | "R15-N" = "R15-D") {
+export function ownedRC15Fixture(stage: "R15-D" | "R15-N" | "R16-D" | "R16-N" = "R15-D") {
+  return ownedRC1Fixture(stage);
+}
+
+export function ownedRC16Fixture(stage: "R16-D" | "R16-N" = "R16-D") {
   return ownedRC1Fixture(stage);
 }

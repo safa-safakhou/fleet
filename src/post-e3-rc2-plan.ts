@@ -701,6 +701,62 @@ export function prepareRC15Protocol(raw: unknown) {
   return immutable({ ...protocol, digest: designDigest(protocol) });
 }
 export type RC15Protocol = ReturnType<typeof prepareRC15Protocol>;
+export const RC16SelectionSchema = RC1SelectionSchema.extend({ stage: z.enum(["R16-D", "R16-H", "R16-N"]) }).strict();
+export const rc16Configuration = immutable({
+  ...rc15Configuration,
+  clockContract: "scoped.v2" as const,
+  intentAuthorityContract: "separate.v2" as const,
+  observationPolicyVersion: "2" as const,
+  skillReferenceContract: "listed.v1" as const,
+  responseContract: "visible.v1" as const,
+});
+export const rc16ModelProfile = immutable({ route: "ollama" as const, model: "gemma4:12b", thinking: false });
+export type RC16Cell = Omit<RC15Cell, "study" | "stage" | "configuration"> & {
+  study: "negotiation-r16";
+  stage: z.infer<typeof RC16SelectionSchema>["stage"];
+  configuration: typeof rc16Configuration;
+};
+/** New actor/configuration boundary; RC15 seeds, grants and outcomes remain closed. */
+export function prepareRC16Protocol(raw: unknown) {
+  const input = RC16SelectionSchema.parse(raw),
+    base = prepareRC15Protocol({ ...input, stage: input.stage.replace("R16-", "R15-") });
+  const cells: RC16Cell[] = base.cells.map(({ configurationDigest: _old, ...original }) => {
+    const worldSeed = createHash("sha256")
+      .update(
+        JSON.stringify([
+          "negotiation-r16",
+          input.stage,
+          original.family,
+          original.variant,
+          original.replicate,
+          input.seedNonce,
+        ]),
+      )
+      .digest("hex");
+    const cell = {
+      ...original,
+      study: "negotiation-r16" as const,
+      stage: input.stage,
+      id: original.id.replace("negotiation-r15:R15-", "negotiation-r16:R16-"),
+      worldSeed,
+      seed: Number.parseInt(worldSeed.slice(0, 8), 16),
+      configuration: rc16Configuration,
+    };
+    return { ...cell, configurationDigest: designDigest({ cell, designDigest: designDigest(design) }) };
+  });
+  const { digest: _old, ...prior } = base;
+  const protocol = {
+    ...prior,
+    schemaVersion: "fleet.rc16-protocol.v1" as const,
+    study: "negotiation-r16" as const,
+    selection: { ...input, batchNonce: base.selection.batchNonce },
+    configuration: rc16Configuration,
+    modelProfile: rc16ModelProfile,
+    cells,
+  };
+  return immutable({ ...protocol, digest: designDigest(protocol) });
+}
+export type RC16Protocol = ReturnType<typeof prepareRC16Protocol>;
 export type PostE3Cell =
   | RC1Cell
   | RC2Cell
@@ -716,7 +772,8 @@ export type PostE3Cell =
   | RC12Cell
   | RC13Cell
   | RC14Cell
-  | RC15Cell;
+  | RC15Cell
+  | RC16Cell;
 export type PostE3Protocol =
   | RC1Protocol
   | RC2Protocol
@@ -732,7 +789,8 @@ export type PostE3Protocol =
   | RC12Protocol
   | RC13Protocol
   | RC14Protocol
-  | RC15Protocol;
+  | RC15Protocol
+  | RC16Protocol;
 export function validateRC2Cell(protocol: RC2Protocol, cell: RC2Cell) {
   const canonical = prepareRC2Protocol(protocol.selection);
   if (
@@ -845,7 +903,16 @@ export function validateRC15Cell(protocol: RC15Protocol, cell: RC15Cell) {
   )
     throw Error("RC15_UNPLANNED_OR_CHANGED_CELL");
 }
+export function validateRC16Cell(protocol: RC16Protocol, cell: RC16Cell) {
+  const canonical = prepareRC16Protocol(protocol.selection);
+  if (
+    designDigest(canonical) !== designDigest(protocol) ||
+    !canonical.cells.some((c) => designDigest(c) === designDigest(cell))
+  )
+    throw Error("RC16_UNPLANNED_OR_CHANGED_CELL");
+}
 export function validatePostE3Cell(protocol: PostE3Protocol, cell: PostE3Cell) {
+  if (protocol.study === "negotiation-r16" && cell.study === "negotiation-r16") return validateRC16Cell(protocol, cell);
   if (protocol.study === "negotiation-r15" && cell.study === "negotiation-r15") return validateRC15Cell(protocol, cell);
   if (protocol.study === "negotiation-r14" && cell.study === "negotiation-r14") return validateRC14Cell(protocol, cell);
   if (protocol.study === "negotiation-r13" && cell.study === "negotiation-r13") return validateRC13Cell(protocol, cell);
@@ -864,6 +931,7 @@ export function validatePostE3Cell(protocol: PostE3Protocol, cell: PostE3Cell) {
   throw Error("POST_E3_STUDY_MISMATCH");
 }
 export function canonicalPostE3Protocol(protocol: PostE3Protocol) {
+  if (protocol.study === "negotiation-r16") return prepareRC16Protocol(protocol.selection);
   if (protocol.study === "negotiation-r15") return prepareRC15Protocol(protocol.selection);
   if (protocol.study === "negotiation-r14") return prepareRC14Protocol(protocol.selection);
   if (protocol.study === "negotiation-r13") return prepareRC13Protocol(protocol.selection);
