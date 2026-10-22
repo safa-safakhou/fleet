@@ -961,11 +961,14 @@ it.each([
   expect(calls).toBe(0);
   expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(0);
 });
-it("requires the scoped participant base before enabling scoped clock generation", async () => {
+it.each([
+  { config: { clockContract: "scoped.v1" }, code: "CLOCK_PARTICIPANT_CONTRACT_REQUIRED" },
+  { config: { responseContract: "visible.v1" }, code: "RESPONSE_READ_CONTRACT_REQUIRED" },
+])("requires profile prerequisites before scoped generation %j", async ({ config, code }) => {
   const f = await setup();
   await f.pool.query(
     "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
-    [f.group.id, { clockContract: "scoped.v1" }],
+    [f.group.id, config],
   );
   let calls = 0;
   const model = {
@@ -977,64 +980,93 @@ it("requires the scoped participant base before enabling scoped clock generation
   const [id] = await f.enqueue("resource"),
     claim = await f.tasks.claim("missing-scoped-participant", f.now(), id);
   if (!claim) throw Error("CLAIM_REQUIRED");
-  await expect(f.host(model, undefined, {}, f.store.architectures).host.run(claim)).rejects.toThrow(
-    "CLOCK_PARTICIPANT_CONTRACT_REQUIRED",
-  );
+  await expect(f.host(model, undefined, {}, f.store.architectures).host.run(claim)).rejects.toThrow(code);
   expect(calls).toBe(0);
 });
-it("delivers current environment-owned named meanings and refreshes them after an actual read", async () => {
-  const f = await setup(),
-    seen: string[] = [];
-  let currentGross = "10";
-  f.board.adapter.observationSemantics = "Static v1 is not a v2 fallback";
-  f.board.adapter.observationSemanticsFor = (o) => `Current local gross=${o.payload.gross}`;
-  const connect = f.board.adapter.connect;
-  f.board.adapter.connect = async (binding) => {
-    const session = await connect(binding);
-    return {
-      ...session,
-      observe: async (query) => {
-        const observation = await session.observe(query);
-        return { ...observation, payload: { ...observation.payload, gross: currentGross } };
+it.each([false, true])(
+  "delivers current named meanings and scoped response contracts after an actual read visible=%s",
+  async (visible) => {
+    const f = await setup(),
+      seen: string[] = [];
+    let currentGross = "10";
+    const actionContracts = async () => [
+      {
+        schemaId: "board.move.v1",
+        payloadSchema: {
+          type: "object",
+          properties: { to: { const: currentGross === "10" ? "a2" : "a3" } },
+          required: ["to"],
+          additionalProperties: false,
+        },
       },
-      readQuerySchema: async () => ({ type: "object", properties: {}, additionalProperties: false }),
+    ];
+    f.board.adapter.observationSemantics = "Static v1 is not a v2 fallback";
+    f.board.adapter.observationSemanticsFor = (o) => `Current local gross=${o.payload.gross}`;
+    const connect = f.board.adapter.connect;
+    f.board.adapter.connect = async (binding) => {
+      const session = await connect(binding);
+      return {
+        ...session,
+        actionContracts,
+        observe: async (query) => {
+          const observation = await session.observe(query);
+          return { ...observation, payload: { ...observation.payload, gross: currentGross } };
+        },
+        readQuerySchema: async () => ({ type: "object", properties: {}, additionalProperties: false }),
+      };
     };
-  };
-  await f.pool.query(
-    "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
-    [f.group.id, { observationContract: "semantics.v2", readQueryContract: "environment.v1" }],
-  );
-  vi.stubGlobal("fetch", async (_url: unknown, init: RequestInit) => {
-    const b = JSON.parse(String(init.body)),
-      packet = JSON.parse(b.messages[1].content);
-    expect(packet.observationSemantics).toBe(`Current local gross=${packet.observation.payload.gross}`);
-    seen.push(packet.observationSemantics);
-    if (seen.length === 1) currentGross = "20";
-    return Response.json({
-      message: {
-        content: JSON.stringify({
-          decision:
-            seen.length === 1
-              ? { kind: "read", query: {}, summary: "Refresh current facts" }
-              : { kind: "wait", summary: "Current facts reviewed" },
-        }),
-      },
-      done: true,
-      done_reason: "stop",
-      prompt_eval_count: 10,
-      eval_count: 10,
+    await f.pool.query(
+      "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+      [
+        f.group.id,
+        {
+          observationContract: "semantics.v2",
+          readQueryContract: "environment.v1",
+          ...(visible
+            ? { responseContract: "visible.v1", clockContract: "scoped.v2", participantContract: "scoped.v1" }
+            : {}),
+        },
+      ],
+    );
+    vi.stubGlobal("fetch", async (_url: unknown, init: RequestInit) => {
+      const b = JSON.parse(String(init.body)),
+        packet = JSON.parse(b.messages[1].content);
+      expect(packet.observationSemantics).toBe(`Current local gross=${packet.observation.payload.gross}`);
+      if (visible) {
+        const text = JSON.stringify(packet.responseInterface);
+        expect(text).toContain(currentGross === "10" ? "a2" : "a3");
+        expect(text).not.toContain(currentGross === "10" ? "a3" : "a2");
+        expect(text).toContain("readInterface.queryShape");
+        expect(JSON.stringify(b.format)).toContain("[0-9]{1,40}");
+      } else expect(packet.responseInterface).toBeUndefined();
+      seen.push(packet.observationSemantics);
+      if (seen.length === 1) currentGross = "20";
+      return Response.json({
+        message: {
+          content: JSON.stringify({
+            decision:
+              seen.length === 1
+                ? { kind: "read", query: {}, summary: "Refresh current facts" }
+                : { kind: "wait", summary: "Current facts reviewed" },
+          }),
+        },
+        done: true,
+        done_reason: "stop",
+        prompt_eval_count: 10,
+        eval_count: 10,
+      });
     });
-  });
-  const [id] = await f.enqueue("resource"),
-    claim = await f.tasks.claim("named-current-facts", f.now(), id);
-  if (!claim) throw Error("CLAIM_REQUIRED");
-  await f
-    .host(new HttpModel({ ollama: "http://provider.invalid" }, undefined), undefined, {}, f.store.architectures)
-    .host.run(claim);
-  expect(seen).toHaveLength(2);
-  expect(seen).toEqual(["Current local gross=10", "Current local gross=20"]);
-  expect(f.board.executions).toBe(0);
-});
+    const [id] = await f.enqueue("resource"),
+      claim = await f.tasks.claim("named-current-facts", f.now(), id);
+    if (!claim) throw Error("CLAIM_REQUIRED");
+    await f
+      .host(new HttpModel({ ollama: "http://provider.invalid" }, undefined), undefined, {}, f.store.architectures)
+      .host.run(claim);
+    expect(seen).toHaveLength(2);
+    expect(seen).toEqual(["Current local gross=10", "Current local gross=20"]);
+    expect(f.board.executions).toBe(0);
+  },
+);
 it.each(["missing", "empty", "oversized"])("refuses %s v2 meanings without substituting a v1 string", async (kind) => {
   const f = await setup();
   f.board.adapter.observationSemantics = "Valid static v1";

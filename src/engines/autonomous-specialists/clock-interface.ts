@@ -2,7 +2,10 @@ import { type Data, object } from "../../domain.js";
 import type { DomainTime } from "../../platform/contracts.js";
 import { compareDomainTime } from "../../platform/engine-context.js";
 /** Advertise only syntax for real clocks. Native admission still requires a future time. */
-export function specialistWakeClockSchema(environmentTime?: DomainTime): Data {
+export function specialistWakeClockSchema(
+  environmentTime?: DomainTime,
+  options: { portableDigits?: boolean } = {},
+): Data {
   if (
     environmentTime &&
     (typeof environmentTime.clockId !== "string" ||
@@ -22,6 +25,11 @@ export function specialistWakeClockSchema(environmentTime?: DomainTime): Data {
   ];
   if (environmentTime && environmentTime.clockId !== "utc")
     choices.push({ properties: { clockId: { const: environmentTime.clockId }, value: { pattern: "^-?\\d{1,40}$" } } });
+  if (options.portableDigits)
+    for (const choice of choices) {
+      const value = object(object(choice.properties).value);
+      value.pattern = String(value.pattern).replaceAll("\\d", "[0-9]");
+    }
   return {
     anyOf: choices.map((choice) => ({
       type: "object",

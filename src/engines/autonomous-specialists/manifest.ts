@@ -21,7 +21,8 @@ export const manifest: ArchitectureManifest = {
       preset: { type: "string", title: "Role preset", enum: ["resources-diplomacy", "full"] },
       learning: { type: "boolean", title: "Learn from observed episodes" },
       decisionContract: { type: "string", title: "Read and final-decision envelope", enum: ["read-final.v1"] },
-      clockContract: { type: "string", title: "Scoped wake clocks", enum: ["scoped.v1"] },
+      clockContract: { type: "string", title: "Scoped wake clocks", enum: ["scoped.v1", "scoped.v2"] },
+      responseContract: { type: "string", enum: ["visible.v1"] },
       observationContract: {
         type: "string",
         title: "Environment observation semantics",

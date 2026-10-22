@@ -16,7 +16,10 @@ const singles = [
 /** Structural JSON Schema factoring only. Literal const/enum/example values are
  * never traversed as schemas. Accepted outputs and every numeric/enum bound stay exact.
  */
-export function shareGenerationSchema(input: Data, options: { inlineSingleUse?: boolean } = {}): Data {
+export function shareGenerationSchema(
+  input: Data,
+  options: { inlineSingleUse?: boolean; compactNames?: boolean } = {},
+): Data {
   const root = structuredClone(input),
     counts = new Map<string, { count: number; node: Data }>();
   function children(node: Data, visit: (child: Data) => Data): Data {
@@ -47,15 +50,21 @@ export function shareGenerationSchema(input: Data, options: { inlineSingleUse?: 
   }
   count(root);
   const candidates = [...counts.entries()]
-    .filter(([key, value]) => value.count > 1 && key.length >= 120 && value.count * (key.length - 60) > key.length + 80)
+    .filter(
+      ([key, value]) =>
+        value.count > 1 &&
+        key.length >= (options.compactNames ? 48 : 120) &&
+        value.count * (key.length - (options.compactNames ? 28 : 60)) > key.length + (options.compactNames ? 16 : 80),
+    )
     .sort(([a], [b]) => b.length - a.length || a.localeCompare(b))
-    .slice(0, 32);
+    .slice(0, options.compactNames ? 64 : 32);
   if (!candidates.length) return root;
   const names = new Map<string, string>();
   let n = 0;
+  const prefix = options.compactNames ? "f" : "fleet_shared_";
   for (const [key] of candidates) {
-    while (Object.hasOwn(object(root.$defs), `fleet_shared_${n}`)) n++;
-    names.set(key, `fleet_shared_${n++}`);
+    while (Object.hasOwn(object(root.$defs), `${prefix}${n}`)) n++;
+    names.set(key, `${prefix}${n++}`);
   }
   function rewrite(node: Data, skip?: string): Data {
     const key = JSON.stringify(node),

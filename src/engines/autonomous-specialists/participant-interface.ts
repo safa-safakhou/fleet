@@ -13,7 +13,7 @@ export type ParticipantContractContext = {
   knownRequestIds: readonly string[];
   conditionContracts: readonly ConditionContract[];
   conciseInstructions?: boolean;
-  clockContract?: { environmentTime?: DomainTime };
+  clockContract?: { environmentTime?: DomainTime; portableDigits?: boolean };
   temporalEvidence?: { eventCategories: readonly string[] };
 };
 /** Generation scope only. Native transactional ownership/time checks remain authoritative. */
@@ -22,7 +22,7 @@ export function participantGenerationContract(
   context: ParticipantContractContext,
 ): { schema: Data; prompt: Data } {
   const scopedTime = context.clockContract
-    ? specialistWakeClockSchema(context.clockContract.environmentTime)
+    ? specialistWakeClockSchema(context.clockContract.environmentTime, context.clockContract)
     : undefined;
   const schema = structuredClone(base),
     update = object(object(schema.properties).update);

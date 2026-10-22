@@ -39,3 +39,30 @@ it("optionally inlines generated definitions used once after factoring without w
     expect(checks.map((c) => Boolean(c(value)))).toEqual(Array(3).fill(Boolean(checks[0](value))));
   expect(schema).toEqual(original);
 });
+it("uses collision-safe short references only when opted in without changing accepted outputs", () => {
+  const repeated = { type: "string", minLength: 1, maxLength: 80, pattern: "^[a-z]+$" };
+  const schema = {
+    type: "object",
+    properties: Object.fromEntries(Array.from({ length: 20 }, (_, i) => [`key${i}`, repeated])),
+    additionalProperties: false,
+    $defs: { f0: { const: "kept" } },
+  };
+  const legacy = shareGenerationSchema(schema, { inlineSingleUse: true }),
+    short = shareGenerationSchema(schema, { inlineSingleUse: true, compactNames: true });
+  expect(JSON.stringify(short).length).toBeLessThan(JSON.stringify(legacy).length);
+  expect((short.$defs as Record<string, unknown>).f0).toEqual({ const: "kept" });
+  const ajv = new Ajv({ strict: false }),
+    a = ajv.compile(schema),
+    b = ajv.compile(short);
+  for (const value of [
+    {},
+    { key0: "ok" },
+    { key0: "" },
+    { key0: "9" },
+    { key0: "x".repeat(81) },
+    { unknown: "ok" },
+    { key0: 4 },
+  ])
+    expect(b(value)).toBe(a(value));
+  expect(shareGenerationSchema(schema, { inlineSingleUse: true })).toEqual(legacy);
+});
