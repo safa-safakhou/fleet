@@ -198,8 +198,8 @@ export function fitNegotiationState(input: NegotiationState, maxBytes: number) {
 }
 /** Selected by a trusted engine policy port, never by model query fields. */
 export function projectPactObservation(observation: Observation, policy: { id: string; version: string }): Observation {
-  if (policy.id === "specialists" && policy.version === "1")
-    return { ...observation, schemaId: "pact.observation.specialists.v1" };
+  if (policy.id === "specialists" && ["1", "2"].includes(policy.version))
+    return { ...observation, schemaId: `pact.observation.specialists.v${policy.version}` };
   if (policy.id !== "negotiation" || !["1", "2"].includes(policy.version))
     throw new FleetError("UNSUPPORTED_OBSERVATION_POLICY", true);
   const state = negotiationState({ ...observation.payload, sourceRefs: observation.sourceRefs });

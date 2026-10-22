@@ -114,6 +114,7 @@ export interface ScopedServices {
   trace(stage: "thinking" | "deciding", label: string, detail: Data): Promise<void>;
   environment: {
     specialistObservationPolicy?: { id: string; version: string };
+    specialistObservationPolicies?: readonly { id: string; version: string }[];
     skillTemplates?: Data[];
     capabilities: Capabilities;
     schemas: { observations: string[]; actions: string[] };

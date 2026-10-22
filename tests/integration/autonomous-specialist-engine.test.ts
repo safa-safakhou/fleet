@@ -964,6 +964,7 @@ it.each([
 it.each([
   { config: { clockContract: "scoped.v1" }, code: "CLOCK_PARTICIPANT_CONTRACT_REQUIRED" },
   { config: { responseContract: "visible.v1" }, code: "RESPONSE_READ_CONTRACT_REQUIRED" },
+  { config: { observationPolicyVersion: "2" }, code: "SPECIALIST_OBSERVATION_POLICY_REQUIRED" },
 ])("requires profile prerequisites before scoped generation %j", async ({ config, code }) => {
   const f = await setup();
   await f.pool.query(
@@ -983,12 +984,17 @@ it.each([
   await expect(f.host(model, undefined, {}, f.store.architectures).host.run(claim)).rejects.toThrow(code);
   expect(calls).toBe(0);
 });
-it.each([false, true])(
+it.each([false, true, "named"] as const)(
   "delivers current named meanings and scoped response contracts after an actual read visible=%s",
   async (visible) => {
     const f = await setup(),
       seen: string[] = [];
     let currentGross = "10";
+    const named = visible === "named";
+    if (named) {
+      f.board.adapter.specialistObservationPolicy = { id: "board", version: "1" };
+      f.board.adapter.specialistObservationPolicies = [{ id: "board", version: "2" }];
+    }
     const actionContracts = async () => [
       {
         schemaId: "board.move.v1",
@@ -1008,6 +1014,17 @@ it.each([false, true])(
       return {
         ...session,
         actionContracts,
+        ...(named
+          ? {
+              projectObservation: (
+                o: import("../../src/platform/contracts.js").Observation,
+                policy: { id: string; version: string },
+              ) => {
+                expect(policy).toEqual({ id: "board", version: "2" });
+                return { ...o, schemaId: "board.position.v2" };
+              },
+            }
+          : {}),
         observe: async (query) => {
           const observation = await session.observe(query);
           return { ...observation, payload: { ...observation.payload, gross: currentGross } };
@@ -1022,6 +1039,7 @@ it.each([false, true])(
         {
           observationContract: "semantics.v2",
           readQueryContract: "environment.v1",
+          ...(named ? { observationPolicyVersion: "2", intentAuthorityContract: "separate.v2" } : {}),
           ...(visible
             ? { responseContract: "visible.v1", clockContract: "scoped.v2", participantContract: "scoped.v1" }
             : {}),
@@ -1032,6 +1050,10 @@ it.each([false, true])(
       const b = JSON.parse(String(init.body)),
         packet = JSON.parse(b.messages[1].content);
       expect(packet.observationSemantics).toBe(`Current local gross=${packet.observation.payload.gross}`);
+      if (named) {
+        expect(packet.observation.schemaId).toBe("board.position.v2");
+        expect(packet.intentAuthority.ownerIntent).toContain("not an authorization grant");
+      }
       if (visible) {
         const text = JSON.stringify(packet.responseInterface);
         expect(text).toContain(currentGross === "10" ? "a2" : "a3");

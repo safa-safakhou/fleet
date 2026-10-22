@@ -3,7 +3,7 @@ import { type Data, object } from "./domain.js";
 const bytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value));
 // A whole-row presentation: common values are explicit for every row. Only
 // use it when it is smaller; no fact, null, version, unit or provenance is lost.
-export function factTable(value: unknown): unknown {
+export function factTable(value: unknown, options: { atomicPaths?: readonly string[] } = {}): unknown {
   const list = Array.isArray(value);
   const entries = list ? value.map((row, i) => [String(i), row] as const) : Object.entries(object(value));
   if (entries.length < 2 || entries.some(([, row]) => !row || typeof row !== "object" || Array.isArray(row)))
@@ -25,6 +25,7 @@ export function factTable(value: unknown): unknown {
       const values = nodes.map((node) => node[key]);
       if (
         /^[a-zA-Z_][a-zA-Z0-9_]*$/.test(key) &&
+        !options.atomicPaths?.includes(path) &&
         values.every((v) => v && typeof v === "object" && !Array.isArray(v)) &&
         fields(object(values[0])).length &&
         sameFields(values.map(object))

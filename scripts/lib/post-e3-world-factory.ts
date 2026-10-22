@@ -12,4 +12,5 @@ export {
   prepareOwnedRC12World,
   prepareOwnedRC13World,
   prepareOwnedRC14World,
+  prepareOwnedRC15World,
 } from "../../../pact/tests/evaluation/post-e3-owned-world.js";

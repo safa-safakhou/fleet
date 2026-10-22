@@ -23,6 +23,7 @@ export const manifest: ArchitectureManifest = {
       decisionContract: { type: "string", title: "Read and final-decision envelope", enum: ["read-final.v1"] },
       clockContract: { type: "string", title: "Scoped wake clocks", enum: ["scoped.v1", "scoped.v2"] },
       responseContract: { type: "string", enum: ["visible.v1"] },
+      observationPolicyVersion: { type: "string", enum: ["2"] },
       observationContract: {
         type: "string",
         title: "Environment observation semantics",
@@ -30,7 +31,11 @@ export const manifest: ArchitectureManifest = {
       },
       temporalEvidenceContract: { type: "string", title: "Temporal evidence contract", enum: ["bounded.v1"] },
       participantContract: { type: "string", title: "Scoped participant contract", enum: ["scoped.v1"] },
-      intentAuthorityContract: { type: "string", title: "Owner intent and authorization", enum: ["separate.v1"] },
+      intentAuthorityContract: {
+        type: "string",
+        title: "Owner intent and authorization",
+        enum: ["separate.v1", "separate.v2"],
+      },
       readQueryContract: { type: "string", title: "Environment read contract", enum: ["environment.v1"] },
       skillMode: { type: "string", title: "Skill reuse", enum: ["off", "advisory", "guarded"] },
       qualificationPolicy: { type: "string", title: "Trusted qualification policy", enum: ["skills-policy.v1"] },

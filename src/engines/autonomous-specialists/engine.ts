@@ -82,6 +82,16 @@ export class AutonomousSpecialistsEngine {
       throw new FleetError("RESPONSE_READ_CONTRACT_REQUIRED", true);
     if (clockContractActive && services.configuration.architectureConfig.participantContract !== "scoped.v1")
       throw new FleetError("CLOCK_PARTICIPANT_CONTRACT_REQUIRED", true);
+    const policyVersion = services.configuration.architectureConfig.observationPolicyVersion;
+    const defaultPolicy = services.environment.specialistObservationPolicy;
+    const observationPolicy =
+      policyVersion === undefined
+        ? defaultPolicy
+        : services.environment.specialistObservationPolicies?.find(
+            (p) => p.id === defaultPolicy?.id && p.version === policyVersion,
+          );
+    if (policyVersion !== undefined && (!observationPolicy || !services.environment.projectObservation))
+      throw new FleetError("SPECIALIST_OBSERVATION_POLICY_REQUIRED", true);
     const namedMeanings = services.configuration.architectureConfig.observationContract === "semantics.v2";
     if (namedMeanings && !services.environment.observationSemanticsFor)
       throw new FleetError("OBSERVATION_SEMANTICS_REQUIRED", true);
@@ -108,10 +118,8 @@ export class AutonomousSpecialistsEngine {
       });
     }
     for (let call = 0; call < budget.maxCallsPerTurn; call++) {
-      if (services.environment.specialistObservationPolicy)
-        observation =
-          services.environment.projectObservation?.(observation, services.environment.specialistObservationPolicy) ??
-          observation;
+      if (observationPolicy)
+        observation = services.environment.projectObservation?.(observation, observationPolicy) ?? observation;
       const observationSemantics = namedMeanings
         ? services.environment.observationSemanticsFor?.(observation)
         : staticObservationSemantics;
@@ -350,7 +358,9 @@ export class AutonomousSpecialistsEngine {
         ...(visibleContract ? { responseInterface: responseContractGuide(schema) } : {}),
         ...(observationSemantics !== undefined ? { observationSemantics } : {}),
         ...(participantSchema.prompt ? { participantInterface: participantSchema.prompt } : {}),
-        ...(services.configuration.architectureConfig.intentAuthorityContract === "separate.v1"
+        ...(["separate.v1", "separate.v2"].includes(
+          String(services.configuration.architectureConfig.intentAuthorityContract),
+        )
           ? {
               intentAuthority: {
                 ownerIntent: "Objective/preferences, not an authorization grant.",

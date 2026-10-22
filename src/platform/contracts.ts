@@ -97,6 +97,7 @@ export interface EnvironmentSession {
 }
 export interface EnvironmentAdapter {
   specialistObservationPolicy?: { id: string; version: string };
+  specialistObservationPolicies?: readonly { id: string; version: string }[];
   skillSupport?: import("../modules/skills/v1/support.js").SkillSupport;
   specialistPresets?: import("./participant-state.js").SpecialistPreset[];
   wakePredicates?: import("./wake-conditions.js").WakePredicates;

@@ -36,7 +36,7 @@ function ordinaryNegotiationStock(balances: Data): Data {
 
 /** PACT owns which facts are essential; generic engines must never delete world keys. */
 export function packPactObservation(observation: Observation, byteLimit: number): Observation {
-  if (observation.schemaId === "pact.observation.specialists.v1")
+  if (["pact.observation.specialists.v1", "pact.observation.specialists.v2"].includes(observation.schemaId))
     return packSpecialistObservation(observation, byteLimit);
   if (["pact.observation.negotiation.v1", "pact.observation.negotiation.v2"].includes(observation.schemaId)) {
     const v2 = observation.schemaId === "pact.observation.negotiation.v2";
@@ -188,7 +188,12 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
         "nextUpgradeChecks",
         "constructionStockChecks",
       ].includes(key)
-        ? factTable(compact[key])
+        ? factTable(
+            compact[key],
+            key === "balances" && observation.schemaId === "pact.observation.specialists.v2"
+              ? { atomicPaths: ["facts"] }
+              : {},
+          )
         : compact[key];
   const originalAuthority = object(observation.payload.world).authority;
   environment.authority =
@@ -231,7 +236,10 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
     coverage: {
       ...observation.coverage,
       packed: true,
-      policy: "pact.specialist-view.v1",
+      policy:
+        observation.schemaId === "pact.observation.specialists.v2"
+          ? "pact.specialist-view.v2"
+          : "pact.specialist-view.v1",
       complete: false,
       omittedFields: omitted,
       pages,
@@ -239,7 +247,9 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
   };
   const bytes = () => Buffer.byteLength(JSON.stringify(result));
   environment.factEncoding =
-    "Whole tables: columns=dotted paths, common=EVERY row, $key=map key, absent[row]=missing (not null/0). Omitted fields/records are unknown, not absence; use normal scoped reads.";
+    observation.schemaId === "pact.observation.specialists.v2"
+      ? "Tables: dotted columns; common=all rows; $key=map key; absent[row]=missing, not0/null. balances.facts amounts/rates are whole; other Units fields are marked. Omitted data unknown; read."
+      : "Whole tables: columns=dotted paths, common=EVERY row, $key=map key, absent[row]=missing (not null/0). Omitted fields/records are unknown, not absence; use normal scoped reads.";
   for (const key of ["contacts", "contactRequests", "openSupplyOffers", "contracts"]) {
     const records = Array.isArray(compact[key]) ? (compact[key] as unknown[]) : undefined;
     if (!records) continue;
