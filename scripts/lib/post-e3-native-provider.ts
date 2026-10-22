@@ -14,7 +14,7 @@ const identitySchema = z
     executable: z.string().regex(/^\/.*\/bin\/ollama$/),
     command: z.array(z.string()).length(2),
     listenerPids: z.array(z.number().int().positive()).length(1),
-    model: z.literal("nemotron-3-nano:4b"),
+    model: z.enum(["nemotron-3-nano:4b", "qwen3.5:9b"]),
     modelDigest: z.string().regex(/^[a-f0-9]{64}$/),
   })
   .strict()
@@ -29,7 +29,10 @@ export function validateNativeProviderIdentity(expected: unknown, observed: unkn
 }
 const exec = promisify(execFile);
 /** Read-only observation of the explicitly selected WSL user service. */
-export async function readNativeProviderIdentity(): Promise<NativeProviderIdentity> {
+export async function readNativeProviderIdentity(
+  model: NativeProviderIdentity["model"] = "nemotron-3-nano:4b",
+): Promise<NativeProviderIdentity> {
+  identitySchema.shape.model.parse(model);
   if (process.platform !== "linux") throw Error("NATIVE_WSL_REQUIRED");
   const { stdout: service } = await exec("systemctl", [
     "--user",
@@ -66,7 +69,7 @@ export async function readNativeProviderIdentity(): Promise<NativeProviderIdenti
     return r.json();
   };
   const [version, tags] = await Promise.all([metadata("/api/version"), metadata("/api/tags")]);
-  const selected = tags.models.filter((m: { name: string }) => m.name === "nemotron-3-nano:4b");
+  const selected = tags.models.filter((m: { name: string }) => m.name === model);
   if (selected.length !== 1) throw Error("NATIVE_PROVIDER_MODEL");
   return identitySchema.parse({
     route,
@@ -77,7 +80,7 @@ export async function readNativeProviderIdentity(): Promise<NativeProviderIdenti
     executable,
     command,
     listenerPids,
-    model: "nemotron-3-nano:4b",
+    model,
     modelDigest: selected[0].digest,
   });
 }

@@ -198,6 +198,16 @@ export class AutonomousSpecialistsEngine {
                 .map((r) => r.event?.metadata.replyToRequestId)
                 .filter((id): id is string => typeof id === "string" && z.uuid().safeParse(id).success),
               conditionContracts: services.environment.conditionContracts ?? [],
+              ...(services.configuration.architectureConfig.temporalEvidenceContract === "bounded.v1"
+                ? {
+                    temporalEvidence: {
+                      eventCategories:
+                        services.environment.specialistPresets
+                          ?.find((preset) => preset.id === config.preset)
+                          ?.roles.find((role) => role.charter.id === state.charter.id)?.subscriptions.categories ?? [],
+                    },
+                  }
+                : {}),
             })
           : { schema: candidateSchema, prompt: undefined };
       const participantSchema = bindParticipants(

@@ -20,6 +20,7 @@ export const manifest: ArchitectureManifest = {
     properties: {
       preset: { type: "string", title: "Role preset", enum: ["resources-diplomacy", "full"] },
       learning: { type: "boolean", title: "Learn from observed episodes" },
+      temporalEvidenceContract: { type: "string", title: "Temporal evidence contract", enum: ["bounded.v1"] },
       participantContract: { type: "string", title: "Scoped participant contract", enum: ["scoped.v1"] },
       intentAuthorityContract: { type: "string", title: "Owner intent and authorization", enum: ["separate.v1"] },
       readQueryContract: { type: "string", title: "Environment read contract", enum: ["environment.v1"] },

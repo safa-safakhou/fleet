@@ -36,3 +36,14 @@ it("refuses a malformed baseline instead of trusting two identical invalid ident
   const bad = { ...pinned, listenerPids: [] };
   expect(() => native.validateNativeProviderIdentity(bad, bad)).toThrow();
 });
+it("permits a separately selected installed9b baseline while rejecting cross-model drift", () => {
+  const larger = { ...pinned, model: "qwen3.5:9b", modelDigest: "b".repeat(64) };
+  expect(() => native.validateNativeProviderIdentity(larger, structuredClone(larger))).not.toThrow();
+  expect(() => native.validateNativeProviderIdentity(pinned, larger)).toThrow();
+  expect(() =>
+    native.validateNativeProviderIdentity(
+      { ...larger, model: "unregistered:latest" },
+      { ...larger, model: "unregistered:latest" },
+    ),
+  ).toThrow();
+});

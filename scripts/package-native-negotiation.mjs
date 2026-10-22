@@ -37,8 +37,10 @@ if (
   !(await readFile(options["--node"])).subarray(0, 4).equals(Buffer.from([127, 69, 76, 70]))
 )
   throw Error("NATIVE_NODE_24_REQUIRED");
-const descriptor = JSON.parse(await readFile(join(fleet, "docs/negotiation-E1-launch-manifest-20261021.json"), "utf8"));
-const manifestRel = "manifests/registry.ollama.ai/library/nemotron-3-nano/4b";
+const descriptor = JSON.parse(await readFile(join(fleet, "docs/negotiation-RC7-model-20261022.json"), "utf8"));
+const manifestRel = "manifests/registry.ollama.ai/library/qwen3.5/9b";
+if (descriptor.model.model !== "qwen3.5:9b" || descriptor.model.artifact.manifestRelativePath !== manifestRel)
+  throw Error("PINNED_MODEL_SELECTION_REQUIRED");
 if ((await sha(join(options["--models"], manifestRel))) !== descriptor.model.artifact.manifestSha256)
   throw Error("PINNED_MODEL_REQUIRED");
 for (const layer of descriptor.model.artifact.layers)
@@ -59,8 +61,8 @@ for (const name of await readdir(join(fleet, "dist/negotiation")))
 for (const name of ["migrations", "vendor"]) await cp(join(fleet, name), join(out, "fleet", name), { recursive: true });
 await mkdir(join(out, "fleet/docs"), { recursive: true });
 await cp(
-  join(fleet, "docs/negotiation-E1-launch-manifest-20261021.json"),
-  join(out, "fleet/docs/negotiation-E1-launch-manifest-20261021.json"),
+  join(fleet, "docs/negotiation-RC7-model-20261022.json"),
+  join(out, "fleet/docs/negotiation-RC7-model-20261022.json"),
 );
 await writeFile(join(out, "package.json"), '{"type":"module"}\n', { flag: "wx" });
 await writeFile(join(out, "fleet/package.json"), '{"type":"module"}\n', { flag: "wx" });
@@ -131,10 +133,10 @@ for (const name of await readdir(join(out, "node_modules/@pact")))
   await cp(join(out, "node_modules/@pact", name), join(out, "pact/packages", name), { recursive: true });
 await mkdir(join(out, "controller"));
 await cp(options["--node"], join(out, "controller/node"));
-const { rc6Configuration } = await import("../dist/negotiation/fleet/src/post-e3-rc2-plan.js");
+const { rc7Configuration } = await import("../dist/negotiation/fleet/src/post-e3-rc2-plan.js");
 const settings = {
-  schemaVersion: "fleet.rc6-native-settings.v1",
-  study: "negotiation-r6",
+  schemaVersion: "fleet.rc7-native-settings.v1",
+  study: "negotiation-r7",
   sources: sourcePins,
   actorSources: sourcePins,
   controller: {
@@ -142,12 +144,12 @@ const settings = {
     nodeVersion: execFileSync(options["--node"], ["--version"], { encoding: "utf8" }).trim(),
     nodeSha256: await sha(options["--node"]),
   },
-  architecture: { id: "autonomous-specialists", version: "1", configuration: rc6Configuration },
+  architecture: { id: "autonomous-specialists", version: "1", configuration: rc7Configuration },
   provider: {
     existingServiceOnly: true,
     route: "http://127.0.0.1:11434",
     version: "0.35.1",
-    model: "nemotron-3-nano:4b",
+    model: "qwen3.5:9b",
     isolatedModelStoreCertified: false,
     globalGpuExclusive: false,
     request: { think: true, stream: false, keep_alive: 0, options: { num_ctx: 32768, num_predict: 2000 } },
@@ -168,8 +170,8 @@ const settings = {
   activation: false,
 };
 const policy = {
-  schemaVersion: "fleet.rc6-native-policy.v1",
-  study: "negotiation-r6",
+  schemaVersion: "fleet.rc7-native-policy.v1",
+  study: "negotiation-r7",
   sources: sourcePins,
   model: descriptor.model,
   scope: "new_owned_synthetic_worlds",

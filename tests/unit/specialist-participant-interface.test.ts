@@ -178,3 +178,30 @@ it.each(["deadline", "periodic"])(
 it("fails closed on a corrupt scoped UUID before removing redundant UUID syntax", () => {
   expect(() => contracts({ ...context, evidenceIds: ["not-a-uuid"] })).toThrow("PARTICIPANT_IDENTIFIER_REQUIRED");
 });
+it("bounds event wakes to registered categories and distinguishes own reviews from owner/peer promises only when opted in", () => {
+  const c = contracts({ ...context, temporalEvidence: { eventCategories: ["resource", "result"] } });
+  expect(c.accepts({ update })).toBe(false);
+  expect(c.accepts({ update: { ...update, wakeConditions: [{ kind: "event", category: "resource" }] } })).toBe(true);
+  expect(c.prompt.temporalEvidence).toContain("unknown unless supplied");
+  expect(c.prompt.temporalEvidence).toContain("never their promises");
+  expect(c.prompt.eventCategories).toEqual(["resource", "result"]);
+  expect(contracts().accepts({ update })).toBe(true);
+  expect(contracts().prompt).not.toHaveProperty("temporalEvidence");
+});
+it("disables event wakes with empty registration, retaining own timed review choices", () => {
+  const c = contracts({ ...context, temporalEvidence: { eventCategories: [] } });
+  expect(c.accepts({ update })).toBe(false);
+  expect(
+    c.accepts({
+      update: {
+        ...update,
+        wakeConditions: [{ kind: "deadline", at: { clockId: "utc", value: "2026-10-22T19:00:00Z" } }],
+      },
+    }),
+  ).toBe(true);
+});
+it("fails closed on invalid registered wake categories", () => {
+  expect(() => contracts({ ...context, temporalEvidence: { eventCategories: ["x".repeat(65)] } })).toThrow(
+    "PARTICIPANT_CATEGORY_REQUIRED",
+  );
+});

@@ -8,13 +8,26 @@ import {
   prepareRC3Protocol,
   prepareRC5Protocol,
   prepareRC6Protocol,
+  prepareRC7Protocol,
 } from "../../src/post-e3-rc2-plan.js";
 import type { PostE3Grant } from "../../src/post-e3-run.js";
 import { Store } from "../../src/store.js";
 import { fixture } from "../helpers.js";
 
 export async function ownedRC1Fixture(
-  stage: "R1-D" | "R1-N" | "R2-D" | "R2-N" | "R3-D" | "R3-N" | "R5-D" | "R5-N" | "R6-D" | "R6-N" = "R1-D",
+  stage:
+    | "R1-D"
+    | "R1-N"
+    | "R2-D"
+    | "R2-N"
+    | "R3-D"
+    | "R3-N"
+    | "R5-D"
+    | "R5-N"
+    | "R6-D"
+    | "R6-N"
+    | "R7-D"
+    | "R7-N" = "R1-D",
 ) {
   const pactUrl = process.env.PACT_ACCEPTANCE_DATABASE_URL,
     nonce = process.env.FLEET_ARCHITECTURE_NONCE;
@@ -25,15 +38,17 @@ export async function ownedRC1Fixture(
     ? new Store(f.pool, f.store.vault, () => new Date(), builtinArchitectures())
     : f.store;
   const protocol = (
-    stage.startsWith("R6-")
-      ? prepareRC6Protocol
-      : stage.startsWith("R5-")
-        ? prepareRC5Protocol
-        : stage.startsWith("R3-")
-          ? prepareRC3Protocol
-          : stage.startsWith("R2-")
-            ? prepareRC2Protocol
-            : prepareRC1Protocol
+    stage.startsWith("R7-")
+      ? prepareRC7Protocol
+      : stage.startsWith("R6-")
+        ? prepareRC6Protocol
+        : stage.startsWith("R5-")
+          ? prepareRC5Protocol
+          : stage.startsWith("R3-")
+            ? prepareRC3Protocol
+            : stage.startsWith("R2-")
+              ? prepareRC2Protocol
+              : prepareRC1Protocol
   )({
     stage,
     sources: { fleet: "a".repeat(40), pact: "b".repeat(40) },
@@ -80,15 +95,17 @@ export async function ownedRC1Fixture(
     const startsAt = new Date().toISOString();
     const grant: PostE3Grant = {
       schemaVersion:
-        protocol.study === "negotiation-r6"
-          ? "fleet.rc6-grant.v1"
-          : protocol.study === "negotiation-r5"
-            ? "fleet.rc5-grant.v1"
-            : protocol.study === "negotiation-r3"
-              ? "fleet.rc3-grant.v1"
-              : protocol.study === "negotiation-r2"
-                ? "fleet.rc2-grant.v1"
-                : "fleet.rc1-grant.v2",
+        protocol.study === "negotiation-r7"
+          ? "fleet.rc7-grant.v1"
+          : protocol.study === "negotiation-r6"
+            ? "fleet.rc6-grant.v1"
+            : protocol.study === "negotiation-r5"
+              ? "fleet.rc5-grant.v1"
+              : protocol.study === "negotiation-r3"
+                ? "fleet.rc3-grant.v1"
+                : protocol.study === "negotiation-r2"
+                  ? "fleet.rc2-grant.v1"
+                  : "fleet.rc1-grant.v2",
       approved: true,
       authorizationRef: "authored-fake-only",
       protocolDigest: protocol.digest,
@@ -115,14 +132,18 @@ export function ownedRC2Fixture(stage: "R2-D" | "R2-N" = "R2-D") {
   return ownedRC1Fixture(stage);
 }
 
-export function ownedRC3Fixture(stage: "R3-D" | "R3-N" | "R5-D" | "R5-N" | "R6-D" | "R6-N" = "R3-D") {
+export function ownedRC3Fixture(stage: "R3-D" | "R3-N" | "R5-D" | "R5-N" | "R6-D" | "R6-N" | "R7-D" | "R7-N" = "R3-D") {
   return ownedRC1Fixture(stage);
 }
 
-export function ownedRC5Fixture(stage: "R5-D" | "R5-N" | "R6-D" | "R6-N" = "R5-D") {
+export function ownedRC5Fixture(stage: "R5-D" | "R5-N" | "R6-D" | "R6-N" | "R7-D" | "R7-N" = "R5-D") {
   return ownedRC1Fixture(stage);
 }
 
-export function ownedRC6Fixture(stage: "R6-D" | "R6-N" = "R6-D") {
+export function ownedRC6Fixture(stage: "R6-D" | "R6-N" | "R7-D" | "R7-N" = "R6-D") {
+  return ownedRC1Fixture(stage);
+}
+
+export function ownedRC7Fixture(stage: "R7-D" | "R7-N" = "R7-D") {
   return ownedRC1Fixture(stage);
 }

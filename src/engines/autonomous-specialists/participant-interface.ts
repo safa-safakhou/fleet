@@ -11,6 +11,7 @@ export type ParticipantContractContext = {
   evidenceIds: readonly string[];
   knownRequestIds: readonly string[];
   conditionContracts: readonly ConditionContract[];
+  temporalEvidence?: { eventCategories: readonly string[] };
 };
 /** Generation scope only. Native transactional ownership/time checks remain authoritative. */
 export function participantGenerationContract(
@@ -83,10 +84,15 @@ export function participantGenerationContract(
       ids.items = { enum: evidence };
     }
   }
+  const categories = context.temporalEvidence ? [...new Set(context.temporalEvidence.eventCategories)] : undefined;
+  if (categories?.some((category) => !WakeConditionSchema.options[0].shape.category.safeParse(category).success))
+    throw Error("PARTICIPANT_CATEGORY_REQUIRED");
   const native = z.toJSONSchema(WakeConditionSchema, { target: "draft-7" });
   const variants = ((native.oneOf ?? native.anyOf) as Data[]).flatMap((variant) => {
     const properties = object(variant.properties),
       kind = object(properties.kind).const;
+    if (kind === "event" && categories)
+      return categories.length ? [{ ...variant, properties: { ...properties, category: { enum: categories } } }] : [];
     if (kind === "reply") {
       const { requestId: _id, requestIndex: _index, ...common } = properties;
       const choices: Data[] = [
@@ -137,6 +143,13 @@ export function participantGenerationContract(
     schema,
     prompt: {
       mode: "scoped_update",
+      ...(categories
+        ? {
+            eventCategories: categories,
+            temporalEvidence:
+              "Owner/peer decisions and response times are unknown unless supplied. Own plans/wakes are conditional review choices, never their promises.",
+          }
+        : {}),
       parentDeliveryIds: parents,
       recipients,
       updates:

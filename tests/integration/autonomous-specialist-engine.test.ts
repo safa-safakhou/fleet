@@ -802,14 +802,20 @@ it.each([false, true])(
   },
 );
 
-it.each([false, true])(
+it.each([false, true, "temporal"] as const)(
   "binds native participant shapes and prompt scope in actual HTTP generation enabled=%s",
   async (enabled) => {
     const f = await setup();
     if (enabled)
       await f.pool.query(
         "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
-        [f.group.id, { participantContract: "scoped.v1" }],
+        [
+          f.group.id,
+          {
+            participantContract: "scoped.v1",
+            ...(enabled === "temporal" ? { temporalEvidenceContract: "bounded.v1" } : {}),
+          },
+        ],
       );
     let calls = 0;
     vi.stubGlobal("fetch", async (_url: string, init: RequestInit) => {
@@ -854,6 +860,11 @@ it.each([false, true])(
           }),
         ),
       ).toBe(!enabled);
+      expect(
+        accepts(wrap({ ...update, wakeConditions: [{ kind: "event", category: "invented_future_decision" }] })),
+      ).toBe(enabled !== "temporal");
+      if (enabled === "temporal")
+        expect(packet.participantInterface.temporalEvidence).toContain("never their promises");
       if (enabled) {
         expect(packet.participantInterface.parentDeliveryIds).toContain(parent);
         expect(packet.participantInterface.recipients).toContain("diplomacy");
