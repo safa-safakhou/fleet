@@ -47,3 +47,10 @@ it("permits a separately selected installed9b baseline while rejecting cross-mod
     ),
   ).toThrow();
 });
+
+it("pins installed Gemma separately and rejects prior model or digest drift", () => {
+  const gemma = { ...pinned, model: "gemma4:12b", modelDigest: "c".repeat(64) };
+  expect(() => native.validateNativeProviderIdentity(gemma, structuredClone(gemma))).not.toThrow();
+  expect(() => native.validateNativeProviderIdentity(gemma, { ...gemma, model: "qwen3.5:9b" })).toThrow();
+  expect(() => native.validateNativeProviderIdentity(gemma, { ...gemma, modelDigest: "d".repeat(64) })).toThrow();
+});
