@@ -1,0 +1,117 @@
+{
+  "proposalId": "owner-clock-read.v1",
+  "status": "proposal-only",
+  "approvedForActivation": false,
+  "runnable": false,
+  "source": {
+    "installedFleetCommit": "966f2d2069d027cb382b67beba70aef30a228ff8",
+    "modelDigest": "6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197"
+  },
+  "currentAuthorization": {
+    "modelCalls": 0,
+    "workerStarts": 0,
+    "gameCommands": 0,
+    "enrollment": false,
+    "configurationChanges": false,
+    "legacyE4KQ1": "blocked"
+  },
+  "ownerTask": {
+    "id": "owner-clock-read.v1",
+    "recipient": "resources",
+    "objective": "Retrieve the current asOfGameTimeMs from the authorized self-scoped pact_world_read_v1 result with forecastMinutes 60. Report the exact observed value through requestedFacts. Inspect schema only if needed. Do not infer elapsed time, change state, contact peers, or claim a read completed before its result. If the read is unavailable or cannot complete within the bounded allowance, return the existing honest unresolved result.",
+    "factId": "world.time",
+    "success": "One matching native read returns the requested fact, followed by the canonical known-fact wait summary with exactly that value; no action intent, message, persistent goal change or additional task.",
+    "safeIncomplete": "Native unresolved wait summary, without a fabricated value or delivery claim; record as incomplete, not a task success."
+  },
+  "profile": {
+    "architecture": {
+      "id": "autonomous-specialists",
+      "version": "1"
+    },
+    "architectureConfig": {
+      "preset": "resources-diplomacy",
+      "maxActiveGoals": 1,
+      "memoryBytes": 6000,
+      "learning": false,
+      "skillMode": "off",
+      "decisionContract": "read-final.v3",
+      "participantContract": "scoped.v1",
+      "contextPackingContract": "required-first.v1",
+      "readQueryContract": "environment.v4",
+      "responseContract": "visible.v1"
+    },
+    "model": {
+      "route": "ollama",
+      "model": "nemotron-3-nano:4b",
+      "thinking": false
+    },
+    "modelRoute": "http://127.0.0.1:11434",
+    "fallbackAllowed": false,
+    "ollamaContextTokens": 16384
+  },
+  "readRequestExample": {
+    "identityKind": "synthetic-example-only",
+    "authenticatedEntitySelected": false,
+    "requests": [
+      {
+        "entityRef": "11111111-1111-4111-8111-111111111111",
+        "id": "world.time",
+        "tool": "pact_world_read_v1",
+        "args": {
+          "forecastMinutes": 60
+        },
+        "path": [
+          "asOfGameTimeMs"
+        ]
+      }
+    ]
+  },
+  "budgetTemplate": {
+    "mode": "finite",
+    "callLimit": 3,
+    "tokenLimit": 49152,
+    "perCallTokenLimit": 16384,
+    "maxOutputTokens": 1024,
+    "inputByteLimit": 13000,
+    "maxCallsPerTurn": 3,
+    "maxActionsPerTurn": 1,
+    "concurrency": 1
+  },
+  "futureRehearsalLimits": {
+    "requiresSeparateAuthorization": true,
+    "wallTimeMs": 300000,
+    "perCallWallTimeMs": 90000,
+    "retries": 0,
+    "stopOnFirstFailure": true,
+    "modelCalls": 3,
+    "actions": 0,
+    "messages": 0,
+    "workerStarts": 0,
+    "scheduledRuns": 0,
+    "deadlineRule": "Freeze an absolute UTC deadline and exact fresh fixture identities before separately approving any rehearsal. No deadline or execution grant is issued by this proposal.",
+    "targetedObservationReads": 1,
+    "observationRequests": 3,
+    "gameReadCalls": 13,
+    "catalogCalls": 16
+  },
+  "executionBoundary": {
+    "FLEET_LIVE_ENABLED": "0",
+    "useExistingInstalledDatabase": false,
+    "touchRetainedWorlds": false,
+    "nativePresetRoleCount": 2,
+    "addressedRoleOnly": "resources",
+    "diplomacyScheduled": false,
+    "actionContractsOffered": [],
+    "actionIntentPolicy": "Reject before persistence or dispatch; omit all executable game-command ports. This boundary must be proven offline before a model rehearsal.",
+    "taskStatePolicy": "Use isolated fixture/memory only; no installed goal, identity, allocation, queue or schedule changes."
+  },
+  "activationGaps": [
+    "No authenticated owner/entity binding has been selected; example entity ID is synthetic and must never be submitted as an existing actor.",
+    "No real operator fact request or specialist profile is configured in the installed console.",
+    "A fresh fixture rehearsal must prove native adapter observation -> v3 engine -> canonical final with no executable action port.",
+    "Native preset includes resources and diplomacy; the proposal does not remove or rewrite native charters. One-shot routing and zero-action enforcement need explicit fixture proof.",
+    "The native budget minimum of one action is not zero-action enforcement; runtime/harness denial is independently required.",
+    "No existing actor roster, actual deadline, launch spec, launch draft or activation grant is created.",
+    "Prove native adapter packet fit within 13000 bytes and account for bootstrap reads/catalog calls; do not silently raise limits or enable continuity/discovery reads."
+  ]
+}
