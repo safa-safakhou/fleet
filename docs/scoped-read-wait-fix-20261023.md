@@ -41,3 +41,6 @@ Final checks:
 Completed within the user's 30-minute ceiling. Changed files are the specialist engine, read-progress helper and decision-interface binder, their unit tests, and the existing specialist HTTP integration test. PACT source is unchanged.
 
 The earlier real v3 probe remains failed and closed, with its pending-request case unrun. This source repair does not resume its spare allowance or authorize another model probe. At the offline handoff, changes remained uncommitted and unactivated. The subsequent user request authorizes committing the repair and one fresh bounded game-free v3 probe; no game activation is authorized.
+
+
+The repair is now committed as `4338c01`. Its separately authorized [fresh game-free probe](nemotron-followthrough-probe-20261023.md) stopped on response 1 with an initial wait; no lookup occurred, so the real model did not exercise the follow-through rule. The pending-request case remains unrun. No further inference follows from this source record.
