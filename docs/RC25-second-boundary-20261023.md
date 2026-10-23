@@ -9,3 +9,13 @@ Manual review criteria: concrete unsupported claims, invalid or genuinely unasse
 Operator driver SHA256 `2fcef89347842f64b60b009d0f51e7860557b06e84485017973778b4b79263cc`. Its settings pin this registration document; policy/settings/registration hashes are checked before real dispatch. Timing, duplicate/late-verdict refusal, native identity, full artifact inventory, zero-use roster, encrypted independent restore, restored-only rehearsal and unchanged-original proof precede real D/H/N. No actor tuning after held-out starts.
 
 Inline/no delegation; ordinary game execution disabled; E4/KQ1 blocked; RC20 uncertainty untouched. No push, deployment, service restart, model download, reset or old allowance reuse. Real qualification is unrun.
+
+## Terminal result — second boundary
+
+The restored-only rehearsal passed all four cells, maximum input31877bytes, one extraction and one guarded invocation. Named-current-request audit verified253requests; the original logical fingerprints and zero allocations/turns/skills were unchanged before real dispatch. Native identity, authenticated independent before restore and review transport gates passed.
+
+Real R25-D stopped at the unchanged72-call world ceiling (`RC1_MODEL_CAP`): one failed/three unstarted D cells, with H35/N2 unrun. All72responses received authenticated on-time manual continue verdicts; no critical or unresolved response verdict was assigned. Usage:2880000reserved/407311measured tokens (403880input/3431output). Native contact request and acceptance committed; repeated introductions were rejected with ALREADY_CONTACT. No supply offer/agreement/delivery formed. This is a progress failure, not qualification or a retroactive verdict on earlier boundaries.
+
+Strict closure verified zero unknown allocations, active turns and nonterminal commands, eight parked clocks/four paused cohorts, unchanged native identity and closed grant/forfeited unused allowance. Final encrypted archive SHA256 `5708916f76c353749cf65b472757f4a3c9eaf00f298901c1246376d47f1ff083`; independent restored state digest `b9fc6e0d996c6c7960fa2578741c8a464dc79eb3217eb0def02f02676396ad48`. All three owned containers stopped, retaining volumes/keys/encrypted evidence. No old grant resumes.
+
+Continue source diagnosis of repeated reads/redundant introductions before a fresh candidate. Ordinary game execution remains disabled; E4/KQ1 remain blocked, RC20 uncertainty untouched. No real scenario has passed.
