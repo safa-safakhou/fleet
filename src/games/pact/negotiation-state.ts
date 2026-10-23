@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import { type Data, FleetError, object } from "../../domain.js";
 import type { Observation } from "../../platform/contracts.js";
+import { outlookTables } from "./outlook-tables.js";
 
 const rows = (v: unknown): Data[] => (Array.isArray(v) ? v.map(object) : []);
 const refs = (v: unknown): string[] => (Array.isArray(v) ? v.filter((s): s is string => typeof s === "string") : []);
@@ -198,6 +199,8 @@ export function fitNegotiationState(input: NegotiationState, maxBytes: number) {
 }
 /** Selected by a trusted engine policy port, never by model query fields. */
 export function projectPactObservation(observation: Observation, policy: { id: string; version: string }): Observation {
+  if (policy.id === "specialists" && policy.version === "3")
+    return { ...outlookTables(observation), schemaId: "pact.observation.specialists.v3" };
   if (policy.id === "specialists" && ["1", "2"].includes(policy.version))
     return { ...observation, schemaId: `pact.observation.specialists.v${policy.version}` };
   if (policy.id !== "negotiation" || !["1", "2"].includes(policy.version))

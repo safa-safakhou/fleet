@@ -1,4 +1,5 @@
 import { type Data, object } from "./domain.js";
+import { unpackEvidenceMetadata } from "./evidence-metadata.js";
 
 const bytes = (value: unknown) => Buffer.byteLength(JSON.stringify(value));
 // A whole-row presentation: common values are explicit for every row. Only
@@ -96,7 +97,7 @@ export function factTable(value: unknown, options: { atomicPaths?: readonly stri
 export function expandFactTables(value: unknown, scope: unknown = value): unknown {
   if (Array.isArray(value)) return value.map((cell) => expandFactTables(cell, scope));
   if (!value || typeof value !== "object") return value;
-  const table = object(value);
+  const table = unpackEvidenceMetadata(object(value));
   if (
     table.sameFact === "authority.allowedActions" &&
     Object.keys(table).length === 1 &&

@@ -241,3 +241,48 @@ it("permits only proven empty native defaults without a schema-lookup round trip
   expect(known({ tool: tool.name, args: { topic: "authority" } })).toBe(true);
   await session.close();
 });
+
+it("separates explicit outlook from continuity in the new bounded query contract while preserving v2", async () => {
+  // Use a continuity-capable environment for the actual native query factory.
+  const environment = createPactEnvironment({
+    bindings: { agentFor: async () => "actor" },
+    game: async () => ({
+      profile: async () => ({ accountId: "owner" }),
+      tools: async () => [
+        {
+          ...readTool,
+          name: "pact_agent_outlook_v1",
+          inputSchema: {
+            type: "object",
+            properties: { forecastMinutes: { type: "integer", minimum: 1, maximum: 60 } },
+            additionalProperties: false,
+          },
+        },
+      ],
+      close: async () => {},
+    }),
+    now: () => new Date(0),
+    outlookVersion: "pact.agent-outlook.v1",
+  } as never);
+  const s = await environment.connect({ accountRef: "owner", entityRef: "self" } as never);
+  const schema = await s.readQuerySchema?.({ requireKnownArguments: true, contractVersion: 3 });
+  expect(schema?.$comment).toBe("fleet.read-query.known-arguments.v3");
+  const check = new Ajv({ strict: false }).compile(object(schema));
+  expect(check({ tool: "pact_agent_outlook_v1", args: {} })).toBe(true);
+  expect(check({ continuity: true, coordination: true })).toBe(true);
+  expect(check({ tool: "pact_agent_outlook_v1", args: {}, continuity: true, coordination: true })).toBe(false);
+  const lookedUp = new Ajv({ strict: false }).compile(
+    object(
+      await s.readQuerySchema?.({
+        requireKnownArguments: true,
+        contractVersion: 3,
+        retrievedTool: "pact_agent_outlook_v1",
+      }),
+    ),
+  );
+  expect(lookedUp({ tool: "pact_agent_outlook_v1", args: { forecastMinutes: 60 } })).toBe(true);
+  expect(lookedUp({ tool: "pact_agent_outlook_v1", args: { forecastMinutes: 60 }, continuity: true })).toBe(false);
+  const old = new Ajv({ strict: false }).compile(object(await s.readQuerySchema?.({ requireKnownArguments: true })));
+  expect(old({ tool: "pact_agent_outlook_v1", args: {}, continuity: true, coordination: true })).toBe(true);
+  await s.close();
+});

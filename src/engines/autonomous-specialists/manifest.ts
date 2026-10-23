@@ -27,7 +27,8 @@ export const manifest: ArchitectureManifest = {
       },
       clockContract: { type: "string", title: "Scoped wake clocks", enum: ["scoped.v1", "scoped.v2"] },
       responseContract: { type: "string", enum: ["visible.v1"] },
-      observationPolicyVersion: { type: "string", enum: ["2"] },
+      contextPackingContract: { type: "string", enum: ["required-first.v1"] },
+      observationPolicyVersion: { type: "string", enum: ["2", "3"] },
       skillReferenceContract: { type: "string", enum: ["listed.v1"] },
       observationContract: {
         type: "string",
@@ -45,7 +46,7 @@ export const manifest: ArchitectureManifest = {
       readQueryContract: {
         type: "string",
         title: "Environment read contract",
-        enum: ["environment.v1", "environment.v2"],
+        enum: ["environment.v1", "environment.v2", "environment.v3"],
       },
       skillMode: { type: "string", title: "Skill reuse", enum: ["off", "advisory", "guarded"] },
       qualificationPolicy: { type: "string", title: "Trusted qualification policy", enum: ["skills-policy.v1"] },

@@ -151,3 +151,40 @@ it("advertises and executes native action-effects reads with required command ar
       .rows[0].n,
   ).toBe(0);
 }, 30000);
+
+it("fits the exact native outlook-continuity read without losing any requested or continuity fact", async () => {
+  const { world, game } = await setup();
+  const { createPactEnvironment } = await import("../../src/environments/pact.js"),
+    { expandFactTables } = await import("../../src/fact-table.js");
+  const environment = createPactEnvironment({
+    bindings: { agentFor: async () => "owned-actor" },
+    game: async () => game,
+    now: () => new Date(),
+    outlookVersion: "pact.agent-outlook.v1",
+  } as never);
+  const session = await environment.connect({
+    id: randomUUID(),
+    accountRef: world.players[0].accountId,
+    entityRef: world.players[0].kingdomId,
+  } as never);
+  try {
+    const original = await session.observe({
+        tool: "pact_agent_outlook_v1",
+        args: {},
+        continuity: true,
+        coordination: true,
+      }),
+      before = structuredClone(original);
+    const projected = session.projectObservation?.(original, { id: "specialists", version: "3" });
+    if (!projected || !session.packObservation) throw Error("POLICY3_REQUIRED");
+    const packed = session.packObservation(projected, 18000);
+    expect(Buffer.byteLength(JSON.stringify(packed))).toBeLessThanOrEqual(18000);
+    expect(expandFactTables(packed.payload.requestedRead)).toEqual(original.payload.requestedRead);
+    expect(expandFactTables(packed.continuity)).toEqual(original.continuity);
+    expect(packed.environmentTime).toEqual(original.environmentTime);
+    expect(packed.sourceRefs).toEqual(original.sourceRefs);
+    expect(original).toEqual(before);
+  } finally {
+    await session.close();
+  }
+}, 30000);

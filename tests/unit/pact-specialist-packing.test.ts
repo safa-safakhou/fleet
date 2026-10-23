@@ -163,3 +163,64 @@ it.each([
     expect(input).toEqual(original);
   },
 );
+
+it("reserves complete current contacts and requests before optional recall in policy3", () => {
+  const input: Observation = {
+    schemaId: "pact.observation.specialists.v3",
+    environmentTime: { clockId: "pact.game-time-ms", value: "0" },
+    revision: "r",
+    observedAt: "2026-10-23T00:00:00Z",
+    sourceRefs: ["native-current"],
+    payload: {
+      world: { profile: { kingdomId: "self" }, balances: {}, authority: { allowedActions: [], resources: {} } },
+      guide: {
+        contacts: [{ kingdomId: "peer", status: "active", note: "whole".repeat(1000) }],
+        contactRequests: [{ id: "incoming", direction: "incoming", status: "pending", sourceRefs: ["native-request"] }],
+      },
+    },
+    coverage: { authorizedView: true },
+  };
+  const before = structuredClone(input);
+  expect(() => packPactObservation(input, 3000)).toThrow("SPECIALIST_CONTEXT_INCOMPLETE");
+  const packed = packPactObservation(input, 12000),
+    env = packed.payload.environment as Data;
+  expect(env.contacts).toEqual((input.payload.guide as Data).contacts);
+  expect(env.contactRequests).toEqual((input.payload.guide as Data).contactRequests);
+  expect(packed.coverage.pages).toMatchObject({
+    contacts: { observed: 1, delivered: 1, omitted: 0 },
+    contactRequests: { observed: 1, delivered: 1, omitted: 0 },
+  });
+  expect(input).toEqual(before);
+  expect(() => packPactObservation({ ...input, schemaId: "pact.observation.specialists.v2" }, 3000)).not.toThrow();
+});
+
+it("does not lose a deduplicated contact request when attention pages are packed", () => {
+  const request = {
+    id: "request",
+    type: "ContactRequest",
+    direction: "incoming",
+    status: "pending",
+    sourceRefs: ["native:request"],
+  };
+  const input: Observation = {
+    schemaId: "pact.observation.specialists.v3",
+    revision: "r",
+    observedAt: "2026-10-23T00:00:00Z",
+    environmentTime: { clockId: "pact.game-time-ms", value: "0" },
+    sourceRefs: ["native"],
+    payload: {
+      world: { profile: { kingdomId: "self" }, authority: { allowedActions: [], resources: {} } },
+      guide: { contactRequests: [request] },
+      socialAttention: {
+        records: [{ id: "huge", type: "other", text: "x".repeat(10000) }, request],
+        coverage: { complete: true },
+      },
+    },
+    coverage: { authorizedView: true },
+  };
+  const packed = packPactObservation(input, 3000),
+    attention = (packed.payload.environment as Data).socialAttention as Data;
+  expect(attention.records).toEqual([request]);
+  expect(packed.coverage.pages).toMatchObject({ socialAttention: { observed: 2, delivered: 1, omitted: 1 } });
+  expect(attention.coverage).toMatchObject({ complete: false, delivered: 1, omittedFromThisInput: 1 });
+});

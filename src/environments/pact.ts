@@ -86,6 +86,7 @@ export function createPactEnvironment(ports: {
     specialistObservationPolicies: [
       { id: "specialists", version: "1" },
       { id: "specialists", version: "2" },
+      { id: "specialists", version: "3" },
     ],
     ...(ports.actionEffectsVersion ? { skillSupport: createPactSkillSupport() } : {}),
     instructions: pactAdapter.instructions,
@@ -159,6 +160,7 @@ export function createPactEnvironment(ports: {
             Boolean(ports.outlookVersion),
             options?.requireKnownArguments ? tools.filter((t) => t.name === options.retrievedTool) : undefined,
             emptyNames,
+            options?.contractVersion,
           );
         },
         async observe(query) {

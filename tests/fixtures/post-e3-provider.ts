@@ -20,6 +20,8 @@ export function positiveSpecialistProvider() {
     string,
     {
       peer?: string;
+      outlookRead?: boolean;
+      lastObservedContact?: boolean;
       contactRequested?: boolean;
       messageSent?: boolean;
       goalId?: string;
@@ -29,6 +31,7 @@ export function positiveSpecialistProvider() {
       signed?: string;
     }
   >();
+  let outlookProbes = 0;
   const trace: Data[] = [];
   const bindings = new Map<string, string>();
   const result = { maximumBytes: 0, wakeAt: 0, extractions: 0, trace, provider: undefined as unknown as ModelPort };
@@ -52,7 +55,7 @@ export function positiveSpecialistProvider() {
       const current = object(answer),
         records = rows(current.records),
         scope = String(originals[0]?.bindingId ?? "");
-      const identity = object(env.profile).kingdomId ?? current.ownerKingdomId;
+      const identity = object(env.profile).kingdomId ?? current.ownerKingdomId ?? current.ownerRef;
       if (typeof identity === "string" && scope) bindings.set(scope, identity);
       const own = String(identity ?? bindings.get(scope) ?? "unavailable");
       let s = states.get(own);
@@ -112,6 +115,23 @@ export function positiveSpecialistProvider() {
             : {}),
           summary: "Proposed next step only; no peer consent or delivery is claimed.",
         });
+      if (
+        specialist.id === "resources" &&
+        observation.schemaId === "pact.observation.specialists.v3" &&
+        !s.outlookRead &&
+        outlookProbes < 2
+      ) {
+        outlookProbes++;
+        s.outlookRead = true;
+        return reply({
+          kind: "read",
+          query:
+            object(JSON.parse(String(specialist.ownerIntent)).incoming).resource === "silver"
+              ? { tool: "pact_agent_outlook_v1", args: {} }
+              : { continuity: true, coordination: true },
+          summary: "Read the authorized native outlook; no permission or fulfillment claimed.",
+        });
+      }
       if (specialist.id !== "diplomacy") return wait();
       const ownGoal = JSON.parse(String(specialist.ownerIntent));
       const roleA = (object(ownGoal.incoming).resource ?? ownGoal.receive) === "silver";
@@ -163,7 +183,16 @@ export function positiveSpecialistProvider() {
         ) || undefined;
       if (!s.peer) return read("pact_kingdom_discover_v2", { limit: 1 });
       const peer = s.peer;
-      const connected = contacts.some((c) => c.kingdomId === peer);
+      const observedContact = contacts.some((c) => c.kingdomId === peer);
+      // This fake may propose against the last observed positive contact when
+      // the current page explicitly omits rows. It never treats omission as a
+      // disconnection, claims fresh consent, or bypasses native authorization.
+      const contactPage = object(object(observation.coverage).pages).contacts;
+      if (observedContact) s.lastObservedContact = true;
+      else if (contactPage && object(contactPage).omitted === 0) s.lastObservedContact = false;
+      const connected =
+        observedContact ||
+        (Boolean(contactPage) && Number(object(contactPage).omitted) > 0 && s.lastObservedContact === true);
       if (!connected) {
         const incoming = [...records, ...attention, ...rows(env.contactRequests)].find(
           (r) => r.type === "ContactRequest" && r.direction === "incoming" && r.status === "pending",

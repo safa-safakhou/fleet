@@ -1,5 +1,8 @@
+import { randomUUID } from "node:crypto";
 import { expect, it } from "vitest";
 import { selectSpecialistContext } from "../../src/engines/autonomous-specialists/memory.js";
+import { packEvidenceMetadata } from "../../src/evidence-metadata.js";
+import { expandFactTables } from "../../src/fact-table.js";
 import type { Original } from "../../src/modules/evidence/negotiation/v1.js";
 
 const now = "2026-10-11T12:00:00Z";
@@ -139,4 +142,28 @@ it("reserves whole required historical evidence before optional high-score outco
   expect(packet.omitted).toContainEqual({ id: optional.id, reason: "bundle_unavailable" });
   expect(Buffer.byteLength(JSON.stringify(packet))).toBeLessThanOrEqual(3000);
   expect([required, optional]).toEqual(before);
+});
+
+it("fits complete repeated-ID metadata for bounded read history without losing any ID or omission", () => {
+  const input = {
+    scope: { bindingId: "binding:1" },
+    goalRefs: [],
+    entityRefs: [],
+    conversationRefs: [],
+    requiredEvidenceIds: [],
+    facts: Array.from({ length: 60 }, (_, i) => ({
+      ...fact(randomUUID(), "observation", "stock"),
+      createdAt: new Date(Date.parse(now) - 60000 + i).toISOString(),
+    })),
+    memory: [],
+    now,
+    limits: { maxBytes: 6000 },
+    compactMetadata: true,
+  };
+  const packet = selectSpecialistContext(input),
+    wire = packEvidenceMetadata(packet);
+  expect(Buffer.byteLength(JSON.stringify(wire))).toBeLessThanOrEqual(6000);
+  expect(expandFactTables(wire)).toEqual(packet);
+  expect(packet.candidateIds).toEqual(input.facts.map((f) => f.id));
+  expect(packet.omitted).toHaveLength(59);
 });

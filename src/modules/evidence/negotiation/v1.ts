@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import type { Data } from "../../../domain.js";
 import { FleetError } from "../../../domain.js";
+import { packEvidenceMetadata } from "../../../evidence-metadata.js";
 export type Original = {
   id: string;
   bindingId: string;
@@ -25,6 +26,7 @@ export type EvidenceSelection = {
   now: string;
   maxBytes: number;
   requiredIds?: string[];
+  compactMetadata?: boolean;
 };
 export type EvidenceSelectionResult = {
   policyDigest: string;
@@ -126,6 +128,9 @@ export function selectNegotiationEvidence(input: EvidenceSelection): EvidenceSel
     deliveredIds: [],
     omitted,
   };
+  if (input.compactMetadata)
+    result.policyDigest = createHash("sha256").update(`${result.policyDigest}:lossless-id-metadata.v1`).digest("hex");
+  const bytes = () => Buffer.byteLength(JSON.stringify(input.compactMetadata ? packEvidenceMetadata(result) : result));
   for (const g of candidates) {
     g.originals.sort(
       (a, b) =>
@@ -137,7 +142,7 @@ export function selectNegotiationEvidence(input: EvidenceSelection): EvidenceSel
     result.bundles.push(g);
     result.selectedIds.push(...ids);
     result.deliveredIds.push(...ids);
-    if (Buffer.byteLength(JSON.stringify(result)) > input.maxBytes) {
+    if (bytes() > input.maxBytes) {
       result.bundles.pop();
       result.selectedIds.splice(-ids.length);
       result.deliveredIds.splice(-ids.length);
@@ -145,13 +150,13 @@ export function selectNegotiationEvidence(input: EvidenceSelection): EvidenceSel
     }
   }
   // Omission metadata is protected too. If even it cannot fit, fail before a call.
-  while (Buffer.byteLength(JSON.stringify(result)) > input.maxBytes && result.bundles.length) {
+  while (bytes() > input.maxBytes && result.bundles.length) {
     const g = result.bundles.pop()!;
     const ids = [...g.originals, ...g.interpretations].map((o) => o.id);
     result.selectedIds = result.selectedIds.filter((id) => !ids.includes(id));
     result.deliveredIds = result.deliveredIds.filter((id) => !ids.includes(id));
     result.omitted.push(...ids.map((id) => ({ id, reason: "bundle_unavailable" })));
   }
-  if (Buffer.byteLength(JSON.stringify(result)) > input.maxBytes) throw new FleetError("CONTEXT_LIMIT", true);
+  if (bytes() > input.maxBytes) throw new FleetError("CONTEXT_LIMIT", true);
   return structuredClone(result);
 }

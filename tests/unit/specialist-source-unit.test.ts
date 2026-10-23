@@ -56,7 +56,7 @@ it("binds the original external receipt requirement without changing numeric goa
   expect(next.scope).toContain("excludes local production");
   expect(next.scope).toContain("not communication allowance");
 });
-it("projects only registered PACT specialist view2 and retains legacy projection", () => {
+it("projects registered PACT specialist views and retains legacy projection", () => {
   const obs = { schemaId: "pact.observation.v1", payload: { world: { balances } } } as never;
   expect(projectPactObservation(obs, { id: "specialists", version: "2" }).schemaId).toBe(
     "pact.observation.specialists.v2",
@@ -64,5 +64,8 @@ it("projects only registered PACT specialist view2 and retains legacy projection
   expect(projectPactObservation(obs, { id: "specialists", version: "1" }).schemaId).toBe(
     "pact.observation.specialists.v1",
   );
-  expect(() => projectPactObservation(obs, { id: "specialists", version: "3" })).toThrow();
+  expect(projectPactObservation(obs, { id: "specialists", version: "3" }).schemaId).toBe(
+    "pact.observation.specialists.v3",
+  );
+  expect(() => projectPactObservation(obs, { id: "specialists", version: "4" })).toThrow();
 });

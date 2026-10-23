@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { FleetError } from "../../domain.js";
+import { packEvidenceMetadata } from "../../evidence-metadata.js";
 import {
   type EvidenceSelectionResult,
   type Interpretation,
@@ -8,6 +9,7 @@ import {
 } from "../../modules/evidence/negotiation/v1.js";
 
 type Input = {
+  compactMetadata?: boolean;
   scope: { bindingId: string };
   goalRefs: string[];
   entityRefs: string[];
@@ -58,7 +60,8 @@ export function selectSpecialistContext(input: Input): Packet {
           ),
           interpretations: chosen,
           now: input.now,
-          maxBytes: input.limits.maxBytes,
+          maxBytes: input.compactMetadata ? Math.max(1, input.limits.maxBytes - 256) : input.limits.maxBytes,
+          ...(input.compactMetadata ? { compactMetadata: true } : {}),
           requiredIds: [...protectedIds],
         }),
         retrieval: { memoryCandidates: input.memory.length, omittedMemoryCandidates: 0 },
@@ -74,7 +77,8 @@ export function selectSpecialistContext(input: Input): Packet {
         input.memory.length - input.memory.filter((m) => packet.deliveredIds.includes(m.id)).length;
       if (
         input.requiredEvidenceIds.some((id) => !packet.deliveredIds.includes(id)) ||
-        Buffer.byteLength(JSON.stringify(packet)) > input.limits.maxBytes
+        Buffer.byteLength(JSON.stringify(input.compactMetadata ? packEvidenceMetadata(packet) : packet)) >
+          input.limits.maxBytes
       )
         throw new FleetError("CONTEXT_LIMIT", true);
       return packet;

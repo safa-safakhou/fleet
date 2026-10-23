@@ -80,7 +80,8 @@ export type ActionContract = { schemaId: string; payloadSchema: Data; expectedOu
 export type ProposalValidation = { valid: boolean; code: string; guidance?: string; detail?: Data };
 export type ConditionContract = { name: string; version: string; description: string; argsSchema: Data };
 export const knownReadArgumentContract = "fleet.read-query.known-arguments.v1";
-export type ReadQueryOptions = { requireKnownArguments: true; retrievedTool?: string };
+export const knownReadArgumentContractV3 = "fleet.read-query.known-arguments.v3";
+export type ReadQueryOptions = { requireKnownArguments: true; retrievedTool?: string; contractVersion?: 3 };
 export interface EnvironmentSession {
   effects?(intent: ActionIntent): Promise<import("./action-effects.js").ActionEffects>;
   observe(query: Data): Promise<Observation>;

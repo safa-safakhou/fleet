@@ -1,5 +1,5 @@
 import type { Data, Tool } from "../../domain.js";
-import { knownReadArgumentContract } from "../../platform/contracts.js";
+import { knownReadArgumentContract, knownReadArgumentContractV3 } from "../../platform/contracts.js";
 
 /** Names come from the current authenticated catalog, never a static capability grant. */
 export function pactReadQuerySchema(
@@ -7,6 +7,7 @@ export function pactReadQuerySchema(
   continuity: boolean,
   argumentTools?: Pick<Tool, "name" | "inputSchema">[],
   emptyArgumentNames: string[] = [],
+  contractVersion?: 3,
 ): Data {
   const name = names ? { type: "string", enum: names } : { type: "string", minLength: 1 };
   const flags = continuity ? { continuity: { const: true }, coordination: { const: true } } : {};
@@ -38,19 +39,23 @@ export function pactReadQuerySchema(
   if (argumentTools === undefined) return schema;
   const choices = schema.oneOf as Data[];
   const emptyNames = emptyArgumentNames.filter((n) => names?.includes(n) && !argumentTools.some((t) => t.name === n));
+  const separateOutlook = contractVersion === 3;
+  const ordinaryEmpty = separateOutlook ? emptyNames.filter((n) => n !== "pact_agent_outlook_v1") : emptyNames;
+  const outlookEmpty = separateOutlook && emptyNames.includes("pact_agent_outlook_v1");
   return {
     ...schema,
-    $comment: knownReadArgumentContract,
-    description:
-      "{} refreshes. {readSchema:name} inspects metadata, not game state. Empty native defaults are exact; field-bearing args need lookup.",
+    $comment: separateOutlook ? knownReadArgumentContractV3 : knownReadArgumentContract,
+    description: separateOutlook
+      ? "{} refreshes; readSchema inspects metadata only. Fields need schema lookup; {} args use native defaults. Outlook OR continuity per query."
+      : "{} refreshes. {readSchema:name} inspects metadata, not game state. Empty native defaults are exact; field-bearing args need lookup.",
     oneOf: [
       choices[0],
-      ...(emptyNames.length
+      ...(ordinaryEmpty.length
         ? [
             {
               type: "object",
               properties: {
-                tool: { enum: emptyNames },
+                tool: { enum: ordinaryEmpty },
                 args: { type: "object", properties: {}, additionalProperties: false },
                 ...flags,
               },
@@ -60,12 +65,29 @@ export function pactReadQuerySchema(
             },
           ]
         : []),
+      ...(outlookEmpty
+        ? [
+            {
+              type: "object",
+              properties: {
+                tool: { const: "pact_agent_outlook_v1" },
+                args: { type: "object", properties: {}, additionalProperties: false },
+              },
+              required: ["tool", "args"],
+              additionalProperties: false,
+            },
+          ]
+        : []),
       ...argumentTools
         .filter((t) => names?.includes(t.name))
         .map((t) => ({
           type: "object",
-          properties: { tool: { const: t.name }, args: portableArguments(t.inputSchema), ...flags },
-          dependencies,
+          properties: {
+            tool: { const: t.name },
+            args: portableArguments(t.inputSchema),
+            ...(separateOutlook && t.name === "pact_agent_outlook_v1" ? {} : flags),
+          },
+          dependencies: separateOutlook && t.name === "pact_agent_outlook_v1" ? {} : dependencies,
           required: ["tool", "args"],
           additionalProperties: false,
         })),
