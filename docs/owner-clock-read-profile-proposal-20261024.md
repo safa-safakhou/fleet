@@ -87,3 +87,7 @@ Private validation: `/home/mnim/.local/share/fleet-candidate-final-facts-2026102
 4. Installed-world enrollment, worker startup, ordinary-instance cutover, autostart and game activation remain outside this proposal. E4/KQ1 remain blocked. Keeping game execution disabled is compatible with preparing/proving a game-free harness; it is not permission to launch the existing native profile.
 
 Recommended next work is the offline composition proof in step 2, with a 30-minute total ceiling and a report before any model calls or installed activation. Stop at the limit and report an exact gap rather than extending scope.
+
+## Later offline proof
+
+The [24 October offline composition](owner-clock-offline-composition-20261024.md) passed all six cases with no real model calls or activation. It measured native counters and packet fit and confirmed the native resources charter already has no allowed actions. Earlier missing-proof statements above describe the pre-test proposal checkpoint. Production activation, external identity selection and real-provider acceptance remain unperformed; the original JSON proposal remains unchanged.
