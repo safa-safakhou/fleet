@@ -59,11 +59,12 @@ export function selectSpecialistContext(input: Input): Packet {
           interpretations: chosen,
           now: input.now,
           maxBytes: input.limits.maxBytes,
+          requiredIds: [...protectedIds],
         }),
         retrieval: { memoryCandidates: input.memory.length, omittedMemoryCandidates: 0 },
       };
       packet.policyDigest = createHash("sha256")
-        .update(`specialist-context.v1:protected-history:bounded-interpretations:${packet.policyDigest}`)
+        .update(`specialist-context.v2:required-first:protected-history:bounded-interpretations:${packet.policyDigest}`)
         .digest("hex");
       for (const bundle of packet.bundles)
         bundle.originals = bundle.originals.map((o) => structuredClone(originals.get(o.id) ?? o));

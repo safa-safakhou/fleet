@@ -79,11 +79,13 @@ export type AccountObjective = string | { intent: string; currentState: Data };
 export type ActionContract = { schemaId: string; payloadSchema: Data; expectedOutcomeSchema?: Data };
 export type ProposalValidation = { valid: boolean; code: string; guidance?: string; detail?: Data };
 export type ConditionContract = { name: string; version: string; description: string; argsSchema: Data };
+export const knownReadArgumentContract = "fleet.read-query.known-arguments.v1";
+export type ReadQueryOptions = { requireKnownArguments: true; retrievedTool?: string };
 export interface EnvironmentSession {
   effects?(intent: ActionIntent): Promise<import("./action-effects.js").ActionEffects>;
   observe(query: Data): Promise<Observation>;
   catalog(): Promise<Tool[]>;
-  readQuerySchema?(): Promise<Data>;
+  readQuerySchema?(options?: ReadQueryOptions): Promise<Data>;
   execute(intent: ActionIntent): Promise<ActionOutcome>;
   resolve(commandId: string): Promise<ActionOutcome>;
   events?(cursor: string | null): Promise<EventPage>;

@@ -1335,3 +1335,123 @@ it.each(["read-final.v1", "read-final.v2"])(
     expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([{ status: "reported" }]);
   },
 );
+
+it("forwards known-argument capability through actual HTTP schema-read-final decisions", async () => {
+  const f = await setup();
+  await f.pool.query(
+    "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+    [
+      f.group.id,
+      { readQueryContract: "environment.v2", responseContract: "visible.v1", decisionContract: "read-final.v2" },
+    ],
+  );
+  const { pactReadQuerySchema } = await import("../../src/games/pact/read-queries.js");
+  const tool = {
+    name: "board.peek",
+    inputSchema: {
+      type: "object",
+      properties: { square: { enum: ["a1", "a2"] } },
+      required: ["square"],
+      additionalProperties: false,
+    },
+  };
+  const connect = f.board.adapter.connect;
+  let reads = 0,
+    requests = 0;
+  let lookups = 0;
+  f.board.adapter.connect = async (binding) => {
+    const session = await connect(binding);
+    return {
+      ...session,
+      catalog: async () => {
+        lookups++;
+        return [...(await session.catalog()), { ...tool, annotations: { readOnlyHint: true } }];
+      },
+      readQuerySchema: async (options) => {
+        expect(options).toEqual({
+          requireKnownArguments: true,
+          ...(requests === 1 ? { retrievedTool: tool.name } : {}),
+        });
+        return pactReadQuerySchema([tool.name], false, options?.retrievedTool === tool.name ? [tool] : []);
+      },
+      observe: async (query) => {
+        if (query.readSchema) throw Error("METADATA_MUST_NOT_REFRESH_GAME_FACTS");
+        if (query.tool === tool.name) {
+          expect(query.args).toEqual({ square: "a2" });
+          reads++;
+        }
+        return session.observe({});
+      },
+    };
+  };
+  let originalSnapshot: unknown;
+  vi.stubGlobal("fetch", async (_url: unknown, init: RequestInit) => {
+    const body = JSON.parse(String(init.body)),
+      check = new Ajv({ strict: false, validateFormats: false }).compile(body.format);
+    const packet = JSON.parse(body.messages[1].content),
+      snapshot = {
+        revision: packet.observation.revision,
+        observedAt: packet.observation.observedAt,
+        environmentTime: packet.observation.environmentTime,
+        sourceRefs: packet.observation.sourceRefs,
+      };
+    if (requests === 0) originalSnapshot = snapshot;
+    if (requests === 1) expect(snapshot).toEqual(originalSnapshot);
+    const wrap = (query: Data) => ({ decision: { kind: "read", query, summary: "Read native facts" } });
+    expect(check(wrap({ readSchema: tool.name }))).toBe(true);
+    expect(check(wrap({ tool: tool.name, args: { records: [] } }))).toBe(false);
+    expect(check(wrap({ tool: tool.name, args: { square: "a2" } }))).toBe(requests === 1);
+    const decision =
+      requests === 0
+        ? wrap({ readSchema: tool.name })
+        : requests === 1
+          ? wrap({ tool: tool.name, args: { square: "a2" } })
+          : { decision: { kind: "wait", summary: "Facts inspected; no action" } };
+    requests++;
+    return Response.json({
+      message: { content: JSON.stringify(decision) },
+      done: true,
+      done_reason: "stop",
+      prompt_eval_count: 10,
+      eval_count: 10,
+    });
+  });
+  const [id] = await f.enqueue("resource"),
+    claim = await f.tasks.claim("known-arguments", f.now(), id);
+  if (!claim) throw Error("CLAIM_REQUIRED");
+  await f
+    .host(new HttpModel({ ollama: "http://provider.invalid" }, undefined), undefined, {}, f.store.architectures)
+    .host.run(claim);
+  expect(requests).toBe(3);
+  expect(lookups).toBeGreaterThanOrEqual(1);
+  expect(reads).toBe(1);
+  expect(f.board.executions).toBe(0);
+  expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger WHERE status='reported'")).rows[0].n).toBe(3);
+});
+it("refuses an ignored known-argument capability before any model admission", async () => {
+  const f = await setup(),
+    connect = f.board.adapter.connect;
+  f.board.adapter.connect = async (binding) => ({
+    ...(await connect(binding)),
+    readQuerySchema: async () => ({ type: "object", additionalProperties: true }),
+  });
+  await f.pool.query(
+    "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+    [f.group.id, { readQueryContract: "environment.v2" }],
+  );
+  const [id] = await f.enqueue("resource"),
+    claim = await f.tasks.claim("missing-known-arguments", f.now(), id);
+  if (!claim) throw Error("CLAIM_REQUIRED");
+  let calls = 0;
+  const model = {
+    decide: async () => {
+      calls++;
+      throw Error("MUST_NOT_DISPATCH");
+    },
+  };
+  await expect(f.host(model, undefined, {}, f.store.architectures).host.run(claim)).rejects.toThrow(
+    "READ_ARGUMENT_CONTRACT_REQUIRED",
+  );
+  expect(calls).toBe(0);
+  expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger")).rows[0].n).toBe(0);
+});

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { Ajv } from "ajv";
 import { type Data, type ModelPort, object } from "../../src/domain.js";
 import { supplyRoutineCandidate, supplyRoutineKind } from "../../src/environments/pact-skills.js";
 import { expandFactTables } from "../../src/fact-table.js";
@@ -74,8 +75,29 @@ export function positiveSpecialistProvider() {
       };
       const wait = (summary = "No additional effect or completed delivery is claimed.") =>
         reply({ kind: "wait", summary });
-      const read = (tool: string, args: Data) =>
-        reply({ kind: "read", query: { tool, args }, summary: "Read actual authorized facts before deciding." });
+      const read = (tool: string, args: Data) => {
+        const decision = {
+          kind: "read",
+          query: { tool, args },
+          summary: "Read actual authorized facts before deciding.",
+        };
+        const accepts = new Ajv({ strict: false, validateFormats: false }).compile(request.schema);
+        if (!accepts({ decision })) {
+          const emptyDecision = { ...decision, query: { tool, args: {} } };
+          if (
+            tool === "pact_kingdom_discover_v2" &&
+            Object.keys(args).every((k) => k === "limit") &&
+            accepts({ decision: emptyDecision })
+          )
+            return reply(emptyDecision);
+          return reply({
+            kind: "read",
+            query: { readSchema: tool },
+            summary: "Retrieve the advertised native argument schema before reading.",
+          });
+        }
+        return reply(decision);
+      };
       const act = (action: Data) =>
         reply({
           kind: "action",
@@ -115,7 +137,9 @@ export function positiveSpecialistProvider() {
         };
       }
       if (priorGoal && !s.learned) {
-        if (!rows(object(packet.skills).opportunities).length) return read("pact_kingdom_discover_v2", { limit: 1 });
+        if (!rows(object(packet.skills).opportunities).length) {
+          return read("pact_kingdom_discover_v2", { limit: 1 });
+        }
         return reply({
           kind: "read",
           query: { skillSchema: true },

@@ -1,5 +1,6 @@
 import type { BudgetConfig, Data, ModelPort, ModelSettings, Tool } from "../domain.js";
 import type { ArchitectureRef } from "./architecture.js";
+import type { ReadQueryOptions } from "./contracts.js";
 
 export type { ActionEffects } from "./action-effects.js";
 export type {
@@ -124,7 +125,7 @@ export interface ScopedServices {
     conditionContracts?: import("./contracts.js").ConditionContract[];
     accountObjective?(observation: Observation): AccountObjective | undefined;
     catalog(): Promise<Tool[]>;
-    readQuerySchema?(): Promise<Data>;
+    readQuerySchema?(options?: ReadQueryOptions): Promise<Data>;
     validateProposal?(proposal: Proposal, observation: Observation): Promise<ProposalValidation>;
     waitSchema?(observation: Observation): Promise<Data | undefined>;
     validateWait?(basis: Data, observation: Observation): Promise<ProposalValidation>;

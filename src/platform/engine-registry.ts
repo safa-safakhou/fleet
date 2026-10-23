@@ -1,7 +1,13 @@
 import { type Data, FleetError, type Tool } from "../domain.js";
 import type { ModelAdmission } from "./admission.js";
 import type { EngineProfileRef } from "./architecture.js";
-import type { BindingRef, CapabilityRequirements, Observation, SchemaRequirements } from "./contracts.js";
+import type {
+  BindingRef,
+  CapabilityRequirements,
+  Observation,
+  ReadQueryOptions,
+  SchemaRequirements,
+} from "./contracts.js";
 import type { CommandExecutor } from "./execution.js";
 import type { TaskClaim, TaskRecord } from "./tasks.js";
 export interface EngineContext {
@@ -38,7 +44,7 @@ export interface EngineContext {
   projectObservation?: (observation: Observation, policy: { id: string; version: string }) => Observation;
   packObservation?: (observation: Observation, byteLimit: number) => Observation;
   catalog?: () => Promise<Tool[]>;
-  readQuerySchema?: () => Promise<Data>;
+  readQuerySchema?: (options?: ReadQueryOptions) => Promise<Data>;
   waitForEvent?: () => Promise<void>;
 }
 export interface AgentEngine {

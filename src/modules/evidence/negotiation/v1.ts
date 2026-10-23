@@ -24,6 +24,7 @@ export type EvidenceSelection = {
   interpretations: Interpretation[];
   now: string;
   maxBytes: number;
+  requiredIds?: string[];
 };
 export type EvidenceSelectionResult = {
   policyDigest: string;
@@ -36,6 +37,9 @@ export type EvidenceSelectionResult = {
 const policy =
   "negotiation-evidence.v1:scope-expiry;causal-bundles;outcome100,goal20,peer10,conversation10;whole-fit;stable-id";
 export const negotiationEvidencePolicyDigest = createHash("sha256").update(policy).digest("hex");
+export const requiredNegotiationEvidencePolicyDigest = createHash("sha256")
+  .update(`${policy}:required-bundles-first`)
+  .digest("hex");
 export function selectNegotiationEvidence(input: EvidenceSelection): EvidenceSelectionResult {
   const omitted: EvidenceSelectionResult["omitted"] = [],
     admissible = new Map<string, Original>();
@@ -108,9 +112,14 @@ export function selectNegotiationEvidence(input: EvidenceSelection): EvidenceSel
         ),
       0,
     );
-  const candidates = [...groups.values()].sort((a, b) => score(b) - score(a) || a.id.localeCompare(b.id));
+  const required = new Set(input.requiredIds ?? []);
+  const essential = (g: { originals: Original[] }) => Number(g.originals.some((o) => required.has(o.id)));
+  const candidates = [...groups.values()].sort(
+    (a, b) => essential(b) - essential(a) || score(b) - score(a) || a.id.localeCompare(b.id),
+  );
   const result: EvidenceSelectionResult = {
-    policyDigest: negotiationEvidencePolicyDigest,
+    policyDigest:
+      input.requiredIds === undefined ? negotiationEvidencePolicyDigest : requiredNegotiationEvidencePolicyDigest,
     bundles: [],
     candidateIds: [...input.originals, ...input.interpretations].map((o) => o.id),
     selectedIds: [],

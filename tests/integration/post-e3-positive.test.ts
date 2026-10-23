@@ -19,6 +19,7 @@ import {
   executeOwnedRC19Protocol,
   executeOwnedRC20Protocol,
   executeOwnedRC21Protocol,
+  executeOwnedRC22Protocol,
 } from "../../scripts/lib/post-e3-owned-run.js";
 import { SpecialistRepository } from "../../src/app/participant-services.js";
 import {
@@ -41,6 +42,7 @@ import {
   ownedRC19Fixture,
   ownedRC20Fixture,
   ownedRC21Fixture,
+  ownedRC22Fixture,
 } from "../fixtures/post-e3.js";
 import { positiveSpecialistProvider } from "../fixtures/post-e3-provider.js";
 
@@ -69,6 +71,7 @@ it.each([
   ["RC19 scoped goal parent references", ownedRC19Fixture, executeOwnedRC19Protocol],
   ["RC20 explicit pre-dispatch state semantics", ownedRC20Fixture, executeOwnedRC20Protocol],
   ["RC21 native application-port parity", ownedRC21Fixture, executeOwnedRC21Protocol],
+  ["RC22 retrieved native read arguments", ownedRC22Fixture, executeOwnedRC22Protocol],
 ] as const)(
   "%s completes both positive families and role reversals through eight native participants, actual delivery and later decisions",
   async (_name, create, execute) => {
@@ -94,7 +97,8 @@ it.each([
       _name.startsWith("RC18") ||
       _name.startsWith("RC19") ||
       _name.startsWith("RC20") ||
-      _name.startsWith("RC21")
+      _name.startsWith("RC21") ||
+      _name.startsWith("RC22")
     ) {
       const originalDecide = fake.provider.decide;
       fake.provider.decide = async (request) => {
@@ -112,7 +116,8 @@ it.each([
           _name.startsWith("RC18") ||
           _name.startsWith("RC19") ||
           _name.startsWith("RC20") ||
-          _name.startsWith("RC21")
+          _name.startsWith("RC21") ||
+          _name.startsWith("RC22")
         )
           expect(request.model).toEqual({
             route: "ollama",
@@ -121,7 +126,8 @@ it.each([
               _name.startsWith("RC18") ||
               _name.startsWith("RC19") ||
               _name.startsWith("RC20") ||
-              _name.startsWith("RC21")
+              _name.startsWith("RC21") ||
+              _name.startsWith("RC22")
                 ? "qwen3:14b"
                 : _name.startsWith("RC13") ||
                     _name.startsWith("RC14") ||
@@ -138,7 +144,8 @@ it.each([
           _name.startsWith("RC18") ||
           _name.startsWith("RC19") ||
           _name.startsWith("RC20") ||
-          _name.startsWith("RC21")
+          _name.startsWith("RC21") ||
+          _name.startsWith("RC22")
         ) {
           const refs = [
             ...packet.skills.index.map((s: { ref: unknown }) => s.ref),
@@ -155,7 +162,8 @@ it.each([
           _name.startsWith("RC18") ||
           _name.startsWith("RC19") ||
           _name.startsWith("RC20") ||
-          _name.startsWith("RC21")
+          _name.startsWith("RC21") ||
+          _name.startsWith("RC22")
         ) {
           expect(packet.responseInterface).toBeDefined();
           if (packet.participantInterface.mode === "scoped_update")
@@ -172,7 +180,8 @@ it.each([
           _name.startsWith("RC18") ||
           _name.startsWith("RC19") ||
           _name.startsWith("RC20") ||
-          _name.startsWith("RC21")
+          _name.startsWith("RC21") ||
+          _name.startsWith("RC22")
         )
           expect(packet.readInterface.meaning).toContain("provenance");
         if (
@@ -188,7 +197,8 @@ it.each([
           _name.startsWith("RC18") ||
           _name.startsWith("RC19") ||
           _name.startsWith("RC20") ||
-          _name.startsWith("RC21")
+          _name.startsWith("RC21") ||
+          _name.startsWith("RC22")
         )
           expect(packet.observationSemantics).toContain(
             namedMeanings ? "actual external delivery" : "stock, founding allowance, own production",
@@ -210,7 +220,8 @@ it.each([
           _name.startsWith("RC18") ||
           _name.startsWith("RC19") ||
           _name.startsWith("RC20") ||
-          _name.startsWith("RC21")
+          _name.startsWith("RC21") ||
+          _name.startsWith("RC22")
         ) {
           expect(packet.participantInterface).toBeDefined();
           if (
@@ -228,7 +239,8 @@ it.each([
               _name.startsWith("RC18") ||
               _name.startsWith("RC19") ||
               _name.startsWith("RC20") ||
-              _name.startsWith("RC21")) &&
+              _name.startsWith("RC21") ||
+              _name.startsWith("RC22")) &&
             packet.participantInterface.mode === "scoped_update"
           )
             expect(packet.participantInterface.temporalEvidence).toContain("never their promises");
@@ -236,13 +248,16 @@ it.each([
             expect(packet.participantInterface.recipients).not.toContain(packet.specialist.id);
         }
         if (
-          (_name.startsWith("RC19") || _name.startsWith("RC20") || _name.startsWith("RC21")) &&
+          (_name.startsWith("RC19") ||
+            _name.startsWith("RC20") ||
+            _name.startsWith("RC21") ||
+            _name.startsWith("RC22")) &&
           packet.participantInterface.mode === "scoped_update"
         ) {
           expect(packet.participantInterface.updates).toContain("goalIndex");
           expect(JSON.stringify(request.schema)).toContain("goalIndex");
         }
-        if (_name.startsWith("RC20") || _name.startsWith("RC21")) {
+        if (_name.startsWith("RC20") || _name.startsWith("RC21") || _name.startsWith("RC22")) {
           expect(request.messages[0].content).toContain("pre-dispatch");
           expect(request.messages[0].content).toContain("conditional plans");
         }
@@ -251,7 +266,8 @@ it.each([
           _name.startsWith("RC18") ||
           _name.startsWith("RC19") ||
           _name.startsWith("RC20") ||
-          _name.startsWith("RC21")
+          _name.startsWith("RC21") ||
+          _name.startsWith("RC22")
         ) {
           expect(goal.incoming).not.toHaveProperty("maximumPerHour");
           expect(goal.outgoing).not.toHaveProperty("minimumPerHour");
@@ -269,7 +285,8 @@ it.each([
           _name.startsWith("RC18") ||
           _name.startsWith("RC19") ||
           _name.startsWith("RC20") ||
-          _name.startsWith("RC21")
+          _name.startsWith("RC21") ||
+          _name.startsWith("RC22")
         )
           expect(goal.scope).toContain("external peer supply");
         return originalDecide(request);
@@ -312,8 +329,8 @@ it.each([
       console.log(
         JSON.stringify({
           extractions: fake.extractions,
-          trace: fake.trace.filter((t) => t.role === "diplomacy"),
-          skills: (await f.pool.query("SELECT state FROM skill_invocations")).rows,
+          trace: fake.trace.filter((t) => t.role === "diplomacy").slice(-8),
+          skills: (await f.pool.query("SELECT state,reason FROM skill_invocations")).rows,
         }),
       );
       console.log(
@@ -326,7 +343,7 @@ it.each([
       );
       const rows = (
         await f.pool.query(
-          "SELECT id,detail_cipher FROM turn_events WHERE label='Specialist packet packing required' ORDER BY sequence LIMIT 2",
+          "SELECT id,detail_cipher FROM turn_events WHERE label='Specialist packet packing required' ORDER BY sequence DESC LIMIT 2",
         )
       ).rows;
       console.log(

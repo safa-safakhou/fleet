@@ -120,3 +120,34 @@ it("does not turn arbitrary local code properties into native denials", async ()
     }),
   ).rejects.toBe(opaque);
 });
+
+it("advertises and executes native action-effects reads with required command arguments", async () => {
+  const { world, game } = await setup(),
+    actor = world.actor(world.players[0].kingdomId);
+  const tools = await actor.tools(true),
+    quote = tools.find((t) => t.name === "pact_action_effects_quote_v1");
+  expect(quote?.inputSchema.required).toContain("command");
+  await expect(game.read("pact_action_effects_quote_v1", {})).rejects.toMatchObject({ code: "INVALID_REQUEST" });
+  const command = {
+    schemaVersion: "pact.command.v2",
+    commandId: randomUUID(),
+    actor: {
+      principalId: world.players[0].accountId,
+      productScope: "pact",
+      audience: "agent",
+      subject: { type: "account", id: world.players[0].accountId },
+    },
+    action: {
+      kind: "game.contact.request",
+      recipientKingdomId: world.players[1].kingdomId,
+      note: "Synthetic quote only",
+    },
+    submittedAt: new Date().toISOString(),
+  };
+  const result = await game.read("pact_action_effects_quote_v1", { command });
+  expect(result.schemaVersion).toBe("fleet.action-effects.v1");
+  expect(
+    (await world.pool.query("SELECT count(*)::int n FROM negotiation_fixture_commands WHERE NOT scripted_prefix"))
+      .rows[0].n,
+  ).toBe(0);
+}, 30000);

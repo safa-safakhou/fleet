@@ -12,7 +12,7 @@ import { pactActionContracts, pactProposalGuide, validatePactProposal } from "..
 import { pactReadQuerySchema } from "../games/pact/read-queries.js";
 import { RemoteRejection } from "../http.js";
 import type { Bindings } from "../platform/bindings.js";
-import type { ActionOutcome, BindingRef, EnvironmentAdapter } from "../platform/contracts.js";
+import type { ActionOutcome, BindingRef, EnvironmentAdapter, ReadQueryOptions } from "../platform/contracts.js";
 import type { Store } from "../store.js";
 import { validateTool } from "../tools.js";
 import { pactSpecialistPresets } from "./pact-presets.js";
@@ -139,10 +139,26 @@ export function createPactEnvironment(ports: {
               },
             }
           : {}),
-        async readQuerySchema() {
+        async readQuerySchema(options?: ReadQueryOptions) {
+          const tools = (await game.tools()).filter(pactAdapter.isRead);
+          const emptyNames = options?.requireKnownArguments
+            ? tools
+                .filter((tool) => {
+                  try {
+                    validateTool(tool, {});
+                    return true;
+                  } catch (error) {
+                    if (error instanceof FleetError && error.code === "INVALID_TOOL_ARGUMENTS") return false;
+                    throw error;
+                  }
+                })
+                .map((t) => t.name)
+            : [];
           return pactReadQuerySchema(
-            (await game.tools()).filter(pactAdapter.isRead).map((tool) => tool.name),
+            tools.map((t) => t.name),
             Boolean(ports.outlookVersion),
+            options?.requireKnownArguments ? tools.filter((t) => t.name === options.retrievedTool) : undefined,
+            emptyNames,
           );
         },
         async observe(query) {

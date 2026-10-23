@@ -114,3 +114,29 @@ it("bounds a growing interpretation library without losing its required factual 
   expect(Buffer.byteLength(JSON.stringify(packet))).toBeLessThanOrEqual(6000);
   expect(packet.retrieval.omittedMemoryCandidates).toBeGreaterThan(0);
 });
+
+it("reserves whole required historical evidence before optional high-score outcomes", () => {
+  const required = { ...fact("required-history", "observation", "goal-support"), detail: { whole: "r".repeat(1800) } };
+  const optional = {
+    ...fact("optional-outcome", "outcome", "unrelated-later-result"),
+    detail: { whole: "o".repeat(1800) },
+  };
+  const before = structuredClone([required, optional]);
+  const packet = selectSpecialistContext({
+    scope: { bindingId: "binding:1" },
+    goalRefs: ["goal:1"],
+    entityRefs: [],
+    conversationRefs: [],
+    requiredEvidenceIds: [required.id],
+    facts: [required, optional],
+    memory: [],
+    now,
+    limits: { maxBytes: 3000 },
+  });
+  expect(packet.deliveredIds).toContain(required.id);
+  expect(packet.deliveredIds).not.toContain(optional.id);
+  expect(packet.bundles.flatMap((b) => b.originals).find((o) => o.id === required.id)?.detail).toEqual(required.detail);
+  expect(packet.omitted).toContainEqual({ id: optional.id, reason: "bundle_unavailable" });
+  expect(Buffer.byteLength(JSON.stringify(packet))).toBeLessThanOrEqual(3000);
+  expect([required, optional]).toEqual(before);
+});

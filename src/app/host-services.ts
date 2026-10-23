@@ -6,7 +6,7 @@ import { type Data, FleetError } from "../domain.js";
 import type { ModelAdmission } from "../platform/admission.js";
 import { type ArchitectureDefinition, immutable } from "../platform/architecture.js";
 import type { Bindings } from "../platform/bindings.js";
-import type { EnvironmentSession } from "../platform/contracts.js";
+import type { EnvironmentSession, ReadQueryOptions } from "../platform/contracts.js";
 import type { ScopedEvidence, ScopedOperation, ScopedServices } from "../platform/engine-context.js";
 import type { EngineContext } from "../platform/engine-registry.js";
 import type { CommandExecutor } from "../platform/execution.js";
@@ -351,9 +351,9 @@ export async function createScopedServices(
           }
         : undefined,
       readQuerySchema: context.readQuerySchema
-        ? async () => {
+        ? async (options?: ReadQueryOptions) => {
             await guard();
-            const result = await context.readQuerySchema?.();
+            const result = await context.readQuerySchema?.(options);
             await guard();
             if (!result) throw new FleetError("UNSUPPORTED_CAPABILITY");
             return result;
