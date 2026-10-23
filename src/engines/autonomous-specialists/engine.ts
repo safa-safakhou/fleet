@@ -262,6 +262,15 @@ export class AutonomousSpecialistsEngine {
         queryV3 || services.configuration.architectureConfig.readQueryContract === "environment.v2";
       const requiresReadContract =
         knownArguments || services.configuration.architectureConfig.readQueryContract === "environment.v1";
+      if (retrievedReadTool) {
+        const current = (await services.environment.catalog()).find(
+          (t) => t.name === retrievedReadTool?.name && t.annotations?.readOnlyHint === true,
+        );
+        retrievedReadTool =
+          current && JSON.stringify(current.inputSchema) === JSON.stringify(retrievedReadTool.inputSchema)
+            ? structuredClone(current)
+            : undefined;
+      }
       const environmentReadSchema = requiresReadContract
         ? await services.environment.readQuerySchema?.(
             knownArguments
@@ -445,7 +454,13 @@ export class AutonomousSpecialistsEngine {
           ? {
               readInterface: {
                 ...(knownArguments && retrievedReadTool
-                  ? { retrievedTool: { name: retrievedReadTool.name, description: retrievedReadTool.description } }
+                  ? {
+                      retrievedTool: {
+                        name: retrievedReadTool.name,
+                        description: retrievedReadTool.description,
+                        result: "schema_available",
+                      },
+                    }
                   : {}),
                 ...(visibleContract
                   ? {
@@ -722,7 +737,6 @@ export class AutonomousSpecialistsEngine {
           continue;
         }
         observation = await services.observe(decision.query);
-        retrievedReadTool = undefined;
         continue;
       }
       if (skills) {
@@ -780,6 +794,10 @@ export class AutonomousSpecialistsEngine {
       await p.accept({ expectedVersion: state.version, envelope, intent, defer: decision.defer });
       return;
     }
+    await services.trace("deciding", "Specialist call limit reached without a final decision", {
+      reason: "NO_FINAL_DECISION_CALL_LIMIT",
+      maxCallsPerTurn: budget.maxCallsPerTurn,
+    });
     await services.tasks.waitForEvent();
   }
 }

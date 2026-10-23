@@ -68,3 +68,22 @@ it("pins installed Granite independently and refuses cross-model/digest drift", 
   expect(() => native.validateNativeProviderIdentity(granite, { ...granite, model: "qwen3.5:9b" })).toThrow();
   expect(() => native.validateNativeProviderIdentity(granite, { ...granite, modelDigest: "b".repeat(64) })).toThrow();
 });
+
+const localDigest = "6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197";
+it("selects only the pinned local Nemotron 4B without fallback", () => {
+  const selected = { name: "nemotron-3-nano:4b", digest: localDigest };
+  expect(native.selectLocalNemotronModel({ models: [{ name: "other:8b", digest: "b".repeat(64) }, selected] })).toEqual(
+    selected,
+  );
+  for (const catalog of [
+    { models: [] },
+    { models: [{ name: "other:8b", digest: localDigest }] },
+    { models: [{ ...selected, digest: "b".repeat(64) }] },
+    { models: [selected, selected] },
+    {},
+  ])
+    expect(() => native.selectLocalNemotronModel(catalog)).toThrow("LOCAL_NEMOTRON_MODEL_REQUIRED");
+  expect(() => native.selectLocalNemotronModel({ models: [selected] }, "other:8b")).toThrow(
+    "LOCAL_NEMOTRON_MODEL_REQUIRED",
+  );
+});

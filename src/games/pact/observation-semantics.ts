@@ -17,7 +17,7 @@ export function pactNamedObservationSemantics(facts: Data, options: { social?: b
       return `${resource}:gross=${quantity(object(rates.gross).perHourWhole)},upkeep=${quantity(object(rates.upkeep).perHourWhole)},net=${quantity(object(rates.net).perHourWhole)}`;
     });
   const social = options.social
-    ? " Contacts rows are accepted relationships, not discovery entries. Pending contact requests are introductions, not acceptance. ALREADY_CONTACT means the introduction was rejected because the relationship already exists; it creates no new pending request or success. Existing contacts can receive ordinary messages subject to native checks. Contact acceptance is not trade consent or supply fulfillment; native authority and receipts still govern."
+    ? " Contacts rows are accepted relationships, not discovery entries. Pending contact requests are introductions, not acceptance. Deduplicated requests live in socialAttention; an empty contactRequests array does not prove absence. Answer incoming pending requests by request ID: accept or decline only under current delegation. Outgoing pending requests await an answer; do not send another introduction. ALREADY_CONTACT means the introduction was rejected because the relationship already exists; it creates no new pending request or success. Existing contacts can receive ordinary messages subject to native checks. Contact acceptance is not trade consent or supply fulfillment; native authority and receipts still govern."
     : "";
   return `${rule}${social} ${rows.length ? `Local rates, whole/GAME hour: ${rows.join(";")}.` : "Local rates unavailable in this view."}`;
 }

@@ -218,10 +218,23 @@ export function observedActionSchema(kind: string, facts: Data): Data | undefine
             .filter((id): id is string => typeof id === "string" && id !== object(world.profile).kingdomId)
         : observedPeerIds(facts);
     if (kind === "game.contact.request") {
-      // Positive accepted-contact facts rule out a fresh introduction. Missing
-      // pages and pending requests establish no acceptance; native admission
-      // still revalidates every selected action.
+      // Only positive current facts exclude introductions; pending is not acceptance.
       const accepted = new Set(rows(guide.contacts).map((p) => p.kingdomId));
+      const now = object(facts.world).asOfGameTimeMs;
+      for (const request of rows(guide.contactRequests)) {
+        const ref = object(request.reference);
+        if (
+          request.status === "pending" &&
+          ["incoming", "outgoing"].includes(String(request.direction)) &&
+          typeof now === "number" &&
+          typeof request.expiresGameTimeMs === "number" &&
+          request.expiresGameTimeMs > now &&
+          request.expired !== true &&
+          (ref.asOfGameTimeMs === undefined || ref.asOfGameTimeMs === now) &&
+          (ref.ownerKingdomId === undefined || ref.ownerKingdomId === object(world.profile).kingdomId)
+        )
+          accepted.add(request.kingdomId);
+      }
       const observed = peers;
       peers = peers.filter((id) => !accepted.has(id));
       if (observed.length && !peers.length) return;

@@ -1,6 +1,10 @@
 # Fleet current state
 
-Documentary checkpoint: 22 October 2026. This is source/report state, not a fresh runtime inspection or execution grant.
+Documentary checkpoint: 23 October 2026. This is source/report state, not a fresh runtime inspection or execution grant.
+
+## Current assignment — 23 October 2026
+
+The user stopped the broad qualification loop and authorized only the [bounded schema/pending-request source repair](superpowers/plans/2026-10-23-schema-loop-pending-request-repair.md), inline with a 30-minute limit and offline checks before reporting. The repair passed 841 Fleet unit, 54 specialist integration and 11 authoritative PACT social integration tests, plus type/style, build and boundary checks. Source acceptance is not model acceptance or activation. Local work is restricted to pinned `nemotron-3-nano:4b` with no fallback. Game execution remains disabled; E4/KQ1 remain blocked. No model trials, new candidate, deployment or historical-grant continuation are authorized by this checkpoint. Historical continuation wording below is not the current assignment.
 
 ## Source and milestone
 

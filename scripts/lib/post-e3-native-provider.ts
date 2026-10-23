@@ -2,6 +2,7 @@ import { execFile } from "node:child_process";
 import { readFile, readlink } from "node:fs/promises";
 import { promisify } from "node:util";
 import { z } from "zod";
+import { object } from "../../src/domain.js";
 import { designDigest } from "../../src/negotiation-plan.js";
 
 const identitySchema = z
@@ -27,12 +28,22 @@ export function validateNativeProviderIdentity(expected: unknown, observed: unkn
     b = identitySchema.parse(observed);
   if (designDigest(a) !== designDigest(b)) throw Error("NATIVE_PROVIDER_IDENTITY_DRIFT");
 }
+export const localNemotronModel = "nemotron-3-nano:4b";
+export const localNemotronDigest = "6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197";
+/** New local selections are Nemotron-only; historical identity validation stays intact. */
+export function selectLocalNemotronModel(catalog: unknown, requested: string = localNemotronModel) {
+  const models = object(catalog).models;
+  const selected = Array.isArray(models) ? models.map(object).filter((m) => m.name === localNemotronModel) : [];
+  if (requested !== localNemotronModel || selected.length !== 1 || selected[0].digest !== localNemotronDigest)
+    throw Error("LOCAL_NEMOTRON_MODEL_REQUIRED");
+  return { name: localNemotronModel, digest: localNemotronDigest };
+}
 const exec = promisify(execFile);
 /** Read-only observation of the explicitly selected WSL user service. */
 export async function readNativeProviderIdentity(
   model: NativeProviderIdentity["model"] = "nemotron-3-nano:4b",
 ): Promise<NativeProviderIdentity> {
-  identitySchema.shape.model.parse(model);
+  if (model !== localNemotronModel) throw Error("LOCAL_NEMOTRON_MODEL_REQUIRED");
   if (process.platform !== "linux") throw Error("NATIVE_WSL_REQUIRED");
   const { stdout: service } = await exec("systemctl", [
     "--user",
@@ -69,8 +80,7 @@ export async function readNativeProviderIdentity(
     return r.json();
   };
   const [version, tags] = await Promise.all([metadata("/api/version"), metadata("/api/tags")]);
-  const selected = tags.models.filter((m: { name: string }) => m.name === model);
-  if (selected.length !== 1) throw Error("NATIVE_PROVIDER_MODEL");
+  const selected = selectLocalNemotronModel(tags, model);
   return identitySchema.parse({
     route,
     version: version.version,
@@ -81,6 +91,6 @@ export async function readNativeProviderIdentity(
     command,
     listenerPids,
     model,
-    modelDigest: selected[0].digest,
+    modelDigest: selected.digest,
   });
 }

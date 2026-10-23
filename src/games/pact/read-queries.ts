@@ -38,6 +38,7 @@ export function pactReadQuerySchema(
   };
   if (argumentTools === undefined) return schema;
   const choices = schema.oneOf as Data[];
+  const unknownNames = names?.filter((n) => !argumentTools.some((t) => t.name === n));
   const emptyNames = emptyArgumentNames.filter((n) => names?.includes(n) && !argumentTools.some((t) => t.name === n));
   const separateOutlook = contractVersion === 3;
   const ordinaryEmpty = separateOutlook ? emptyNames.filter((n) => n !== "pact_agent_outlook_v1") : emptyNames;
@@ -46,8 +47,8 @@ export function pactReadQuerySchema(
     ...schema,
     $comment: separateOutlook ? knownReadArgumentContractV3 : knownReadArgumentContract,
     description: separateOutlook
-      ? "{} refreshes; readSchema inspects metadata only. Fields need schema lookup; {} args use native defaults. Outlook OR continuity per query."
-      : "{} refreshes. {readSchema:name} inspects metadata, not game state. Empty native defaults are exact; field-bearing args need lookup.",
+      ? "{} refreshes; readSchema inspects metadata only. Displayed tool args are already retrieved; use them directly. Lookup only unknown tools; {} args use native defaults. Outlook OR continuity per query."
+      : "{} refreshes. {readSchema:name} inspects metadata, not game state. Displayed tool args are already retrieved; use them directly. Lookup only unknown tools. Empty native defaults are exact.",
     oneOf: [
       choices[0],
       ...(ordinaryEmpty.length
@@ -91,7 +92,16 @@ export function pactReadQuerySchema(
           required: ["tool", "args"],
           additionalProperties: false,
         })),
-      ...(names?.length === 0 ? [] : [choices[choices.length - 1]]),
+      ...(unknownNames?.length === 0
+        ? []
+        : [
+            {
+              type: "object",
+              properties: { readSchema: unknownNames ? { type: "string", enum: unknownNames } : name },
+              required: ["readSchema"],
+              additionalProperties: false,
+            },
+          ]),
     ],
   };
 }

@@ -16,6 +16,11 @@ it("explicitly distinguishes accepted contacts, pending introductions and reject
   expect(next).toContain("ALREADY_CONTACT");
   expect(next).toContain("rejected");
   expect(next).toContain("not trade consent");
+  expect(next).toContain("socialAttention");
+  expect(next).toContain("incoming");
+  expect(next).toContain("decline");
+  expect(next).toContain("Outgoing");
+  expect(next).toContain("delegation");
   const original = {
       schemaId: "pact.observation.v1",
       revision: "r",

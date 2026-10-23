@@ -1336,14 +1336,15 @@ it.each(["read-final.v1", "read-final.v2"])(
   },
 );
 
-it("forwards known-argument capability through actual HTTP schema-read-final decisions", async () => {
+it.each(
+  ["environment.v2", "environment.v4"].flatMap((contract) =>
+    ["read", "continuity", "changed", "removed"].map((mode) => ({ contract, mode })),
+  ),
+)("retains schema progress across $mode and invalidates catalog drift with $contract", async ({ contract, mode }) => {
   const f = await setup();
   await f.pool.query(
     "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
-    [
-      f.group.id,
-      { readQueryContract: "environment.v2", responseContract: "visible.v1", decisionContract: "read-final.v2" },
-    ],
+    [f.group.id, { readQueryContract: contract, responseContract: "visible.v1", decisionContract: "read-final.v2" }],
   );
   const { pactReadQuerySchema } = await import("../../src/games/pact/read-queries.js");
   const tool = {
@@ -1365,14 +1366,36 @@ it("forwards known-argument capability through actual HTTP schema-read-final dec
       ...session,
       catalog: async () => {
         lookups++;
-        return [...(await session.catalog()), { ...tool, annotations: { readOnlyHint: true } }];
+        return [
+          ...(await session.catalog()),
+          ...(mode === "removed" && requests >= 2
+            ? []
+            : [
+                {
+                  ...tool,
+                  ...(mode === "changed" && requests >= 2
+                    ? { inputSchema: { ...tool.inputSchema, properties: { square: { enum: ["b1"] } } } }
+                    : {}),
+                  annotations: { readOnlyHint: true },
+                },
+              ]),
+        ];
       },
       readQuerySchema: async (options) => {
         expect(options).toEqual({
           requireKnownArguments: true,
-          ...(requests === 1 ? { retrievedTool: tool.name } : {}),
+          ...(contract === "environment.v4" ? { contractVersion: 3 } : {}),
+          ...(requests >= 1 && !(requests >= 2 && ["changed", "removed"].includes(mode))
+            ? { retrievedTool: tool.name }
+            : {}),
         });
-        return pactReadQuerySchema([tool.name], false, options?.retrievedTool === tool.name ? [tool] : []);
+        return pactReadQuerySchema(
+          mode === "removed" && requests >= 2 ? [] : [tool.name],
+          true,
+          options?.retrievedTool === tool.name ? [tool] : [],
+          [],
+          options?.contractVersion,
+        );
       },
       observe: async (query) => {
         if (query.readSchema) throw Error("METADATA_MUST_NOT_REFRESH_GAME_FACTS");
@@ -1398,14 +1421,19 @@ it("forwards known-argument capability through actual HTTP schema-read-final dec
     if (requests === 0) originalSnapshot = snapshot;
     if (requests === 1) expect(snapshot).toEqual(originalSnapshot);
     const wrap = (query: Data) => ({ decision: { kind: "read", query, summary: "Read native facts" } });
-    expect(check(wrap({ readSchema: tool.name }))).toBe(true);
+    expect(check(wrap({ readSchema: tool.name }))).toBe(requests === 0 || (requests === 2 && mode === "changed"));
     expect(check(wrap({ tool: tool.name, args: { records: [] } }))).toBe(false);
-    expect(check(wrap({ tool: tool.name, args: { square: "a2" } }))).toBe(requests === 1);
+    expect(check(wrap({ tool: tool.name, args: { square: "a2" } }))).toBe(
+      requests >= 1 && !(requests === 2 && ["changed", "removed"].includes(mode)),
+    );
+    if (requests === 1) expect(packet.readInterface.retrievedTool.result).toBe("schema_available");
     const decision =
       requests === 0
         ? wrap({ readSchema: tool.name })
         : requests === 1
-          ? wrap({ tool: tool.name, args: { square: "a2" } })
+          ? mode === "continuity"
+            ? wrap({ continuity: true, coordination: true })
+            : wrap({ tool: tool.name, args: { square: "a2" } })
           : { decision: { kind: "wait", summary: "Facts inspected; no action" } };
     requests++;
     return Response.json({
@@ -1424,7 +1452,7 @@ it("forwards known-argument capability through actual HTTP schema-read-final dec
     .host.run(claim);
   expect(requests).toBe(3);
   expect(lookups).toBeGreaterThanOrEqual(1);
-  expect(reads).toBe(1);
+  expect(reads).toBe(mode === "continuity" ? 0 : 1);
   expect(f.board.executions).toBe(0);
   expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger WHERE status='reported'")).rows[0].n).toBe(3);
 });
@@ -1454,4 +1482,36 @@ it("refuses an ignored known-argument capability before any model admission", as
   );
   expect(calls).toBe(0);
   expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger")).rows[0].n).toBe(0);
+});
+
+it("records call exhaustion without fabricating a final decision or executing an action", async () => {
+  const f = await setup();
+  let calls = 0;
+  const model = {
+    decide: async () => {
+      calls++;
+      return {
+        decision: { decision: { kind: "read", query: {}, summary: "Read again" } },
+        inputTokens: 10,
+        outputTokens: 10,
+      };
+    },
+  };
+  const [id] = await f.enqueue("resource");
+  const claim = await f.tasks.claim("bounded-no-progress", f.now(), id);
+  if (!claim) throw Error("CLAIM_REQUIRED");
+  await f.host(model, undefined, {}, f.store.architectures).host.run(claim);
+  expect(calls).toBe(3);
+  expect(f.board.executions).toBe(0);
+  const events = (
+    await f.pool.query("SELECT id,detail_cipher FROM turn_events WHERE label=$1", [
+      "Specialist call limit reached without a final decision",
+    ])
+  ).rows;
+  expect(events).toHaveLength(1);
+  expect(f.store.vault.decrypt(events[0].detail_cipher, `turn-event:${events[0].id}`)).toEqual({
+    reason: "NO_FINAL_DECISION_CALL_LIMIT",
+    maxCallsPerTurn: 3,
+  });
+  expect((await f.pool.query("SELECT count(*)::int n FROM platform_commands")).rows[0].n).toBe(0);
 });

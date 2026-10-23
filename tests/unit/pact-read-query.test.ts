@@ -157,6 +157,7 @@ it("requires authenticated schema retrieval before generating native tool argume
   retrievedTool = metadata.name;
   expect(read.mock.calls.some(([name]) => name === readTool.name)).toBe(false);
   check = await accepts();
+  expect(check({ readSchema: readTool.name })).toBe(false);
   expect(check({ tool: readTool.name, args: { kingdomId: "peer" } })).toBe(true);
   for (const args of [{}, { sourceRefs: [] }, { kingdomId: "peer", records: [] }, { kingdomId: 1 }])
     expect(check({ tool: readTool.name, args })).toBe(false);
@@ -285,4 +286,12 @@ it("separates explicit outlook from continuity in the new bounded query contract
   const old = new Ajv({ strict: false }).compile(object(await s.readQuerySchema?.({ requireKnownArguments: true })));
   expect(old({ tool: "pact_agent_outlook_v1", args: {}, continuity: true, coordination: true })).toBe(true);
   await s.close();
+});
+
+it("keeps other metadata lookups available after retrieving one tool", () => {
+  const check = new Ajv({ strict: false }).compile(
+    pactReadQuerySchema([readTool.name, "other.read"], false, [readTool]),
+  );
+  expect(check({ readSchema: readTool.name })).toBe(false);
+  expect(check({ readSchema: "other.read" })).toBe(true);
 });
