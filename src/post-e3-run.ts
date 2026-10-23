@@ -30,6 +30,7 @@ import {
   type RC24Protocol,
   type RC25Protocol,
   type RC26Protocol,
+  type RC27Protocol,
 } from "./post-e3-rc2-plan.js";
 
 const hash = z.string().regex(/^[a-f0-9]{64}$/);
@@ -89,33 +90,40 @@ export const RC25GrantSchema = RC1GrantSchema.extend({ schemaVersion: z.literal(
 export type RC25Grant = z.infer<typeof RC25GrantSchema>;
 export const RC26GrantSchema = RC1GrantSchema.extend({ schemaVersion: z.literal("fleet.rc26-grant.v1") }).strict();
 export type RC26Grant = z.infer<typeof RC26GrantSchema>;
-export type PostE3Grant =
-  | RC1Grant
-  | RC2Grant
-  | RC3Grant
-  | RC4Grant
-  | RC5Grant
-  | RC6Grant
-  | RC7Grant
-  | RC8Grant
-  | RC9Grant
-  | RC10Grant
-  | RC11Grant
-  | RC12Grant
-  | RC13Grant
-  | RC14Grant
-  | RC15Grant
-  | RC16Grant
-  | RC17Grant
-  | RC18Grant
-  | RC19Grant
-  | RC20Grant
-  | RC21Grant
-  | RC22Grant
-  | RC23Grant
-  | RC24Grant
-  | RC25Grant
-  | RC26Grant;
+export const RC27GrantSchema = RC1GrantSchema.extend({ schemaVersion: z.literal("fleet.rc27-grant.v1") }).strict();
+export type RC27Grant = z.infer<typeof RC27GrantSchema>;
+// Every stage extends the same exact grant fields; only its version tag differs.
+export type PostE3Grant = Omit<RC1Grant, "schemaVersion"> & {
+  schemaVersion: (
+    | RC1Grant
+    | RC2Grant
+    | RC3Grant
+    | RC4Grant
+    | RC5Grant
+    | RC6Grant
+    | RC7Grant
+    | RC8Grant
+    | RC9Grant
+    | RC10Grant
+    | RC11Grant
+    | RC12Grant
+    | RC13Grant
+    | RC14Grant
+    | RC15Grant
+    | RC16Grant
+    | RC17Grant
+    | RC18Grant
+    | RC19Grant
+    | RC20Grant
+    | RC21Grant
+    | RC22Grant
+    | RC23Grant
+    | RC24Grant
+    | RC25Grant
+    | RC26Grant
+    | RC27Grant
+  )["schemaVersion"];
+};
 /** Validation is not an authorization source. Private operator grants and
  * platform policy approval are distinct from this pure scope/time check. */
 export function validateRC1Grant(protocol: RC1Protocol, raw: unknown, now: number, usedNonces: readonly string[] = []) {
@@ -307,6 +315,15 @@ export function validateRC26Grant(
   if (protocol.study !== "negotiation-r26") return { valid: false, reasons: ["POST_E3_STUDY_MISMATCH"] };
   return validatePostE3Grant(protocol, raw, now, usedNonces);
 }
+export function validateRC27Grant(
+  protocol: RC27Protocol,
+  raw: unknown,
+  now: number,
+  usedNonces: readonly string[] = [],
+) {
+  if (protocol.study !== "negotiation-r27") return { valid: false, reasons: ["POST_E3_STUDY_MISMATCH"] };
+  return validatePostE3Grant(protocol, raw, now, usedNonces);
+}
 export function validatePostE3Grant(
   protocol: PostE3Protocol,
   raw: unknown,
@@ -322,57 +339,59 @@ export function validatePostE3Grant(
   }
   if (!canonical || designDigest(canonical) !== designDigest(protocol)) reasons.push("RC1_PROTOCOL_CHANGED");
   const parsed = (
-    protocol.study === "negotiation-r26"
-      ? RC26GrantSchema
-      : protocol.study === "negotiation-r25"
-        ? RC25GrantSchema
-        : protocol.study === "negotiation-r24"
-          ? RC24GrantSchema
-          : protocol.study === "negotiation-r23"
-            ? RC23GrantSchema
-            : protocol.study === "negotiation-r22"
-              ? RC22GrantSchema
-              : protocol.study === "negotiation-r21"
-                ? RC21GrantSchema
-                : protocol.study === "negotiation-r20"
-                  ? RC20GrantSchema
-                  : protocol.study === "negotiation-r19"
-                    ? RC19GrantSchema
-                    : protocol.study === "negotiation-r18"
-                      ? RC18GrantSchema
-                      : protocol.study === "negotiation-r17"
-                        ? RC17GrantSchema
-                        : protocol.study === "negotiation-r16"
-                          ? RC16GrantSchema
-                          : protocol.study === "negotiation-r15"
-                            ? RC15GrantSchema
-                            : protocol.study === "negotiation-r14"
-                              ? RC14GrantSchema
-                              : protocol.study === "negotiation-r13"
-                                ? RC13GrantSchema
-                                : protocol.study === "negotiation-r12"
-                                  ? RC12GrantSchema
-                                  : protocol.study === "negotiation-r11"
-                                    ? RC11GrantSchema
-                                    : protocol.study === "negotiation-r10"
-                                      ? RC10GrantSchema
-                                      : protocol.study === "negotiation-r9"
-                                        ? RC9GrantSchema
-                                        : protocol.study === "negotiation-r8"
-                                          ? RC8GrantSchema
-                                          : protocol.study === "negotiation-r7"
-                                            ? RC7GrantSchema
-                                            : protocol.study === "negotiation-r6"
-                                              ? RC6GrantSchema
-                                              : protocol.study === "negotiation-r5"
-                                                ? RC5GrantSchema
-                                                : protocol.study === "negotiation-r4"
-                                                  ? RC4GrantSchema
-                                                  : protocol.study === "negotiation-r3"
-                                                    ? RC3GrantSchema
-                                                    : protocol.study === "negotiation-r2"
-                                                      ? RC2GrantSchema
-                                                      : RC1GrantSchema
+    protocol.study === "negotiation-r27"
+      ? RC27GrantSchema
+      : protocol.study === "negotiation-r26"
+        ? RC26GrantSchema
+        : protocol.study === "negotiation-r25"
+          ? RC25GrantSchema
+          : protocol.study === "negotiation-r24"
+            ? RC24GrantSchema
+            : protocol.study === "negotiation-r23"
+              ? RC23GrantSchema
+              : protocol.study === "negotiation-r22"
+                ? RC22GrantSchema
+                : protocol.study === "negotiation-r21"
+                  ? RC21GrantSchema
+                  : protocol.study === "negotiation-r20"
+                    ? RC20GrantSchema
+                    : protocol.study === "negotiation-r19"
+                      ? RC19GrantSchema
+                      : protocol.study === "negotiation-r18"
+                        ? RC18GrantSchema
+                        : protocol.study === "negotiation-r17"
+                          ? RC17GrantSchema
+                          : protocol.study === "negotiation-r16"
+                            ? RC16GrantSchema
+                            : protocol.study === "negotiation-r15"
+                              ? RC15GrantSchema
+                              : protocol.study === "negotiation-r14"
+                                ? RC14GrantSchema
+                                : protocol.study === "negotiation-r13"
+                                  ? RC13GrantSchema
+                                  : protocol.study === "negotiation-r12"
+                                    ? RC12GrantSchema
+                                    : protocol.study === "negotiation-r11"
+                                      ? RC11GrantSchema
+                                      : protocol.study === "negotiation-r10"
+                                        ? RC10GrantSchema
+                                        : protocol.study === "negotiation-r9"
+                                          ? RC9GrantSchema
+                                          : protocol.study === "negotiation-r8"
+                                            ? RC8GrantSchema
+                                            : protocol.study === "negotiation-r7"
+                                              ? RC7GrantSchema
+                                              : protocol.study === "negotiation-r6"
+                                                ? RC6GrantSchema
+                                                : protocol.study === "negotiation-r5"
+                                                  ? RC5GrantSchema
+                                                  : protocol.study === "negotiation-r4"
+                                                    ? RC4GrantSchema
+                                                    : protocol.study === "negotiation-r3"
+                                                      ? RC3GrantSchema
+                                                      : protocol.study === "negotiation-r2"
+                                                        ? RC2GrantSchema
+                                                        : RC1GrantSchema
   ).safeParse(raw);
   if (!parsed.success) return { valid: false, reasons: [...reasons, "RC1_EXACT_GRANT_REQUIRED"] };
   const grant = parsed.data;
