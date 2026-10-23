@@ -25,6 +25,7 @@ import {
   executeOwnedRC25Protocol,
   executeOwnedRC26Protocol,
   executeOwnedRC27Protocol,
+  executeOwnedRC28Protocol,
 } from "../../scripts/lib/post-e3-owned-run.js";
 import { SpecialistRepository } from "../../src/app/participant-services.js";
 import type { Data } from "../../src/domain.js";
@@ -54,6 +55,7 @@ import {
   ownedRC25Fixture,
   ownedRC26Fixture,
   ownedRC27Fixture,
+  ownedRC28Fixture,
 } from "../fixtures/post-e3.js";
 import { positiveSpecialistProvider } from "../fixtures/post-e3-provider.js";
 
@@ -88,6 +90,7 @@ it.each([
   ["RC25 accepted contact and rejection meaning", ownedRC25Fixture, executeOwnedRC25Protocol],
   ["RC26 installed native reasoning mode", ownedRC26Fixture, executeOwnedRC26Protocol],
   ["RC27 installed native Qwen35 model", ownedRC27Fixture, executeOwnedRC27Protocol],
+  ["RC28 installed Qwen35 reasoning", ownedRC28Fixture, executeOwnedRC28Protocol],
 ] as const)(
   "%s completes both positive families and role reversals through eight native participants, actual delivery and later decisions",
   async (_name, create, execute) => {
@@ -119,7 +122,8 @@ it.each([
       _name.startsWith("RC24") ||
       _name.startsWith("RC25") ||
       _name.startsWith("RC26") ||
-      _name.startsWith("RC27")
+      _name.startsWith("RC27") ||
+      _name.startsWith("RC28")
     ) {
       const originalDecide = fake.provider.decide;
       fake.provider.decide = async (request) => {
@@ -143,31 +147,34 @@ it.each([
           _name.startsWith("RC24") ||
           _name.startsWith("RC25") ||
           _name.startsWith("RC26") ||
-          _name.startsWith("RC27")
+          _name.startsWith("RC27") ||
+          _name.startsWith("RC28")
         )
           expect(request.model).toEqual({
             route: "ollama",
-            model: _name.startsWith("RC27")
-              ? "qwen3.5:9b"
-              : _name.startsWith("RC17") ||
-                  _name.startsWith("RC18") ||
-                  _name.startsWith("RC19") ||
-                  _name.startsWith("RC20") ||
-                  _name.startsWith("RC21") ||
-                  _name.startsWith("RC22") ||
-                  _name.startsWith("RC23") ||
-                  _name.startsWith("RC24") ||
-                  _name.startsWith("RC25") ||
-                  _name.startsWith("RC26") ||
-                  _name.startsWith("RC27")
-                ? "qwen3:14b"
-                : _name.startsWith("RC13") ||
-                    _name.startsWith("RC14") ||
-                    _name.startsWith("RC15") ||
-                    _name.startsWith("RC16")
-                  ? "gemma4:12b"
-                  : "qwen3.5:9b",
-            thinking: _name.startsWith("RC14") || _name.startsWith("RC26"),
+            model:
+              _name.startsWith("RC27") || _name.startsWith("RC28")
+                ? "qwen3.5:9b"
+                : _name.startsWith("RC17") ||
+                    _name.startsWith("RC18") ||
+                    _name.startsWith("RC19") ||
+                    _name.startsWith("RC20") ||
+                    _name.startsWith("RC21") ||
+                    _name.startsWith("RC22") ||
+                    _name.startsWith("RC23") ||
+                    _name.startsWith("RC24") ||
+                    _name.startsWith("RC25") ||
+                    _name.startsWith("RC26") ||
+                    _name.startsWith("RC27") ||
+                    _name.startsWith("RC28")
+                  ? "qwen3:14b"
+                  : _name.startsWith("RC13") ||
+                      _name.startsWith("RC14") ||
+                      _name.startsWith("RC15") ||
+                      _name.startsWith("RC16")
+                    ? "gemma4:12b"
+                    : "qwen3.5:9b",
+            thinking: _name.startsWith("RC14") || _name.startsWith("RC26") || _name.startsWith("RC28"),
           });
         const packet = JSON.parse(request.messages[1].content);
         if (
@@ -182,7 +189,8 @@ it.each([
           _name.startsWith("RC24") ||
           _name.startsWith("RC25") ||
           _name.startsWith("RC26") ||
-          _name.startsWith("RC27")
+          _name.startsWith("RC27") ||
+          _name.startsWith("RC28")
         ) {
           const refs = [
             ...packet.skills.index.map((s: { ref: unknown }) => s.ref),
@@ -205,7 +213,8 @@ it.each([
           _name.startsWith("RC24") ||
           _name.startsWith("RC25") ||
           _name.startsWith("RC26") ||
-          _name.startsWith("RC27")
+          _name.startsWith("RC27") ||
+          _name.startsWith("RC28")
         ) {
           expect(packet.responseInterface).toBeDefined();
           if (packet.participantInterface.mode === "scoped_update")
@@ -228,7 +237,8 @@ it.each([
           _name.startsWith("RC24") ||
           _name.startsWith("RC25") ||
           _name.startsWith("RC26") ||
-          _name.startsWith("RC27")
+          _name.startsWith("RC27") ||
+          _name.startsWith("RC28")
         )
           expect(packet.readInterface.meaning).toContain("provenance");
         if (
@@ -250,7 +260,8 @@ it.each([
           _name.startsWith("RC24") ||
           _name.startsWith("RC25") ||
           _name.startsWith("RC26") ||
-          _name.startsWith("RC27")
+          _name.startsWith("RC27") ||
+          _name.startsWith("RC28")
         )
           expect(packet.observationSemantics).toContain(
             namedMeanings ? "actual external delivery" : "stock, founding allowance, own production",
@@ -278,7 +289,8 @@ it.each([
           _name.startsWith("RC24") ||
           _name.startsWith("RC25") ||
           _name.startsWith("RC26") ||
-          _name.startsWith("RC27")
+          _name.startsWith("RC27") ||
+          _name.startsWith("RC28")
         ) {
           expect(packet.participantInterface).toBeDefined();
           if (
@@ -302,7 +314,8 @@ it.each([
               _name.startsWith("RC24") ||
               _name.startsWith("RC25") ||
               _name.startsWith("RC26") ||
-              _name.startsWith("RC27")) &&
+              _name.startsWith("RC27") ||
+              _name.startsWith("RC28")) &&
             packet.participantInterface.mode === "scoped_update"
           )
             expect(packet.participantInterface.temporalEvidence).toContain("never their promises");
@@ -318,7 +331,8 @@ it.each([
             _name.startsWith("RC24") ||
             _name.startsWith("RC25") ||
             _name.startsWith("RC26") ||
-            _name.startsWith("RC27")) &&
+            _name.startsWith("RC27") ||
+            _name.startsWith("RC28")) &&
           packet.participantInterface.mode === "scoped_update"
         ) {
           expect(packet.participantInterface.updates).toContain("goalIndex");
@@ -332,7 +346,8 @@ it.each([
           _name.startsWith("RC24") ||
           _name.startsWith("RC25") ||
           _name.startsWith("RC26") ||
-          _name.startsWith("RC27")
+          _name.startsWith("RC27") ||
+          _name.startsWith("RC28")
         ) {
           expect(request.messages[0].content).toContain("pre-dispatch");
           expect(request.messages[0].content).toContain("conditional plans");
@@ -341,12 +356,18 @@ it.each([
           _name.startsWith("RC24") ||
           _name.startsWith("RC25") ||
           _name.startsWith("RC26") ||
-          _name.startsWith("RC27")
+          _name.startsWith("RC27") ||
+          _name.startsWith("RC28")
         ) {
           expect(packet.readInterface.queryShape.instructions).toContain("readSchema inspects metadata only");
           expect(packet.readInterface.queryShape.instructions).toContain("Fields need schema lookup");
         }
-        if (_name.startsWith("RC25") || _name.startsWith("RC26") || _name.startsWith("RC27")) {
+        if (
+          _name.startsWith("RC25") ||
+          _name.startsWith("RC26") ||
+          _name.startsWith("RC27") ||
+          _name.startsWith("RC28")
+        ) {
           expect(packet.observationSemantics).toContain("accepted relationships");
           expect(packet.observationSemantics).toContain("ALREADY_CONTACT");
           expect(packet.observationSemantics).toContain("not trade consent");
@@ -362,7 +383,8 @@ it.each([
           _name.startsWith("RC24") ||
           _name.startsWith("RC25") ||
           _name.startsWith("RC26") ||
-          _name.startsWith("RC27")
+          _name.startsWith("RC27") ||
+          _name.startsWith("RC28")
         ) {
           expect(goal.incoming).not.toHaveProperty("maximumPerHour");
           expect(goal.outgoing).not.toHaveProperty("minimumPerHour");
@@ -386,7 +408,8 @@ it.each([
           _name.startsWith("RC24") ||
           _name.startsWith("RC25") ||
           _name.startsWith("RC26") ||
-          _name.startsWith("RC27")
+          _name.startsWith("RC27") ||
+          _name.startsWith("RC28")
         )
           expect(goal.scope).toContain("external peer supply");
         return originalDecide(request);
@@ -461,7 +484,8 @@ it.each([
       _name.startsWith("RC24") ||
       _name.startsWith("RC25") ||
       _name.startsWith("RC26") ||
-      _name.startsWith("RC27")
+      _name.startsWith("RC27") ||
+      _name.startsWith("RC28")
     ) {
       const reduced = (
         await f.pool.query(

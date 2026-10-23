@@ -29,6 +29,7 @@ import {
   prepareOwnedRC25World,
   prepareOwnedRC26World,
   prepareOwnedRC27World,
+  prepareOwnedRC28World,
 } from "../../../pact/tests/evaluation/post-e3-owned-world.js";
 import {
   executeOwnedRC2Protocol,
@@ -57,6 +58,7 @@ import {
   prepareOwnedRC25Cohort,
   prepareOwnedRC26Cohort,
   prepareOwnedRC27Cohort,
+  prepareOwnedRC28Cohort,
 } from "../../scripts/lib/post-e3-owned-run.js";
 import { prepareRC1Protocol } from "../../src/post-e3-plan.js";
 import {
@@ -86,6 +88,7 @@ import {
   prepareRC25Protocol,
   prepareRC26Protocol,
   prepareRC27Protocol,
+  prepareRC28Protocol,
 } from "../../src/post-e3-rc2-plan.js";
 import { fixture } from "../helpers.js";
 
@@ -2797,6 +2800,129 @@ it("prepares the exact RC27 actor configuration and reopens only its own checkpo
       ]) {
         await expect(
           prepareOwnedRC27World({ pactUrl, nonce }, protocol, protocol.cells[1], {
+            secrets,
+            retention: "preserve",
+            checkpoint: { ...checkpoint, schemaVersion },
+          }),
+        ).rejects.toThrow("OWNED_CHECKPOINT_MISMATCH");
+      }
+      expect(() => executeOwnedRC2Protocol(protocol, {} as never, {} as never)).toThrow("POST_E3_STUDY_MISMATCH");
+    } finally {
+      await reopened.disconnect();
+    }
+  } finally {
+    await control.pauseClock();
+    await control.disconnect();
+    await world.disconnect();
+    await f.pool.end();
+  }
+}, 60000);
+
+it("prepares the exact RC28 actor configuration and reopens only its own checkpoint namespace", async () => {
+  const pactUrl = process.env.PACT_ACCEPTANCE_DATABASE_URL,
+    nonce = process.env.FLEET_ARCHITECTURE_NONCE;
+  if (process.env.FLEET_ARCHITECTURE_TEST !== "1" || !pactUrl || !nonce) throw Error("OWNED_PAIRED_REQUIRED");
+  const f = await fixture();
+  f.advance(Date.now() - f.now().getTime());
+  const protocol = prepareRC28Protocol({
+    stage: "R28-D",
+    sources: { fleet: "a".repeat(40), pact: "b".repeat(40) },
+    modelDigest: "c".repeat(64),
+    policyDigest: "d".repeat(64),
+    settingsDigest: "e".repeat(64),
+    bundleDigest: "f".repeat(64),
+    seedNonce: "3".repeat(64),
+  });
+  const secrets = Object.fromEntries(
+    ["rulesKey", "tokenKey", "encryptionKey"].map((k) => [k, randomBytes(32).toString("base64")]),
+  ) as { rulesKey: string; tokenKey: string; encryptionKey: string };
+  const world = await prepareOwnedRC28World({ pactUrl, nonce }, protocol, protocol.cells[1], {
+    secrets,
+    retention: "preserve",
+  });
+  const control = await prepareOwnedRC28World({ pactUrl, nonce }, protocol, protocol.cells[1], {
+    secrets,
+    retention: "preserve",
+    control: true,
+  });
+  try {
+    const p = await prepareOwnedRC28Cohort(
+      f.store,
+      world,
+      control,
+      protocol.cells[1],
+      { route: "ollama", model: "qwen3.5:9b", thinking: true },
+      nonce,
+      "synthetic-evidence",
+      "synthetic-key",
+    );
+    for (const player of world.players) {
+      const observed = await world.actor(player.kingdomId).readSelf();
+      const objective = JSON.parse(observed?.ambition ?? "null");
+      expect(objective).toMatchObject({
+        quantityUnit: "whole resource units",
+        timeUnit: "GAME hour",
+        scope: "external peer supply; excludes local production; not communication allowance",
+      });
+      expect(objective.outgoing.maximumPerHour).toBe(player.role === "A" ? 2 : 1);
+      expect(objective.incoming).toEqual({
+        resource: player.role === "A" ? "silver" : "iron",
+        minimumPerHour: player.role === "A" ? 1 : 2,
+      });
+      expect(objective.incoming).not.toHaveProperty("maximumPerHour");
+      expect(objective).not.toHaveProperty("maximumSendPerHour");
+      expect(objective).not.toHaveProperty("messagesPerHour");
+    }
+    const row = (
+      await f.pool.query("SELECT architecture_config FROM cohort_engine_profiles WHERE cohort_id=$1", [
+        p.binding.cohortId,
+      ])
+    ).rows[0];
+    expect(row.architecture_config).toEqual(protocol.configuration);
+    expect((await f.store.cohort(p.binding.cohortId)).interval_minutes).toBe(30);
+    expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger")).rows[0].n).toBe(0);
+    await world.pauseClock("R28_CHECKPOINT_REOPEN");
+    const checkpoint = JSON.parse(JSON.stringify(world.checkpoint()));
+    expect(checkpoint.schemaVersion).toBe("pact.rc28-owned-world.v1");
+    await world.disconnect();
+    const reopened = await prepareOwnedRC28World({ pactUrl, nonce }, protocol, protocol.cells[1], {
+      secrets,
+      retention: "preserve",
+      checkpoint,
+    });
+    try {
+      expect(reopened.checkpoint()).toEqual(checkpoint);
+      for (const schemaVersion of [
+        "pact.rc1-owned-world.v1",
+        "pact.rc2-owned-world.v1",
+        "pact.rc3-owned-world.v1",
+        "pact.rc4-owned-world.v1",
+        "pact.rc5-owned-world.v1",
+        "pact.rc6-owned-world.v1",
+        "pact.rc7-owned-world.v1",
+        "pact.rc8-owned-world.v1",
+        "pact.rc9-owned-world.v1",
+        "pact.rc10-owned-world.v1",
+        "pact.rc11-owned-world.v1",
+        "pact.rc12-owned-world.v1",
+        "pact.rc13-owned-world.v1",
+        "pact.rc14-owned-world.v1",
+        "pact.rc15-owned-world.v1",
+        "pact.rc16-owned-world.v1",
+        "pact.rc17-owned-world.v1",
+        "pact.rc18-owned-world.v1",
+        "pact.rc19-owned-world.v1",
+        "pact.rc20-owned-world.v1",
+        "pact.rc21-owned-world.v1",
+        "pact.rc22-owned-world.v1",
+        "pact.rc23-owned-world.v1",
+        "pact.rc24-owned-world.v1",
+        "pact.rc25-owned-world.v1",
+        "pact.rc26-owned-world.v1",
+        "pact.rc27-owned-world.v1",
+      ]) {
+        await expect(
+          prepareOwnedRC28World({ pactUrl, nonce }, protocol, protocol.cells[1], {
             secrets,
             retention: "preserve",
             checkpoint: { ...checkpoint, schemaVersion },
