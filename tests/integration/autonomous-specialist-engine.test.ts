@@ -1540,9 +1540,19 @@ it.each([
       }
       if (requests === 2) {
         expect(packet.decisionProgress.pendingRead).toBeUndefined();
-        expect(check({ decision: { kind: "wait", summary: "Observed status ready after the scoped answer" } })).toBe(
-          true,
-        );
+        expect(
+          check({
+            decision: {
+              kind: "wait",
+              summary: "Requested read of service.observation.service.requestedRead.statusCode resolved to 'ready'.",
+            },
+          }),
+        ).toBe(false);
+        expect(
+          check({
+            decision: { kind: "wait", summary: 'Observed requested facts: [{"id":"board.status","value":"ready"}]' },
+          }),
+        ).toBe(true);
         expect(packet.readInterface).toBeUndefined();
         expect(JSON.stringify(packet.evidence)).toContain('"status":"ready"');
       }
@@ -1564,7 +1574,9 @@ it.each([
               decision: {
                 kind: "wait",
                 summary:
-                  mode === "bounded" ? "Observed status ready after the scoped answer" : "Facts inspected; no action",
+                  mode === "bounded"
+                    ? 'Observed requested facts: [{"id":"board.status","value":"ready"}]'
+                    : "Facts inspected; no action",
               },
             };
     requests++;

@@ -284,7 +284,7 @@ it("allows metadata then the matching read then an answer for a typed requested 
   const f = setup([
     { kind: "read", query: { readSchema: tool.name }, summary: future },
     { kind: "read", query: { tool: tool.name, args: { scope: "self" } }, summary: future },
-    { kind: "wait", summary: "Actual status is ready" },
+    { kind: "wait", summary: 'Observed requested facts: [{"id":"service.statusCode","value":"ready"}]' },
   ]);
   f.operation.observation.requestedFacts = [{ id: "service.statusCode", tool: tool.name, state: "unknown" }];
   f.observe.mockImplementation(async () => ({
@@ -295,6 +295,22 @@ it("allows metadata then the matching read then an answer for a typed requested 
   expect(f.calls()).toBe(3);
   expect(f.observe).toHaveBeenCalledTimes(1);
   expect(f.accept).toHaveBeenCalledTimes(1);
+});
+it("rejects the invented final provenance path even when the value is correct", async () => {
+  const f = setup([
+    {
+      kind: "wait",
+      summary: "Requested read of service.observation.service.requestedRead.statusCode resolved to 'violet-924'.",
+    },
+  ]);
+  f.operation.observation.requestedFacts = [
+    { id: "service.statusCode", tool: tool.name, state: "known", value: "violet-924" },
+  ];
+  await expect(new AutonomousSpecialistsEngine().run(f.operation, f.services)).rejects.toThrow(
+    "REQUESTED_FACT_SUMMARY_REQUIRED",
+  );
+  expect(f.accept).not.toHaveBeenCalled();
+  expect(f.observe).not.toHaveBeenCalled();
 });
 it("rejects pretending a dropped requested fact became a completed answer", async () => {
   const f = setup([
@@ -328,7 +344,9 @@ it.each(["unknown", "blocked"] as const)(
   },
 );
 it("preserves a legitimately known literal value rather than guessing a sentinel phrase", async () => {
-  const f = setup([{ kind: "wait", summary: "The actual literal value is not yet observed" }]);
+  const f = setup([
+    { kind: "wait", summary: 'Observed requested facts: [{"id":"service.statusCode","value":"not yet observed"}]' },
+  ]);
   f.operation.observation.requestedFacts = [
     { id: "service.statusCode", tool: tool.name, state: "known", value: "not yet observed" },
   ];

@@ -1,7 +1,22 @@
 import { expect, it } from "vitest";
 import * as facts from "../../src/engines/autonomous-specialists/requested-facts.js";
 
-const unknown = { id: "service.statusCode", tool: "fixture.status.read", state: "unknown" };
+const unknown = { id: "service.statusCode", tool: "fixture.status.read", state: "unknown" as const };
+it("renders known requested values without inventing a provenance path", () => {
+  expect(facts.requestedFactWaitSummary([{ ...unknown, state: "known", value: "violet-924" }])).toBe(
+    'Observed requested facts: [{"id":"service.statusCode","value":"violet-924"}]',
+  );
+  expect(facts.requestedFactWaitSummary([{ ...unknown, state: "known", value: "not yet observed" }])).toContain(
+    '"value":"not yet observed"',
+  );
+});
+it("keeps mixed requests unresolved and bounds large known answers without truncating them into claims", () => {
+  expect(facts.requestedFactWaitSummary([])).toBeUndefined();
+  expect(facts.requestedFactWaitSummary([unknown])).toBe(facts.unresolvedFactSummary);
+  expect(facts.requestedFactWaitSummary([{ ...unknown, state: "known", value: "x".repeat(1000) }])).toBe(
+    "Requested facts observed; see observation.requestedFacts.",
+  );
+});
 it("keeps unknown as a state without exposing a placeholder as a value", () => {
   expect(facts.parseRequestedFacts([unknown])).toEqual([unknown]);
   expect(() => facts.parseRequestedFacts([{ ...unknown, value: "not yet observed" }])).toThrow(

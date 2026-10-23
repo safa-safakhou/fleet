@@ -3,6 +3,13 @@ import { FleetError, object } from "../../domain.js";
 import type { RequestedFact } from "../../platform/contracts.js";
 
 export const unresolvedFactSummary = "Requested facts remain unresolved; no result is asserted.";
+/** Fact IDs label trusted results; the model must not fabricate a JSON path or citation. */
+export function requestedFactWaitSummary(facts: RequestedFact[]): string | undefined {
+  if (!facts.length) return;
+  if (facts.some((fact) => fact.state !== "known")) return unresolvedFactSummary;
+  const answer = `Observed requested facts: ${JSON.stringify(facts.map((fact) => ({ id: fact.id, value: fact.state === "known" ? fact.value : undefined })))}`;
+  return answer.length <= 400 ? answer : "Requested facts observed; see observation.requestedFacts.";
+}
 
 export function parseRequestedFacts(value: unknown): RequestedFact[] {
   if (value === undefined) return [];

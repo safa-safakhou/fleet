@@ -21,7 +21,7 @@ import { selectSpecialistContext } from "./memory.js";
 import { InternalMessageSchema } from "./messaging.js";
 import { decodeParticipantGoalParents, participantGenerationContract } from "./participant-interface.js";
 import { assertReadProgressDecision, prospectiveReadSummary, scopedReadProgressQuery } from "./read-progress.js";
-import { parseRequestedFacts, reconcileRequestedFacts, unresolvedFactSummary } from "./requested-facts.js";
+import { parseRequestedFacts, reconcileRequestedFacts, requestedFactWaitSummary } from "./requested-facts.js";
 import { queryContractGuide, responseContractGuide } from "./response-interface.js";
 import { route } from "./routing.js";
 import { assertListedSkillReferences, bindListedSkillReferences } from "./skill-reference-interface.js";
@@ -273,10 +273,10 @@ export class AutonomousSpecialistsEngine {
       const bindResponse = (s: Data) =>
         listedSkills
           ? bindListedSkillReferences(
-              bindResponseEnvelope(s, boundedReadProgress && !readsAllowed, !scopedReadRequired, unresolvedWaitSummary),
+              bindResponseEnvelope(s, boundedReadProgress && !readsAllowed, !scopedReadRequired, factWaitSummary),
               listedRefs,
             )
-          : bindResponseEnvelope(s, boundedReadProgress && !readsAllowed, !scopedReadRequired, unresolvedWaitSummary);
+          : bindResponseEnvelope(s, boundedReadProgress && !readsAllowed, !scopedReadRequired, factWaitSummary);
       const allowed = services.environment.schemas.actions;
       const baseSchema = learningMode ? z.toJSONSchema(LearningDecision, { target: "draft-7" }) : outputSchema;
       const waitSchema = await services.environment.waitSchema?.(observation);
@@ -340,9 +340,7 @@ export class AutonomousSpecialistsEngine {
       const requiredReadArgs = unknownFacts.find((fact) => fact.tool === requiredReadTool)?.args;
       const allowFactLookup = !pendingReadTool && Boolean(factTool) && retrievedReadTool?.name !== factTool;
       const scopedReadRequired = boundedReadProgress && Boolean(requiredReadTool) && callsRemaining > 1;
-      const unresolvedWaitSummary = requestedFacts.some((fact) => fact.state !== "known")
-        ? unresolvedFactSummary
-        : undefined;
+      const factWaitSummary = requestedFactWaitSummary(requestedFacts);
       const readQuerySchema =
         boundedReadProgress && advertisedReadQuerySchema
           ? scopedReadProgressQuery(
@@ -758,13 +756,13 @@ export class AutonomousSpecialistsEngine {
           allowFactLookup,
           requiredReadArgs,
         );
-      if (
-        boundedReadProgress &&
-        decision.kind === "wait" &&
-        unresolvedWaitSummary &&
-        decision.summary !== unresolvedWaitSummary
-      )
-        throw new FleetError("REQUESTED_FACT_WAIT_UNRESOLVED", true);
+      if (boundedReadProgress && decision.kind === "wait" && factWaitSummary && decision.summary !== factWaitSummary)
+        throw new FleetError(
+          requestedFacts.some((fact) => fact.state !== "known")
+            ? "REQUESTED_FACT_WAIT_UNRESOLVED"
+            : "REQUESTED_FACT_SUMMARY_REQUIRED",
+          true,
+        );
       if (goalReferences && update) reviseGoals(state.goals, update.goals, state.charter);
       if (listedSkills) {
         assertListedSkillReferences(skills, listedRefs);
