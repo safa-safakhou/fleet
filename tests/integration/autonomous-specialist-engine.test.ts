@@ -1415,10 +1415,22 @@ it.each([
           reads++;
         }
         const observed = await session.observe({});
-        return mode === "bounded" && query.tool === tool.name
+        return mode === "bounded"
           ? {
               ...observed,
-              payload: { ...observed.payload, requestedRead: { status: "ready" }, requestedReadTool: tool.name },
+              requestedFacts: [
+                {
+                  id: "board.status",
+                  tool: tool.name,
+                  ...(query.tool === tool.name
+                    ? { state: "known" as const, value: "ready" }
+                    : { state: "unknown" as const }),
+                },
+              ],
+              payload:
+                query.tool === tool.name
+                  ? { ...observed.payload, requestedRead: { status: "ready" }, requestedReadTool: tool.name }
+                  : observed.payload,
             }
           : observed;
       },
@@ -1446,6 +1458,18 @@ it.each([
     });
     if (mode === "bounded") {
       expect(check(wrap({}))).toBe(false);
+      if (requests < 2) {
+        expect(
+          check({
+            decision: { kind: "wait", summary: 'Observation available: service statusCode is "not yet observed".' },
+          }),
+        ).toBe(false);
+        expect(check(wrap({ continuity: true }))).toBe(false);
+        expect(packet.observation.requestedFacts).toEqual([{ id: "board.status", tool: tool.name, state: "unknown" }]);
+      } else
+        expect(packet.observation.requestedFacts).toEqual([
+          { id: "board.status", tool: tool.name, state: "known", value: "ready" },
+        ]);
       expect(
         check({
           decision: { kind: "read", query: { readSchema: tool.name }, summary: "observed the current status code" },

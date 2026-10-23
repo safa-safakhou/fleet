@@ -9,6 +9,12 @@ export type BindingRef = {
   actorRef: string;
   entityRef: string;
 };
+/** Environment-owned requested facts. Unknown/blocked carry no pretend value. */
+export type RequestedFact = { id: string; tool: string } & (
+  | { state: "unknown" }
+  | { state: "known"; value: unknown }
+  | { state: "blocked"; code: string }
+);
 export type Observation = {
   schemaId: string;
   revision: string;
@@ -17,6 +23,7 @@ export type Observation = {
   sourceRefs: string[];
   payload: Data;
   coverage: Data;
+  requestedFacts?: RequestedFact[];
   continuity?: ContinuityObservation;
   coordination?: CoordinationFrame;
 };

@@ -21,6 +21,7 @@ import { selectSpecialistContext } from "./memory.js";
 import { InternalMessageSchema } from "./messaging.js";
 import { decodeParticipantGoalParents, participantGenerationContract } from "./participant-interface.js";
 import { assertReadProgressDecision, prospectiveReadSummary, scopedReadProgressQuery } from "./read-progress.js";
+import { parseRequestedFacts, reconcileRequestedFacts, unresolvedFactSummary } from "./requested-facts.js";
 import { queryContractGuide, responseContractGuide } from "./response-interface.js";
 import { route } from "./routing.js";
 import { assertListedSkillReferences, bindListedSkillReferences } from "./skill-reference-interface.js";
@@ -79,6 +80,7 @@ export class AutonomousSpecialistsEngine {
     const budget = services.configuration.budget,
       config = { ...defaults, ...services.configuration.architectureConfig };
     const boundedReadProgress = services.configuration.architectureConfig.decisionContract === "read-final.v3";
+    let requestedFacts = boundedReadProgress ? parseRequestedFacts(observation.requestedFacts) : [];
     const preDispatchContract =
       boundedReadProgress || services.configuration.architectureConfig.decisionContract === "read-final.v2";
     const readFinalContractActive =
@@ -89,11 +91,13 @@ export class AutonomousSpecialistsEngine {
     const listedSkills = services.configuration.architectureConfig.skillReferenceContract === "listed.v1";
     if (listedSkills && !readFinalContractActive)
       throw new FleetError("SKILL_REFERENCE_DECISION_CONTRACT_REQUIRED", true);
-    const bindResponseEnvelope = (schema: Data, finalOnly = false, waitAllowed = true) =>
+    const bindResponseEnvelope = (schema: Data, finalOnly = false, waitAllowed = true, waitSummary?: string) =>
       readFinalContractActive
         ? readFinalGenerationContract(
             schema,
-            boundedReadProgress ? { readSummary: prospectiveReadSummary, finalOnly, waitAllowed } : {},
+            boundedReadProgress
+              ? { readSummary: prospectiveReadSummary, finalOnly, waitAllowed, ...(waitSummary ? { waitSummary } : {}) }
+              : {},
           )
         : schema;
     const portableClocks = services.configuration.architectureConfig.clockContract === "scoped.v2";
@@ -148,6 +152,7 @@ export class AutonomousSpecialistsEngine {
     for (let call = 0; call < budget.maxCallsPerTurn; call++) {
       if (observationPolicy)
         observation = services.environment.projectObservation?.(observation, observationPolicy) ?? observation;
+      if (requestedFacts.length) observation = { ...observation, requestedFacts };
       const observationSemantics = namedMeanings
         ? services.environment.observationSemanticsFor?.(observation)
         : staticObservationSemantics;
@@ -262,10 +267,10 @@ export class AutonomousSpecialistsEngine {
       const bindResponse = (s: Data) =>
         listedSkills
           ? bindListedSkillReferences(
-              bindResponseEnvelope(s, boundedReadProgress && !readsAllowed, !scopedReadRequired),
+              bindResponseEnvelope(s, boundedReadProgress && !readsAllowed, !scopedReadRequired, unresolvedWaitSummary),
               listedRefs,
             )
-          : bindResponseEnvelope(s, boundedReadProgress && !readsAllowed, !scopedReadRequired);
+          : bindResponseEnvelope(s, boundedReadProgress && !readsAllowed, !scopedReadRequired, unresolvedWaitSummary);
       const allowed = services.environment.schemas.actions;
       const baseSchema = learningMode ? z.toJSONSchema(LearningDecision, { target: "draft-7" }) : outputSchema;
       const waitSchema = await services.environment.waitSchema?.(observation);
@@ -320,10 +325,24 @@ export class AutonomousSpecialistsEngine {
           : environmentReadSchema
         : undefined;
       const callsRemaining = budget.maxCallsPerTurn - call;
-      const scopedReadRequired = boundedReadProgress && Boolean(pendingReadTool) && callsRemaining > 1;
+      const unknownFacts = requestedFacts.filter((fact) => fact.state === "unknown");
+      const factCatalog = unknownFacts.length && callsRemaining > 1 ? await services.environment.catalog() : [];
+      const factTool = unknownFacts.find((fact) =>
+        factCatalog.some((t) => t.name === fact.tool && t.annotations?.readOnlyHint === true),
+      )?.tool;
+      const requiredReadTool = pendingReadTool ?? factTool;
+      const allowFactLookup = !pendingReadTool && Boolean(factTool) && retrievedReadTool?.name !== factTool;
+      const scopedReadRequired = boundedReadProgress && Boolean(requiredReadTool) && callsRemaining > 1;
+      const unresolvedWaitSummary = requestedFacts.some((fact) => fact.state !== "known")
+        ? unresolvedFactSummary
+        : undefined;
       const readQuerySchema =
         boundedReadProgress && advertisedReadQuerySchema
-          ? scopedReadProgressQuery(advertisedReadQuerySchema, scopedReadRequired ? pendingReadTool : undefined)
+          ? scopedReadProgressQuery(
+              advertisedReadQuerySchema,
+              scopedReadRequired ? requiredReadTool : undefined,
+              allowFactLookup,
+            )
           : advertisedReadQuerySchema;
       if (scopedReadRequired && !readQuerySchema) throw new FleetError("READ_PROGRESS_QUERY_SCHEMA_REQUIRED", true);
       const readsAllowed = Boolean(readQuerySchema) && callsRemaining > 1;
@@ -509,7 +528,7 @@ export class AutonomousSpecialistsEngine {
               decisionProgress: {
                 callsRemaining,
                 readsAllowed,
-                ...(scopedReadRequired ? { pendingRead: pendingReadTool, waitAllowed: false } : {}),
+                ...(scopedReadRequired ? { pendingRead: requiredReadTool, waitAllowed: false } : {}),
                 meaning: scopedReadRequired
                   ? "Finish the selected scoped read before waiting; its result is not yet observed."
                   : "Final call: wait/action only. Missing facts stay unknown; requested reads have no result yet.",
@@ -722,7 +741,19 @@ export class AutonomousSpecialistsEngine {
       if (!parsed.success) throw new FleetError("INVALID_MODEL_OUTPUT", true);
       const { decision, update, skills } = parsed.data;
       if (boundedReadProgress)
-        assertReadProgressDecision(decision, readsAllowed, scopedReadRequired ? pendingReadTool : undefined);
+        assertReadProgressDecision(
+          decision,
+          readsAllowed,
+          scopedReadRequired ? requiredReadTool : undefined,
+          allowFactLookup,
+        );
+      if (
+        boundedReadProgress &&
+        decision.kind === "wait" &&
+        unresolvedWaitSummary &&
+        decision.summary !== unresolvedWaitSummary
+      )
+        throw new FleetError("REQUESTED_FACT_WAIT_UNRESOLVED", true);
       if (goalReferences && update) reviseGoals(state.goals, update.goals, state.charter);
       if (listedSkills) {
         assertListedSkillReferences(skills, listedRefs);
@@ -776,6 +807,12 @@ export class AutonomousSpecialistsEngine {
           continue;
         }
         observation = await services.observe(decision.query);
+        if (boundedReadProgress && requestedFacts.length)
+          requestedFacts = reconcileRequestedFacts(
+            requestedFacts,
+            observation.requestedFacts,
+            typeof decision.query.tool === "string" ? decision.query.tool : undefined,
+          );
         if (decision.query.tool === pendingReadTool) pendingReadTool = undefined;
         continue;
       }

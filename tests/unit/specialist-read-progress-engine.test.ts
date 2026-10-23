@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, it, vi } from "vitest";
 import { AutonomousSpecialistsEngine } from "../../src/engines/autonomous-specialists/engine.js";
 import { pactReadQuerySchema } from "../../src/games/pact/read-queries.js";
+import type { Observation } from "../../src/platform/contracts.js";
 import type { ScopedOperation, ScopedServices } from "../../src/platform/engine-context.js";
 
 const future = "Read requested; result not yet observed.";
@@ -16,7 +17,7 @@ const tool = {
   },
 };
 function setup(responses: unknown[]) {
-  const observation = {
+  const observation: Observation = {
     schemaId: "fixture.observation.v1",
     revision: "1",
     observedAt: "2026-10-23T00:00:00Z",
@@ -193,4 +194,88 @@ it("does not ban an initial wait or reinterpret legacy metadata inspection as an
   await new AutonomousSpecialistsEngine().run(legacy.operation, legacy.services);
   expect(legacy.accept).toHaveBeenCalledTimes(1);
   expect(legacy.observe).not.toHaveBeenCalled();
+});
+
+it("blocks an initial wait for an unresolved trusted requested fact before any state acceptance", async () => {
+  const f = setup([{ kind: "wait", summary: 'Observation available: service statusCode is "not yet observed".' }]);
+  f.operation.observation.requestedFacts = [{ id: "service.statusCode", tool: tool.name, state: "unknown" }];
+  await expect(new AutonomousSpecialistsEngine().run(f.operation, f.services)).rejects.toThrow("SCOPED_READ_REQUIRED");
+  expect(f.calls()).toBe(1);
+  expect(f.accept).not.toHaveBeenCalled();
+  expect(f.observe).not.toHaveBeenCalled();
+});
+it("rejects a placeholder value attached to an unknown requested fact before inference", async () => {
+  const f = setup([]);
+  f.operation.observation.requestedFacts = [
+    { id: "service.statusCode", tool: tool.name, state: "unknown", value: "not yet observed" },
+  ] as never;
+  await expect(new AutonomousSpecialistsEngine().run(f.operation, f.services)).rejects.toThrow(
+    "REQUESTED_FACT_STATE_INVALID",
+  );
+  expect(f.calls()).toBe(0);
+});
+
+it("allows metadata then the matching read then an answer for a typed requested fact", async () => {
+  const f = setup([
+    { kind: "read", query: { readSchema: tool.name }, summary: future },
+    { kind: "read", query: { tool: tool.name, args: { scope: "self" } }, summary: future },
+    { kind: "wait", summary: "Actual status is ready" },
+  ]);
+  f.operation.observation.requestedFacts = [{ id: "service.statusCode", tool: tool.name, state: "unknown" }];
+  f.observe.mockImplementation(async () => ({
+    ...f.operation.observation,
+    requestedFacts: [{ id: "service.statusCode", tool: tool.name, state: "known", value: "ready" }],
+  }));
+  await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+  expect(f.calls()).toBe(3);
+  expect(f.observe).toHaveBeenCalledTimes(1);
+  expect(f.accept).toHaveBeenCalledTimes(1);
+});
+it("rejects pretending a dropped requested fact became a completed answer", async () => {
+  const f = setup([
+    { kind: "read", query: { readSchema: tool.name }, summary: future },
+    { kind: "read", query: { tool: tool.name, args: { scope: "self" } }, summary: future },
+    { kind: "wait", summary: "Observed: service statusCode is not yet observed" },
+  ]);
+  f.operation.observation.requestedFacts = [{ id: "service.statusCode", tool: tool.name, state: "unknown" }];
+  f.observe.mockImplementation(async () => ({ ...f.operation.observation, requestedFacts: undefined }));
+  await expect(new AutonomousSpecialistsEngine().run(f.operation, f.services)).rejects.toThrow(
+    "REQUESTED_FACT_WAIT_UNRESOLVED",
+  );
+  expect(f.accept).not.toHaveBeenCalled();
+});
+it.each(["unknown", "blocked"] as const)(
+  "permits an honest unresolved wait for a %s fact without an available read",
+  async (state) => {
+    const f = setup([{ kind: "wait", summary: "Requested facts remain unresolved; no result is asserted." }]);
+    f.operation.observation.requestedFacts = [
+      {
+        id: "service.statusCode",
+        tool: tool.name,
+        ...(state === "unknown" ? { state } : { state, code: "READ_UNAVAILABLE" }),
+      },
+    ];
+    f.services.environment.catalog = async () => [];
+    await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+    expect(f.calls()).toBe(1);
+    expect(f.observe).not.toHaveBeenCalled();
+    expect(f.accept).toHaveBeenCalledTimes(1);
+  },
+);
+it("preserves a legitimately known literal value rather than guessing a sentinel phrase", async () => {
+  const f = setup([{ kind: "wait", summary: "The actual literal value is not yet observed" }]);
+  f.operation.observation.requestedFacts = [
+    { id: "service.statusCode", tool: tool.name, state: "known", value: "not yet observed" },
+  ];
+  await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+  expect(f.accept).toHaveBeenCalledTimes(1);
+});
+it("keeps the final-call reservation for a requested fact and reports it unresolved", async () => {
+  const f = setup([{ kind: "wait", summary: "Requested facts remain unresolved; no result is asserted." }]);
+  f.services.configuration.budget.maxCallsPerTurn = 1;
+  f.operation.observation.requestedFacts = [{ id: "service.statusCode", tool: tool.name, state: "unknown" }];
+  await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+  expect(f.calls()).toBe(1);
+  expect(f.observe).not.toHaveBeenCalled();
+  expect(f.accept).toHaveBeenCalledTimes(1);
 });

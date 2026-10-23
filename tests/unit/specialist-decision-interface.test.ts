@@ -114,3 +114,12 @@ it("removes goal-deferring waits while retaining reads and authorized action pro
   expect(accepts({ decision: action })).toBe(true);
   expect(accepts({ decision: { ...action, value: 3 } })).toBe(false);
 });
+it.each([false, true])("pins unresolved wait summaries with finalOnly=%s", (finalOnly) => {
+  const waitSummary = "Requested facts remain unresolved; no result is asserted.";
+  const accepts = new Ajv({ strict: false }).compile(
+    binding.readFinalGenerationContract(base, { finalOnly, waitSummary }),
+  );
+  expect(accepts({ decision: { ...wait, summary: waitSummary }, update })).toBe(true);
+  expect(accepts({ decision: wait })).toBe(false);
+  expect(accepts({ decision: action })).toBe(true);
+});
