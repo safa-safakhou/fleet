@@ -106,3 +106,11 @@ it("reserves the last decision for a final wait or action without relaxing final
   expect(accepts({ decision: action })).toBe(true);
   expect(accepts({ decision: { ...action, value: 3 } })).toBe(false);
 });
+
+it("removes goal-deferring waits while retaining reads and authorized action proposals", () => {
+  const accepts = new Ajv({ strict: false }).compile(binding.readFinalGenerationContract(base, { waitAllowed: false }));
+  expect(accepts({ decision: wait })).toBe(false);
+  expect(accepts({ decision: read })).toBe(true);
+  expect(accepts({ decision: action })).toBe(true);
+  expect(accepts({ decision: { ...action, value: 3 } })).toBe(false);
+});

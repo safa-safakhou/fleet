@@ -2,7 +2,7 @@ import { type Data, object } from "../../domain.js";
 /** Native read operations cannot persist participant updates. Keep nested contracts intact. */
 export function readFinalGenerationContract(
   input: Data,
-  options: { readSummary?: string; finalOnly?: boolean } = {},
+  options: { readSummary?: string; finalOnly?: boolean; waitAllowed?: boolean } = {},
 ): Data {
   const schema = structuredClone(input),
     properties = object(schema.properties),
@@ -11,7 +11,10 @@ export function readFinalGenerationContract(
   if (!key) return schema;
   const variants = decision[key] as Data[],
     reads = variants.filter((v) => object(object(v.properties).kind).const === "read"),
-    finals = variants.filter((v) => !reads.includes(v));
+    finals = variants.filter(
+      (v) =>
+        !reads.includes(v) && (options.waitAllowed !== false || object(object(v.properties).kind).const !== "wait"),
+    );
   if (!reads.length) return schema;
   if (schema.additionalProperties !== false || (schema.required as string[] | undefined)?.includes("update"))
     throw Error("READ_FINAL_SCHEMA_REQUIRED");

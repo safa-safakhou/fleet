@@ -73,6 +73,7 @@ export class AutonomousSpecialistsEngine {
     if (!p || !operation.participantId) throw new FleetError("PARTICIPANT_SCOPE_REQUIRED", true);
     let observation = operation.observation;
     let retrievedReadTool: Tool | undefined;
+    let pendingReadTool: string | undefined;
     let selected: SkillVersion[] = [],
       learningMode = false;
     const budget = services.configuration.budget,
@@ -88,11 +89,11 @@ export class AutonomousSpecialistsEngine {
     const listedSkills = services.configuration.architectureConfig.skillReferenceContract === "listed.v1";
     if (listedSkills && !readFinalContractActive)
       throw new FleetError("SKILL_REFERENCE_DECISION_CONTRACT_REQUIRED", true);
-    const bindResponseEnvelope = (schema: Data, finalOnly = false) =>
+    const bindResponseEnvelope = (schema: Data, finalOnly = false, waitAllowed = true) =>
       readFinalContractActive
         ? readFinalGenerationContract(
             schema,
-            boundedReadProgress ? { readSummary: prospectiveReadSummary, finalOnly } : {},
+            boundedReadProgress ? { readSummary: prospectiveReadSummary, finalOnly, waitAllowed } : {},
           )
         : schema;
     const portableClocks = services.configuration.architectureConfig.clockContract === "scoped.v2";
@@ -260,8 +261,11 @@ export class AutonomousSpecialistsEngine {
       const listedRefs = [...(skillIndex ?? []).map((s) => s.ref), ...selected.map((s) => s.ref)];
       const bindResponse = (s: Data) =>
         listedSkills
-          ? bindListedSkillReferences(bindResponseEnvelope(s, boundedReadProgress && !readsAllowed), listedRefs)
-          : bindResponseEnvelope(s, boundedReadProgress && !readsAllowed);
+          ? bindListedSkillReferences(
+              bindResponseEnvelope(s, boundedReadProgress && !readsAllowed, !scopedReadRequired),
+              listedRefs,
+            )
+          : bindResponseEnvelope(s, boundedReadProgress && !readsAllowed, !scopedReadRequired);
       const allowed = services.environment.schemas.actions;
       const baseSchema = learningMode ? z.toJSONSchema(LearningDecision, { target: "draft-7" }) : outputSchema;
       const waitSchema = await services.environment.waitSchema?.(observation);
@@ -281,6 +285,7 @@ export class AutonomousSpecialistsEngine {
           current && JSON.stringify(current.inputSchema) === JSON.stringify(retrievedReadTool.inputSchema)
             ? structuredClone(current)
             : undefined;
+        if (!retrievedReadTool) pendingReadTool = undefined;
       }
       const environmentReadSchema = requiresReadContract
         ? await services.environment.readQuerySchema?.(
@@ -314,11 +319,13 @@ export class AutonomousSpecialistsEngine {
             }
           : environmentReadSchema
         : undefined;
+      const callsRemaining = budget.maxCallsPerTurn - call;
+      const scopedReadRequired = boundedReadProgress && Boolean(pendingReadTool) && callsRemaining > 1;
       const readQuerySchema =
         boundedReadProgress && advertisedReadQuerySchema
-          ? scopedReadProgressQuery(advertisedReadQuerySchema)
+          ? scopedReadProgressQuery(advertisedReadQuerySchema, scopedReadRequired ? pendingReadTool : undefined)
           : advertisedReadQuerySchema;
-      const callsRemaining = budget.maxCallsPerTurn - call;
+      if (scopedReadRequired && !readQuerySchema) throw new FleetError("READ_PROGRESS_QUERY_SCHEMA_REQUIRED", true);
       const readsAllowed = Boolean(readQuerySchema) && callsRemaining > 1;
       // The same documentation remains verbatim in readInterface.querySchema.
       // Omit only its duplicate annotation from the generation format.
@@ -502,8 +509,10 @@ export class AutonomousSpecialistsEngine {
               decisionProgress: {
                 callsRemaining,
                 readsAllowed,
-                meaning:
-                  "Final call: wait/action only. Missing facts stay unknown; requested reads have no result yet.",
+                ...(scopedReadRequired ? { pendingRead: pendingReadTool, waitAllowed: false } : {}),
+                meaning: scopedReadRequired
+                  ? "Finish the selected scoped read before waiting; its result is not yet observed."
+                  : "Final call: wait/action only. Missing facts stay unknown; requested reads have no result yet.",
               },
             }
           : {}),
@@ -712,7 +721,8 @@ export class AutonomousSpecialistsEngine {
       );
       if (!parsed.success) throw new FleetError("INVALID_MODEL_OUTPUT", true);
       const { decision, update, skills } = parsed.data;
-      if (boundedReadProgress) assertReadProgressDecision(decision, readsAllowed);
+      if (boundedReadProgress)
+        assertReadProgressDecision(decision, readsAllowed, scopedReadRequired ? pendingReadTool : undefined);
       if (goalReferences && update) reviseGoals(state.goals, update.goals, state.charter);
       if (listedSkills) {
         assertListedSkillReferences(skills, listedRefs);
@@ -762,9 +772,11 @@ export class AutonomousSpecialistsEngine {
           );
           if (!tool) throw new FleetError("READ_TOOL_FORBIDDEN", true);
           retrievedReadTool = structuredClone(tool);
+          if (boundedReadProgress) pendingReadTool = tool.name;
           continue;
         }
         observation = await services.observe(decision.query);
+        if (decision.query.tool === pendingReadTool) pendingReadTool = undefined;
         continue;
       }
       if (skills) {

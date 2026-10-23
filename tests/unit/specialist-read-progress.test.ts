@@ -78,3 +78,21 @@ it("does not retain contradictory refresh instructions inside composed read quer
   });
   expect(JSON.stringify(query)).not.toContain("{} refreshes");
 });
+
+it("pins a pending scoped read without admitting another lookup, continuity detour or changed args", () => {
+  const input = pactReadQuerySchema([tool.name, "other.read"], true, [tool], [], 3);
+  const scoped = progress.scopedReadProgressQuery(input, tool.name);
+  if (!scoped) throw Error("SCOPED_QUERY_REQUIRED");
+  const check = new Ajv({ strict: false }).compile(scoped);
+  expect(check({ tool: tool.name, args: { scope: "self" } })).toBe(true);
+  expect(check({ tool: tool.name, args: { scope: "other" } })).toBe(false);
+  expect(check({ continuity: true })).toBe(false);
+  expect(check({ readSchema: "other.read" })).toBe(false);
+});
+it("rejects a raw wait or continuity detour while the selected scoped read remains available", () => {
+  for (const decision of [
+    { kind: "wait", summary: "Observed: service status not yet observed", untilNextEvent: true },
+    { kind: "read", query: { continuity: true }, summary: future },
+  ])
+    expect(() => progress.assertReadProgressDecision(decision, true, tool.name)).toThrow("SCOPED_READ_REQUIRED");
+});

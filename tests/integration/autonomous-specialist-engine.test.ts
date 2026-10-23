@@ -1452,7 +1452,20 @@ it.each([
         }),
       ).toBe(false);
       expect(packet.decisionProgress).toMatchObject({ callsRemaining: 3 - requests, readsAllowed: requests < 2 });
+      if (requests === 1) {
+        expect(
+          check({
+            decision: { kind: "wait", summary: "Observed: service status not yet observed", untilNextEvent: true },
+          }),
+        ).toBe(false);
+        expect(check(wrap({ continuity: true }))).toBe(false);
+        expect(packet.decisionProgress).toMatchObject({ pendingRead: tool.name, waitAllowed: false });
+      }
       if (requests === 2) {
+        expect(packet.decisionProgress.pendingRead).toBeUndefined();
+        expect(check({ decision: { kind: "wait", summary: "Observed status ready after the scoped answer" } })).toBe(
+          true,
+        );
         expect(packet.readInterface).toBeUndefined();
         expect(JSON.stringify(packet.evidence)).toContain('"status":"ready"');
       }

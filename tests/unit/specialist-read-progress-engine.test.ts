@@ -108,8 +108,8 @@ it.each([
 });
 it("rejects a raw third read before its observation and without making a fourth call", async () => {
   const f = setup([
-    { kind: "read", query: { readSchema: tool.name }, summary: future },
     { kind: "read", query: { continuity: true }, summary: future },
+    { kind: "read", query: { readSchema: tool.name }, summary: future },
     { kind: "read", query: { tool: tool.name, args: { scope: "self" } }, summary: future },
   ]);
   await expect(new AutonomousSpecialistsEngine().run(f.operation, f.services)).rejects.toThrow(
@@ -119,4 +119,78 @@ it("rejects a raw third read before its observation and without making a fourth 
   expect(f.observe.mock.calls).toHaveLength(1);
   expect(f.accept).not.toHaveBeenCalled();
   expect(f.submit).not.toHaveBeenCalled();
+});
+
+it("rejects the observed schema-lookup then goal-deferring wait before persistence", async () => {
+  const f = setup([
+    { kind: "read", query: { readSchema: tool.name }, summary: future },
+    { kind: "wait", summary: "Observed: service status not yet observed", untilNextEvent: true },
+  ]);
+  await expect(new AutonomousSpecialistsEngine().run(f.operation, f.services)).rejects.toThrow("SCOPED_READ_REQUIRED");
+  expect(f.calls()).toBe(2);
+  expect(f.observe).not.toHaveBeenCalled();
+  expect(f.accept).not.toHaveBeenCalled();
+  expect(f.submit).not.toHaveBeenCalled();
+});
+
+it("allows a final wait after the selected scoped read has actually returned", async () => {
+  const f = setup([
+    { kind: "read", query: { readSchema: tool.name }, summary: future },
+    { kind: "read", query: { tool: tool.name, args: { scope: "self" } }, summary: future },
+    { kind: "wait", summary: "Scoped read returned; no action proposed" },
+  ]);
+  await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+  expect(f.observe.mock.calls).toHaveLength(1);
+  expect(f.accept).toHaveBeenCalledTimes(1);
+  expect(f.submit).not.toHaveBeenCalled();
+});
+it.each(["removed", "changed", "write-only"])(
+  "releases a stale pending-read obligation when its catalog contract is %s",
+  async (change) => {
+    const f = setup([
+      { kind: "read", query: { readSchema: tool.name }, summary: future },
+      { kind: "wait", summary: "The selected read contract is no longer available" },
+    ]);
+    let catalogs = 0;
+    f.services.environment.catalog = async () => {
+      if (++catalogs === 1) return [tool];
+      if (change === "removed") return [];
+      return [
+        {
+          ...tool,
+          ...(change === "write-only"
+            ? { annotations: { readOnlyHint: false } }
+            : { inputSchema: { ...tool.inputSchema, properties: { scope: { const: "changed" } } } }),
+        },
+      ];
+    };
+    await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+    expect(f.calls()).toBe(2);
+    expect(f.observe).not.toHaveBeenCalled();
+    expect(f.accept).toHaveBeenCalledTimes(1);
+  },
+);
+it("preserves honest final waits when no read call remains", async () => {
+  const f = setup([
+    { kind: "read", query: { continuity: true }, summary: future },
+    { kind: "read", query: { readSchema: tool.name }, summary: future },
+    { kind: "wait", summary: "No read call remains; status is still unknown" },
+  ]);
+  await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+  expect(f.calls()).toBe(3);
+  expect(f.accept).toHaveBeenCalledTimes(1);
+  expect(f.submit).not.toHaveBeenCalled();
+});
+it("does not ban an initial wait or reinterpret legacy metadata inspection as an obligation", async () => {
+  const initial = setup([{ kind: "wait", summary: "No selected scoped read" }]);
+  await new AutonomousSpecialistsEngine().run(initial.operation, initial.services);
+  expect(initial.accept).toHaveBeenCalledTimes(1);
+  const legacy = setup([
+    { kind: "read", query: { readSchema: tool.name }, summary: "Inspect metadata" },
+    { kind: "wait", summary: "Metadata inspected" },
+  ]);
+  legacy.services.configuration.architectureConfig.decisionContract = "read-final.v2";
+  await new AutonomousSpecialistsEngine().run(legacy.operation, legacy.services);
+  expect(legacy.accept).toHaveBeenCalledTimes(1);
+  expect(legacy.observe).not.toHaveBeenCalled();
 });
