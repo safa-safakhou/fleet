@@ -146,7 +146,18 @@ export function responseContractGuide(schema: Data, options: { share?: boolean }
 }
 
 /** Same query shape, one copy of its documentation; no inference or authorization. */
-export function queryContractGuide(schema: Data): Data {
+export function queryContractGuide(schema: Data, options: { inheritDescriptions?: boolean } = {}): Data {
+  const descriptions: string[] = [];
+  const visit = (node: Data, depth = 0) => {
+    if (depth > 16) throw Error("READ_INSTRUCTION_DEPTH");
+    if (typeof node.description === "string" && !descriptions.includes(node.description))
+      descriptions.push(node.description);
+    for (const name of ["anyOf", "oneOf", "allOf"])
+      if (Array.isArray(node[name])) for (const child of node[name] as unknown[]) visit(object(child), depth + 1);
+  };
+  if (options.inheritDescriptions) visit(schema);
+  const instructions = options.inheritDescriptions ? descriptions.join(" ") : schema.description;
+
   const guide = responseContractGuide({
     ...(schema.$defs ? { $defs: schema.$defs } : {}),
     ...(schema.definitions ? { definitions: schema.definitions } : {}),
@@ -156,6 +167,6 @@ export function queryContractGuide(schema: Data): Data {
     variants: guide.decisions,
     ...(guide.definitions ? { notation: "@n=local definition" } : {}),
     ...(guide.definitions ? { definitions: guide.definitions } : {}),
-    ...(typeof schema.description === "string" ? { instructions: schema.description } : {}),
+    ...(typeof instructions === "string" && (!options.inheritDescriptions || instructions) ? { instructions } : {}),
   };
 }

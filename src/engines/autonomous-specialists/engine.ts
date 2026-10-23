@@ -95,7 +95,8 @@ export class AutonomousSpecialistsEngine {
       visibleContract &&
       services.configuration.architectureConfig.readQueryContract !== "environment.v1" &&
       services.configuration.architectureConfig.readQueryContract !== "environment.v2" &&
-      services.configuration.architectureConfig.readQueryContract !== "environment.v3"
+      services.configuration.architectureConfig.readQueryContract !== "environment.v3" &&
+      services.configuration.architectureConfig.readQueryContract !== "environment.v4"
     )
       throw new FleetError("RESPONSE_READ_CONTRACT_REQUIRED", true);
     if (clockContractActive && services.configuration.architectureConfig.participantContract !== "scoped.v1")
@@ -254,7 +255,9 @@ export class AutonomousSpecialistsEngine {
       const allowed = services.environment.schemas.actions;
       const baseSchema = learningMode ? z.toJSONSchema(LearningDecision, { target: "draft-7" }) : outputSchema;
       const waitSchema = await services.environment.waitSchema?.(observation);
-      const queryV3 = services.configuration.architectureConfig.readQueryContract === "environment.v3";
+      const composedReadInstructions = services.configuration.architectureConfig.readQueryContract === "environment.v4";
+      const queryV3 =
+        composedReadInstructions || services.configuration.architectureConfig.readQueryContract === "environment.v3";
       const knownArguments =
         queryV3 || services.configuration.architectureConfig.readQueryContract === "environment.v2";
       const requiresReadContract =
@@ -445,7 +448,12 @@ export class AutonomousSpecialistsEngine {
                   ? { retrievedTool: { name: retrievedReadTool.name, description: retrievedReadTool.description } }
                   : {}),
                 ...(visibleContract
-                  ? { queryShape: queryContractGuide(readQuerySchema) }
+                  ? {
+                      queryShape: queryContractGuide(
+                        readQuerySchema,
+                        composedReadInstructions ? { inheritDescriptions: true } : {},
+                      ),
+                    }
                   : { querySchema: readQuerySchema }),
                 meaning: knownArguments
                   ? "Reads grant nothing; IDs are provenance. Updates only with final wait/action."

@@ -46,7 +46,7 @@ export const manifest: ArchitectureManifest = {
       readQueryContract: {
         type: "string",
         title: "Environment read contract",
-        enum: ["environment.v1", "environment.v2", "environment.v3"],
+        enum: ["environment.v1", "environment.v2", "environment.v3", "environment.v4"],
       },
       skillMode: { type: "string", title: "Skill reuse", enum: ["off", "advisory", "guarded"] },
       qualificationPolicy: { type: "string", title: "Trusted qualification policy", enum: ["skills-policy.v1"] },
