@@ -2,6 +2,8 @@
 
 **Overall completion remains blocked.** The fresh behavioral matrix failed; no platform resolution exists for E4/KQ1. Independent offline preservation work passed, and newly discovered Fleet dependency advisories were repaired. Neither result permits candidate installation or activation.
 
+**Subsequent clarification:** the user correctly distinguished the approved native WSL migration from the historical denied Windows start. [Current native verification](native-wsl-verification-20261023.md) passed. The old denial is not a blanket external-clearance prerequisite for new authorized native WSL work; that earlier interpretation was overbroad. Frozen legacy E4/KQ1 attempts remain unrun, while the behavioral failure and incomplete installation acceptance below remain actual release limitations.
+
 The user requested all three remaining workstreams. The [bounded plan](superpowers/plans/2026-10-23-bounded-qualification-release-readiness.md) was committed as `724a2ef` before inference. Work remained inline on master. Only Nemotron 4B was used for inference. Game execution stayed disabled. No prior failed grant or spare allowance was resumed.
 
 | Workstream | Actual result | Still required |
