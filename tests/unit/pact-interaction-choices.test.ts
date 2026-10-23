@@ -271,3 +271,38 @@ it("rejects own-kingdom military targets before dispatch without expanding the s
     }
   }
 });
+
+it("excludes only positively observed accepted contacts from fresh introductions", () => {
+  const newcomer = "33333333-3333-4333-8333-333333333333";
+  const connected = {
+    ...facts,
+    discovery: { players: [{ kingdomId: self }, { kingdomId: peer }, { kingdomId: newcomer }] },
+    guide: { ...facts.guide, contacts: [{ kingdomId: peer }] },
+  };
+  const check = compile(connected);
+  expect(check({ kind: "game.contact.request", recipientKingdomId: peer, note: "Hello" })).toBe(false);
+  expect(check({ kind: "game.contact.request", recipientKingdomId: newcomer, note: "Hello" })).toBe(true);
+  expect(check({ kind: "game.message.send", recipientKingdomId: peer, body: "Hello" })).toBe(true);
+  expect(check({ kind: "game.supply.offer", counterpartyKingdomId: peer, terms })).toBe(true);
+});
+
+it("omits fresh introductions when every observed peer is already a contact", () => {
+  const connected = { ...facts, guide: { ...facts.guide, contacts: [{ kingdomId: peer }] } };
+  const contracts = pactActionContracts(connected, ["game.contact.request", "game.message.send"]);
+  const check = new Ajv({ strict: false, validateFormats: false }).compile({
+    anyOf: contracts.map((c) => c.payloadSchema),
+  });
+  expect(check({ kind: "game.contact.request", recipientKingdomId: peer, note: "Hello" })).toBe(false);
+  expect(check({ kind: "game.message.send", recipientKingdomId: peer, body: "Hello" })).toBe(true);
+});
+
+it("does not infer acceptance from pending introductions or missing contact pages", () => {
+  for (const guide of [
+    { contactRequests: [{ kingdomId: peer, direction: "incoming", status: "pending" }] },
+    { contacts: [], contactRequests: [{ kingdomId: peer, direction: "outgoing", status: "pending" }] },
+    {},
+  ]) {
+    const unknown = { ...facts, guide };
+    expect(compile(unknown)({ kind: "game.contact.request", recipientKingdomId: peer, note: "Hello" })).toBe(true);
+  }
+});

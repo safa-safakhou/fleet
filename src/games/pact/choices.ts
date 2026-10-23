@@ -211,12 +211,21 @@ export function observedActionSchema(kind: string, facts: Data): Data | undefine
     } as Record<string, string>
   )[kind];
   if (field) {
-    const peers =
+    let peers =
       kind === "game.message.send" && Array.isArray(guide.contacts)
         ? rows(guide.contacts)
             .map((p) => p.kingdomId)
             .filter((id): id is string => typeof id === "string" && id !== object(world.profile).kingdomId)
         : observedPeerIds(facts);
+    if (kind === "game.contact.request") {
+      // Positive accepted-contact facts rule out a fresh introduction. Missing
+      // pages and pending requests establish no acceptance; native admission
+      // still revalidates every selected action.
+      const accepted = new Set(rows(guide.contacts).map((p) => p.kingdomId));
+      const observed = peers;
+      peers = peers.filter((id) => !accepted.has(id));
+      if (observed.length && !peers.length) return;
+    }
     if (kind === "game.message.send" && Array.isArray(guide.contacts) && !peers.length) return;
     if (peers.length) properties[field] = { ...object(properties[field]), enum: peers };
   }

@@ -188,3 +188,45 @@ it("fits the exact native outlook-continuity read without losing any requested o
     await session.close();
   }
 }, 30000);
+
+it("omits accepted contact targets while preserving the native message path", async () => {
+  const { world, game } = await setup(),
+    other = facade(world, 1, async () => {}),
+    peer = world.players[1].kingdomId;
+  const first = await game.submit(randomUUID(), {
+    kind: "game.contact.request",
+    recipientKingdomId: peer,
+    note: "Synthetic introduction",
+  });
+  const requestId = Object.keys(first.recordVersions as Record<string, unknown>)[0]?.slice("contact-request:".length);
+  if (!requestId) throw Error("MISSING_CONTACT_REQUEST");
+  expect((await other.submit(randomUUID(), { kind: "game.contact.answer", requestId, accept: true })).code).toBe(
+    "COMMITTED",
+  );
+  const guide = await game.read("pact_agent_guide_v1", {});
+  expect(guide.contacts).toEqual(expect.arrayContaining([expect.objectContaining({ kingdomId: peer })]));
+  const { pactActionContracts } = await import("../../src/games/pact/proposals.js"),
+    { Ajv } = await import("ajv");
+  const check = new Ajv({ strict: false, validateFormats: false }).compile({
+    anyOf: pactActionContracts(
+      {
+        world: { profile: { kingdomId: world.players[0].kingdomId } },
+        guide,
+        discovery: { players: [{ kingdomId: peer }] },
+      },
+      ["game.contact.request", "game.message.send"],
+    ).map((c) => c.payloadSchema),
+  });
+  const duplicate = {
+    kind: "game.contact.request",
+    recipientKingdomId: peer,
+    note: "Synthetic redundant introduction",
+  };
+  expect(check(duplicate)).toBe(false);
+  const rejectedId = randomUUID();
+  await expect(game.submit(rejectedId, duplicate)).rejects.toMatchObject({ code: "ALREADY_CONTACT", status: 400 });
+  expect(await world.actor(world.players[0].kingdomId).receipt(rejectedId)).toBeNull();
+  const message = { kind: "game.message.send", recipientKingdomId: peer, body: "Synthetic follow-up" };
+  expect(check(message)).toBe(true);
+  expect((await game.submit(randomUUID(), message)).code).toBe("COMMITTED");
+}, 30000);
