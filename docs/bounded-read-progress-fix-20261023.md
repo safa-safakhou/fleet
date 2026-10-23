@@ -45,3 +45,6 @@ Final checks:
 - Read-only ordinary Fleet health: `liveEnabled: false`. PACT working tree remains unchanged.
 
 The work completed within the 30-minute limit. At the offline handoff, changes were source-only, uncommitted and unactivated. The subsequent user request authorizes committing this verified repair and a fresh, separately bounded v3 probe; it does not activate game execution. No new model trial was run. Source acceptance is separate from runtime activation and real-model acceptance. The prior real probe remains failed, its spare allowance closed, and its pending-request case unrun. No further trial is authorized by this document.
+
+
+The user subsequently requested committing the repair and a fresh bounded v3 probe. The repair is committed as `e1f5af6`; the [real v3 probe result](nemotron-read-final-v3-probe-20261023.md) is now closed after two calls, with the pending-request case unrun. No further inference follows from this source record.
