@@ -18,7 +18,7 @@ const readTool: Tool = {
     additionalProperties: false,
   },
 };
-async function setup() {
+async function setup(factRequests?: unknown[]) {
   const read = vi.fn(async (name: string) =>
     name === "pact_world_read_v1"
       ? { profile: { kingdomId: "self" }, asOfGameTimeMs: 0 }
@@ -30,6 +30,7 @@ async function setup() {
     { ...readTool, name: "sandbox.draft.read" },
   ];
   const environment = createPactEnvironment({
+    factRequests,
     bindings: { agentFor: async () => "actor" },
     game: async () => ({
       profile: async () => ({ accountId: "owner" }),
@@ -47,6 +48,25 @@ async function setup() {
     },
   };
 }
+it("delivers operator-scoped requested facts through the production PACT session", async () => {
+  const { session } = await setup([
+    { entityRef: "self", id: "thread.records", tool: readTool.name, args: { kingdomId: "peer" }, path: ["records"] },
+  ]);
+  expect((await session.observe({})).requestedFacts).toEqual([
+    { id: "thread.records", tool: readTool.name, args: { kingdomId: "peer" }, state: "unknown" },
+  ]);
+  expect((await session.observe({ readSchema: readTool.name })).requestedFacts?.[0].state).toBe("unknown");
+  expect((await session.observe({ tool: readTool.name, args: { kingdomId: "other" } })).requestedFacts?.[0].state).toBe(
+    "unknown",
+  );
+  const known = await session.observe({ tool: readTool.name, args: { kingdomId: "peer" } });
+  expect(known.requestedFacts).toEqual([
+    { id: "thread.records", tool: readTool.name, args: { kingdomId: "peer" }, state: "known", value: [] },
+  ]);
+  expect(session.projectObservation?.(known, { id: "specialists", version: "4" }).requestedFacts).toEqual(
+    known.requestedFacts,
+  );
+});
 it("advertises exact read selectors, explicit refresh and bounded schema lookup without write tools", async () => {
   const { session } = await setup();
   const schema = await session.readQuerySchema?.();

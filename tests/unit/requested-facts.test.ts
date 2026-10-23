@@ -35,3 +35,15 @@ it("does not require a new read for an unchanged known fact with reordered keys"
   const after = { state: "known", tool: unknown.tool, id: unknown.id, value: { count: 1, code: "ready" } };
   expect(facts.reconcileRequestedFacts([before], [after])).toEqual([after]);
 });
+it("preserves explicit read scope through fact reconciliation", () => {
+  const before = { ...unknown, args: { kingdomId: "peer" } };
+  expect(facts.parseRequestedFacts([before])).toEqual([before]);
+  expect(() =>
+    facts.reconcileRequestedFacts(
+      [before],
+      [{ ...before, args: { kingdomId: "other" }, state: "known", value: [] }],
+      unknown.tool,
+    ),
+  ).toThrow("REQUESTED_FACT_SCOPE_CHANGED");
+  expect(() => facts.parseRequestedFacts([{ ...unknown, args: [] }])).toThrow("REQUESTED_FACT_STATE_INVALID");
+});

@@ -96,3 +96,25 @@ it("rejects a raw wait or continuity detour while the selected scoped read remai
   ])
     expect(() => progress.assertReadProgressDecision(decision, true, tool.name)).toThrow("SCOPED_READ_REQUIRED");
 });
+it("intersects an explicit requested scope with native argument bounds", () => {
+  const native = {
+    ...tool,
+    inputSchema: {
+      type: "object",
+      properties: { scope: { enum: ["self", "other"] } },
+      required: ["scope"],
+      additionalProperties: false,
+    },
+  };
+  const query = progress.scopedReadProgressQuery(
+    pactReadQuerySchema([tool.name], true, [native], [], 3),
+    tool.name,
+    false,
+    { scope: "self" },
+  );
+  if (!query) throw Error("SCOPED_QUERY_REQUIRED");
+  const check = new Ajv({ strict: false }).compile(query);
+  expect(check({ tool: tool.name, args: { scope: "self" } })).toBe(true);
+  expect(check({ tool: tool.name, args: { scope: "other" } })).toBe(false);
+  expect(check({ tool: tool.name, args: { scope: "self", extra: true } })).toBe(false);
+});

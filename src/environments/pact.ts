@@ -10,9 +10,16 @@ import { pactContinuity } from "../games/pact/outlook.js";
 import { packPactObservation } from "../games/pact/packing.js";
 import { pactActionContracts, pactProposalGuide, validatePactProposal } from "../games/pact/proposals.js";
 import { pactReadQuerySchema } from "../games/pact/read-queries.js";
+import { createPactFactTracker, type PactFactRequest } from "../games/pact/requested-facts.js";
 import { RemoteRejection } from "../http.js";
 import type { Bindings } from "../platform/bindings.js";
-import type { ActionOutcome, BindingRef, EnvironmentAdapter, ReadQueryOptions } from "../platform/contracts.js";
+import type {
+  ActionOutcome,
+  BindingRef,
+  EnvironmentAdapter,
+  Observation,
+  ReadQueryOptions,
+} from "../platform/contracts.js";
 import type { Store } from "../store.js";
 import { validateTool } from "../tools.js";
 import { pactSpecialistPresets } from "./pact-presets.js";
@@ -75,6 +82,7 @@ export function createPactEnvironment(ports: {
   eventFeedVersion?: "pact.agent-events.v1";
   outlookVersion?: "pact.agent-outlook.v1";
   actionEffectsVersion?: "fleet.action-effects.v1";
+  factRequests?: PactFactRequest[];
 }): EnvironmentAdapter {
   return {
     ref: { id: "pact", version: "1" },
@@ -119,8 +127,21 @@ export function createPactEnvironment(ports: {
       ...(ports.actionEffectsVersion ? { actionEffects: true } : {}),
     },
     async connect(binding) {
-      const agentId = await ports.bindings.agentFor(binding),
-        game = await ports.game(agentId);
+      const agentId = await ports.bindings.agentFor(binding);
+      const requests = (ports.factRequests ?? []).filter((r) => r.entityRef === binding.entityRef);
+      const tracker = createPactFactTracker(requests, binding.entityRef);
+      const game = await ports.game(agentId);
+      const finish = async (observation: Observation, query: Data): Promise<Observation> =>
+        requests.length
+          ? {
+              ...observation,
+              requestedFacts: tracker.update(
+                query,
+                observation.payload.requestedRead,
+                (await game.tools()).filter(pactAdapter.isRead),
+              ),
+            }
+          : observation;
       try {
         if ((await game.profile()).accountId !== binding.accountRef) throw new FleetError("IDENTITY_MISMATCH");
         if (ports.actionEffectsVersion) {
@@ -232,20 +253,23 @@ export function createPactEnvironment(ports: {
               }
             }
             const current = await pactAdapter.initial(game, binding.entityRef);
-            return {
-              schemaId: "pact.observation.v1",
-              revision: mapped.revision,
-              observedAt: ports.now().toISOString(),
-              environmentTime: { clockId: "pact.game-time-ms", value: mapped.time },
-              sourceRefs: mapped.sourceRefs,
-              payload: { agentBriefing: pactAgentBriefing(current), ...current, ...extra },
-              coverage: {
-                authorizedView: true,
-                completeWorld: false,
-                requestedReadSeparateSnapshot: Boolean(extra.requestedRead),
+            return finish(
+              {
+                schemaId: "pact.observation.v1",
+                revision: mapped.revision,
+                observedAt: ports.now().toISOString(),
+                environmentTime: { clockId: "pact.game-time-ms", value: mapped.time },
+                sourceRefs: mapped.sourceRefs,
+                payload: { agentBriefing: pactAgentBriefing(current), ...current, ...extra },
+                coverage: {
+                  authorizedView: true,
+                  completeWorld: false,
+                  requestedReadSeparateSnapshot: Boolean(extra.requestedRead),
+                },
+                continuity: mapped.continuity,
               },
-              continuity: mapped.continuity,
-            };
+              query,
+            );
           }
           const payload: Data = await pactAdapter.initial(game, binding.entityRef);
           if (schemaTool) {
@@ -279,22 +303,30 @@ export function createPactEnvironment(ports: {
                 : typeof rawTime === "string" && /^\d+$/.test(rawTime)
                   ? rawTime
                   : undefined;
-          return {
-            schemaId: "pact.observation.v1",
-            revision: typeof time === "string" ? time : "unavailable",
-            observedAt: ports.now().toISOString(),
-            environmentTime: { clockId: "pact.game-time-ms", value: typeof time === "string" ? time : "unavailable" },
-            sourceRefs: [
-              `authorized-read:${String(query.tool ?? (schemaTool ? `schema:${schemaTool.name}` : "initial"))}:${String(time ?? "unavailable")}`,
-            ],
-            payload: { agentBriefing: pactAgentBriefing(payload), ...payload, actionGuide: pactProposalGuide(payload) },
-            coverage: {
-              authorizedView: true,
-              requestedReadSeparateSnapshot: typeof query.tool === "string" || Boolean(schemaTool),
-              environmentTimeAvailable: typeof time === "string",
-              detail: "Existing authenticated reads; current snapshot with explicit coverage, no full-world guarantee.",
+          return finish(
+            {
+              schemaId: "pact.observation.v1",
+              revision: typeof time === "string" ? time : "unavailable",
+              observedAt: ports.now().toISOString(),
+              environmentTime: { clockId: "pact.game-time-ms", value: typeof time === "string" ? time : "unavailable" },
+              sourceRefs: [
+                `authorized-read:${String(query.tool ?? (schemaTool ? `schema:${schemaTool.name}` : "initial"))}:${String(time ?? "unavailable")}`,
+              ],
+              payload: {
+                agentBriefing: pactAgentBriefing(payload),
+                ...payload,
+                actionGuide: pactProposalGuide(payload),
+              },
+              coverage: {
+                authorizedView: true,
+                requestedReadSeparateSnapshot: typeof query.tool === "string" || Boolean(schemaTool),
+                environmentTimeAvailable: typeof time === "string",
+                detail:
+                  "Existing authenticated reads; current snapshot with explicit coverage, no full-world guarantee.",
+              },
             },
-          };
+            query,
+          );
         },
         ...(ports.eventFeedVersion ? { events: (cursor: string | null) => pactEvents(game, cursor, ports.now) } : {}),
         async catalog() {

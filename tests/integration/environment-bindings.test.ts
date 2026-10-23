@@ -100,7 +100,21 @@ it("preserves legacy vault identity and pending receipt", async () => {
     ).rows,
   ).toEqual(before);
   const game = new FakeGame(claim),
-    adapter = createPactEnvironment({ store: f.store, bindings: legacy, game: async () => game, now: f.now });
+    adapter = createPactEnvironment({
+      store: f.store,
+      bindings: legacy,
+      game: async () => game,
+      now: f.now,
+      factRequests: [
+        {
+          entityRef: binding.entityRef,
+          id: "world.time",
+          tool: "pact_world_read_v1",
+          args: { forecastMinutes: 60 },
+          path: ["asOfGameTimeMs"],
+        },
+      ],
+    });
   const registry = new EnvironmentRegistry([adapter], ref),
     session = await registry.connect(binding);
   expect(await session.resolve(command)).toMatchObject({ commandId: command, status: "confirmed" });
@@ -122,6 +136,9 @@ it("preserves legacy vault identity and pending receipt", async () => {
   const observed = await session.observe({});
   expect(observed.environmentTime.value).toBe("1792419240000");
   expect(observed.coverage.environmentTimeAvailable).toBe(true);
+  expect(observed.requestedFacts?.[0]).toMatchObject({ id: "world.time", state: "unknown" });
+  const scoped = await session.observe({ tool: "pact_world_read_v1", args: { forecastMinutes: 60 } });
+  expect(scoped.requestedFacts?.[0]).toMatchObject({ id: "world.time", state: "known", value: 1792419240000 });
   expect(game.opened).toBe(0);
   expect(game.submits).toHaveLength(0);
   await expect(legacy.agentFor({ ...binding, actorRef: "forged" })).rejects.toThrow("BINDING_MISMATCH");

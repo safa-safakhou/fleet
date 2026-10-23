@@ -31,7 +31,8 @@ export function parseRequestedFacts(value: unknown): RequestedFact[] {
           ? ["id", "tool", "state", "code"]
           : ["id", "tool", "state"];
     if (
-      Object.keys(fact).some((key) => !keys.includes(key)) ||
+      Object.keys(fact).some((key) => key !== "args" && !keys.includes(key)) ||
+      (Object.hasOwn(fact, "args") && (!fact.args || typeof fact.args !== "object" || Array.isArray(fact.args))) ||
       !["unknown", "known", "blocked"].includes(String(fact.state))
     )
       return invalid();
@@ -54,7 +55,8 @@ export function reconcileRequestedFacts(previous: unknown, incoming: unknown, re
     next = parseRequestedFacts(incoming);
   for (const fact of next) {
     const old = prior.find((p) => p.id === fact.id);
-    if (!old || old.tool !== fact.tool) throw new FleetError("REQUESTED_FACT_SCOPE_CHANGED", true);
+    if (!old || old.tool !== fact.tool || !isDeepStrictEqual(old.args, fact.args))
+      throw new FleetError("REQUESTED_FACT_SCOPE_CHANGED", true);
     if (fact.state === "known" && !isDeepStrictEqual(fact, old) && readTool !== fact.tool)
       throw new FleetError("REQUESTED_FACT_RESULT_UNREAD", true);
   }

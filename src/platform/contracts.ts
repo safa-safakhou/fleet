@@ -10,7 +10,7 @@ export type BindingRef = {
   entityRef: string;
 };
 /** Environment-owned requested facts. Unknown/blocked carry no pretend value. */
-export type RequestedFact = { id: string; tool: string } & (
+export type RequestedFact = { id: string; tool: string; args?: Data } & (
   | { state: "unknown" }
   | { state: "known"; value: unknown }
   | { state: "blocked"; code: string }

@@ -6,6 +6,22 @@ const privateFixture = {
   FLEET_OPERATOR_SECRET: "fixture",
   FLEET_VAULT_KEY: "fixture",
 };
+it("defaults fact requests off and accepts only validated operator configuration", () => {
+  expect(config(privateFixture).pactFactRequests).toEqual([]);
+  const requests = [
+    {
+      entityRef: "self",
+      id: "records",
+      tool: "pact_council_thread_v1",
+      args: { kingdomId: "peer" },
+      path: ["records"],
+    },
+  ];
+  expect(config({ ...privateFixture, FLEET_PACT_FACT_REQUESTS: JSON.stringify(requests) }).pactFactRequests).toEqual(
+    requests,
+  );
+  expect(() => config({ ...privateFixture, FLEET_PACT_FACT_REQUESTS: "broken" })).toThrow("PACT_FACT_REQUESTS_INVALID");
+});
 it("selects the configured PACT integration and supports its old endpoint variable", () => {
   expect(config({ ...privateFixture, FLEET_GAME: "pact", FLEET_GAME_BASE_URL: "https://game.example" }).gameBase).toBe(
     "https://game.example",

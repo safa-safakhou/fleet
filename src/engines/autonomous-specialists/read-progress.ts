@@ -1,10 +1,16 @@
+import { isDeepStrictEqual } from "node:util";
 import { type Data, FleetError, object } from "../../domain.js";
 
 export const prospectiveReadSummary = "Read requested; result not yet observed.";
 
 /** A specialist already has a current snapshot. Keep explicit scoped selectors,
  * including native empty args, but never offer another selector-free refresh. */
-export function scopedReadProgressQuery(input: Data, pendingTool?: string, allowLookup = false): Data | undefined {
+export function scopedReadProgressQuery(
+  input: Data,
+  pendingTool?: string,
+  allowLookup = false,
+  requiredArgs?: Data,
+): Data | undefined {
   const visit = (raw: Data): Data | undefined => {
     // These are query alternatives, not nested tool argument schemas. Replace
     // their old refresh guidance together with the changed query grammar.
@@ -32,7 +38,16 @@ export function scopedReadProgressQuery(input: Data, pendingTool?: string, allow
       }
       if (!Array.isArray(node.required) || !node.required.includes("tool") || !node.required.includes("args"))
         throw new FleetError("READ_PROGRESS_QUERY_SCHEMA_REQUIRED", true);
-      return { ...node, properties: { ...object(node.properties), tool: { ...selector, const: pendingTool } } };
+      return {
+        ...node,
+        properties: {
+          ...object(node.properties),
+          tool: { ...selector, const: pendingTool },
+          ...(requiredArgs
+            ? { args: { ...object(object(node.properties).args), const: structuredClone(requiredArgs) } }
+            : {}),
+        },
+      };
     }
     if (Array.isArray(node.required) && node.required.length) return node;
     if (node.additionalProperties !== false || node.$ref || node.allOf)
@@ -57,6 +72,7 @@ export function assertReadProgressDecision(
   readsAllowed: boolean,
   pendingTool?: string,
   allowLookup = false,
+  requiredArgs?: Data,
 ): void {
   if (
     readsAllowed &&
@@ -68,6 +84,13 @@ export function assertReadProgressDecision(
   )
     throw new FleetError("SCOPED_READ_REQUIRED", true);
   if (decision.kind !== "read") return;
+  if (
+    pendingTool &&
+    object(decision.query).tool === pendingTool &&
+    requiredArgs &&
+    !isDeepStrictEqual(object(decision.query).args, requiredArgs)
+  )
+    throw new FleetError("SCOPED_READ_SCOPE_REQUIRED", true);
   if (!readsAllowed) throw new FleetError("FINAL_DECISION_REQUIRED", true);
   if (!Object.keys(object(decision.query)).length) throw new FleetError("EMPTY_REFRESH_FORBIDDEN", true);
   if (decision.summary !== prospectiveReadSummary) throw new FleetError("READ_RESULT_CLAIM_FORBIDDEN", true);

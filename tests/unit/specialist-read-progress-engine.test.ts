@@ -258,6 +258,17 @@ it("blocks an initial wait for an unresolved trusted requested fact before any s
   expect(f.accept).not.toHaveBeenCalled();
   expect(f.observe).not.toHaveBeenCalled();
 });
+it("rejects a matching tool with different requested scope before its read", async () => {
+  const f = setup([{ kind: "read", query: { tool: tool.name, args: { scope: "other" } }, summary: future }]);
+  f.operation.observation.requestedFacts = [
+    { id: "service.statusCode", tool: tool.name, args: { scope: "self" }, state: "unknown" },
+  ];
+  await expect(new AutonomousSpecialistsEngine().run(f.operation, f.services)).rejects.toThrow(
+    "SCOPED_READ_SCOPE_REQUIRED",
+  );
+  expect(f.observe).not.toHaveBeenCalled();
+  expect(f.accept).not.toHaveBeenCalled();
+});
 it("rejects a placeholder value attached to an unknown requested fact before inference", async () => {
   const f = setup([]);
   f.operation.observation.requestedFacts = [

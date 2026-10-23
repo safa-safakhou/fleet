@@ -337,6 +337,7 @@ export class AutonomousSpecialistsEngine {
         factCatalog.some((t) => t.name === fact.tool && t.annotations?.readOnlyHint === true),
       )?.tool;
       const requiredReadTool = pendingReadTool ?? factTool;
+      const requiredReadArgs = unknownFacts.find((fact) => fact.tool === requiredReadTool)?.args;
       const allowFactLookup = !pendingReadTool && Boolean(factTool) && retrievedReadTool?.name !== factTool;
       const scopedReadRequired = boundedReadProgress && Boolean(requiredReadTool) && callsRemaining > 1;
       const unresolvedWaitSummary = requestedFacts.some((fact) => fact.state !== "known")
@@ -348,6 +349,7 @@ export class AutonomousSpecialistsEngine {
               advertisedReadQuerySchema,
               scopedReadRequired ? requiredReadTool : undefined,
               allowFactLookup,
+              requiredReadArgs,
             )
           : advertisedReadQuerySchema;
       if (scopedReadRequired && !readQuerySchema) throw new FleetError("READ_PROGRESS_QUERY_SCHEMA_REQUIRED", true);
@@ -754,6 +756,7 @@ export class AutonomousSpecialistsEngine {
           readsAllowed,
           scopedReadRequired ? requiredReadTool : undefined,
           allowFactLookup,
+          requiredReadArgs,
         );
       if (
         boundedReadProgress &&

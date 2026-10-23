@@ -36,3 +36,5 @@ The separate network-forbidden scripted fixture passes status lookup â†’ read â†
 The longer-summary failed offline fixture is separately retained at `/home/mnim/.local/share/fleet-probes/action-summary-offline-20261023-2015/`; no closed real-probe evidence was changed or reused.
 
 Completed within the 30-minute limit. Source remains uncommitted and unactivated. PACT source is unchanged. The preceding real probe remains failed and closed, and no real behavior is newly qualified. No model trial, game execution, service restart, deployment or settings change occurred. A separately authorized fresh probe would still be needed to establish model behavior; this report does not authorize one.
+
+The subsequent user request selected committing this repair, one fresh bounded game-free probe and production typed-fact wiring. The summary repair is committed as `1bc3023`. See the [adapter wiring record](pact-requested-facts-20261023.md) and current-state checkpoint for that separately authorized work. Source remains unactivated.
