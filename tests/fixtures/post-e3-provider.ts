@@ -15,12 +15,15 @@ const terms = {
 };
 /** Authored fake only. No fixture/evaluator, private peer data or database access.
  * Each kingdom's state contains only its own delivered observations/replies. */
-export function positiveSpecialistProvider() {
+export function positiveSpecialistProvider(options: { worldReadProbe?: boolean } = {}) {
   const states = new Map<
     string,
     {
       peer?: string;
       outlookRead?: boolean;
+      worldProbe?: boolean;
+      worldRead?: boolean;
+      worldReadVerified?: boolean;
       lastObservedContact?: boolean;
       contactRequested?: boolean;
       messageSent?: boolean;
@@ -32,9 +35,17 @@ export function positiveSpecialistProvider() {
     }
   >();
   let outlookProbes = 0;
+  let worldProbes = 0;
   const trace: Data[] = [];
   const bindings = new Map<string, string>();
-  const result = { maximumBytes: 0, wakeAt: 0, extractions: 0, trace, provider: undefined as unknown as ModelPort };
+  const result = {
+    worldReads: 0,
+    maximumBytes: 0,
+    wakeAt: 0,
+    extractions: 0,
+    trace,
+    provider: undefined as unknown as ModelPort,
+  };
   result.provider = {
     decide: async (request) => {
       result.maximumBytes = Math.max(
@@ -115,6 +126,36 @@ export function positiveSpecialistProvider() {
             : {}),
           summary: "Proposed next step only; no peer consent or delivery is claimed.",
         });
+      if (
+        specialist.id === "development" &&
+        (observation.schemaId === "pact.observation.specialists.v5" ||
+          (options.worldReadProbe && observation.schemaId === "pact.observation.specialists.v4"))
+      ) {
+        if (current.schemaVersion === "pact.world.owner.v1" && s.worldRead && !s.worldReadVerified) {
+          if (
+            !object(current.forecast).harvestPercentByMinute ||
+            !object(current.unitReferences).units ||
+            !current.authority ||
+            !current.balances
+          )
+            throw Error("WHOLE_NATIVE_WORLD_READ_REQUIRED");
+          s.worldReadVerified = true;
+          result.worldReads++;
+        }
+        if (!s.worldRead && (s.worldProbe || worldProbes < 2)) {
+          if (!s.worldProbe) {
+            s.worldProbe = true;
+            worldProbes++;
+          }
+          const response = read("pact_world_read_v1", { forecastMinutes: 60 });
+          if (
+            object(object(response.decision).decision).query &&
+            object(object(object(response.decision).decision).query).tool === "pact_world_read_v1"
+          )
+            s.worldRead = true;
+          return response;
+        }
+      }
       if (
         specialist.id === "resources" &&
         ["pact.observation.specialists.v3", "pact.observation.specialists.v4"].includes(String(observation.schemaId)) &&

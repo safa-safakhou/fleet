@@ -82,7 +82,9 @@ export function createPactEnvironment(ports: {
     observationSemanticsFor: (observation) =>
       pactNamedObservationSemantics(
         observation.payload,
-        observation.schemaId === "pact.observation.specialists.v4" ? { social: true } : {},
+        ["pact.observation.specialists.v4", "pact.observation.specialists.v5"].includes(observation.schemaId)
+          ? { social: true }
+          : {},
       ),
     observationSemantics:
       "Amounts and rates are different. Supply goals need actual external delivery over the stated GAME window; stock, founding allowance, own production, quotes and signatures do not prove it.",
@@ -92,6 +94,7 @@ export function createPactEnvironment(ports: {
       { id: "specialists", version: "2" },
       { id: "specialists", version: "3" },
       { id: "specialists", version: "4" },
+      { id: "specialists", version: "5" },
     ],
     ...(ports.actionEffectsVersion ? { skillSupport: createPactSkillSupport() } : {}),
     instructions: pactAdapter.instructions,

@@ -42,6 +42,7 @@ export function packPactObservation(observation: Observation, byteLimit: number)
       "pact.observation.specialists.v2",
       "pact.observation.specialists.v3",
       "pact.observation.specialists.v4",
+      "pact.observation.specialists.v5",
     ].includes(observation.schemaId)
   )
     return packSpecialistObservation(observation, byteLimit);
@@ -202,6 +203,7 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
                 "pact.observation.specialists.v2",
                 "pact.observation.specialists.v3",
                 "pact.observation.specialists.v4",
+                "pact.observation.specialists.v5",
               ].includes(observation.schemaId)
               ? { atomicPaths: ["facts"] }
               : {},
@@ -248,9 +250,15 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
     coverage: {
       ...observation.coverage,
       packed: true,
-      policy: ["pact.observation.specialists.v3", "pact.observation.specialists.v4"].includes(observation.schemaId)
-        ? observation.schemaId === "pact.observation.specialists.v4"
-          ? "pact.specialist-view.v4"
+      policy: [
+        "pact.observation.specialists.v3",
+        "pact.observation.specialists.v4",
+        "pact.observation.specialists.v5",
+      ].includes(observation.schemaId)
+        ? ["pact.observation.specialists.v4", "pact.observation.specialists.v5"].includes(observation.schemaId)
+          ? observation.schemaId === "pact.observation.specialists.v5"
+            ? "pact.specialist-view.v5"
+            : "pact.specialist-view.v4"
           : "pact.specialist-view.v3"
         : observation.schemaId === "pact.observation.specialists.v2"
           ? "pact.specialist-view.v2"
@@ -265,6 +273,7 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
     "pact.observation.specialists.v2",
     "pact.observation.specialists.v3",
     "pact.observation.specialists.v4",
+    "pact.observation.specialists.v5",
   ].includes(observation.schemaId)
     ? "Tables: dotted columns; common=all rows; $key=map key; absent[row]=missing, not0/null. balances.facts amounts/rates are whole; other Units fields are marked. Omitted data unknown; read."
     : "Whole tables: columns=dotted paths, common=EVERY row, $key=map key, absent[row]=missing (not null/0). Omitted fields/records are unknown, not absence; use normal scoped reads.";
@@ -272,11 +281,15 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
     const records = Array.isArray(compact[key]) ? (compact[key] as unknown[]) : undefined;
     if (!records) continue;
     const protectedSocial =
-      ["pact.observation.specialists.v3", "pact.observation.specialists.v4"].includes(observation.schemaId) &&
-      ["contacts", "contactRequests"].includes(key);
+      [
+        "pact.observation.specialists.v3",
+        "pact.observation.specialists.v4",
+        "pact.observation.specialists.v5",
+      ].includes(observation.schemaId) && ["contacts", "contactRequests"].includes(key);
     const protectedRows = protectedSocial
       ? records
-      : observation.schemaId === "pact.observation.specialists.v4" && key === "openSupplyOffers"
+      : ["pact.observation.specialists.v4", "pact.observation.specialists.v5"].includes(observation.schemaId) &&
+          key === "openSupplyOffers"
         ? records.slice(0, 1)
         : [];
     environment[key] = protectedRows;
@@ -304,12 +317,14 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
       },
     };
   };
-  const protectedAttention = ["pact.observation.specialists.v3", "pact.observation.specialists.v4"].includes(
-    observation.schemaId,
-  )
+  const protectedAttention = [
+    "pact.observation.specialists.v3",
+    "pact.observation.specialists.v4",
+    "pact.observation.specialists.v5",
+  ].includes(observation.schemaId)
     ? [
         ...records.filter((r) => object(r).type === "ContactRequest"),
-        ...(observation.schemaId === "pact.observation.specialists.v4"
+        ...(["pact.observation.specialists.v4", "pact.observation.specialists.v5"].includes(observation.schemaId)
           ? records.filter((r) => object(r).type === "SupplyOffer" && object(r).status === "open").slice(0, 1)
           : []),
       ]
@@ -327,7 +342,11 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
   if (bytes() > byteLimit) throw new FleetError("SPECIALIST_CONTEXT_INCOMPLETE", true);
   for (const key of ["socialAttention", "openSupplyOffers", "contactRequests", "contracts", "contacts"]) {
     if (
-      ["pact.observation.specialists.v3", "pact.observation.specialists.v4"].includes(observation.schemaId) &&
+      [
+        "pact.observation.specialists.v3",
+        "pact.observation.specialists.v4",
+        "pact.observation.specialists.v5",
+      ].includes(observation.schemaId) &&
       ["contacts", "contactRequests"].includes(key)
     )
       continue;
@@ -342,7 +361,8 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
       selected: unknown[] =
         key === "socialAttention"
           ? [...protectedAttention]
-          : observation.schemaId === "pact.observation.specialists.v4" && key === "openSupplyOffers"
+          : ["pact.observation.specialists.v4", "pact.observation.specialists.v5"].includes(observation.schemaId) &&
+              key === "openSupplyOffers"
             ? [...(Array.isArray(environment[key]) ? (environment[key] as unknown[]) : [])]
             : [];
     for (const record of records) {
