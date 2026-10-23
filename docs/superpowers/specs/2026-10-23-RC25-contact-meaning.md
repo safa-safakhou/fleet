@@ -1,0 +1,11 @@
+# RC25 current contact meaning
+
+R24 closed unresolved after repeating a contact request despite an explicit ALREADY_CONTACT rejection and an existing contact row. PACT's native social handler rejects that request because the relationship already exists; its recovery advice says to use the existing contact. Fleet's named view explains economic quantities but leaves these social meanings implicit.
+
+Introduce opt-in specialist observation policy4, retaining all policy3 facts, lossless presentation, protection and coverage. Its named semantics define contacts as accepted relationships, pending introductions separately, and ALREADY_CONTACT as a rejected redundant introduction rather than a successful or pending new request. Contact acceptance grants neither trade consent nor fulfillment; native authorization/receipts still govern. No forced workflow, automatic action, permission expansion, history pruning or ceiling/provider change. Old views and semantics stay unchanged.
+
+Test policy4 projection/packing/source immutability and actual model-visible meanings, legacy compatibility, typed R25 grant/world/checkpoint boundaries, four positive native synthetic scenarios and proportional checks. Fresh namespace/seed/keys/roster/operator pins and independent encrypted restore/rehearsal precede real D/H/N. Inline/master, no delegation/push/activation; game disabled, E4/KQ1 blocked, RC20 uncertainty untouched. Preserve closed R24 evidence.
+
+Preregistered boundary `rc25-native-20261023-01`, seed commitment `21869f70ebfce4bdf584b885fbd38dc1272b4d1a3dc2f582685dc98136ecbfac`. Nonce/roster/keys/grants/evidence remain private. Real qualification is unrun.
+
+Native assembled rehearsal showed optional recall could displace the active offer after added meanings consumed input space, causing extra schema/data reads to exhaust the unchanged per-world cap. Policy4 reserves the first whole current open offer in native source order before optional history/pages (attention and any nonduplicate guide row). All terms/version/status/provenance remain intact; remaining rows retain explicit delivered/omitted counts. No strategic ranking, invented absence, changed permission or larger budget. Oversized required records still fail before inference.

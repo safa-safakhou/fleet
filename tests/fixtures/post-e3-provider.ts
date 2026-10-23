@@ -117,7 +117,7 @@ export function positiveSpecialistProvider() {
         });
       if (
         specialist.id === "resources" &&
-        observation.schemaId === "pact.observation.specialists.v3" &&
+        ["pact.observation.specialists.v3", "pact.observation.specialists.v4"].includes(String(observation.schemaId)) &&
         !s.outlookRead &&
         outlookProbes < 2
       ) {

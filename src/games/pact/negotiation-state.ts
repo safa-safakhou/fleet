@@ -199,8 +199,8 @@ export function fitNegotiationState(input: NegotiationState, maxBytes: number) {
 }
 /** Selected by a trusted engine policy port, never by model query fields. */
 export function projectPactObservation(observation: Observation, policy: { id: string; version: string }): Observation {
-  if (policy.id === "specialists" && policy.version === "3")
-    return { ...outlookTables(observation), schemaId: "pact.observation.specialists.v3" };
+  if (policy.id === "specialists" && ["3", "4"].includes(policy.version))
+    return { ...outlookTables(observation), schemaId: `pact.observation.specialists.v${policy.version}` };
   if (policy.id === "specialists" && ["1", "2"].includes(policy.version))
     return { ...observation, schemaId: `pact.observation.specialists.v${policy.version}` };
   if (policy.id !== "negotiation" || !["1", "2"].includes(policy.version))

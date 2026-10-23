@@ -37,9 +37,12 @@ function ordinaryNegotiationStock(balances: Data): Data {
 /** PACT owns which facts are essential; generic engines must never delete world keys. */
 export function packPactObservation(observation: Observation, byteLimit: number): Observation {
   if (
-    ["pact.observation.specialists.v1", "pact.observation.specialists.v2", "pact.observation.specialists.v3"].includes(
-      observation.schemaId,
-    )
+    [
+      "pact.observation.specialists.v1",
+      "pact.observation.specialists.v2",
+      "pact.observation.specialists.v3",
+      "pact.observation.specialists.v4",
+    ].includes(observation.schemaId)
   )
     return packSpecialistObservation(observation, byteLimit);
   if (["pact.observation.negotiation.v1", "pact.observation.negotiation.v2"].includes(observation.schemaId)) {
@@ -195,7 +198,11 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
         ? factTable(
             compact[key],
             key === "balances" &&
-              ["pact.observation.specialists.v2", "pact.observation.specialists.v3"].includes(observation.schemaId)
+              [
+                "pact.observation.specialists.v2",
+                "pact.observation.specialists.v3",
+                "pact.observation.specialists.v4",
+              ].includes(observation.schemaId)
               ? { atomicPaths: ["facts"] }
               : {},
           )
@@ -241,35 +248,44 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
     coverage: {
       ...observation.coverage,
       packed: true,
-      policy:
-        observation.schemaId === "pact.observation.specialists.v3"
-          ? "pact.specialist-view.v3"
-          : observation.schemaId === "pact.observation.specialists.v2"
-            ? "pact.specialist-view.v2"
-            : "pact.specialist-view.v1",
+      policy: ["pact.observation.specialists.v3", "pact.observation.specialists.v4"].includes(observation.schemaId)
+        ? observation.schemaId === "pact.observation.specialists.v4"
+          ? "pact.specialist-view.v4"
+          : "pact.specialist-view.v3"
+        : observation.schemaId === "pact.observation.specialists.v2"
+          ? "pact.specialist-view.v2"
+          : "pact.specialist-view.v1",
       complete: false,
       omittedFields: omitted,
       pages,
     },
   };
   const bytes = () => Buffer.byteLength(JSON.stringify(result));
-  environment.factEncoding = ["pact.observation.specialists.v2", "pact.observation.specialists.v3"].includes(
-    observation.schemaId,
-  )
+  environment.factEncoding = [
+    "pact.observation.specialists.v2",
+    "pact.observation.specialists.v3",
+    "pact.observation.specialists.v4",
+  ].includes(observation.schemaId)
     ? "Tables: dotted columns; common=all rows; $key=map key; absent[row]=missing, not0/null. balances.facts amounts/rates are whole; other Units fields are marked. Omitted data unknown; read."
     : "Whole tables: columns=dotted paths, common=EVERY row, $key=map key, absent[row]=missing (not null/0). Omitted fields/records are unknown, not absence; use normal scoped reads.";
   for (const key of ["contacts", "contactRequests", "openSupplyOffers", "contracts"]) {
     const records = Array.isArray(compact[key]) ? (compact[key] as unknown[]) : undefined;
     if (!records) continue;
     const protectedSocial =
-      observation.schemaId === "pact.observation.specialists.v3" && ["contacts", "contactRequests"].includes(key);
-    environment[key] = protectedSocial ? records : [];
+      ["pact.observation.specialists.v3", "pact.observation.specialists.v4"].includes(observation.schemaId) &&
+      ["contacts", "contactRequests"].includes(key);
+    const protectedRows = protectedSocial
+      ? records
+      : observation.schemaId === "pact.observation.specialists.v4" && key === "openSupplyOffers"
+        ? records.slice(0, 1)
+        : [];
+    environment[key] = protectedRows;
     const omittedIndex = omitted.indexOf(key);
     if (omittedIndex >= 0) omitted.splice(omittedIndex, 1);
     pages[key] = {
       observed: records.length,
-      delivered: protectedSocial ? records.length : 0,
-      omitted: protectedSocial ? 0 : records.length,
+      delivered: protectedRows.length,
+      omitted: records.length - protectedRows.length,
     };
   }
   const attention = object(compact.socialAttention),
@@ -288,10 +304,16 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
       },
     };
   };
-  const protectedAttention =
-    observation.schemaId === "pact.observation.specialists.v3"
-      ? records.filter((r) => object(r).type === "ContactRequest")
-      : [];
+  const protectedAttention = ["pact.observation.specialists.v3", "pact.observation.specialists.v4"].includes(
+    observation.schemaId,
+  )
+    ? [
+        ...records.filter((r) => object(r).type === "ContactRequest"),
+        ...(observation.schemaId === "pact.observation.specialists.v4"
+          ? records.filter((r) => object(r).type === "SupplyOffer" && object(r).status === "open").slice(0, 1)
+          : []),
+      ]
+    : [];
   if (compact.socialAttention !== undefined) {
     setSocialRecords(protectedAttention);
     const omittedIndex = omitted.indexOf("socialAttention");
@@ -304,7 +326,10 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
   }
   if (bytes() > byteLimit) throw new FleetError("SPECIALIST_CONTEXT_INCOMPLETE", true);
   for (const key of ["socialAttention", "openSupplyOffers", "contactRequests", "contracts", "contacts"]) {
-    if (observation.schemaId === "pact.observation.specialists.v3" && ["contacts", "contactRequests"].includes(key))
+    if (
+      ["pact.observation.specialists.v3", "pact.observation.specialists.v4"].includes(observation.schemaId) &&
+      ["contacts", "contactRequests"].includes(key)
+    )
       continue;
     const records =
         key === "socialAttention"
@@ -314,7 +339,12 @@ function packSpecialistObservation(observation: Observation, byteLimit: number):
           : Array.isArray(compact[key])
             ? (compact[key] as unknown[])
             : [],
-      selected: unknown[] = key === "socialAttention" ? [...protectedAttention] : [];
+      selected: unknown[] =
+        key === "socialAttention"
+          ? [...protectedAttention]
+          : observation.schemaId === "pact.observation.specialists.v4" && key === "openSupplyOffers"
+            ? [...(Array.isArray(environment[key]) ? (environment[key] as unknown[]) : [])]
+            : [];
     for (const record of records) {
       if (selected.includes(record)) continue;
       selected.push(record);

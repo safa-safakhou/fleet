@@ -1,0 +1,60 @@
+{
+  "schemaVersion": "fleet.rc25-model-selection.v1",
+  "model": {
+    "route": "ollama",
+    "model": "qwen3:14b",
+    "thinking": false,
+    "artifact": {
+      "manifestRelativePath": "manifests/registry.ollama.ai/library/qwen3/14b",
+      "manifestSha256": "bdbd181c33f2ed1b31c972991882db3cf4d192569092138a7d29e973cd9debe8",
+      "modelFormat": "gguf",
+      "family": "qwen3",
+      "parameters": "14.8B",
+      "quantization": "Q4_K_M",
+      "layers": [
+        {
+          "mediaType": "application/vnd.docker.container.image.v1+json",
+          "sha256": "78b3b822087d5199783c8203553a5a92ce5eb7b683a5a81003f8efea9b399d74",
+          "bytes": 488
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "sha256": "a8cc1361f3145dc01f6d77c6c82c9116b9ffe3c97b34716fe20418455876c40e",
+          "bytes": 9276184896
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.template",
+          "sha256": "ae370d884f108d16e7cc8fd5259ebc5773a0afa6e078b11f4ed7e39a27e0dfc4",
+          "bytes": 1723
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.license",
+          "sha256": "d18a5cc71b84bc4af394a31116bd3932b42241de70c77d2b76d69a314ec8aa12",
+          "bytes": 11338
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.params",
+          "sha256": "cff3f395ef3756ab63e58b0ad1b32bb6f802905cae1472e6a12034e4246fbbdb",
+          "bytes": 120
+        }
+      ]
+    },
+    "runtime": {
+      "platform": "linux-amd64",
+      "version": "0.35.1",
+      "identityAndFullNativeFiles": "bound separately before each study; no service management"
+    },
+    "template": "exact installed template/config/model layers and native runtime; no custom adapter",
+    "sampling": {
+      "paramsLayer": {
+        "repeat_penalty": 1,
+        "stop": ["<|im_start|>", "<|im_end|>"],
+        "temperature": 0.6,
+        "top_k": 20,
+        "top_p": 0.95
+      },
+      "wireOverrides": [],
+      "seed": "not supplied; scenario seed does not seed sampling"
+    }
+  }
+}

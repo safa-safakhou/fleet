@@ -37,7 +37,7 @@ if (
   !(await readFile(options["--node"])).subarray(0, 4).equals(Buffer.from([127, 69, 76, 70]))
 )
   throw Error("NATIVE_NODE_24_REQUIRED");
-const descriptor = JSON.parse(await readFile(join(fleet, "docs/negotiation-RC24-model-20261022.json"), "utf8"));
+const descriptor = JSON.parse(await readFile(join(fleet, "docs/negotiation-RC25-model-20261022.json"), "utf8"));
 const manifestRel = "manifests/registry.ollama.ai/library/qwen3/14b";
 if (
   descriptor.model.model !== "qwen3:14b" ||
@@ -65,8 +65,8 @@ for (const name of await readdir(join(fleet, "dist/negotiation")))
 for (const name of ["migrations", "vendor"]) await cp(join(fleet, name), join(out, "fleet", name), { recursive: true });
 await mkdir(join(out, "fleet/docs"), { recursive: true });
 await cp(
-  join(fleet, "docs/negotiation-RC24-model-20261022.json"),
-  join(out, "fleet/docs/negotiation-RC24-model-20261022.json"),
+  join(fleet, "docs/negotiation-RC25-model-20261022.json"),
+  join(out, "fleet/docs/negotiation-RC25-model-20261022.json"),
 );
 await writeFile(join(out, "package.json"), '{"type":"module"}\n', { flag: "wx" });
 await writeFile(join(out, "fleet/package.json"), '{"type":"module"}\n', { flag: "wx" });
@@ -137,10 +137,10 @@ for (const name of await readdir(join(out, "node_modules/@pact")))
   await cp(join(out, "node_modules/@pact", name), join(out, "pact/packages", name), { recursive: true });
 await mkdir(join(out, "controller"));
 await cp(options["--node"], join(out, "controller/node"));
-const { rc24Configuration } = await import("../dist/negotiation/fleet/src/post-e3-rc2-plan.js");
+const { rc25Configuration } = await import("../dist/negotiation/fleet/src/post-e3-rc2-plan.js");
 const settings = {
-  schemaVersion: "fleet.rc24-native-settings.v1",
-  study: "negotiation-r24",
+  schemaVersion: "fleet.rc25-native-settings.v1",
+  study: "negotiation-r25",
   sources: sourcePins,
   actorSources: sourcePins,
   controller: {
@@ -148,7 +148,7 @@ const settings = {
     nodeVersion: execFileSync(options["--node"], ["--version"], { encoding: "utf8" }).trim(),
     nodeSha256: await sha(options["--node"]),
   },
-  architecture: { id: "autonomous-specialists", version: "1", configuration: rc24Configuration },
+  architecture: { id: "autonomous-specialists", version: "1", configuration: rc25Configuration },
   provider: {
     existingServiceOnly: true,
     route: "http://127.0.0.1:11434",
@@ -174,8 +174,8 @@ const settings = {
   activation: false,
 };
 const policy = {
-  schemaVersion: "fleet.rc24-native-policy.v1",
-  study: "negotiation-r24",
+  schemaVersion: "fleet.rc25-native-policy.v1",
+  study: "negotiation-r25",
   sources: sourcePins,
   model: descriptor.model,
   scope: "new_owned_synthetic_worlds",

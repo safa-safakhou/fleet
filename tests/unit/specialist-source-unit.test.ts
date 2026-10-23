@@ -67,5 +67,5 @@ it("projects registered PACT specialist views and retains legacy projection", ()
   expect(projectPactObservation(obs, { id: "specialists", version: "3" }).schemaId).toBe(
     "pact.observation.specialists.v3",
   );
-  expect(() => projectPactObservation(obs, { id: "specialists", version: "4" })).toThrow();
+  expect(() => projectPactObservation(obs, { id: "specialists", version: "5" })).toThrow();
 });
