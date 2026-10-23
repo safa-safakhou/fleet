@@ -1,0 +1,52 @@
+{
+  "schemaVersion": "fleet.rc29-model-selection.v1",
+  "model": {
+    "route": "ollama",
+    "model": "granite4.2:8b",
+    "thinking": false,
+    "artifact": {
+      "manifestRelativePath": "manifests/registry.ollama.ai/library/granite4.2/8b",
+      "manifestSha256": "f586c02fdecdf151b656207c339aa003997345774a41768bac1fd6d2fb85913b",
+      "modelFormat": "gguf",
+      "family": "granite",
+      "parameters": "8.8B",
+      "quantization": "Q4_K_M",
+      "layers": [
+        {
+          "mediaType": "application/vnd.docker.container.image.v1+json",
+          "sha256": "d86276ca46ace9753cefd3aaa5309b99a926479860916e87a873e332f8c79dfc",
+          "bytes": 417
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.model",
+          "sha256": "16a9369d0805f80b7377d25d87f937a90c05dc04ad79173a52001e42c9aab311",
+          "bytes": 5347917952
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.license",
+          "sha256": "58d1e17ffe5109a7ae296caafcadfdbe6a7d176f0bc4ab01e12a689b0499d8bd",
+          "bytes": 11357
+        },
+        {
+          "mediaType": "application/vnd.ollama.image.params",
+          "sha256": "02897ca0d6a33881b1581b775af2884e9eed3ea9b7db8141e0dc0ef2e707fd18",
+          "bytes": 31
+        }
+      ]
+    },
+    "runtime": {
+      "platform": "linux-amd64",
+      "version": "0.35.1",
+      "identityAndFullNativeFiles": "bound separately before each study; no service management"
+    },
+    "template": "exact installed config/model layers and built-in template in the fully pinned native runtime; no custom adapter",
+    "sampling": {
+      "paramsLayer": {
+        "temperature": 1,
+        "top_p": 0.95
+      },
+      "wireOverrides": [],
+      "seed": "not supplied; scenario seed does not seed sampling"
+    }
+  }
+}

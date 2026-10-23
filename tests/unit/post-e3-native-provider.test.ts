@@ -61,3 +61,10 @@ it("pins the separately selected installed Qwen14B identity without allowing mod
   expect(() => native.validateNativeProviderIdentity(qwen, { ...qwen, model: "gemma4:12b" })).toThrow();
   expect(() => native.validateNativeProviderIdentity(qwen, { ...qwen, modelDigest: "f".repeat(64) })).toThrow();
 });
+
+it("pins installed Granite independently and refuses cross-model/digest drift", () => {
+  const granite = { ...pinned, model: "granite4.2:8b", modelDigest: "a".repeat(64) };
+  expect(() => native.validateNativeProviderIdentity(granite, structuredClone(granite))).not.toThrow();
+  expect(() => native.validateNativeProviderIdentity(granite, { ...granite, model: "qwen3.5:9b" })).toThrow();
+  expect(() => native.validateNativeProviderIdentity(granite, { ...granite, modelDigest: "b".repeat(64) })).toThrow();
+});

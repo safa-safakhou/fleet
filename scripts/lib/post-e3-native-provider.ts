@@ -14,7 +14,7 @@ const identitySchema = z
     executable: z.string().regex(/^\/.*\/bin\/ollama$/),
     command: z.array(z.string()).length(2),
     listenerPids: z.array(z.number().int().positive()).length(1),
-    model: z.enum(["nemotron-3-nano:4b", "qwen3.5:9b", "gemma4:12b", "qwen3:14b"]),
+    model: z.enum(["nemotron-3-nano:4b", "qwen3.5:9b", "gemma4:12b", "qwen3:14b", "granite4.2:8b"]),
     modelDigest: z.string().regex(/^[a-f0-9]{64}$/),
   })
   .strict()
