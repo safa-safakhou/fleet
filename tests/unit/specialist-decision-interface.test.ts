@@ -88,3 +88,21 @@ it("fails closed for envelopes that cannot structurally exclude read updates wit
     "READ_FINAL_SCHEMA_REQUIRED",
   );
 });
+
+it("pins read summaries to prospective text while retaining final summaries", () => {
+  const accepts = new Ajv({ strict: false }).compile(
+    binding.readFinalGenerationContract(base, {
+      readSummary: "Read requested; result not yet observed.",
+    }),
+  );
+  expect(accepts({ decision: { ...read, summary: "Read requested; result not yet observed." } })).toBe(true);
+  expect(accepts({ decision: { ...read, summary: "observed the current status code" } })).toBe(false);
+  expect(accepts({ decision: wait, update })).toBe(true);
+});
+it("reserves the last decision for a final wait or action without relaxing final constraints", () => {
+  const accepts = new Ajv({ strict: false }).compile(binding.readFinalGenerationContract(base, { finalOnly: true }));
+  expect(accepts({ decision: read })).toBe(false);
+  expect(accepts({ decision: wait, update })).toBe(true);
+  expect(accepts({ decision: action })).toBe(true);
+  expect(accepts({ decision: { ...action, value: 3 } })).toBe(false);
+});

@@ -23,7 +23,7 @@ export const manifest: ArchitectureManifest = {
       decisionContract: {
         type: "string",
         title: "Read and final-decision envelope",
-        enum: ["read-final.v1", "read-final.v2"],
+        enum: ["read-final.v1", "read-final.v2", "read-final.v3"],
       },
       clockContract: { type: "string", title: "Scoped wake clocks", enum: ["scoped.v1", "scoped.v2"] },
       responseContract: { type: "string", enum: ["visible.v1"] },

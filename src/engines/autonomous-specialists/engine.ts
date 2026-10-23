@@ -20,6 +20,7 @@ import { defaults, manifest } from "./manifest.js";
 import { selectSpecialistContext } from "./memory.js";
 import { InternalMessageSchema } from "./messaging.js";
 import { decodeParticipantGoalParents, participantGenerationContract } from "./participant-interface.js";
+import { assertReadProgressDecision, prospectiveReadSummary, scopedReadProgressQuery } from "./read-progress.js";
 import { queryContractGuide, responseContractGuide } from "./response-interface.js";
 import { route } from "./routing.js";
 import { assertListedSkillReferences, bindListedSkillReferences } from "./skill-reference-interface.js";
@@ -76,7 +77,9 @@ export class AutonomousSpecialistsEngine {
       learningMode = false;
     const budget = services.configuration.budget,
       config = { ...defaults, ...services.configuration.architectureConfig };
-    const preDispatchContract = services.configuration.architectureConfig.decisionContract === "read-final.v2";
+    const boundedReadProgress = services.configuration.architectureConfig.decisionContract === "read-final.v3";
+    const preDispatchContract =
+      boundedReadProgress || services.configuration.architectureConfig.decisionContract === "read-final.v2";
     const readFinalContractActive =
       preDispatchContract || services.configuration.architectureConfig.decisionContract === "read-final.v1";
     const goalReferences = services.configuration.architectureConfig.goalReferenceContract === "scoped.v1";
@@ -85,8 +88,13 @@ export class AutonomousSpecialistsEngine {
     const listedSkills = services.configuration.architectureConfig.skillReferenceContract === "listed.v1";
     if (listedSkills && !readFinalContractActive)
       throw new FleetError("SKILL_REFERENCE_DECISION_CONTRACT_REQUIRED", true);
-    const bindResponseEnvelope = (schema: Data) =>
-      readFinalContractActive ? readFinalGenerationContract(schema) : schema;
+    const bindResponseEnvelope = (schema: Data, finalOnly = false) =>
+      readFinalContractActive
+        ? readFinalGenerationContract(
+            schema,
+            boundedReadProgress ? { readSummary: prospectiveReadSummary, finalOnly } : {},
+          )
+        : schema;
     const portableClocks = services.configuration.architectureConfig.clockContract === "scoped.v2";
     const clockContractActive =
       portableClocks || services.configuration.architectureConfig.clockContract === "scoped.v1";
@@ -251,7 +259,9 @@ export class AutonomousSpecialistsEngine {
       const skillIndex = listedSkills ? await retrieveSkillIndex() : undefined;
       const listedRefs = [...(skillIndex ?? []).map((s) => s.ref), ...selected.map((s) => s.ref)];
       const bindResponse = (s: Data) =>
-        listedSkills ? bindListedSkillReferences(bindResponseEnvelope(s), listedRefs) : bindResponseEnvelope(s);
+        listedSkills
+          ? bindListedSkillReferences(bindResponseEnvelope(s, boundedReadProgress && !readsAllowed), listedRefs)
+          : bindResponseEnvelope(s, boundedReadProgress && !readsAllowed);
       const allowed = services.environment.schemas.actions;
       const baseSchema = learningMode ? z.toJSONSchema(LearningDecision, { target: "draft-7" }) : outputSchema;
       const waitSchema = await services.environment.waitSchema?.(observation);
@@ -262,6 +272,7 @@ export class AutonomousSpecialistsEngine {
         queryV3 || services.configuration.architectureConfig.readQueryContract === "environment.v2";
       const requiresReadContract =
         knownArguments || services.configuration.architectureConfig.readQueryContract === "environment.v1";
+      if (boundedReadProgress && !knownArguments) throw new FleetError("READ_PROGRESS_QUERY_CONTRACT_REQUIRED", true);
       if (retrievedReadTool) {
         const current = (await services.environment.catalog()).find(
           (t) => t.name === retrievedReadTool?.name && t.annotations?.readOnlyHint === true,
@@ -288,7 +299,7 @@ export class AutonomousSpecialistsEngine {
         environmentReadSchema?.$comment !== (queryV3 ? knownReadArgumentContractV3 : knownReadArgumentContract)
       )
         throw new FleetError("READ_ARGUMENT_CONTRACT_REQUIRED", true);
-      const readQuerySchema = environmentReadSchema
+      const advertisedReadQuerySchema = environmentReadSchema
         ? services.skills
           ? {
               anyOf: [
@@ -303,6 +314,12 @@ export class AutonomousSpecialistsEngine {
             }
           : environmentReadSchema
         : undefined;
+      const readQuerySchema =
+        boundedReadProgress && advertisedReadQuerySchema
+          ? scopedReadProgressQuery(advertisedReadQuerySchema)
+          : advertisedReadQuerySchema;
+      const callsRemaining = budget.maxCallsPerTurn - call;
+      const readsAllowed = Boolean(readQuerySchema) && callsRemaining > 1;
       // The same documentation remains verbatim in readInterface.querySchema.
       // Omit only its duplicate annotation from the generation format.
       const generationReadQuerySchema =
@@ -450,7 +467,7 @@ export class AutonomousSpecialistsEngine {
               },
             }
           : {}),
-        ...(readQuerySchema
+        ...(readQuerySchema && (!boundedReadProgress || readsAllowed)
           ? {
               readInterface: {
                 ...(knownArguments && retrievedReadTool
@@ -477,6 +494,16 @@ export class AutonomousSpecialistsEngine {
                     : clockContractActive
                       ? "Authorized reads only; a shape grants no permission. Reads send no message/action."
                       : "Read queries request authorized observations only. Schemas describe supported shapes, not permission. A read sends no message and performs no action.",
+              },
+            }
+          : {}),
+        ...(boundedReadProgress
+          ? {
+              decisionProgress: {
+                callsRemaining,
+                readsAllowed,
+                meaning:
+                  "Final call: wait/action only. Missing facts stay unknown; requested reads have no result yet.",
               },
             }
           : {}),
@@ -685,6 +712,7 @@ export class AutonomousSpecialistsEngine {
       );
       if (!parsed.success) throw new FleetError("INVALID_MODEL_OUTPUT", true);
       const { decision, update, skills } = parsed.data;
+      if (boundedReadProgress) assertReadProgressDecision(decision, readsAllowed);
       if (goalReferences && update) reviseGoals(state.goals, update.goals, state.charter);
       if (listedSkills) {
         assertListedSkillReferences(skills, listedRefs);

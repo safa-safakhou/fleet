@@ -1336,15 +1336,26 @@ it.each(["read-final.v1", "read-final.v2"])(
   },
 );
 
-it.each(
-  ["environment.v2", "environment.v4"].flatMap((contract) =>
+it.each([
+  ...["environment.v2", "environment.v4"].flatMap((contract) =>
     ["read", "continuity", "changed", "removed"].map((mode) => ({ contract, mode })),
   ),
-)("retains schema progress across $mode and invalidates catalog drift with $contract", async ({ contract, mode }) => {
+  { contract: "environment.v4", mode: "bounded" },
+])("retains schema progress across $mode and invalidates catalog drift with $contract", async ({ contract, mode }) => {
   const f = await setup();
   await f.pool.query(
     "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
-    [f.group.id, { readQueryContract: contract, responseContract: "visible.v1", decisionContract: "read-final.v2" }],
+    [
+      f.group.id,
+      {
+        readQueryContract: contract,
+        responseContract: "visible.v1",
+        decisionContract: mode === "bounded" ? "read-final.v3" : "read-final.v2",
+        ...(mode === "bounded"
+          ? { participantContract: "scoped.v1", contextPackingContract: "required-first.v1" }
+          : {}),
+      },
+    ],
   );
   const { pactReadQuerySchema } = await import("../../src/games/pact/read-queries.js");
   const tool = {
@@ -1403,7 +1414,13 @@ it.each(
           expect(query.args).toEqual({ square: "a2" });
           reads++;
         }
-        return session.observe({});
+        const observed = await session.observe({});
+        return mode === "bounded" && query.tool === tool.name
+          ? {
+              ...observed,
+              payload: { ...observed.payload, requestedRead: { status: "ready" }, requestedReadTool: tool.name },
+            }
+          : observed;
       },
     };
   };
@@ -1420,11 +1437,30 @@ it.each(
       };
     if (requests === 0) originalSnapshot = snapshot;
     if (requests === 1) expect(snapshot).toEqual(originalSnapshot);
-    const wrap = (query: Data) => ({ decision: { kind: "read", query, summary: "Read native facts" } });
+    const wrap = (query: Data) => ({
+      decision: {
+        kind: "read",
+        query,
+        summary: mode === "bounded" ? "Read requested; result not yet observed." : "Read native facts",
+      },
+    });
+    if (mode === "bounded") {
+      expect(check(wrap({}))).toBe(false);
+      expect(
+        check({
+          decision: { kind: "read", query: { readSchema: tool.name }, summary: "observed the current status code" },
+        }),
+      ).toBe(false);
+      expect(packet.decisionProgress).toMatchObject({ callsRemaining: 3 - requests, readsAllowed: requests < 2 });
+      if (requests === 2) {
+        expect(packet.readInterface).toBeUndefined();
+        expect(JSON.stringify(packet.evidence)).toContain('"status":"ready"');
+      }
+    }
     expect(check(wrap({ readSchema: tool.name }))).toBe(requests === 0 || (requests === 2 && mode === "changed"));
     expect(check(wrap({ tool: tool.name, args: { records: [] } }))).toBe(false);
     expect(check(wrap({ tool: tool.name, args: { square: "a2" } }))).toBe(
-      requests >= 1 && !(requests === 2 && ["changed", "removed"].includes(mode)),
+      requests >= 1 && !(requests === 2 && ["changed", "removed", "bounded"].includes(mode)),
     );
     if (requests === 1) expect(packet.readInterface.retrievedTool.result).toBe("schema_available");
     const decision =
@@ -1434,7 +1470,13 @@ it.each(
           ? mode === "continuity"
             ? wrap({ continuity: true, coordination: true })
             : wrap({ tool: tool.name, args: { square: "a2" } })
-          : { decision: { kind: "wait", summary: "Facts inspected; no action" } };
+          : {
+              decision: {
+                kind: "wait",
+                summary:
+                  mode === "bounded" ? "Observed status ready after the scoped answer" : "Facts inspected; no action",
+              },
+            };
     requests++;
     return Response.json({
       message: { content: JSON.stringify(decision) },
