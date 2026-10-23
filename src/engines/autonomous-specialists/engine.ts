@@ -13,7 +13,7 @@ import {
   type SpecialistEnvelope,
   SpecialistEnvelopeSchema,
 } from "../../platform/engine-context.js";
-import { readFinalGenerationContract } from "./decision-interface.js";
+import { prospectiveActionSummary, readFinalGenerationContract } from "./decision-interface.js";
 import { reviseGoals } from "./goals.js";
 import { LearningPolicy } from "./learning.js";
 import { defaults, manifest } from "./manifest.js";
@@ -96,7 +96,13 @@ export class AutonomousSpecialistsEngine {
         ? readFinalGenerationContract(
             schema,
             boundedReadProgress
-              ? { readSummary: prospectiveReadSummary, finalOnly, waitAllowed, ...(waitSummary ? { waitSummary } : {}) }
+              ? {
+                  readSummary: prospectiveReadSummary,
+                  actionSummary: prospectiveActionSummary,
+                  finalOnly,
+                  waitAllowed,
+                  ...(waitSummary ? { waitSummary } : {}),
+                }
               : {},
           )
         : schema;
@@ -740,6 +746,8 @@ export class AutonomousSpecialistsEngine {
       );
       if (!parsed.success) throw new FleetError("INVALID_MODEL_OUTPUT", true);
       const { decision, update, skills } = parsed.data;
+      if (boundedReadProgress && decision.kind === "action" && decision.summary !== prospectiveActionSummary)
+        throw new FleetError("ACTION_PROPOSAL_SUMMARY_REQUIRED", true);
       if (boundedReadProgress)
         assertReadProgressDecision(
           decision,

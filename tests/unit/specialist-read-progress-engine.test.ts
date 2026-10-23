@@ -93,6 +93,60 @@ function setup(responses: unknown[]) {
   };
   return { services, operation, observe, accept, submit, calls: () => calls };
 }
+function actionFixture(summary: string) {
+  const f = setup([{ kind: "action", schemaId: "fixture.answer.v1", payload: { accept: true }, summary }]);
+  f.services.environment.schemas.actions = ["fixture.answer.v1"];
+  f.services.environment.actionContracts = async () => [
+    {
+      schemaId: "fixture.answer.v1",
+      payloadSchema: {
+        type: "object",
+        properties: { accept: { type: "boolean" } },
+        required: ["accept"],
+        additionalProperties: false,
+      },
+    },
+  ];
+  return f;
+}
+it("rejects the unsupported delivery guarantee before proposal validation or acceptance", async () => {
+  const f = actionFixture(
+    "Accept the incoming contact request. Response will be delivered to the sender's social attention.",
+  );
+  const validate = vi.fn(async () => ({ valid: true as const, code: "VALID" }));
+  f.services.environment.validateProposal = validate;
+  await expect(new AutonomousSpecialistsEngine().run(f.operation, f.services)).rejects.toThrow(
+    "ACTION_PROPOSAL_SUMMARY_REQUIRED",
+  );
+  expect(f.calls()).toBe(1);
+  expect(validate).not.toHaveBeenCalled();
+  expect(f.accept).not.toHaveBeenCalled();
+  expect(f.submit).not.toHaveBeenCalled();
+});
+it("accepts the neutral proposal summary without rewriting its selected action", async () => {
+  const f = actionFixture("Action proposed.");
+  await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+  expect(f.accept).toHaveBeenCalledWith(
+    expect.objectContaining({
+      intent: expect.objectContaining({ schemaId: "fixture.answer.v1", payload: { accept: true } }),
+    }),
+  );
+  expect(f.submit).not.toHaveBeenCalled();
+});
+it("keeps native proposal refusal authoritative with the neutral summary", async () => {
+  const f = actionFixture("Action proposed.");
+  f.services.environment.validateProposal = async () => ({ valid: false, code: "FIXTURE_AUTHORITY_DENIED" });
+  await expect(new AutonomousSpecialistsEngine().run(f.operation, f.services)).rejects.toThrow(
+    "FIXTURE_AUTHORITY_DENIED",
+  );
+  expect(f.accept).not.toHaveBeenCalled();
+});
+it("preserves legacy action summaries", async () => {
+  const f = actionFixture("Conditional legacy action plan");
+  f.services.configuration.architectureConfig.decisionContract = "read-final.v2";
+  await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+  expect(f.accept).toHaveBeenCalledTimes(1);
+});
 it.each([
   [{ kind: "read", query: {}, summary: future }, "EMPTY_REFRESH_FORBIDDEN"],
   [

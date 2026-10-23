@@ -123,3 +123,16 @@ it.each([false, true])("pins unresolved wait summaries with finalOnly=%s", (fina
   expect(accepts({ decision: wait })).toBe(false);
   expect(accepts({ decision: action })).toBe(true);
 });
+it.each([false, true])("pins action proposals without promising delivery with finalOnly=%s", (finalOnly) => {
+  const actionSummary = "Action proposed.";
+  const accepts = new Ajv({ strict: false }).compile(
+    binding.readFinalGenerationContract(base, { finalOnly, actionSummary }),
+  );
+  expect(accepts({ decision: { ...action, summary: actionSummary }, update })).toBe(true);
+  expect(
+    accepts({ decision: { ...action, summary: "Response will be delivered to the sender's social attention." } }),
+  ).toBe(false);
+  expect(accepts({ decision: { ...action, summary: actionSummary, value: 3 } })).toBe(false);
+  expect(accepts({ decision: wait })).toBe(true);
+  expect(accepts({ decision: read })).toBe(!finalOnly);
+});

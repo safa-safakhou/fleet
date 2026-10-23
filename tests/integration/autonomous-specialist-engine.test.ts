@@ -1336,6 +1336,59 @@ it.each(["read-final.v1", "read-final.v2"])(
   },
 );
 
+it.each([false, true])("enforces prospective v3 action summaries at the HTTP boundary (valid=%s)", async (valid) => {
+  const f = await setup();
+  const { pactReadQuerySchema } = await import("../../src/games/pact/read-queries.js");
+  const connect = f.board.adapter.connect;
+  f.board.adapter.connect = async (binding) => ({
+    ...(await connect(binding)),
+    readQuerySchema: async () => pactReadQuerySchema([], true, [], [], 3),
+  });
+  await f.pool.query(
+    "UPDATE cohort_engine_profiles SET architecture_config=architecture_config || $2::jsonb WHERE cohort_id=$1",
+    [
+      f.group.id,
+      { decisionContract: "read-final.v3", readQueryContract: "environment.v4", responseContract: "visible.v1" },
+    ],
+  );
+  let calls = 0;
+  const neutral = "Action proposed.";
+  const guarantee = "Response will be delivered to the sender's social attention.";
+  vi.stubGlobal("fetch", async (_url: unknown, init: RequestInit) => {
+    calls++;
+    const wire = JSON.parse(String(init.body));
+    const check = new Ajv({ strict: false, validateFormats: false }).compile(wire.format);
+    const action = { kind: "action", schemaId: "board.move.v1", payload: { to: "a2" }, summary: neutral, defer: true };
+    expect(check({ decision: action })).toBe(true);
+    expect(check({ decision: { ...action, summary: guarantee } })).toBe(false);
+    expect(check({ decision: { ...action, schemaId: "unlisted.action.v1" } })).toBe(false);
+    expect(JSON.parse(wire.messages[1].content).responseInterface.decisions.join(" ")).toContain(neutral);
+    return Response.json({
+      message: { content: JSON.stringify({ decision: { ...action, summary: valid ? neutral : guarantee } }) },
+      done: true,
+      done_reason: "stop",
+      prompt_eval_count: 10,
+      eval_count: 10,
+    });
+  });
+  const [id] = await f.enqueue("resource");
+  const claim = await f.tasks.claim("proposal-summary", f.now(), id);
+  if (!claim) throw Error("CLAIM_REQUIRED");
+  const run = f
+    .host(new HttpModel({ ollama: "http://provider.invalid" }, undefined), undefined, {}, f.store.architectures)
+    .host.run(claim);
+  if (valid) await run;
+  else await expect(run).rejects.toThrow("INVALID_MODEL_OUTPUT");
+  // The full host's existing bounded output recovery is synthetic here;
+  // the raw-port unit regression separately proves the engine's first-call guard.
+  expect(calls).toBe(valid ? 1 : 2);
+  expect(f.board.executions).toBe(0);
+  expect((await f.pool.query("SELECT * FROM platform_commands")).rowCount).toBe(0);
+  expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual(
+    Array.from({ length: calls }, () => ({ status: "reported" })),
+  );
+});
+
 it.each([
   ...["environment.v2", "environment.v4"].flatMap((contract) =>
     ["read", "continuity", "changed", "removed"].map((mode) => ({ contract, mode })),
