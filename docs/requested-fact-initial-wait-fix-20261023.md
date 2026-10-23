@@ -44,3 +44,5 @@ Final checks:
 - Read-only ordinary Fleet health: `liveEnabled: false`. PACT working tree remains clean on master.
 
 Completed within the 30-minute limit. Source changes remain uncommitted and unactivated at this handoff. PACT source is unchanged. Real Nemotron behavior remains unqualified; the pending-request real-model case remains unrun. No further trial follows from this assignment.
+
+The subsequent user request authorized committing this repair and one fresh bounded probe. The repair is committed as `d3a05d1`; the [separate real result](nemotron-requested-facts-probe-20261023.md) records a passing status case and a first semantic failure in the pending-request case. Source remains unactivated. No further inference follows from either closed record.
