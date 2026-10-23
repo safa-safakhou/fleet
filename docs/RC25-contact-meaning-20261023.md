@@ -15,3 +15,9 @@ R25-D closed unresolved after16calls/640000reserved/96556measured (95778input,77
 Strict closure verified2nativecommands,8parked clocks,4paused cohorts and a closed grant, with no nonterminal commands. Final encrypted backup independently restored: archive65bcbf8317ab84dafecba71eca73185da2a3d2e331038d3f64b7d9ba456b61cc; stateac278335aed0404fa469ce64c32dda15406c974bbe02a3d759447721a3573a4c. Three owned containers stopped retaining volumes, keys and encrypted evidence.
 
 Next candidate will assess the installed native model's reasoning mode with the same source facts, permissions and ceilings, rather than add another task-specific instruction. R25 stays closed. Ordinary game execution disabled; E4/KQ1 blocked; RC20 uncertainty untouched.
+
+## Review interpretation clarification
+
+The recorded unresolved verdict and closed grant remain unchanged. A request summary describing an intended read is not, by itself, an assertion that world facts refreshed or an effect committed. Likewise, proposing an action that native handlers reject does not alone establish a false permission or outcome claim. These early closures do not prove a concrete factual contradiction or the model's inability to complete the scenario within its remaining budget. No passed scenario or operational acceptance is retroactively assigned.
+
+Future manual response reviews stop for concrete unsupported claims, invalid/unassessable evidence or actual review/operational fences. Native rejections remain authoritative and known; efficiency and task progress are assessed through the bounded scenario's actual outcome criteria. Persistent state and messages still require observed facts or explicitly conditional plans. This clarification changes no actor code, native authorization, budget, historical verdict, uncertain command or closed grant.

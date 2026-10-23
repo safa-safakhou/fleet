@@ -13,3 +13,9 @@ R24-D closed unresolved after 29 calls, 1160000 reserved tokens and 158246 measu
 Strict closure verified two native commands, eight parked clocks, four paused cohorts, no nonterminal commands and a closed grant. Final encrypted backup independently restored: archive83eb7ad6524dec51389393bb5d326985978cdc179f6451bb7f741b01c33cc00f; state381380280a22072d8921522eb5dce0ca8b2da71c1566a739d49b007823258545. Three owned containers stopped retaining volumes, keys and encrypted evidence.
 
 Continue fresh source diagnosis of contact-state meaning and rejected-command feedback. Preserve all R24 evidence; no grant reuse. Game execution remains disabled, E4/KQ1 blocked, RC20 uncertainty untouched.
+
+## Review interpretation clarification
+
+The recorded unresolved verdict and closed grant remain unchanged. A request summary describing an intended read is not, by itself, an assertion that world facts refreshed or an effect committed. Likewise, proposing an action that native handlers reject does not alone establish a false permission or outcome claim. These early closures do not prove a concrete factual contradiction or the model's inability to complete the scenario within its remaining budget. No passed scenario or operational acceptance is retroactively assigned.
+
+Future manual response reviews stop for concrete unsupported claims, invalid/unassessable evidence or actual review/operational fences. Native rejections remain authoritative and known; efficiency and task progress are assessed through the bounded scenario's actual outcome criteria. Persistent state and messages still require observed facts or explicitly conditional plans. This clarification changes no actor code, native authorization, budget, historical verdict, uncertain command or closed grant.
