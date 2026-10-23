@@ -49,3 +49,7 @@ Private [activation package](/home/mnim/.local/share/fleet-candidate-final-facts
 The checked service-control preflight verifies package/node/settings hashes, container/database ownership, unchanged final state, empty enrollment/tasks and free loopback port. Start additionally requires explicit matching unexpired approval. Stop verifies exact PID/start ticks/executable/directory ownership before signaling. The package pins rollback to old source against the **current** database, never a stale backup; baseline startup requires its own reviewed request.
 
 Only user approval remains for starting this isolated console with `FLEET_LIVE_ENABLED=0`. It authorizes no inference, worker, autostart, enrollment, existing-instance cutover or game execution. Local model use remains Nemotron 4B only. Broader gameplay qualification and production activation are outside this package and are not claimed complete.
+
+## Later activation
+
+The user subsequently approved isolated console-only startup. It completed with game execution disabled, no worker or model calls; [20 post-start checks passed](isolated-console-activation-20261023.md). Earlier awaiting-approval/stopped statements above describe the pre-activation checkpoint.
