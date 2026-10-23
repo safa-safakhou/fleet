@@ -25,3 +25,7 @@ Offline checks: 896 unit tests in 170 files, 63 isolated integration tests (57 s
 One fresh qualification will use at most six calls / ten minutes: status lookup/read/final (three), pending request (one), unavailable read (one), known literal (one). Stop on first failure, no retries or repair-and-rerun loop; only native pinned Nemotron 4B with thinking false. Old failures and unused allowances stay closed.
 
 After qualification passes, actual installation checks use a separate private package, fresh owned database, loopback-only process, no worker/autostart/enrollment and `FLEET_LIVE_ENABLED=0`. The approval package will target only that isolated candidate service, retaining game execution disabled; no existing-world cutover or gameplay activation is included. This follows the user's instruction to keep game execution disabled throughout the work.
+
+## Completed follow-through
+
+The separately frozen six-call qualification passed all four cases, and actual disabled installation/restart acceptance passed. See the [final qualification, installation and approval handoff](final-facts-qualification-and-installation-20261023.md). Only explicit approval for isolated live-disabled console startup remains; no game activation is requested.
