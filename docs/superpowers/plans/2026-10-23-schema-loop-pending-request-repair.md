@@ -90,3 +90,6 @@ Ruling: Keep the approved main checkout and perform review inline, following the
 Ruling: Test allowlist denial with the existing authoritative PACT synthetic social suite rather than inventing a new Fleet permission rule. Cost: Fleet still advertises conditional choices subject to native checks; these checks cannot certify live-model decision quality.
 
 Remaining: a separately authorized, game-free Nemotron behavior probe with explicit token ceilings and prompt-fit checks. Neither real qualification nor release/activation is complete. E4/KQ1 remain blocked. No trial or candidate iteration is started by this record.
+
+
+The subsequent user-authorized probe is closed: see [game-free Nemotron result](../../nemotron-game-free-probe-20261023.md). It stopped on response 3; the pending-request case was not run. This supersedes the earlier prospective probe status without reopening it.
