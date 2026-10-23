@@ -39,3 +39,5 @@ Regression tests first exposed the missing production metadata and missing expli
 Offline verification passed 893 unit tests in 170 files, 57 specialist HTTP tests and five isolated binding integrations. The modified authenticated binding case also passed in a separate fresh owned fixture. Type/style checks passed with the existing 82 warnings / 56 informational diagnostics; all 15 changed source/test files are clean. Build, architecture boundaries, documentation links and diff whitespace checks passed. The separately authorized fresh probe result is recorded in the current-state checkpoint after execution.
 
 This source integration does not enable requests in the running service, restart Fleet, install a candidate or qualify native game execution. PACT source remains unchanged. Production activation and broader qualification are outside the three selected tasks.
+
+The integration is committed as `ce86fd4`. The separately authorized [fresh game-free probe](nemotron-action-summary-probe-20261023.md) passed both synthetic cases in four calls; this does not activate this adapter configuration or establish full native-game acceptance.
