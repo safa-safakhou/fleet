@@ -6,7 +6,9 @@
 - [x] Generic capability/host forwarding and actual HTTP three-call schema/read/final flow plus missing-capability refusal; fresh R22 namespace.
 - [x] RED/GREEN reserve whole required causal evidence before optional outcomes under unchanged6000-byte memory budget; bind the new required-first policy digest.
 - [x] Proportional unit/integration/types/build/controller/boundary and four-positive/byte/checkpoint checks; inline review and both commits.
-- [ ] Fresh immutable/native/operator pins, zero-use roster, independent encrypted restore, restored-only rehearsal and original unchanged proof.
+- [x] Fresh immutable/native/operator pins, zero-use roster, independent encrypted restore, restored-only rehearsal and original unchanged proof.
 - [ ] All real D/H/N scenarios pass in order, honest closure/backup/restore/retention and both checkpoints; never resume old grants.
 
 Final proof:733Fleetunit/417PACTunit,51actual HTTP/native parity cases, four-positive composition/learning+guarded reuse and checkpoint passed; original32000/6000/3-call ceilings preserved. Both types/Fleetstyle/build/controller/boundaries pass82existing warnings56infos. Native quote rejects a missing command and creates no command. Metadata lookup leaves revision/observedAt/domain time/sourceRefs intact. Failed offline proofs remain in the private ledger; real qualification is not claimed.
+
+R22-D stopped on an oversized valid outlook read. Real all-pass gate remains unchecked; [terminal record](../../RC22-native-read-qualification-20261023.md). All grant/evidence retained, no resume.
