@@ -183,3 +183,124 @@ it("groups equal observed per-resource rate caps without duplicating the full fl
     expect(check({ ...action, terms: { ...terms, aToB: { resource, wholePerHour: cap + 1 } } })).toBe(false);
   }
 });
+
+const signatureCheck = (input: Data) =>
+  new Ajv({ strict: false, validateFormats: false }).compile({
+    anyOf: pactActionContracts(input, ["game.supply.offer", "game.supply.counter", "game.supply.sign"]).map((c) => ({
+      type: "object",
+      properties: { payload: c.payloadSchema, expectedOutcome: c.expectedOutcomeSchema },
+      required: ["payload", "expectedOutcome"],
+      additionalProperties: false,
+    })),
+  });
+
+it.each([true, false])("binds an observed signature's effect to the actor's actual party (selfA=%s)", (selfA) => {
+  const offer = {
+    id: peer,
+    kingdomA: selfA ? self : peer,
+    kingdomB: selfA ? peer : self,
+    version: 3,
+    terms: { ...terms, bToA: null },
+    status: "open",
+    expiresGameTimeMs: "3600000",
+    signedBy: [],
+  };
+  const input = {
+    ...facts,
+    world: { ...object(facts.world), asOfGameTimeMs: "0" },
+    guide: { ...object(facts.guide), asOfGameTimeMs: "0", openSupplyOffers: [offer] },
+  };
+  const check = signatureCheck(input),
+    payload = { kind: "game.supply.sign", offerId: peer, version: 3 };
+  const correct = { trade: { youSend: selfA ? terms.aToB : null, youReceive: selfA ? null : terms.aToB } };
+  expect(check({ payload, expectedOutcome: correct })).toBe(true);
+  expect(
+    check({
+      payload,
+      expectedOutcome: {
+        trade: {
+          youSend: correct.trade.youReceive,
+          youReceive: correct.trade.youSend,
+        },
+      },
+    }),
+  ).toBe(false);
+  expect(check({ payload: { ...payload, version: 2 }, expectedOutcome: correct })).toBe(false);
+  expect(validatePactProposal(payload, input, correct).valid).toBe(true);
+});
+
+it("does not cross-bind the version or flows of two different observed offers", () => {
+  const second = "33333333-3333-4333-8333-333333333333";
+  const input = {
+    ...facts,
+    world: { ...object(facts.world), asOfGameTimeMs: "0" },
+    guide: {
+      ...object(facts.guide),
+      asOfGameTimeMs: "0",
+      openSupplyOffers: [
+        {
+          id: peer,
+          kingdomA: self,
+          kingdomB: peer,
+          version: 2,
+          terms,
+          status: "open",
+          expiresGameTimeMs: "3600000",
+          signedBy: [],
+        },
+        {
+          id: second,
+          kingdomA: peer,
+          kingdomB: self,
+          version: 5,
+          terms,
+          status: "open",
+          expiresGameTimeMs: "3600000",
+          signedBy: [],
+        },
+      ],
+    },
+  };
+  const check = signatureCheck(input);
+  const first = { payload: { kind: "game.supply.sign", offerId: peer, version: 2 }, expectedOutcome };
+  const other = {
+    payload: { kind: "game.supply.sign", offerId: second, version: 5 },
+    expectedOutcome: { trade: { youSend: terms.bToA, youReceive: terms.aToB } },
+  };
+  expect(check(first)).toBe(true);
+  expect(check(other)).toBe(true);
+  expect(check({ ...first, expectedOutcome: other.expectedOutcome })).toBe(false);
+  expect(check({ ...other, payload: { ...other.payload, version: 2 } })).toBe(false);
+});
+
+it("keeps incomplete signatures conditional without widening the bound offer fallback", () => {
+  const unknown = "33333333-3333-4333-8333-333333333333";
+  const input = {
+    ...facts,
+    guide: {
+      ...object(facts.guide),
+      openSupplyOffers: [
+        { id: peer, kingdomA: self, kingdomB: peer, version: 2, terms },
+        { id: unknown, version: 1, terms },
+      ],
+    },
+  };
+  const check = signatureCheck(input);
+  const known = { kind: "game.supply.sign", offerId: peer, version: 2 };
+  const incomplete = { kind: "game.supply.sign", offerId: unknown, version: 1 };
+  const reversed = { trade: { youSend: terms.bToA, youReceive: terms.aToB } };
+  expect(check({ payload: known, expectedOutcome })).toBe(true);
+  expect(check({ payload: known, expectedOutcome: reversed })).toBe(false);
+  expect(check({ payload: incomplete, expectedOutcome: reversed })).toBe(true);
+  expect(validatePactProposal(incomplete, input, reversed).code).toBe("PACT_TRADE_PARTY_UNKNOWN");
+  expect(check({ payload: action, expectedOutcome })).toBe(true);
+});
+
+it("does not convert missing observed terms into fixed null flows", async () => {
+  const { observedSignaturePerspective } = await import("../../src/games/pact/trade.js");
+  const input = {
+    ...facts,
+    guide: { ...object(facts.guide), openSupplyOffers: [{ id: peer, kingdomA: self, kingdomB: peer, version: 1 }] },
+  };
+  expect(observedSignaturePerspective({ kind: "game.supply.sign", offerId: peer, version: 1 }, input)).toBeUndefined();
+});

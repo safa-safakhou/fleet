@@ -230,3 +230,58 @@ it("omits accepted contact targets while preserving the native message path", as
   expect(check(message)).toBe(true);
   expect((await game.submit(randomUUID(), message)).code).toBe("COMMITTED");
 }, 30000);
+
+it("binds native observed signature effects to both parties and exact versions", async () => {
+  const { world, game } = await setup(),
+    other = facade(world, 1, async () => {}),
+    peer = world.players[1].kingdomId;
+  const introduction = await game.submit(randomUUID(), {
+    kind: "game.contact.request",
+    recipientKingdomId: peer,
+    note: "Synthetic introduction",
+  });
+  const requestId = Object.keys(introduction.recordVersions as Record<string, unknown>)[0]?.slice(
+    "contact-request:".length,
+  );
+  if (!requestId) throw Error("MISSING_CONTACT_REQUEST");
+  await other.submit(randomUUID(), { kind: "game.contact.answer", requestId, accept: true });
+  const terms = {
+    aToB: { resource: "iron", wholePerHour: 2 },
+    bToA: { resource: "silver", wholePerHour: 1 },
+    aBond: null,
+    bBond: null,
+    durationHours: 1,
+    noticeHours: 0,
+  };
+  expect(
+    (await game.submit(randomUUID(), { kind: "game.supply.offer", counterpartyKingdomId: peer, terms })).code,
+  ).toBe("COMMITTED");
+  const { pactActionContracts, validatePactProposal } = await import("../../src/games/pact/proposals.js"),
+    { Ajv } = await import("ajv");
+  for (const [side, port] of [game, other].entries()) {
+    const facts = {
+      world: await port.read("pact_world_read_v1", {}),
+      guide: await port.read("pact_agent_guide_v1", {}),
+    };
+    const offers = facts.guide.openSupplyOffers as Record<string, unknown>[];
+    expect(offers).toHaveLength(1);
+    const offer = offers[0],
+      payload = { kind: "game.supply.sign", offerId: offer.id, version: offer.version };
+    const expectedOutcome = {
+      trade: { youSend: side === 0 ? terms.aToB : terms.bToA, youReceive: side === 0 ? terms.bToA : terms.aToB },
+    };
+    const check = new Ajv({ strict: false, validateFormats: false }).compile({
+      anyOf: pactActionContracts(facts, ["game.supply.sign"]).map((c) => ({
+        type: "object",
+        properties: { payload: c.payloadSchema, expectedOutcome: c.expectedOutcomeSchema },
+        required: ["payload", "expectedOutcome"],
+        additionalProperties: false,
+      })),
+    });
+    expect(check({ payload, expectedOutcome })).toBe(true);
+    const wrong = { trade: { youSend: expectedOutcome.trade.youReceive, youReceive: expectedOutcome.trade.youSend } };
+    expect(check({ payload, expectedOutcome: wrong })).toBe(false);
+    expect(validatePactProposal(payload, facts, wrong).code).toBe("PACT_TRADE_PERSPECTIVE_MISMATCH");
+    expect(check({ payload: { ...payload, version: Number(offer.version) + 1 }, expectedOutcome })).toBe(false);
+  }
+}, 30000);

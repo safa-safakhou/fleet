@@ -1,6 +1,7 @@
 import { type Data, object } from "../../domain.js";
 import { executableActionSchema } from "../../generation.js";
 import type { ProposalValidation } from "../../platform/contracts.js";
+import { ToolArgumentError, validateTool } from "../../tools.js";
 import { actionSchema } from "./contracts.js";
 import { negotiationBriefing } from "./negotiation.js";
 
@@ -41,6 +42,35 @@ function sameFlow(a: unknown, b: unknown): boolean {
   if (a === null || b === null) return a === b;
   return object(a).resource === object(b).resource && object(a).wholePerHour === object(b).wholePerHour;
 }
+function tradeState(action: Data, facts: Data) {
+  const terms = object(
+      action.kind === "game.supply.sign"
+        ? rows(object(facts.guide).openSupplyOffers).find((o) => o.id === action.offerId)?.terms
+        : action.terms,
+    ),
+    ownerRole = role(action, facts);
+  return {
+    terms,
+    ownerRole,
+    send: ownerRole === "A" ? terms.aToB : ownerRole === "B" ? terms.bToA : undefined,
+    receive: ownerRole === "A" ? terms.bToA : ownerRole === "B" ? terms.aToB : undefined,
+  };
+}
+/** Observed directions only, never consent, current admission or fulfillment. */
+export function observedSignaturePerspective(action: Data, facts: Data): Data | undefined {
+  if (action.kind !== "game.supply.sign") return;
+  const { ownerRole, send, receive } = tradeState(action, facts);
+  if (!ownerRole) return;
+  const trade = { youSend: flow(send), youReceive: flow(receive) };
+  try {
+    validateTool({ name: "trade-perspective", inputSchema: tradeExpectedOutcomeSchema() }, { trade });
+    return trade;
+  } catch (error) {
+    if (!(error instanceof ToolArgumentError)) throw error;
+    // Incomplete terms are unknown, not null flows or an inferred direction.
+    return;
+  }
+}
 function rateCap(facts: Data, resource: unknown): bigint | undefined {
   if (observedRules(facts)?.outgoingRateLimit !== "storage_capacity_whole_per_hour") return;
   const scale = object(object(facts.guide).resourceRules).markedPerWhole;
@@ -51,13 +81,8 @@ function rateCap(facts: Data, resource: unknown): bigint | undefined {
 /** Local factual checks only; the game still owns permissions, stock and admission. */
 export function tradePreflight(action: Data, facts: Data, expectedOutcome?: Data): ProposalValidation | undefined {
   if (!isTrade(action)) return;
-  const terms = object(
-      action.kind === "game.supply.sign"
-        ? rows(object(facts.guide).openSupplyOffers).find((o) => o.id === action.offerId)?.terms
-        : action.terms,
-    ),
-    rules = observedRules(facts),
-    ownerRole = role(action, facts);
+  const { terms, ownerRole, send, receive } = tradeState(action, facts),
+    rules = observedRules(facts);
   const issues: string[] = [],
     maxBondWhole: Data = {};
   if (
@@ -104,8 +129,6 @@ export function tradePreflight(action: Data, facts: Data, expectedOutcome?: Data
       action.expiryMinutes > Number(rules.maxOfferExpiryMinutes))
   )
     issues.push("PACT_SUPPLY_EXPIRY");
-  const send = ownerRole === "A" ? terms.aToB : ownerRole === "B" ? terms.bToA : undefined;
-  const receive = ownerRole === "A" ? terms.bToA : ownerRole === "B" ? terms.aToB : undefined;
   const cap = send ? rateCap(facts, object(send).resource) : undefined;
   if (cap !== undefined && positive(object(send).wholePerHour) && BigInt(Number(object(send).wholePerHour)) > cap)
     issues.push("PACT_SUPPLY_RATE_TOO_HIGH");
