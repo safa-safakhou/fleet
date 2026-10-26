@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import { FleetError } from "../../src/domain.js";
 import { ContinuityEngine } from "../../src/engines/continuity/engine.js";
 import type { ContinuityModule } from "../../src/engines/continuity/state.js";
+import { expandFactTables } from "../../src/fact-table.js";
 import { reactiveProbe } from "../reactive-probe-context.js";
 import { continuityProbe, decisionProbe } from "../scoped-probe.js";
 
@@ -156,15 +157,14 @@ it.each(["correct", "reject-again", "no-budget", "turn-limit", "fenced", "unknow
   },
 );
 it("withholds citations and subjective entries whose evidence is removed by adaptive pressure", async () => {
-  const evidence = ids.slice(0, 4).map((id) => ({ id, fact: { value: "f".repeat(5000) } }));
+  const evidence = ids.slice(0, 4).map((id) => ({ id, fact: { value: id + "f".repeat(5000) } }));
   const ctx = reactiveProbe(async (_claim, input) => {
     const packet = JSON.parse(input.messages[1].content);
-    const kept = packet.continuity.evidence.map((e: { id: string }) => e.id);
+    const continuity = expandFactTables(packet.continuity) as typeof packet.continuity;
+    const kept = continuity.evidence.map((e: { id: string }) => e.id);
     expect(kept.length).toBeLessThan(evidence.length);
     expect(
-      packet.continuity.memories.every((m: { evidenceRefs: string[] }) =>
-        m.evidenceRefs.every((id) => kept.includes(id)),
-      ),
+      continuity.memories.every((m: { evidenceRefs: string[] }) => m.evidenceRefs.every((id) => kept.includes(id))),
     ).toBe(true);
     const check = new Ajv({ strict: false }).compile(input.schema);
     for (const e of evidence)

@@ -5,6 +5,7 @@ import { ContinuityEngine } from "../../src/engines/continuity/engine.js";
 import { ReactiveEngine } from "../../src/engines/reactive/engine.js";
 import { expandFactTables } from "../../src/fact-table.js";
 import { compactEnvironment } from "../../src/games/pact/environment.js";
+import { BoundedDecisionStep } from "../../src/modules/decision-step/v1/engine.js";
 import { reactiveProbe } from "../reactive-probe-context.js";
 import { continuityProbe, decisionProbe } from "../scoped-probe.js";
 
@@ -85,6 +86,37 @@ it("refuses an undeliverable whole core before invoking a model, rather than del
   await expect(new ReactiveEngine().run(decisionProbe(ctx))).rejects.toThrow("CONTEXT_LIMIT");
   expect(called).toBe(false);
 });
+it("records bounded size diagnostics when protected facts cannot fit, without copying their contents", async () => {
+  const ctx = decisionProbe(
+    reactiveProbe(async () => {
+      throw Error("UNEXPECTED_MODEL");
+    }),
+  );
+  ctx.observation.payload = { privateFact: "private-input-do-not-log".repeat(2000) };
+  ctx.packObservation = () => {
+    throw new FleetError("CONTEXT_LIMIT", true);
+  };
+  const records: unknown[] = [];
+  ctx.trace = async (_stage, title, detail) => {
+    records.push({ title, detail });
+  };
+  await expect(new BoundedDecisionStep().runContext(ctx)).rejects.toMatchObject({ code: "CONTEXT_LIMIT" });
+  expect(records).toHaveLength(1);
+  expect(records[0]).toMatchObject({
+    title: "Input packing refused before inference",
+    detail: {
+      code: "CONTEXT_LIMIT",
+      inputByteLimit: 24000,
+      catalogTools: 0,
+      eventRefs: 0,
+    },
+  });
+  const detail = object(object(records[0]).detail);
+  expect(Number(detail.observationBytes)).toBeGreaterThan(24000);
+  expect(Number(detail.schemaBytes)).toBeGreaterThan(0);
+  expect(JSON.stringify(records)).not.toContain("private-input-do-not-log");
+  expect(JSON.stringify(records).length).toBeLessThan(1000);
+});
 it.each([false, true])("uses the actual remaining envelope for a core above half, cognition=%s", async (cognition) => {
   let calls = 0;
   const current = { ownership: "whole current authority ".repeat(1200), optionalHistory: "x".repeat(50000) };
@@ -152,7 +184,9 @@ it("reduces optional continuity records further when they crowd out an otherwise
     requests++;
     const packet = JSON.parse(input.messages[1].content);
     expect(packet.observation.payload.whole).toBe(whole);
-    expect(packet.continuity.self.needs.feasibility.length).toBeLessThan(3);
+    expect(
+      (expandFactTables(packet.continuity) as typeof packet.continuity).self.needs.feasibility.length,
+    ).toBeLessThan(3);
     expect(packet.continuity.coverage.budgetOmittedPaths).toContain("self.needs.feasibility");
     expect(
       Buffer.byteLength(JSON.stringify(input.messages)) + Buffer.byteLength(JSON.stringify(input.schema)),
@@ -177,7 +211,9 @@ it("reduces optional continuity records further when they crowd out an otherwise
     continuityProbe({
       context: async () => ({
         version: 0,
-        self: { needs: { feasibility: Array.from({ length: 3 }, () => ({ value: "f".repeat(5000) })) } },
+        self: {
+          needs: { feasibility: Array.from({ length: 3 }, (_, i) => ({ value: String(i) + "f".repeat(5000) })) },
+        },
         evidence: [],
         memories: [],
         beliefs: [],
@@ -189,4 +225,42 @@ it("reduces optional continuity records further when they crowd out an otherwise
     } as never),
   ).run(decisionProbe(ctx));
   expect(requests).toBe(1);
+});
+
+it("fits native PACT briefing tables without removing whole current facts", async () => {
+  const native = JSON.parse(readFileSync("tests/fixtures/pact-initial-packing.json", "utf8"));
+  const { packPactObservation } = await import("../../src/games/pact/packing.js");
+  const { pactActionContracts } = await import("../../src/games/pact/proposals.js");
+  const { instructions } = await import("../../src/games/pact/adapter.js");
+  let calls = 0;
+  const ctx = reactiveProbe(async (_claim, input) => {
+    calls++;
+    expect(
+      Buffer.byteLength(JSON.stringify(input.messages)) + Buffer.byteLength(JSON.stringify(input.schema)),
+    ).toBeLessThanOrEqual(27904);
+    const delivered = JSON.parse(input.messages[1].content).observation.payload.environment;
+    const expanded = object(expandFactTables(delivered));
+    const { compactBriefingGuidance } = await import("../../src/games/pact/environment.js");
+    expect(expanded.agentBriefing).toEqual(
+      object(expanded.agentBriefing).guidanceOmitted
+        ? compactBriefingGuidance(native.observation.payload.agentBriefing)
+        : native.observation.payload.agentBriefing,
+    );
+    expect(expanded.buildings).toEqual(native.observation.payload.world.buildings);
+    expect(object(expanded.publicDiscovery).players).not.toHaveLength(0);
+    return { decision: { kind: "wait", summary: "Observe current state" }, inputTokens: 1, outputTokens: 1 };
+  });
+  const budget = ctx.claim.turn.cohort.budget;
+  if (!budget) throw Error("BUDGET_REQUIRED");
+  budget.inputByteLimit = 27904;
+  ctx.observation = native.observation;
+  ctx.instructions = instructions;
+  ctx.accountObjective = () => native.observation.payload.world.ambition;
+  ctx.task.key = `native-review:${"phase".repeat(30)}`;
+  ctx.catalog = async () => native.catalog;
+  ctx.actionContracts = async () => pactActionContracts(native.observation.payload);
+  ctx.schemas = { observations: ["pact.observation.v1"], actions: ["pact.action.v1"] };
+  ctx.packObservation = packPactObservation;
+  await new ReactiveEngine().run(decisionProbe(ctx));
+  expect(calls).toBe(1);
 });

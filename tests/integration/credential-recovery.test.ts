@@ -209,3 +209,60 @@ it("queues concurrent connections for the same account without losing a normal t
     release();
   }
 });
+
+it("keeps an existing MCP session usable after another consumer rotates its account token", async () => {
+  const f = await setup();
+  await f.broker.save(
+    f.agent.id,
+    {
+      accessToken: "old-access",
+      refreshToken: "old-refresh",
+      clientId: "client",
+      expiresAt: f.now().getTime() + 120000,
+    },
+    "ready",
+  );
+  let currentToken = "old-access",
+    sessions = 0;
+  const sessionIds: string[] = [];
+  vi.stubGlobal("fetch", async (input: unknown, init: RequestInit = {}) => {
+    const path = new URL(String(input)).pathname,
+      body = JSON.parse(String(init.body ?? "{}")),
+      headers = new Headers(init.headers);
+    if (path.includes(".well-known")) return Response.json({});
+    if (path === "/oauth/token") {
+      currentToken = "new-access";
+      return Response.json({ access_token: currentToken, refresh_token: "new-refresh", expires_in: 900 });
+    }
+    if (headers.get("authorization") !== `Bearer ${currentToken}`)
+      return Response.json({ error: { code: "FORBIDDEN" } }, { status: 401 });
+    if (body.method === "initialize")
+      return Response.json(
+        { result: { _meta: { "pact/session-scope": "connection" } } },
+        { headers: { "Mcp-Session-Id": `session-${++sessions}` } },
+      );
+    if (init.method === "DELETE") {
+      sessionIds.push(headers.get("Mcp-Session-Id")!);
+      return new Response(null, { status: 204 });
+    }
+    if (body.method === "notifications/initialized") return new Response(null, { status: 202 });
+    if (body.method === "tools/list")
+      return Response.json({
+        result: {
+          tools: [{ name: "pact_profile_v1", inputSchema: { type: "object" }, annotations: { readOnlyHint: true } }],
+        },
+      });
+    sessionIds.push(headers.get("Mcp-Session-Id")!);
+    return Response.json({ result: { structuredContent: { id: f.agent.account_id } } });
+  });
+  const original = await f.broker.game(f.agent.id);
+  f.advance(61000);
+  const other = await f.broker.game(f.agent.id);
+  expect((await original.profile()).accountId).toBe(f.agent.account_id);
+  await original.close();
+  await other.close();
+  expect(sessions).toBe(2);
+  expect(sessionIds.at(-2)).toBe("session-1");
+  expect((await f.broker.load(f.agent.id)).accessToken).toBe("new-access");
+  expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger")).rows[0].n).toBe(0);
+});

@@ -5,7 +5,14 @@ import { FleetError } from "../domain.js";
 import { ActionClaimRepository } from "../modules/action-admission/v1/repository.js";
 import { type ActionEffects, ActionEffectsSchema, actionIntentDigest } from "../platform/action-effects.js";
 import type { RecipientSpec } from "../platform/architecture.js";
-import type { ActionIntent, ActionOutcome, BindingRef, DomainTime, EnvironmentEvent } from "../platform/contracts.js";
+import type {
+  ActionIntent,
+  ActionOutcome,
+  BindingRef,
+  DomainTime,
+  EnvironmentEvent,
+  EnvironmentSession,
+} from "../platform/contracts.js";
 import type { CommandExecutor } from "../platform/execution.js";
 import { launchDigest } from "../platform/launch.js";
 import { ParticipantDelivery } from "../platform/participant-delivery.js";
@@ -37,6 +44,7 @@ type Options = {
   store: Store;
   tasks: TaskStore;
   commands: CommandExecutor;
+  session?: EnvironmentSession;
   claim?: TaskClaim;
   binding: BindingRef;
   specialistId?: string;
@@ -152,7 +160,7 @@ export class ParticipantActions {
       operationId: claim.turn.id,
       envelope: { ...input.envelope, intent },
     });
-    const outcome = await commands.dispatchPrepared(claim, intent);
+    const outcome = await commands.dispatchPrepared(claim, intent, this.options.session);
     await this.record(intent.commandId, outcome);
     return { ...result, outcome };
   }

@@ -41,6 +41,9 @@ export async function jsonRequest(
   signal?: AbortSignal,
 ): Promise<{ data: Data; headers: Headers }> {
   const r = await fetch(url, { ...init, redirect: "error", signal: signal ?? AbortSignal.timeout(20000) });
+  return readJSONResponse(r);
+}
+export async function readJSONResponse(r: Response): Promise<{ data: Data; headers: Headers }> {
   const size = Number(r.headers.get("content-length") ?? 0);
   if (size > 1000000) throw new FleetError("RESPONSE_TOO_LARGE");
   if (!r.body) throw new FleetError("EMPTY_RESPONSE");

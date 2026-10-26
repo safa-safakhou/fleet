@@ -299,6 +299,7 @@ export async function createParticipantPorts(deps: {
           store,
           tasks,
           commands,
+          session,
           claim: context.claim,
           binding: op.binding,
           specialistId: scope.specialistId,

@@ -9,6 +9,18 @@ const binding = {
   actorRef: "seat:red",
   entityRef: "board:room-east",
 };
+it("refuses foreign, closed or unregistered sessions when borrowing execution authority", async () => {
+  const board = boardEnvironment(),
+    registry = new EnvironmentRegistry([board.adapter], boardRef);
+  const session = await registry.connect(binding);
+  expect(() => registry.assertSession(session, binding)).not.toThrow();
+  expect(() => registry.assertSession(session, { ...binding, id: "binding:other" })).toThrow(
+    "ENVIRONMENT_SESSION_MISMATCH",
+  );
+  expect(() => registry.assertSession({ ...session }, binding)).toThrow("ENVIRONMENT_SESSION_MISMATCH");
+  await session.close();
+  expect(() => registry.assertSession(session, binding)).toThrow("ENVIRONMENT_SESSION_MISMATCH");
+});
 it("forwards immutable specialist action restrictions through the scoped environment boundary", async () => {
   const board = boardEnvironment(),
     connect = board.adapter.connect;

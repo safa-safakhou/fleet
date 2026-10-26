@@ -1,6 +1,9 @@
 import { z } from "zod";
 import { ContinuationUpdate } from "../../../continuation.js";
 import type { DomainTime } from "../../../platform/contracts.js";
+export const continuityMeaning =
+  "Owner values and current facts are separate from subjective hypotheses, plans and predictions. Peer statements are not delivery or motive. Missing evidence remains unresolved; no update is required. Predictions test the next later observed fact of the named subject/predicate within their stated horizon, not all possible world events. Historical commitments/outcomes require authoritative occurrence time.";
+
 export type EvidenceLink = { sourceRef: string; observedAt: string; taskId: string };
 export const text = z.string().min(1).max(400),
   id = z.string().min(1).max(80),

@@ -1,8 +1,10 @@
 import type { BudgetConfig, Data, ModelPort, ModelSettings, Tool } from "../domain.js";
 import type { ArchitectureRef } from "./architecture.js";
 import type { ReadQueryOptions } from "./contracts.js";
+import type { FeedbackPolicy, runDecisionFeedback } from "./decision-feedback.js";
 
 export type { ActionEffects } from "./action-effects.js";
+export { bindObservedFacts, constrainLegalChoices, validateNumericObjective } from "./grounded-decision.js";
 export type {
   ParticipantStatePort,
   SpecialistCharter,
@@ -42,11 +44,15 @@ export type ScopedOperation = {
 export type ScopedModelRequest = {
   messages: Parameters<ModelPort["decide"]>[0]["messages"];
   schema: Data;
+  outputContract?: Data;
   maxOutputTokens: number;
   signal?: AbortSignal;
   stage?: { kind: "worker" | "coordinator"; focusId?: string; retryReserveCalls?: number };
 };
-export type ScopedModelResult = Awaited<ReturnType<ModelPort["decide"]>> & { allocationId: string };
+export type ScopedModelResult = Awaited<ReturnType<ModelPort["decide"]>> & {
+  allocationId: string;
+  groundedObservation?: Observation;
+};
 export type ScopedEvidence = { id: string; kind: string; detail: Data; sourceRefs: string[] };
 export interface ScopedServices {
   skills?: {
@@ -97,7 +103,18 @@ export interface ScopedServices {
     parentBudgetId?: string;
   }>;
   observe(query: Data): Promise<Observation>;
-  model: { decide(request: ScopedModelRequest): Promise<ScopedModelResult>; remainingCalls(): Promise<number> };
+  model: {
+    correctionEnabled?: boolean;
+    /** Pure accounting for trusted host constraints before inference admission. */
+    inputBytes?(input: Pick<ScopedModelRequest, "messages" | "schema">): number;
+    decide(request: ScopedModelRequest): Promise<ScopedModelResult>;
+    /** Optional for compatibility with older injected hosts. Validation is trusted engine code, not model input. */
+    decideWithFeedback?(
+      request: ScopedModelRequest,
+      policy: Pick<FeedbackPolicy, "maxAttempts" | "validate" | "prepareRetry">,
+    ): ReturnType<typeof runDecisionFeedback>;
+    remainingCalls(): Promise<number>;
+  };
   actions: { submit(intent: ActionIntent): Promise<ActionOutcome>; resolve(commandId: string): Promise<ActionOutcome> };
   state: {
     load(codec: string): Promise<{ version: number; value: Data } | null>;

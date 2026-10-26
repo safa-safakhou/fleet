@@ -4,6 +4,7 @@ import { builtinArchitectures } from "../../src/app/builtins.js";
 import { createScopedServices, scopedOperationFor } from "../../src/app/host-services.js";
 import { FleetError } from "../../src/domain.js";
 import type { ScopedServices } from "../../src/platform/engine-context.js";
+import type { DecisionGrounding } from "../../src/platform/native-grounding.js";
 import { FakeModel } from "../helpers.js";
 import { platformFixture } from "../platform-helpers.js";
 
@@ -25,6 +26,59 @@ const definition = () => ({
     ref: { id: "fixture-loop", version: "1" },
     stateCodecs: [{ id: "fixture", version: "v1" }],
   },
+});
+it("exposes bounded proposal feedback through scoped services without accepting model or binding overrides", async () => {
+  const f = await setup(),
+    claim = await f.claim();
+  let accepted = false;
+  const h = f.host(
+    {
+      decide: async (request) => ({
+        decision: { cost: request.messages.at(-1)?.content.includes("spendable 100") ? 80 : 110 },
+        inputTokens: 30,
+        outputTokens: 10,
+      }),
+    },
+    async (ctx) => {
+      const services = await createScopedServices(ctx.claim, definition(), undefined, {
+        context: ctx,
+        store: f.store,
+        tasks: f.tasks,
+        bindings: f.bindings,
+        model: h.admission,
+        commands: h.commands,
+      });
+      const correct = (
+        services.model as unknown as {
+          decideWithFeedback: (request: unknown, policy: unknown) => Promise<{ stopReason: string }>;
+        }
+      ).decideWithFeedback;
+      const policy = {
+        maxAttempts: 3,
+        validate: (value: unknown) =>
+          (value as { cost: number }).cost > 100
+            ? { code: "RESERVE_VIOLATION", message: "Maximum spendable 100.", retryable: true }
+            : null,
+      };
+      const request = {
+        messages: [{ role: "user", content: "Preserve reserve." }],
+        schema: { type: "object", required: ["cost"], properties: { cost: { type: "integer" } } },
+        maxOutputTokens: 2000,
+      };
+      await expect(correct({ ...request, model: { model: "foreign" } }, policy)).rejects.toThrow(
+        "MODEL_REQUEST_NOT_ADMITTED",
+      );
+      const out = await correct(request, policy);
+      accepted = out.stopReason === "accepted";
+    },
+  );
+  await h.host.run(claim);
+  expect(accepted).toBe(true);
+  expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([
+    { status: "reported" },
+    { status: "reported" },
+  ]);
+  expect(f.board.executions).toBe(0);
 });
 it("cannot substitute another binding or claim and exposes no concrete host state", async () => {
   const f = await setup(),
@@ -322,4 +376,77 @@ it("expired scoped memory withholds plaintext but preserves the CAS version for 
     });
   });
   await h.host.run(claim);
+});
+
+it("reserves native grounding input capacity without increasing the recorded cohort allowance", async () => {
+  const f = await setup(),
+    claim = await f.claim();
+  let checked = false;
+  const h = f.host(new FakeModel(), async (ctx) => {
+    const configuredBudget = ctx.claim.turn.cohort.budget;
+    if (!configuredBudget) throw Error("BUDGET_REQUIRED");
+    const original = configuredBudget.inputByteLimit;
+    const services = await createScopedServices(
+      ctx.claim,
+      definition(),
+      {
+        decisionGrounding: {
+          inputReserveBytes: 4096,
+          prepare: (input: Parameters<DecisionGrounding["prepare"]>[0]) => input,
+          validate: () => null,
+        },
+      } as never,
+      { context: ctx, store: f.store, tasks: f.tasks, bindings: f.bindings, model: h.admission, commands: h.commands },
+    );
+    expect(services.configuration.budget.inputByteLimit).toBe(original - 4096);
+    expect((await f.store.cohort(f.group.id)).budget?.inputByteLimit).toBe(original);
+    checked = true;
+  });
+  await h.host.run(claim);
+  expect(checked).toBe(true);
+});
+it("waits for changed evidence instead of timer-retrying an unchanged zero-call packet failure", async () => {
+  const f = await setup(),
+    claim = await f.claim(),
+    h = f.host(new FakeModel(), async () => {
+      throw new FleetError("SPECIALIST_CONTEXT_INCOMPLETE", true);
+    });
+  await expect(h.host.run(claim)).rejects.toThrow("SPECIALIST_CONTEXT_INCOMPLETE");
+  expect(await f.tasks.get(claim.taskId)).toMatchObject({ state: "waiting", wake: { kind: "evidence_change" } });
+  f.advance(3600000);
+  expect(await f.tasks.claim("later", f.now())).toBeNull();
+  await f.enqueue(f.group.bindings[0], "work", "new-evidence:2");
+  expect(await f.tasks.claim("new-evidence", f.now())).not.toBeNull();
+  expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger")).rows[0].n).toBe(0);
+});
+
+it("does not reserve coordinator space for an unrelated architecture", async () => {
+  const f = await setup(),
+    claim = await f.claim();
+  let checked = false;
+  const h = f.host(new FakeModel(), async (ctx) => {
+    const budget = ctx.claim.turn.cohort.budget;
+    if (!budget) throw Error("BUDGET_REQUIRED");
+    const original = budget.inputByteLimit;
+    const services = await createScopedServices(
+      ctx.claim,
+      definition(),
+      {
+        decisionGrounding: {
+          appliesTo: () => false,
+          inputReserveBytes: 4096,
+          prepare: () => {
+            throw Error("UNRELATED_GROUNDING_USED");
+          },
+          validate: () => null,
+        },
+      } as never,
+      { context: ctx, store: f.store, tasks: f.tasks, bindings: f.bindings, model: h.admission, commands: h.commands },
+    );
+    expect(services.configuration.budget.inputByteLimit).toBe(original);
+    expect(services.model.correctionEnabled).toBe(false);
+    checked = true;
+  });
+  await h.host.run(claim);
+  expect(checked).toBe(true);
 });

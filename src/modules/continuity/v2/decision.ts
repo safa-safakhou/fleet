@@ -44,17 +44,34 @@ const rows = (v: unknown): Data[] => (Array.isArray(v) ? v.map(object) : []);
  * Original observations/receipts are deterministic evidence, never authored learning.
  */
 export class NegotiationDecisionStep extends BoundedDecisionStep {
+  protected readQueryContract(ctx: DecisionContext) {
+    return ctx.readQuerySchema?.() ?? Promise.resolve(undefined);
+  }
   protected packEveryObservation() {
     return true;
   }
   protected decisionSchema: Data = z.toJSONSchema(Envelope, { target: "draft-7" });
-  private schemaCache = new WeakMap<Data, Data>();
-  protected generationSchema(_payload: Data, base: Data) {
-    let shared = this.schemaCache.get(base);
-    if (!shared) {
-      shared = shareGenerationSchema(base);
-      this.schemaCache.set(base, shared);
-    }
+  private schemaCache = new WeakMap<Data, { key: string; schema: Data }>();
+  protected generationSchema(payload: Data, base: Data) {
+    const packet = object(payload.negotiationMemory),
+      delivered = new Set((packet.deliveredIds ?? []) as string[]);
+    const ids = [
+      ...new Set(
+        rows(object(expandFactTables(packet)).bundles).flatMap((b) => rows(b.originals).map((o) => String(o.id))),
+      ),
+    ].filter((id) => delivered.has(id));
+    const key = JSON.stringify(ids),
+      cached = this.schemaCache.get(base);
+    if (cached?.key === key) return cached.schema;
+    const schema = structuredClone(base),
+      memory = object(object(schema.properties).memory);
+    const memories = object(object(memory.properties).memories);
+    if (ids.length) {
+      const refs = object(object(object(memories.items).properties).evidenceRefs);
+      refs.items = { ...object(refs.items), enum: ids };
+    } else memories.maxItems = 0;
+    const shared = shareGenerationSchema(schema, { compactNames: true, inlineSingleUse: true });
+    this.schemaCache.set(base, { key, schema: shared });
     return shared;
   }
   private version = 0;

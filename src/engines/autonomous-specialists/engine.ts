@@ -73,8 +73,12 @@ export class AutonomousSpecialistsEngine {
     const p = services.participants;
     if (!p || !operation.participantId) throw new FleetError("PARTICIPANT_SCOPE_REQUIRED", true);
     let observation = operation.observation;
+    const boundedHistory = services.configuration.architectureConfig.contextPackingContract === "required-first.v2";
+    const compactEvidence =
+      boundedHistory || services.configuration.architectureConfig.contextPackingContract === "required-first.v1";
     let retrievedReadTool: Tool | undefined;
     let pendingReadTool: string | undefined;
+    let previousWaitRejection: Data | undefined;
     let selected: SkillVersion[] = [],
       learningMode = false;
     const budget = services.configuration.budget,
@@ -245,15 +249,11 @@ export class AutonomousSpecialistsEngine {
           })),
           now: observation.observedAt,
           limits: { maxBytes },
-          ...(services.configuration.architectureConfig.contextPackingContract === "required-first.v1"
-            ? { compactMetadata: true }
-            : {}),
+          ...(boundedHistory ? { boundedHistory: true } : {}),
+          ...(compactEvidence ? { compactMetadata: true } : {}),
         });
       let evidence = selectEvidence(config.memoryBytes);
-      const presentEvidence = () =>
-        services.configuration.architectureConfig.contextPackingContract === "required-first.v1"
-          ? packEvidenceMetadata(evidence)
-          : evidence;
+      const presentEvidence = () => (compactEvidence ? packEvidenceMetadata(evidence) : evidence);
       const retrieveSkillIndex = async () =>
         services.skills
           ? await services.skills.retrieve({
@@ -450,7 +450,12 @@ export class AutonomousSpecialistsEngine {
           id: operation.participantId,
           charter: state.charter,
           assessmentConditions: services.environment.conditionContracts ?? [],
-          ownerIntent: services.environment.accountObjective?.(observation) ?? services.configuration.goal,
+          ...(() => {
+            const objective = services.environment.accountObjective?.(observation) ?? services.configuration.goal;
+            return typeof objective === "object" && objective
+              ? { ownerIntent: objective.intent, currentState: objective.currentState }
+              : { ownerIntent: objective };
+          })(),
           state: {
             version: state.version,
             goals,
@@ -477,6 +482,7 @@ export class AutonomousSpecialistsEngine {
             }
           : null,
         observation: modelObservation,
+        ...(previousWaitRejection ? { previousDecision: previousWaitRejection } : {}),
         actionSchemas: allowed,
         ...(visibleContract ? { responseInterface: responseContractGuide(schema) } : {}),
         ...(observationSemantics !== undefined ? { observationSemantics } : {}),
@@ -588,7 +594,7 @@ export class AutonomousSpecialistsEngine {
         if (bytes() > budget.inputByteLimit) throw new FleetError("SPECIALIST_CONTEXT_INCOMPLETE", true);
       };
       try {
-        if (services.configuration.architectureConfig.contextPackingContract === "required-first.v1") {
+        if (compactEvidence) {
           let fitted = false;
           for (let memoryLimit = config.memoryBytes; memoryLimit > 0; memoryLimit -= 512) {
             try {
@@ -644,14 +650,10 @@ export class AutonomousSpecialistsEngine {
                   meaning: "Whole answer is in the delivered original's detail.payload.requestedRead.",
                 },
               }
-            : services.configuration.architectureConfig.contextPackingContract === "required-first.v1" &&
-                scopedAnswer !== undefined
+            : compactEvidence && scopedAnswer !== undefined
               ? { requestedRead: scopedAnswer }
               : {},
-          ...(services.configuration.architectureConfig.contextPackingContract === "required-first.v1" &&
-          observation.continuity
-            ? { continuity: observation.continuity }
-            : {}),
+          ...(compactEvidence && observation.continuity ? { continuity: observation.continuity } : {}),
           coverage: {
             fullCurrentWorldWithheld: true,
             evidenceReviewOnly: true,
@@ -684,9 +686,13 @@ export class AutonomousSpecialistsEngine {
       const result = await services.model.decide({
         messages: messages(),
         schema,
+        // Validate the native wire encoding before goal-reference decoding, without
+        // freezing observation-bound action revisions in a correction session.
+        outputContract: bindParticipants(baseSchema).schema,
         maxOutputTokens: budget.maxOutputTokens,
         signal: operation.signal,
       });
+      if (result.groundedObservation) observation = result.groundedObservation;
       if (result.decisionError) throw new FleetError(result.decisionError);
       if (learningMode) {
         const learned = LearningDecision.safeParse(result.decision);
@@ -853,7 +859,19 @@ export class AutonomousSpecialistsEngine {
       };
       if (decision.kind === "wait") {
         const validation = await services.environment.validateWait?.(decision.basis ?? {}, observation);
-        if (validation && !validation.valid) throw new FleetError(validation.code, true);
+        if (validation && !validation.valid) {
+          previousWaitRejection = {
+            code: validation.code,
+            guidance: validation.guidance,
+            detail: validation.detail,
+            submitted: false,
+            committed: false,
+          };
+          await services.trace("deciding", "Wait rejected before completion", previousWaitRejection);
+          if (call + 1 >= budget.maxCallsPerTurn || (await services.model.remainingCalls()) < 1)
+            throw new FleetError(validation.code, true);
+          continue;
+        }
         await p.accept({ expectedVersion: state.version, envelope });
         if (decision.untilNextEvent) await services.tasks.waitForEvent();
         return;

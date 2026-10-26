@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { recordCallRequest, recordCallResponse } from "./call-metrics.js";
 import { Cognition, deliveredCognition } from "./cognition.js";
 import {
   analysisDecisionGuide,
@@ -16,6 +17,9 @@ import { promptFeedback } from "./feedback.js";
 import type { GameAdapter } from "./game.js";
 import { bindGenerationSchema, closedDecisionSchema, executableActionSchema } from "./generation.js";
 import { RemoteRejection } from "./http.js";
+import { modelCallBound } from "./model-bounds.js";
+import { modelFailureProgress } from "./model-progress.js";
+import { compileGenerationSchema } from "./model-schema.js";
 import { Observability, scrub } from "./observability.js";
 import { currentOwnerObjectiveInstruction, ownerRecallQuery, ownerValues } from "./owner-guidance.js";
 import type { Claim, Store } from "./store.js";
@@ -27,10 +31,10 @@ export interface OwnerPort {
 }
 export class Engine {
   private stopping = false;
-  private controller?: AbortController;
+  private readonly controllers = new Set<AbortController>();
   stop() {
     this.stopping = true;
-    this.controller?.abort();
+    for (const controller of this.controllers) controller.abort();
   }
   constructor(
     private store: Store,
@@ -348,7 +352,12 @@ export class Engine {
             : undefined,
           permissionCoverage:
             "Advertisement is conditional. Server checks identity, scope, live lease, mandate, delegation, owner policy, permits, targets, quotas, stock and prerequisites.",
-          decisionFeedback: decisionFeedback.map(promptFeedback),
+          decisionFeedback: decisionFeedback
+            .filter((f) => {
+              const grounding = this.adapter.grounding?.(facts);
+              return !f.groundingScope || f.groundingScope === grounding?.policy.feedbackScope?.(grounding.observation);
+            })
+            .map(promptFeedback),
           availableReads: tools
             .filter(isRead)
             .map((t) => ({ name: t.name, description: t.description?.slice(0, 180) })),
@@ -436,6 +445,7 @@ export class Engine {
                   .map((entry) => String(object(entry.args).name))
               : [...selectedReads],
             memory: !!cognition,
+            waitSchema: this.adapter.waitSchema?.(facts),
             continuationLookup: true,
             ...(continuationShape ? { continuationSchema: continuationShape } : {}),
           });
@@ -469,7 +479,10 @@ export class Engine {
           currentOwnerObjectiveInstruction(
             claim.cohort.owner_guidance === "account_autonomy" ? this.adapter.accountObjective?.(facts) : undefined,
           );
-        const packetLimit = Math.min(b.inputByteLimit, b.perCallTokenLimit - b.maxOutputTokens - 1024);
+        const packetLimit = Math.min(
+          b.inputByteLimit - (this.adapter.grounding?.(facts).policy.inputReserveBytes ?? 0),
+          b.perCallTokenLimit - b.maxOutputTokens - 1024,
+        );
         let messages!: ReturnType<typeof fitMessages>;
         try {
           const packDecision = () => {
@@ -541,6 +554,22 @@ export class Engine {
             });
           throw error;
         }
+        const authoritativeOutputSchema = outputSchema;
+        // Native grounding is opt-in; the original legacy loop still owns each reservation.
+        const grounding = this.adapter.grounding?.(facts);
+        if (grounding) {
+          const prepared = grounding.policy.prepare({ messages, schema: outputSchema }, grounding.observation);
+          messages = prepared.messages;
+          outputSchema = prepared.schema;
+          const scope = grounding.policy.feedbackScope?.(grounding.observation);
+          const feedback = decisionFeedback.findLast((f) => scope && f.groundingScope === scope);
+          if (feedback && grounding.policy.correctionSchema)
+            outputSchema = grounding.policy.correctionSchema(
+              outputSchema,
+              grounding.observation,
+              feedback as import("./platform/decision-feedback.js").DecisionFeedback,
+            );
+        }
         const bytes = Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(outputSchema));
         if (bytes > b.inputByteLimit || bytes + b.maxOutputTokens + 1024 > b.perCallTokenLimit)
           throw new FleetError("CONTEXT_LIMIT");
@@ -607,11 +636,24 @@ export class Engine {
         });
         if (this.model.tracksDispatch) await this.store.phase(claim, "model_preparing_tracked");
         const reservation = await this.store.reserveCall(claim);
+        await recordCallRequest(
+          this.store,
+          reservation,
+          {
+            model: m,
+            messages,
+            schema: outputSchema,
+            maxOutputTokens: b.maxOutputTokens,
+            signal: AbortSignal.timeout(1000),
+          },
+          b.inputByteLimit,
+          this.model,
+        );
         await this.store.phase(claim, this.model.tracksDispatch ? "model_reserved_tracked" : "model_reserved");
         await observation.record(claim, "thinking", "Waiting for the model decision", { execution: n + 1 });
         if (this.stopping) throw new FleetError("CLAIM_FENCED");
         const controller = new AbortController();
-        this.controller = controller;
+        this.controllers.add(controller);
         const guard = setInterval(() => {
           void this.store.active(claim).catch(() => controller.abort());
         }, 500);
@@ -626,7 +668,9 @@ export class Engine {
             onDispatch: () => this.store.phase(claim, "model_dispatched"),
             signal: AbortSignal.any([
               controller.signal,
-              AbortSignal.timeout(Math.max(1, Math.min(90000, claim.deadline.getTime() - this.store.now().getTime()))),
+              AbortSignal.timeout(
+                Math.max(1, Math.min(modelCallBound(m), claim.deadline.getTime() - this.store.now().getTime())),
+              ),
             ]),
           });
         } catch (error) {
@@ -636,13 +680,15 @@ export class Engine {
             code: safeCode(error),
             notDispatched: error instanceof FleetError && error.notDispatched,
             elapsedMs: Math.max(0, this.store.now().getTime() - modelStartedAt),
+            generationProgress: modelFailureProgress(error),
           });
           throw error;
         } finally {
           clearInterval(guard);
-          if (this.controller === controller) this.controller = undefined;
+          this.controllers.delete(controller);
         }
         await this.store.recordUsage(reservation, response.inputTokens, response.outputTokens);
+        await recordCallResponse(this.store, reservation, response, this.store.now().getTime() - modelStartedAt);
         await observation.recordDebug(claim, "deciding", "Model response", {
           execution: n + 1,
           elapsedMs: Math.max(0, this.store.now().getTime() - modelStartedAt),
@@ -652,11 +698,51 @@ export class Engine {
           inputTokens: response.inputTokens,
           outputTokens: response.outputTokens,
           coverage: "Provider final answer only; provider internal reasoning is not captured.",
+          generationProgress: response.execution,
         });
         if (response.inputTokens === null || response.outputTokens === null) throw new FleetError("USAGE_UNKNOWN");
         if (response.inputTokens + response.outputTokens > b.perCallTokenLimit) throw new FleetError("USAGE_EXCEEDED");
         await this.store.active(claim);
         await this.store.phase(claim, "model_settled");
+        if (grounding && !response.decisionError) {
+          const feedback = compileGenerationSchema(authoritativeOutputSchema)(response.decision)
+            ? await grounding.policy.validate(response.decision, grounding.observation, {
+                messages,
+                schema: outputSchema,
+              })
+            : {
+                code: "INVALID_MODEL_OUTPUT",
+                message:
+                  "The original native envelope rejected this response; correct optional fields or omit the optional update.",
+                retryable: true,
+              };
+          await observation.record(claim, "deciding", "Native legacy grounded proposal", {
+            valid: feedback === null,
+            code: feedback?.code ?? "ACCEPTED",
+            attempt: n + 1,
+            requestScope: grounding.policy.feedbackScope?.(grounding.observation),
+          });
+          if (feedback) {
+            lastCode = feedback.code;
+            if (!feedback.retryable) throw new FleetError(feedback.code, true);
+            await rememberFeedback({
+              ...feedback,
+              groundingScope: grounding.policy.feedbackScope?.(grounding.observation),
+            });
+            const query = grounding.policy.refreshQuery?.(feedback);
+            if (query !== undefined) await grounding.refresh(query);
+            continue;
+          }
+          const scope = grounding.policy.feedbackScope?.(grounding.observation);
+          if (scope && decisionFeedback.some((f) => f.groundingScope === scope)) {
+            decisionFeedback.splice(
+              0,
+              decisionFeedback.length,
+              ...decisionFeedback.filter((f) => f.groundingScope !== scope),
+            );
+            await this.store.rememberDecisionFeedback(claim, decisionFeedback.at(-1) ?? null);
+          }
+        }
         const rawDecision = object(response.decision);
         const { cognition: cognitiveUpdate, decision: wrappedDecision, ...flatDecision } = rawDecision;
         const baseDecision =
@@ -673,6 +759,9 @@ export class Engine {
           lastCode = response.decisionError ?? "INVALID_MODEL_OUTPUT";
           const feedback = {
             code: lastCode,
+            ...(grounding?.policy.feedbackScope
+              ? { groundingScope: grounding.policy.feedbackScope(grounding.observation) }
+              : {}),
             errors: parsed.success ? [] : parsed.error.issues.map((e) => ({ path: e.path, code: e.code })),
             guidance:
               "Return exactly one JSON decision matching decisionSchema. An action needs action.kind and its arguments directly inside action. Keep the answer short enough to finish within the existing output limit. No read, lease or command was submitted by this invalid decision. Correct it using only the remaining decisions, or replan next scheduled turn.",
@@ -736,6 +825,23 @@ export class Engine {
         });
         summary = decision.summary;
         if (decision.kind === "wait") {
+          const valid = this.adapter.validateWait?.(decision.basis ?? {}, facts);
+          if (valid && !valid.valid) {
+            lastCode = valid.code;
+            await rememberFeedback({
+              code: valid.code,
+              guidance: valid.guidance,
+              detail: valid.detail,
+              submitted: false,
+              committed: false,
+            });
+            await observation.record(claim, "deciding", "Wait rejected before completion", {
+              code: valid.code,
+              submitted: false,
+              committed: false,
+            });
+            continue;
+          }
           await outcome("wait", { code: "WAIT", summary: decision.summary });
           notes = decision.notes ?? notes;
           lastCode = "WAIT";

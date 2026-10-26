@@ -185,7 +185,7 @@ it("environment validation rejects omitted resource effects rather than trusting
     };
   const h = f.host(model);
   h.engines.register(new SpecialistCoordinatorEngine());
-  await h.host.run(f.claim);
+  await expect(h.host.run(f.claim)).rejects.toThrow("CLAIMS_DO_NOT_MATCH_ACTION");
   expect(f.board.debits).toBe(0);
   expect(inputs).toHaveLength(2);
 });
@@ -629,4 +629,82 @@ it("corrects a worker output when an existing fourth slot is available and still
   expect((await f.pool.query("SELECT status FROM compute_ledger")).rows.every((r) => r.status === "reported")).toBe(
     true,
   );
+});
+
+it("settles an already dispatched sibling after a known worker rejection", async () => {
+  const f = await setup(true, 2),
+    base = modelFor([]);
+  let release!: () => void;
+  const siblingStarted = new Promise<void>((done) => {
+    release = done;
+  });
+  const h = f.host({
+    decide: async (input) => {
+      const packet = JSON.parse(input.messages[1].content);
+      if (packet.focus.id === "defend") {
+        await siblingStarted;
+        return { decision: null, decisionError: "MODEL_FEEDBACK_EXHAUSTED", inputTokens: 10, outputTokens: 2 };
+      }
+      release();
+      await new Promise<void>((done, fail) => {
+        const timer = setTimeout(done, 30);
+        input.signal.addEventListener(
+          "abort",
+          () => {
+            clearTimeout(timer);
+            fail(Error("SIBLING_WAS_ABORTED"));
+          },
+          { once: true },
+        );
+      });
+      return base.decide(input);
+    },
+  });
+  h.engines.register(new SpecialistCoordinatorEngine());
+  await expect(h.host.run(f.claim)).rejects.toThrow("MODEL_FEEDBACK_EXHAUSTED");
+  expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([
+    { status: "reported" },
+    { status: "reported" },
+  ]);
+  expect(f.board.outcomes).toBe(0);
+});
+
+it("replans a proposal invalidated during reasoning within the original three-call budget", async () => {
+  const f = await setup();
+  const original = f.board.adapter.connect;
+  f.board.adapter.connect = async (binding) => {
+    const session = await original(binding);
+    return {
+      ...session,
+      observe: async (query) => {
+        const view = await session.observe(query);
+        view.coordination!.focuses = view.coordination!.focuses.slice(0, 1);
+        return view;
+      },
+      decisionGrounding: { prepare: (input) => input, validate: () => null },
+    };
+  };
+  const inputs: unknown[] = [],
+    base = modelFor(inputs);
+  let advanced = false;
+  const h = f.host({
+    decide: async (input: Parameters<typeof base.decide>[0]) => {
+      const result = await base.decide(input);
+      if (!advanced) {
+        advanced = true;
+        f.board.advance();
+      }
+      return result;
+    },
+  });
+  h.engines.register(new SpecialistCoordinatorEngine());
+  await h.host.run(f.claim);
+  expect(f.board.debits).toBe(40);
+  expect(inputs).toHaveLength(3);
+  expect(inputs[1]).toMatchObject({ previousSelection: { code: "STALE_PROPOSAL", submitted: false } });
+  expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([
+    { status: "reported" },
+    { status: "reported" },
+    { status: "reported" },
+  ]);
 });

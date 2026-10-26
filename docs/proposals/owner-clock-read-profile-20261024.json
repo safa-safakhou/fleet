@@ -60,9 +60,7 @@
         "args": {
           "forecastMinutes": 60
         },
-        "path": [
-          "asOfGameTimeMs"
-        ]
+        "path": ["asOfGameTimeMs"]
       }
     ]
   },

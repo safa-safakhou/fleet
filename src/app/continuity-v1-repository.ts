@@ -6,6 +6,7 @@ import { type Data, FleetError } from "../domain.js";
 import {
   ContinuityObservationSchema,
   ContinuityUpdateSchema,
+  continuityMeaning,
   empty,
   factSchema,
   later,
@@ -188,8 +189,7 @@ export class ContinuityV1Repository {
         evidenceLimit: 12,
         evidenceOmitted: Math.max(0, owned.length - selected.length),
         stateWithMissingSourcesWithheld: true,
-        meaning:
-          "Owner values and current facts are separate from subjective hypotheses, plans and predictions. Peer statements are not delivery or motive. Missing evidence remains unresolved; no update is required. Predictions test the next later observed fact of the named subject/predicate within their stated horizon, not all possible world events. Historical commitments/outcomes require authoritative occurrence time.",
+        meaning: continuityMeaning,
       },
     };
     this.delivered.set(this.key(task), {

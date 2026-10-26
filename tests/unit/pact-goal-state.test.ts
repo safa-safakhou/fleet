@@ -1,9 +1,42 @@
+import { readFileSync } from "node:fs";
 import { Ajv } from "ajv";
 import { expect, it } from "vitest";
 import { type Data, object } from "../../src/domain.js";
 import { ReactiveEngine } from "../../src/engines/reactive/engine.js";
 import { createPactEnvironment } from "../../src/environments/pact.js";
+import { pactCurrentObjective, pactWaitSchema, validatePactWait } from "../../src/games/pact/goal-state.js";
 import { decisionProbe } from "../scoped-probe.js";
+
+it("requires an explicit factual deferral when prerequisite work or free introductions are available", () => {
+  const native = JSON.parse(readFileSync("tests/fixtures/pact-initial-packing.json", "utf8")).observation.payload;
+  const schema = pactWaitSchema(native);
+  expect(schema).toBeDefined();
+  expect(validatePactWait({}, native)).toMatchObject({ valid: false, code: "PACT_WAIT_STATE_MISMATCH" });
+  const state = object(object(pactCurrentObjective(native)).currentState);
+  const basis = {
+    completedLevels: state.completedLevels,
+    queuedPhases: state.queuedPhases,
+    opportunityRevision: state.opportunityRevision,
+  };
+  expect(object(state.opportunities).construction).toContain("farm:2");
+  expect(validatePactWait(basis, native)).toMatchObject({ valid: false, code: "PACT_WAIT_DEFERRAL_REQUIRED" });
+  expect(
+    validatePactWait(
+      {
+        ...basis,
+        deferral: {
+          reason: "resource_reserve",
+          explanation: "Preserve stock for the selected Hall milestone.",
+          reconsiderWhen: "Next stock or construction change.",
+        },
+      },
+      native,
+    ),
+  ).toMatchObject({ valid: true });
+  const before = structuredClone(native);
+  validatePactWait({}, native);
+  expect(native).toEqual(before);
+});
 
 const facts = {
   world: {

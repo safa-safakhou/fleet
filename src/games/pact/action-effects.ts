@@ -1,10 +1,18 @@
 import { createHash } from "node:crypto";
-import { type Data, FleetError } from "../../domain.js";
+import { type Data, FleetError, type Tool } from "../../domain.js";
 import { type ActionEffects, ActionEffectsSchema, actionIntentDigest } from "../../platform/action-effects.js";
 import type { ActionIntent } from "../../platform/contracts.js";
 import { actionContract } from "./contracts.js";
 
 type Identity = { id: string; accountRef: string };
+/** Verify the actual decorated MCP catalog, not just canonical source tool names. */
+export function assertPactEffectCatalog(tools: readonly Tool[]) {
+  if (
+    !tools.some((t) => t.name === "pact_action_effects_quote_v1" && t.annotations?.readOnlyHint === true) ||
+    !tools.some((t) => t.name === "pact_action_effects_execute_v1" && t.annotations?.readOnlyHint === false)
+  )
+    throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED", true);
+}
 export function pactEffectCommand(binding: Identity, intent: ActionIntent, now: Date): Data {
   if (intent.bindingId !== binding.id || intent.schemaId !== "pact.action.v1")
     throw new FleetError("EFFECT_INTENT_MISMATCH", true);

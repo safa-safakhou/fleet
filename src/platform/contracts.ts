@@ -90,6 +90,7 @@ export const knownReadArgumentContract = "fleet.read-query.known-arguments.v1";
 export const knownReadArgumentContractV3 = "fleet.read-query.known-arguments.v3";
 export type ReadQueryOptions = { requireKnownArguments: true; retrievedTool?: string; contractVersion?: 3 };
 export interface EnvironmentSession {
+  decisionGrounding?: import("./native-grounding.js").DecisionGrounding;
   effects?(intent: ActionIntent): Promise<import("./action-effects.js").ActionEffects>;
   observe(query: Data): Promise<Observation>;
   catalog(): Promise<Tool[]>;

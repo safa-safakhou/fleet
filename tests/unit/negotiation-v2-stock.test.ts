@@ -59,8 +59,13 @@ it("v2 distinguishes exact ordinary stock from founding allowance without changi
       ratesWholePerHour: {},
     },
   });
-  expect(JSON.stringify(v2.payload)).not.toContain("120000");
-  expect(JSON.stringify(v2.coverage)).toContain("founding allowance omitted");
+  const environment = object(object(expandFactTables(v2.payload)).environment);
+  expect(JSON.stringify(environment.balances)).not.toContain("120000");
+  expect(object(object(environment.constructionStock).balances).iron).toEqual({
+    ordinaryUnits: "599",
+    foundingAllowanceUnits: "120000",
+  });
+  expect(JSON.stringify(v2.coverage)).toContain("trade balances exclude founding allowance");
 });
 
 it("v2 presents ordinary-only stock even when the uncompressed request already fits", async () => {
@@ -101,7 +106,13 @@ it("v2 presents ordinary-only stock even when the uncompressed request already f
     },
   } as unknown as DecisionContext;
   await new NegotiationDecisionStep().runContext(ctx);
-  expect(delivered).not.toContain("120000");
+  const environment = object(object(object(JSON.parse(delivered)).observation).payload).environment;
+  const expanded = object(expandFactTables(environment));
+  expect(JSON.stringify(expanded.balances)).not.toContain("120000");
+  expect(object(object(expanded.constructionStock).balances).iron).toEqual({
+    ordinaryUnits: "0",
+    foundingAllowanceUnits: "120000",
+  });
   expect(delivered).toContain("ordinaryWholeFloor");
   expect(delivered).toContain("pact.negotiation-view.v2");
 });

@@ -1,6 +1,7 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { Ajv } from "ajv";
 import { FleetError, type ModelPort, safeCode } from "./domain.js";
+import { compileGenerationSchema } from "./model-schema.js";
 
 type Request = Parameters<ModelPort["decide"]>[0];
 type Result = Awaited<ReturnType<ModelPort["decide"]>>;
@@ -24,6 +25,7 @@ export async function recoverModelOutput(
   )
     throw new FleetError("MODEL_REQUEST_NOT_ADMITTED", true);
   const validate = new Ajv({ strict: false, validateFormats: false, allErrors: true }).compile(request.schema);
+  const nativeContract = request.outputContract ? compileGenerationSchema(request.outputContract) : undefined;
   let input = request,
     previous: Result | undefined;
   for (let attempt = 1; ; attempt++) {
@@ -50,7 +52,9 @@ export async function recoverModelOutput(
         true,
       );
     const result =
-      !raw.decisionError && !validate(raw.decision) ? { ...raw, decisionError: "INVALID_MODEL_OUTPUT" } : raw;
+      !raw.decisionError && (!validate(raw.decision) || (nativeContract && !nativeContract(raw.decision)))
+        ? { ...raw, decisionError: "INVALID_MODEL_OUTPUT" }
+        : raw;
     const known = [result.inputTokens, result.outputTokens].every(
       (n) => n !== null && Number.isSafeInteger(n) && n >= 0,
     );

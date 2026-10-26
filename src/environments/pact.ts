@@ -1,7 +1,13 @@
 import { type Data, FleetError, type GamePort, object, safeCode } from "../domain.js";
-import { normalizePactEffects, pactEffectCommand, pactRemoteGuard } from "../games/pact/action-effects.js";
+import {
+  assertPactEffectCatalog,
+  normalizePactEffects,
+  pactEffectCommand,
+  pactRemoteGuard,
+} from "../games/pact/action-effects.js";
 import { pactAdapter } from "../games/pact/adapter.js";
 import { pactAgentBriefing } from "../games/pact/briefing.js";
+import { PactCoordination } from "../games/pact/coordination.js";
 import { pactEvents } from "../games/pact/events.js";
 import { pactCurrentObjective, pactWaitSchema, validatePactWait } from "../games/pact/goal-state.js";
 import { projectPactObservation } from "../games/pact/negotiation-state.js";
@@ -83,7 +89,10 @@ export function createPactEnvironment(ports: {
   outlookVersion?: "pact.agent-outlook.v1";
   actionEffectsVersion?: "fleet.action-effects.v1";
   factRequests?: PactFactRequest[];
+  coordinationVersion?: "pact.coordination.v1";
 }): EnvironmentAdapter {
+  if (ports.coordinationVersion && (!ports.outlookVersion || !ports.actionEffectsVersion))
+    throw new FleetError("COORDINATION_PROTOCOL_REQUIRED", true);
   return {
     ref: { id: "pact", version: "1" },
     specialistPresets: pactSpecialistPresets,
@@ -125,12 +134,22 @@ export function createPactEnvironment(ports: {
       simulationControls: false,
       continuity: Boolean(ports.outlookVersion),
       ...(ports.actionEffectsVersion ? { actionEffects: true } : {}),
+      ...(ports.coordinationVersion ? { coordination: true } : {}),
     },
     async connect(binding) {
       const agentId = await ports.bindings.agentFor(binding);
       const requests = (ports.factRequests ?? []).filter((r) => r.entityRef === binding.entityRef);
       const tracker = createPactFactTracker(requests, binding.entityRef);
       const game = await ports.game(agentId);
+      const coordination = ports.coordinationVersion ? new PactCoordination(binding, game, ports.now) : undefined;
+      let leaseOpened = false;
+      const ensureWriteLease = async () => {
+        if (coordination) return coordination.ensureLease();
+        if (!leaseOpened) {
+          await game.open();
+          leaseOpened = true;
+        }
+      };
       const finish = async (observation: Observation, query: Data): Promise<Observation> =>
         requests.length
           ? {
@@ -147,22 +166,24 @@ export function createPactEnvironment(ports: {
         if (ports.actionEffectsVersion) {
           const tools = await game.tools();
           if (
-            !game.effects ||
-            !game.submitGuarded ||
-            !tools.some((t) => t.name === "pact_action_effects_quote_v1" && t.annotations?.readOnlyHint === true) ||
-            !tools.some((t) => t.name === "pact_action_effects_execute_v1" && t.annotations?.readOnlyHint === false)
+            coordination &&
+            !tools.some((t) => t.name === "pact_decision_support_v2" && t.annotations?.readOnlyHint === true)
           )
-            throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED", true);
+            throw new FleetError("COORDINATION_PROTOCOL_REQUIRED", true);
+          if (!game.effects || !game.submitGuarded) throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED", true);
+          assertPactEffectCatalog(tools);
         }
       } catch (error) {
         await game.close();
         throw error;
       }
       return {
+        ...(coordination ? { decisionGrounding: coordination.grounding } : {}),
         ...(ports.actionEffectsVersion
           ? {
               effects: async (intent: import("../platform/contracts.js").ActionIntent) => {
                 await ports.bindings.agentFor(binding);
+                await ensureWriteLease();
                 const command = pactEffectCommand(binding, intent, ports.now());
                 if (!game.effects) throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED", true);
                 return normalizePactEffects(intent, command, await game.effects(command));
@@ -253,7 +274,7 @@ export function createPactEnvironment(ports: {
               }
             }
             const current = await pactAdapter.initial(game, binding.entityRef);
-            return finish(
+            const result = await finish(
               {
                 schemaId: "pact.observation.v1",
                 revision: mapped.revision,
@@ -270,6 +291,10 @@ export function createPactEnvironment(ports: {
               },
               query,
             );
+            if (query.coordination === true && coordination) {
+              return coordination.observe(result);
+            }
+            return result;
           }
           const payload: Data = await pactAdapter.initial(game, binding.entityRef);
           if (schemaTool) {
@@ -332,12 +357,20 @@ export function createPactEnvironment(ports: {
         async catalog() {
           const tools = await game.tools();
           pactAdapter.validateCatalog?.(tools);
-          return tools;
+          // observe() accepts read tools; writes use native action contracts.
+          // Validate the full MCP protocol catalog, then advertise only tools
+          // callable through this decision port. Continuity keeps native capabilities.
+          return tools.filter(pactAdapter.isRead);
         },
         projectObservation: projectPactObservation,
         packObservation: packPactObservation,
-        validateProposal: async (proposal, observation) =>
-          validatePactProposal(proposal.intent.payload, observation.payload, proposal.expectedOutcome),
+        validateProposal: async (proposal, observation) => {
+          const local = validatePactProposal(proposal.intent.payload, observation.payload, proposal.expectedOutcome);
+          if (!local.valid) return local;
+          return proposal.intent.expectedVersion !== undefined && coordination
+            ? coordination.validate(proposal, observation)
+            : local;
+        },
         waitSchema: async (observation) => pactWaitSchema(observation.payload),
         validateWait: async (basis, observation) => validatePactWait(basis, observation.payload),
         actionContracts: async (observation, allowedActionKeys) =>
@@ -346,7 +379,8 @@ export function createPactEnvironment(ports: {
           try {
             if (intent.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH");
             if (intent.schemaId !== "pact.action.v1") throw new FleetError("UNSUPPORTED_SCHEMA");
-            if (intent.expectedVersion !== undefined) throw new FleetError("UNSUPPORTED_EXPECTED_VERSION");
+            if (intent.expectedVersion !== undefined && !coordination)
+              throw new FleetError("UNSUPPORTED_EXPECTED_VERSION");
             if (!/^[a-f0-9]{8}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{4}-[a-f0-9]{12}$/i.test(intent.commandId))
               throw new FleetError("INVALID_COMMAND_ID");
             validateTool(
@@ -354,11 +388,13 @@ export function createPactEnvironment(ports: {
               intent.payload,
             );
             await ports.bindings.agentFor(binding);
-            await game.open();
+            await ensureWriteLease();
           } catch (error) {
             throw new FleetError(safeCode(error), true);
           }
           try {
+            if (intent.expectedVersion !== undefined && coordination)
+              return receipt(intent.commandId, await coordination.execute(intent));
             if (intent.guard) {
               if (!ports.actionEffectsVersion || !game.submitGuarded)
                 throw new FleetError("ACTION_EFFECTS_PROTOCOL_REQUIRED", true);

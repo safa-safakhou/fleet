@@ -4,6 +4,7 @@ import { resolve, sep } from "node:path";
 import Fastify from "fastify";
 import { z } from "zod";
 import { SpecialistInspection } from "./app/specialist-inspection.js";
+import { FleetMetrics } from "./call-metrics.js";
 import { Comparisons, comparisonPreview } from "./comparisons.js";
 import { transaction } from "./db.js";
 import { DecisionSupport, VwDecision } from "./decision.js";
@@ -124,6 +125,7 @@ export function buildServer(options: {
     profiles,
     gameKinds: actionKinds,
   }));
+  app.get("/api/metrics", async (r) => new FleetMetrics(store).read(r.query));
   const profileConsole =
     options.tasks && options.engines && options.environments
       ? new ProfileConsole(store, options.tasks, options.environments, options.engines)
@@ -366,7 +368,7 @@ export function buildServer(options: {
   });
   app.get("/*", async (request, reply) => {
     const path = request.url.split("?")[0],
-      root = resolve("dist/web"),
+      root = resolve(process.env.FLEET_WEB_ROOT ?? "dist/web"),
       file = path.startsWith("/assets/") ? resolve(root, `.${decodeURIComponent(path)}`) : resolve(root, "index.html");
     if (!file.startsWith(root + sep)) return reply.code(404).send();
     try {

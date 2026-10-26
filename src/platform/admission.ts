@@ -1,17 +1,28 @@
 import { randomUUID } from "node:crypto";
 import { setTimeout as delay } from "node:timers/promises";
 import { isDeepStrictEqual } from "node:util";
+import { recordCallRequest, recordCallResponse } from "../call-metrics.js";
 import { transaction } from "../db.js";
 import { FleetError, type ModelPort, type ModelSettings, safeCode } from "../domain.js";
+import { modelCallBound } from "../model-bounds.js";
+import { modelFailureProgress } from "../model-progress.js";
 import { recoverModelOutput } from "../model-recovery.js";
 import { Observability } from "../observability.js";
 import type { Claim, Store } from "../store.js";
+import type { CapacityDemand, CapacityResource } from "./cache-profile.js";
+import { type FeedbackPolicy, runDecisionFeedback } from "./decision-feedback.js";
 import type { TaskClaim, TaskStore } from "./tasks.js";
 export type ModelResult = Awaited<ReturnType<ModelPort["decide"]>> & { allocationId?: string };
 export class RouteCapacity {
   constructor(
     private store: Store,
-    private policy: (model: ModelSettings) => { key: string; capacity: number },
+    private policy: (model: ModelSettings) => {
+      key: string;
+      capacity: number;
+      tokenCapacity?: number;
+      resource?: CapacityResource;
+    },
+    private demand?: (request: Parameters<ModelPort["decide"]>[0]) => Promise<CapacityDemand>,
   ) {}
   async run<T>(
     claim: Claim,
@@ -31,6 +42,47 @@ export class RouteCapacity {
     )
       throw new FleetError("INVALID_PROVIDER_CAPACITY", true);
     await this.store.active(claim);
+    let tokenUnits: number | null = null,
+      resourceUnits: number | null = null;
+    if (
+      policy.resource &&
+      (!/^[a-zA-Z0-9._-]{1,80}$/.test(policy.resource.unit) ||
+        !/^[a-f0-9]{64}$/.test(policy.resource.fingerprint) ||
+        !Number.isSafeInteger(policy.resource.capacity) ||
+        policy.resource.capacity < 1 ||
+        policy.resource.capacity > 4194304)
+    )
+      throw new FleetError("INVALID_PROVIDER_CAPACITY", true);
+    if (policy.tokenCapacity !== undefined || policy.resource !== undefined) {
+      if (
+        (policy.tokenCapacity !== undefined &&
+          (!Number.isSafeInteger(policy.tokenCapacity) ||
+            policy.tokenCapacity < 1 ||
+            policy.tokenCapacity > 4194304)) ||
+        !this.demand
+      )
+        throw new FleetError("INVALID_PROVIDER_CAPACITY", true);
+      // Tokenizer/network work stays outside accounting transactions.
+      try {
+        const demand = await this.demand(request);
+        tokenUnits = typeof demand === "number" ? demand : demand.tokenUnits;
+        resourceUnits = typeof demand === "number" ? null : demand.resourceUnits;
+      } catch (error) {
+        if (error instanceof FleetError && error.notDispatched) throw error;
+        throw new FleetError("PROVIDER_TOKENIZER_UNAVAILABLE", true);
+      }
+      if (!Number.isSafeInteger(tokenUnits) || tokenUnits < 1 || tokenUnits > (policy.tokenCapacity ?? 4194304))
+        throw new FleetError("PROVIDER_CONTEXT_CAPACITY", true);
+      if (
+        policy.resource &&
+        (!Number.isSafeInteger(resourceUnits) ||
+          resourceUnits === null ||
+          resourceUnits < 1 ||
+          resourceUnits > policy.resource.capacity)
+      )
+        throw new FleetError("PROVIDER_RESOURCE_CAPACITY", true);
+      await this.store.active(claim);
+    }
     await transaction(this.store.pool, async (db) => {
       await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,19281492))", [claim.id]);
       if (
@@ -42,22 +94,44 @@ export class RouteCapacity {
         ).rowCount
       )
         throw new FleetError("TURN_MODEL_CALL_ACTIVE", true);
-      await db.query("INSERT INTO model_capacity_routes(route_key,capacity) VALUES($1,$2) ON CONFLICT DO NOTHING", [
-        policy.key,
-        policy.capacity,
-      ]);
-      const row = (await db.query("SELECT capacity FROM model_capacity_routes WHERE route_key=$1", [policy.key]))
-        .rows[0];
-      if (row.capacity !== policy.capacity) throw new FleetError("PROVIDER_CAPACITY_MISMATCH", true);
       await db.query(
-        "INSERT INTO model_capacity_leases(id,route_key,turn_id,state,expires_at,sibling_worker) VALUES($1,$2,$3,'queued',$4,$5)",
-        [id, policy.key, claim.id, claim.deadline, siblingWorker],
+        "INSERT INTO model_capacity_routes(route_key,capacity,token_capacity,resource_unit,resource_capacity,resource_fingerprint) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING",
+        [
+          policy.key,
+          policy.capacity,
+          policy.tokenCapacity ?? null,
+          policy.resource?.unit ?? null,
+          policy.resource?.capacity ?? null,
+          policy.resource?.fingerprint ?? null,
+        ],
+      );
+      const row = (
+        await db.query(
+          "SELECT capacity,token_capacity,resource_unit,resource_capacity,resource_fingerprint FROM model_capacity_routes WHERE route_key=$1",
+          [policy.key],
+        )
+      ).rows[0];
+      if (
+        row.capacity !== policy.capacity ||
+        (row.token_capacity === null ? undefined : Number(row.token_capacity)) !== policy.tokenCapacity ||
+        (row.resource_unit ?? undefined) !== policy.resource?.unit ||
+        (row.resource_capacity === null ? undefined : Number(row.resource_capacity)) !== policy.resource?.capacity ||
+        (row.resource_fingerprint ?? undefined) !== policy.resource?.fingerprint
+      )
+        throw new FleetError("PROVIDER_CAPACITY_MISMATCH", true);
+      await db.query(
+        "INSERT INTO model_capacity_leases(id,route_key,turn_id,state,expires_at,sibling_worker,token_units,resource_units) VALUES($1,$2,$3,'queued',$4,$5,$6,$7)",
+        [id, policy.key, claim.id, claim.deadline, siblingWorker, tokenUnits, resourceUnits],
       );
     });
     try {
       await observation.record(claim, "thinking", "Provider capacity queued", {
         route: request.model.route,
         capacity: policy.capacity,
+        tokenCapacity: policy.tokenCapacity,
+        tokenUnits,
+        resource: policy.resource,
+        resourceUnits,
       });
       while (true) {
         if (request.signal.aborted)
@@ -73,17 +147,26 @@ export class RouteCapacity {
             [this.store.now()],
           );
           const active = (
-            await db.query("SELECT count(*)::int n FROM model_capacity_leases WHERE route_key=$1 AND state='active'", [
-              policy.key,
-            ])
-          ).rows[0].n;
+            await db.query(
+              "SELECT count(*)::int n,coalesce(sum(coalesce(token_units,$2)),0)::text tokens,coalesce(sum(coalesce(resource_units,$3)),0)::text resources FROM model_capacity_leases WHERE route_key=$1 AND state='active'",
+              [policy.key, policy.tokenCapacity ?? 0, policy.resource?.capacity ?? 0],
+            )
+          ).rows[0];
           const next = (
             await db.query(
               "SELECT id FROM model_capacity_leases WHERE route_key=$1 AND state='queued' ORDER BY sequence LIMIT 1",
               [policy.key],
             )
           ).rows[0];
-          if (active >= policy.capacity || next?.id !== id) return false;
+          if (
+            active.n >= policy.capacity ||
+            next?.id !== id ||
+            (policy.tokenCapacity !== undefined &&
+              Number(active.tokens) + (tokenUnits ?? policy.tokenCapacity) > policy.tokenCapacity) ||
+            (policy.resource !== undefined &&
+              Number(active.resources) + (resourceUnits ?? policy.resource.capacity) > policy.resource.capacity)
+          )
+            return false;
           await db.query("UPDATE model_capacity_leases SET state='active' WHERE id=$1", [id]);
           return true;
         });
@@ -106,6 +189,10 @@ export class RouteCapacity {
       await observation.record(claim, "thinking", "Provider capacity admitted", {
         route: request.model.route,
         capacity: policy.capacity,
+        tokenCapacity: policy.tokenCapacity,
+        tokenUnits,
+        resource: policy.resource,
+        resourceUnits,
         queueDelayMs: Math.max(0, this.store.now().getTime() - queuedAt),
       });
       await this.store.active(claim);
@@ -120,6 +207,7 @@ export class RouteCapacity {
   wrap(model: ModelPort, current: () => Claim | undefined): ModelPort {
     return {
       tracksDispatch: model.tracksDispatch,
+      contextWindow: (selected) => model.contextWindow?.(selected),
       decide: async (request) => {
         const claim = current();
         if (!claim) throw new FleetError("MODEL_CLAIM_REQUIRED", true);
@@ -232,6 +320,8 @@ export class ModelAdmission {
     request: Parameters<ModelPort["decide"]>[0],
     stage?: ModelStage,
   ): Promise<ModelResult> {
+    if (request.decisionEvidence && request.decisionEvidence.bindingId !== claim.bindingId)
+      throw new FleetError("DECISION_BINDING_SCOPE_REQUIRED", true);
     const cohort = await this.store.cohort(claim.turn.cohortId);
     const floor = stage?.kind === "worker" ? (stage.retryReserveCalls ?? 1) : 0;
     return recoverModelOutput(request, {
@@ -246,6 +336,30 @@ export class ModelAdmission {
         });
       },
     });
+  }
+  /** Explicit semantic correction; each proposal is separately admitted and accounted.
+   * The trusted engine supplies validation. This never executes or retries a game command. */
+  async decideWithFeedback(
+    claim: TaskClaim,
+    request: Parameters<ModelPort["decide"]>[0],
+    policy: Pick<FeedbackPolicy, "validate" | "maxAttempts" | "prepareRetry">,
+    stage?: ModelStage,
+  ) {
+    if (request.decisionEvidence && request.decisionEvidence.bindingId !== claim.bindingId)
+      throw new FleetError("DECISION_BINDING_SCOPE_REQUIRED", true);
+    const cohort = await this.store.cohort(claim.turn.cohortId);
+    const floor = stage?.kind === "worker" ? (stage.retryReserveCalls ?? 1) : 0;
+    const outcome = await runDecisionFeedback(request, {
+      ...policy,
+      inputByteLimit: cohort.budget?.inputByteLimit ?? 0,
+      attempt: (input, n) => this.decideOnce(claim, input, stage, n > 1 ? floor : 0),
+      canRetry: async () => (await this.remainingCalls(claim)) > floor,
+    });
+    await new Observability(this.store).recordDebug(claim.turn, "thinking", "Bounded proposal feedback", {
+      stopReason: outcome.stopReason,
+      ...outcome.metrics,
+    });
+    return outcome;
   }
   private async decideOnce(
     claim: TaskClaim,
@@ -285,6 +399,7 @@ export class ModelAdmission {
           modelStartedAt = this.store.now().getTime();
         const observation = new Observability(this.store);
         try {
+          await recordCallRequest(this.store, allocation, request, budget.inputByteLimit, this.provider);
           await this.store.phase(turn, this.provider.tracksDispatch ? "model_reserved_tracked" : "model_reserved");
           execution = (await this.store.pool.query("SELECT calls FROM turns WHERE id=$1", [turn.id])).rows[0].calls;
           await observation.recordDebug(turn, "ready", "Model request", {
@@ -316,7 +431,10 @@ export class ModelAdmission {
             signal: AbortSignal.any([
               request.signal,
               AbortSignal.timeout(
-                Math.max(1, Math.min(90000, claim.turn.deadline.getTime() - this.store.now().getTime())),
+                Math.max(
+                  1,
+                  Math.min(modelCallBound(request.model), claim.turn.deadline.getTime() - this.store.now().getTime()),
+                ),
               ),
             ]),
             onDispatch: async () => {
@@ -332,6 +450,7 @@ export class ModelAdmission {
           });
           const elapsedMs = Math.max(0, this.store.now().getTime() - modelStartedAt);
           await this.store.recordUsage(allocation, result.inputTokens, result.outputTokens);
+          await recordCallResponse(this.store, allocation, result, elapsedMs);
           await observation.recordDebug(turn, "deciding", "Model response", {
             execution,
             allocationId: allocation,
@@ -343,6 +462,7 @@ export class ModelAdmission {
             inputTokens: result.inputTokens,
             outputTokens: result.outputTokens,
             providerMetadata: result.providerMetadata ?? null,
+            generationProgress: result.execution,
             coverage: "Provider final answer only; provider internal reasoning is not captured.",
           });
           if (result.inputTokens === null || result.outputTokens === null) throw new FleetError("USAGE_UNKNOWN");
@@ -366,6 +486,7 @@ export class ModelAdmission {
               code: safeCode(error),
               elapsedMs: Math.max(0, this.store.now().getTime() - modelStartedAt),
               notDispatched,
+              generationProgress: modelFailureProgress(error),
             })
             .catch(() => {});
           throw error;

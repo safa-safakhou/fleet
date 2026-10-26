@@ -27,7 +27,7 @@ export const manifest: ArchitectureManifest = {
       },
       clockContract: { type: "string", title: "Scoped wake clocks", enum: ["scoped.v1", "scoped.v2"] },
       responseContract: { type: "string", enum: ["visible.v1"] },
-      contextPackingContract: { type: "string", enum: ["required-first.v1"] },
+      contextPackingContract: { type: "string", enum: ["required-first.v1", "required-first.v2"] },
       observationPolicyVersion: { type: "string", enum: ["2", "3", "4", "5"] },
       skillReferenceContract: { type: "string", enum: ["listed.v1"] },
       observationContract: {

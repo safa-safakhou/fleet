@@ -47,7 +47,7 @@ The independent server deployment and five-owner Luna medium pilot are authorize
 3. Generate private database/operator secrets and an independent vault key. Put `.env` outside public serving, mode 600; back it up securely. Keep the console loopback-only unless behind HTTPS with correct origin and trusted access. Configure an operator-accessible OAuth callback origin accepted by PACT.
 4. Install/migrate this database only. Do not reuse a PACT database, credential vault, Windows task or namespace. Run the services disabled and check health/heartbeat, restart, backups and restore.
 5. With explicit population consent, enable the selected route and provision fresh synthetic accounts or individually connect approved existing accounts. Set a reviewed mandate and optional synthetic-owner exception kinds/quota. Personal-account approvals remain the actual owner's responsibility. Revoking observation deletes the retained conversation contents.
-6. Explicitly start the configured cohort and observe actual provider turns, game receipts, language quality, negotiations, latency, lease contention and cost. Start conservatively. Increasing N does not increase default inference concurrency. A worker handles one turn at a time; multiple workers share the database admission gate.
+6. Explicitly start the configured cohort and observe actual provider turns, game receipts, language quality, negotiations, latency, lease contention and cost. Start conservatively. Increasing N does not increase default inference concurrency. Decision workers and shared inference slots have separate validated limits; multiple processes retain the database admission gate. See [worker and inference pools](worker-inference-pools-20261024.md) for configuration and measured capacity.
 
 The standalone durable scheduler needs no desktop application or ChatGPT task scheduler. The Codex CLI subscription adapter is implemented; see [its setup, budget semantics and recovery](codex-provider.md). The authorized Luna pilot uses the verified native server ChatGPT login and actual medium-route certification; other models/routes still need their own acceptance. The API-compatible route does not use a consumer subscription.
 
@@ -94,6 +94,16 @@ See [the local repair and recovery guide](local-repair-20261013.md). Opt-in macO
 The [F8 proposal](multi-engine-release-proposal-20261017.md) supersedes no deployment or recovery authorization. It prepares source qualification only, with no selected run. Its additive-schema rollback retains the latest database and explicitly prevents older workers from claiming unsupported task profiles. Server Fleet is excluded.
 
 
+## Native vLLM progress and shared cache admission
+
+Explicit vLLM requests use streamed final content/usage and bounded request-correlated progress diagnostics. Interrupted content is not a usage receipt: keep unknown allocations and their reservations; do not retry them automatically or settle them from aggregate provider counters.
+
+The Nemotron native candidate requires compact structured generation. The isolated serving configuration uses vLLM's explicit `guidance` backend with `disable_any_whitespace=true`, validated against the emitted native schemas. This is a serving contract, not a prompt hint. The installed automatic backend mode cannot simply be combined with that global flag; qualify the complete selected configuration before activation. String contents, native envelope rules and canonical action validation remain authoritative.
+
+`FLEET_VLLM_TOKEN_CAPACITY` optionally adds a measured cache-token budget to the shared legacy/native inference route. It is disabled by default. Exact provider tokenizer counts plus reserved output are admitted before model invocation; unknown demand is never treated as zero. Existing active leases with unknown token demand consume the full configured token budget, and changing a route's recorded capacity is refused. Four worker slots alone do not guarantee that four maximum contexts fit. Select a conservative budget for the actual server/cache layout and requalify it; no installed setting is changed by the source repair.
+
+Native engines distinguish their stable output envelope from observation-bound generation values. Refresh may update current revisions and permitted values, while the shared feedback/recovery paths retain the envelope contract. Simulation requests have independent durable identities and receipt-based outcomes; completed notifications and returned controller calls are separate measurements. See the [native progress-contract plan](superpowers/plans/2026-10-24-native-progress-contracts.md) and [rehearsal report](native-progress-contracts-rehearsal-20261024.md). These source changes do not authorize deployment, real game execution or E4/KQ1.
+
 ## Accounted output recovery — 18 October 2026
 
 Generic engine admission permits one corrective model attempt for known, completed unusable outputs, within the existing allowance and stop/deadline fences. Each execution is separately metered. Persistent known failures wait for their original scheduled retry; unknown usage and uncertain commands retain their recovery gates. See [repair/evidence](model-output-recovery-20261018.md). This source capability is not installed or enabled by its documentation.
@@ -109,3 +119,13 @@ The explicitly approved continuation uses `scripts/qualify-retries.ts` (review-o
 Use `--suite unit|integration|acceptance` for Fleet suites or `--repo pact --suite unit|integration` for the adjacent PACT checkout. Explicit mixed PACT unit/integration paths are routed through their own configurations serially. No discovered tests is a failure. Paired acceptance requires built PACT packages and `@pact/rules-worker`; these builds perform no game/model execution. Existing unowned test services must never be selected for this work.
 
 Offline qualification regression tests must also use this runner, for example `npm run test:architecture -- tests/integration/provider-qualification.test.ts`. They use an explicit nonce-owned ledger entry point and never fall back to retained port 5436. This does not change production qualification's isolated target guard or authorize provider execution.
+
+
+## Physical cache admission and clock qualification — 25 October 2026
+
+The [clock/cache repair record](clock-cache-repairs-20261025.md) documents the approved host repair, offline resource-admission checks and remaining live qualification. Parallel explicit vLLM routes require `FLEET_VLLM_CACHE_PROFILE`; the40000-token guard alone is insufficient. Cache-block leases have explicit units and a pinned topology/instance; billing tokens and historical unknown usage remain separate. Use the authenticated metadata export, not a guessed startup token equivalent.
+
+A rehearsal additionally requires fresh `FLEET_CLOCK_VALIDATION` evidence from the Windows-referenced clock-only probe. Clock validation does not reset clocks. Clock maintenance is separate and requires covering authorization; do not reset stored schedules or recover historical allocations. The repaired provider hook and stricter admission remain unactivated until an approved owned run. Game execution remains disabled and E4/KQ1 blocked.
+
+
+The [25 October isolated activation](native-cache-block-rehearsal-20261025.md) now verifies the live metadata path and 720-request workload with zero preemptions at 57 physical/55 admission blocks. For owned vLLM launches, use a short private `TMPDIR`: ZMQ IPC socket paths include a UUID and must fit the Unix 107-character path limit. Keep the exact failed-launch evidence and check ownership before stopping/replacing an attempt. This operational qualification does not activate installed services or resume E4/KQ1.

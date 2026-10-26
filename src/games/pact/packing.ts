@@ -2,7 +2,7 @@ import { type Data, FleetError, object } from "../../domain.js";
 import { factTable } from "../../fact-table.js";
 import type { Observation } from "../../platform/contracts.js";
 import { compactFacts } from "./adapter.js";
-import { compactEnvironment } from "./environment.js";
+import { compactBriefingGuidance, compactCurrentFacts, compactEnvironment } from "./environment.js";
 import { fitNegotiationState, type NegotiationState } from "./negotiation-state.js";
 
 function ordinaryNegotiationStock(balances: Data): Data {
@@ -63,16 +63,35 @@ export function packPactObservation(observation: Observation, byteLimit: number)
       "socialDelegation",
       "coldContactStock",
       "communicationCapacity",
+      "agentBriefing",
+      "buildings",
+      "builders",
+      "nextUpgradeChecks",
+      "constructionStockChecks",
     ];
-    const environment = Object.fromEntries(keys.filter((k) => compact[k] !== undefined).map((k) => [k, compact[k]]));
-    // The trusted candidate policy is a negotiation view. Other game detail is
-    // available by ordinary scoped reads; omitted construction is never absence.
-    environment.balances = factTable(
-      v2 ? ordinaryNegotiationStock(object(environment.balances)) : environment.balances,
+    const environment = compactCurrentFacts(
+      Object.fromEntries(keys.filter((k) => compact[k] !== undefined).map((k) => [k, compact[k]])),
     );
-    if (v2)
+    // Negotiation memory does not replace the owner's current development context.
+    environment.balances = factTable(v2 ? ordinaryNegotiationStock(object(compact.balances)) : compact.balances);
+    if (v2) {
+      environment.constructionStock = {
+        markedPerWhole: object(guide.resourceRules).markedPerWhole ?? null,
+        balances: factTable(
+          Object.fromEntries(
+            Object.entries(object(compact.balances)).map(([resource, value]) => [
+              resource,
+              {
+                ordinaryUnits: object(value).ordinaryUnits,
+                foundingAllowanceUnits: object(value).foundingAllowanceUnits,
+              },
+            ]),
+          ),
+        ),
+      };
       environment.stockMeaning =
-        "Ordinary stock only. WholeFloor plus RemainderMarked/600 is the exact balance; null is unknown. Rates are whole/hour. Founding allowance is not ordinary trade stock. Authority ceilings are permission, not stock. Unsigned offers create no income, delivery or immediate stock transfer.";
+        "balances: ordinary trade stock, WholeFloor plus RemainderMarked/600; null unknown, rates whole/hour. constructionStock: native marked units, including founding allowance usable only for construction. Authority ceilings are permission, not stock. Offers create no delivery.";
+    }
     environment.authority = {
       ...object(environment.authority),
       resources: factTable(object(environment.authority).resources),
@@ -108,18 +127,26 @@ export function packPactObservation(observation: Observation, byteLimit: number)
         packed: true,
         policy: v2 ? "pact.negotiation-view.v2" : "pact.negotiation-view.v1",
         omitted: [
-          "construction, military and full guide/rule detail; use normal scoped reads",
+          "military and full guide/rule detail; use normal scoped reads",
           ...(v2
-            ? ["founding allowance omitted from negotiation stock; use scoped world read for founding supplies"]
+            ? ["trade balances exclude founding allowance; constructionStock carries its separate native units"]
             : []),
         ],
         time: world.asOfGameTimeMs,
       },
     };
     const bytes = () => Buffer.byteLength(JSON.stringify(base));
-    if (bytes() > byteLimit - 1000) {
-      delete environment.publicDiscovery;
-      (base.coverage.omitted as string[]).push("discovery page unavailable; use scoped discovery read");
+    if (bytes() > byteLimit - 1000 && environment.agentBriefing)
+      environment.agentBriefing = compactBriefingGuidance(environment.agentBriefing);
+    if (bytes() > byteLimit - 1000 && Array.isArray(object(environment.publicDiscovery).players)) {
+      const discovery = object(environment.publicDiscovery),
+        players = discovery.players as unknown[];
+      // Preserve an observed identity and disclose page reduction; no invented empty world.
+      environment.publicDiscovery = {
+        ...discovery,
+        players: players.slice(0, 1),
+        packingCoverage: { observed: players.length, omitted: Math.max(0, players.length - 1) },
+      };
     }
     const state = structuredClone(negotiation) as NegotiationState;
     if (v2)

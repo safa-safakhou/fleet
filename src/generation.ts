@@ -106,6 +106,7 @@ export function closedDecisionSchema(input: {
   memory: boolean;
   continuationLookup?: boolean;
   continuationSchema?: Data;
+  waitSchema?: Data;
 }): Data {
   const base = object(inline(decisionSchema)),
     branches = (base.oneOf ?? base.anyOf) as Data[];
@@ -113,6 +114,10 @@ export function closedDecisionSchema(input: {
   const wait = branch("wait"),
     read = branch("read"),
     action = branch("action");
+  if (input.waitSchema) {
+    object(wait.properties).basis = input.waitSchema;
+    wait.required = [...new Set([...(wait.required as string[]), "basis"])];
+  } else delete object(wait.properties).basis;
   const readNames = [...new Set(input.reads.map((t) => t.name))];
   const local: Tool[] = [
     ...(input.continuationLookup

@@ -3,6 +3,7 @@ import { Ajv } from "ajv";
 import { type Data, type ModelPort, object } from "../../src/domain.js";
 import { supplyRoutineCandidate, supplyRoutineKind } from "../../src/environments/pact-skills.js";
 import { expandFactTables } from "../../src/fact-table.js";
+import { fixtureGoalBasis, fixtureWaitBasis } from "./pact-progress-basis.js";
 
 const rows = (x: unknown): Data[] => (Array.isArray(x) ? x.map(object) : []);
 const terms = {
@@ -88,7 +89,7 @@ export function positiveSpecialistProvider(options: { worldReadProbe?: boolean }
         return { decision: { decision, ...(update ? { update } : {}) }, inputTokens: 20, outputTokens: 20 };
       };
       const wait = (summary = "No additional effect or completed delivery is claimed.") =>
-        reply({ kind: "wait", summary });
+        reply({ kind: "wait", summary, ...fixtureWaitBasis(packet) });
       const read = (tool: string, args: Data) => {
         const decision = {
           kind: "read",
@@ -117,10 +118,18 @@ export function positiveSpecialistProvider(options: { worldReadProbe?: boolean }
           kind: "action",
           schemaId: "pact.action.v1",
           payload: action,
-          ...(String(action.kind).startsWith("game.supply.")
+          ...(fixtureGoalBasis(packet) || String(action.kind).startsWith("game.supply.")
             ? {
                 expectedOutcome: {
-                  trade: { youSend: roleA ? terms.aToB : terms.bToA, youReceive: roleA ? terms.bToA : terms.aToB },
+                  ...(fixtureGoalBasis(packet) ? { actionKind: action.kind, basis: fixtureGoalBasis(packet) } : {}),
+                  ...(String(action.kind).startsWith("game.supply.")
+                    ? {
+                        trade: {
+                          youSend: roleA ? terms.aToB : terms.bToA,
+                          youReceive: roleA ? terms.bToA : terms.aToB,
+                        },
+                      }
+                    : {}),
                 },
               }
             : {}),
@@ -190,7 +199,11 @@ export function positiveSpecialistProvider(options: { worldReadProbe?: boolean }
         s.learned = true;
         return {
           decision: {
-            decision: { kind: "wait", summary: "Unproven exact routine hypothesis only; no delivery is claimed." },
+            decision: {
+              kind: "wait",
+              summary: "Unproven exact routine hypothesis only; no delivery is claimed.",
+              ...fixtureWaitBasis(packet),
+            },
             proposals: [supplyRoutineCandidate(String(source.id), String((opportunity.episodeIds as string[])[0]))],
           },
           inputTokens: 20,
@@ -308,6 +321,7 @@ export function positiveSpecialistProvider(options: { worldReadProbe?: boolean }
           {
             kind: "wait",
             summary: "Retain this exact supply goal before later guarded reuse; no consent or fulfillment is claimed.",
+            ...fixtureWaitBasis(packet),
           },
           {
             goals: [

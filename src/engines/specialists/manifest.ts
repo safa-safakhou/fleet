@@ -16,7 +16,10 @@ export const manifest: ArchitectureManifest = {
     { id: "continuity", version: "1" },
     { id: "proposals", version: "1" },
   ],
-  stateCodecs: [{ id: "continuity", version: "1" }],
+  stateCodecs: [
+    { id: "continuity", version: "1" },
+    { id: "coordinator-focus", version: "1" },
+  ],
   skillModes: ["off"],
   form: { fields: [] },
 };

@@ -29,17 +29,29 @@ export const ModelConfig = z
     model: z.string().min(1).max(100),
     reasoningEffort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional(),
     thinking: z.boolean().optional(),
+    provider: z.literal("vllm").optional(),
+    temperature: z.number().min(0).max(2).optional(),
+    topP: z.number().gt(0).max(1).optional(),
+    seed: z.number().int().min(0).max(2147483647).optional(),
     decisionPolicy: z.enum(["vw-focus-v1"]).optional(),
     cognition: z.enum(["llm-centered-v1"]).optional(),
     recallAssist: z.enum(["laya-recall-v1"]).optional(),
   })
   .strict()
-  .refine((m) => m.thinking === undefined || m.route === "ollama", "Thinking selection requires Ollama")
+  .refine((m) => m.provider === undefined || m.route === "openai-compatible", "vLLM requires a compatible route")
+  .refine(
+    (m) => m.thinking === undefined || m.route === "ollama" || m.provider === "vllm",
+    "Thinking selection requires an explicit supported provider",
+  )
+  .refine(
+    (m) => m.route !== "codex-cli" || [m.temperature, m.topP, m.seed].every((v) => v === undefined),
+    "Sampling selection requires an HTTP provider",
+  )
   .refine((m) => !m.cognition || !m.decisionPolicy, "LLM-centered cognition does not use VW")
   .refine((m) => !m.recallAssist || m.cognition === "llm-centered-v1", "Recall assistance requires cognition");
 const executionLimits = {
   perCallTokenLimit: z.number().int().min(100).max(40000),
-  maxOutputTokens: z.number().int().min(1).max(4096),
+  maxOutputTokens: z.number().int().min(1).max(16384),
   inputByteLimit: z.number().int().min(500).max(64000),
   maxCallsPerTurn: z.number().int().min(1).max(3),
   maxActionsPerTurn: z.number().int().min(1).max(3),
@@ -113,7 +125,14 @@ export class FleetError extends Error {
   }
 }
 export const Decision = z.discriminatedUnion("kind", [
-  z.object({ kind: z.literal("wait"), summary: z.string().max(400), notes: z.string().max(4000).optional() }).strict(),
+  z
+    .object({
+      kind: z.literal("wait"),
+      summary: z.string().max(400),
+      notes: z.string().max(4000).optional(),
+      basis: z.record(z.string(), z.unknown()).optional(),
+    })
+    .strict(),
   z
     .object({
       kind: z.literal("read"),
@@ -153,20 +172,32 @@ export interface GamePort {
   close(): Promise<void>;
 }
 export interface ModelPort {
+  contextWindow?(model: ModelSettings): number | undefined;
   readonly tracksDispatch?: boolean;
+  estimateInputTokens?(input: {
+    model: ModelSettings;
+    messages: { role: string; content: string }[];
+    maxOutputTokens?: number;
+    signal: AbortSignal;
+  }): Promise<number>;
   decide(input: {
     model: ModelSettings;
     messages: { role: string; content: string }[];
     schema: Data;
+    /** Engine-owned envelope, independent of observation-bound generation values. Never sent as prompt authority. */
+    outputContract?: Data;
     maxOutputTokens: number;
     signal: AbortSignal;
     onDispatch?: () => Promise<void>;
+    decisionEvidence?: import("./platform/evidence-decision.js").DecisionEvidence;
   }): Promise<{
     decision: unknown;
     inputTokens: number | null;
     outputTokens: number | null;
     decisionError?: string;
+    verifiedEvidence?: import("./platform/evidence-decision.js").VerifiedEvidenceDecision;
     outputText?: string;
+    execution?: import("./model-progress.js").GenerationProgress;
     providerMetadata?: {
       protocol: "ollama.chat";
       done: boolean | null;

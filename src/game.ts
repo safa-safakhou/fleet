@@ -4,6 +4,12 @@ import type { Data, GamePort, Tool } from "./domain.js";
 // One deployment selects one reviewed game integration. Core turns own scheduling,
 // accounting, identity checks, command recovery and fencing, never game rules.
 export interface GameAdapter {
+  /** Optional trusted native proposal policy. Refresh updates this turn's facts through the adapter. */
+  grounding?(facts: Data): {
+    policy: import("./platform/native-grounding.js").DecisionGrounding;
+    observation: import("./platform/contracts.js").Observation;
+    refresh(query: Data): Promise<void>;
+  };
   continuationSignals?(facts: Data): import("./continuation.js").Signal[];
   decisionObservation?(facts: Data): import("./decision.js").DecisionObservation;
   cognitiveObservation?(facts: Data): { detail: Data; peers: string[] };
@@ -22,6 +28,8 @@ export interface GameAdapter {
   ): Promise<Data>;
   nextDiscoveryCursor?(facts: Data): Data | undefined;
   accountObjective?(facts: Data): string | undefined;
+  waitSchema?(facts: Data): Data | undefined;
+  validateWait?(basis: Data, facts: Data): import("./platform/contracts.js").ProposalValidation;
   deliveredContextSummary?(context: Data): Data;
   commandMeaning?(action: Data, receipt: Data): Data | undefined;
   availableActions?(

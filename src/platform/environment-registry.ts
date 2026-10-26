@@ -53,6 +53,7 @@ export function requireCapabilities(
 }
 export class EnvironmentRegistry {
   private readonly adapters = new Map<string, EnvironmentAdapter>();
+  private readonly sessions = new WeakMap<EnvironmentSession, BindingRef>();
   readonly selected: EnvironmentRef;
   constructor(adapters: EnvironmentAdapter[], selected: EnvironmentRef) {
     this.selected = { ...selected };
@@ -68,6 +69,18 @@ export class EnvironmentRegistry {
     if (!adapter) throw new FleetError("UNSUPPORTED_ENVIRONMENT");
     if (!sameEnvironment(ref, this.selected)) throw new FleetError("ENVIRONMENT_NOT_SELECTED");
     return adapter;
+  }
+  assertSession(session: EnvironmentSession, binding: BindingRef) {
+    const owner = this.sessions.get(session);
+    if (
+      !owner ||
+      owner.id !== binding.id ||
+      owner.actorRef !== binding.actorRef ||
+      owner.entityRef !== binding.entityRef ||
+      owner.accountRef !== binding.accountRef ||
+      !sameEnvironment(owner.environment, binding.environment)
+    )
+      throw new FleetError("ENVIRONMENT_SESSION_MISMATCH", true);
   }
   async connect(
     input: BindingRef,
@@ -95,7 +108,8 @@ export class EnvironmentRegistry {
         throw new FleetError("OUTCOME_MISMATCH");
       return { ...result, sourceRefs: result.sourceRefs.map((ref) => scopedSource(binding, ref)) };
     };
-    return {
+    const scoped: EnvironmentSession = {
+      ...(session.decisionGrounding ? { decisionGrounding: session.decisionGrounding } : {}),
       observe: async (query) => {
         const result = await session.observe(query);
         if (!adapter.schemas.observations.includes(result.schemaId)) throw new FleetError("UNSUPPORTED_SCHEMA");
@@ -181,7 +195,12 @@ export class EnvironmentRegistry {
             },
           }
         : {}),
-      close: () => session.close(),
+      close: async () => {
+        this.sessions.delete(scoped);
+        await session.close();
+      },
     };
+    this.sessions.set(scoped, binding);
+    return scoped;
   }
 }

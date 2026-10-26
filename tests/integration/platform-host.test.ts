@@ -16,6 +16,25 @@ async function setup(capacity = 2) {
   cleanup = () => f.pool.end();
   return f;
 }
+it("dispatches on the validated caller-owned session without a second connection or early close", async () => {
+  const f = await setup();
+  await f.enqueue();
+  const claim = await f.claim(),
+    session = await f.environments.connect(f.group.bindings[0]);
+  const h = f.host(new FakeModel()),
+    intent = {
+      commandId: randomUUID(),
+      bindingId: claim.bindingId,
+      schemaId: "board.move.v1",
+      payload: { to: "a4" },
+    };
+  expect(await h.commands.submit(claim, intent, session)).toMatchObject({ status: "confirmed" });
+  expect(f.board.connections).toBe(1);
+  expect((await session.observe({})).payload.square).toBe("a4");
+  expect(await h.commands.submit(claim, intent, session)).toMatchObject({ status: "confirmed" });
+  expect(f.board.executions).toBe(1);
+  await session.close();
+});
 it.each([1, 2])("enforces durable provider capacity %s across different bindings", async (capacity) => {
   const f = await setup(capacity);
   await f.enqueue(f.group.bindings[0]);

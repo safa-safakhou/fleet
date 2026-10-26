@@ -59,6 +59,10 @@ function tradeState(action: Data, facts: Data) {
 /** Observed directions only, never consent, current admission or fulfillment. */
 export function observedSignaturePerspective(action: Data, facts: Data): Data | undefined {
   if (action.kind !== "game.supply.sign") return;
+  return observedTradePerspective(action, facts);
+}
+export function observedTradePerspective(action: Data, facts: Data): Data | undefined {
+  if (!isTrade(action)) return;
   const { ownerRole, send, receive } = tradeState(action, facts);
   if (!ownerRole) return;
   const trade = { youSend: flow(send), youReceive: flow(receive) };

@@ -12,6 +12,7 @@ import { boundedReads, mergeReads, narrowRead } from "./context.js";
 import { actionKinds, actionSchema, isRead } from "./contracts.js";
 import { decisionObservation } from "./decision.js";
 import { compactEnvironment } from "./environment.js";
+import { pactWaitSchema, validatePactWait } from "./goal-state.js";
 import { negotiationPreflight } from "./negotiation.js";
 import { referencePreflight, referenceReadPreflight } from "./references.js";
 import { applySocialAttention, attentionRecords, deliveredSocialSummary, socialSignals } from "./social-attention.js";
@@ -161,6 +162,8 @@ export const pactAdapter: GameAdapter = {
   label: "PACT",
   instructions,
   commandMeaning: pactCommandMeaning,
+  waitSchema: pactWaitSchema,
+  validateWait: validatePactWait,
   actionKinds,
   actionSchema,
   proposalSchema: observedActionSchema,

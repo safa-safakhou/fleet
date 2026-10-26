@@ -5,6 +5,7 @@ import { afterEach, expect, it } from "vitest";
 import { DiagnosticJournal, diagnosticApproval } from "../../src/cognition-diagnostic-journal.js";
 import { registerDiagnostic } from "../../src/cognition-diagnostic-registration.js";
 import { runCognitionDiagnostics } from "../../src/cognition-diagnostic-run.js";
+import { expandFactTables } from "../../src/fact-table.js";
 import { DiagnosticEpisodes } from "../../src/games/pact/cognition-diagnostics.js";
 import { Store } from "../../src/store.js";
 import { fixture } from "../helpers.js";
@@ -30,7 +31,9 @@ it("continues three actual engine turns with one identity, owned cited memory an
   const model = {
     decide: async (input: { messages: { content: string }[] }) => {
       calls++;
-      const context = JSON.parse(input.messages[1].content).continuity;
+      const context = expandFactTables(JSON.parse(input.messages[1].content).continuity) as ReturnType<
+        typeof JSON.parse
+      >;
       if (calls === 1) {
         saved = context.evidence[0].id;
         return {

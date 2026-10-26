@@ -45,7 +45,9 @@ it.each([
       candidateBytes: Buffer.byteLength(JSON.stringify(b)),
     }),
   );
-  expect(Buffer.byteLength(JSON.stringify(b))).toBeLessThan(Buffer.byteLength(JSON.stringify(a)));
+  // Both versions now receive the authorized shared schema repair; the separate
+  // candidate retains its own view policy and cannot widen the output contract.
+  expect(Buffer.byteLength(JSON.stringify(b))).toBeLessThanOrEqual(Buffer.byteLength(JSON.stringify(a)));
   const ajv = new Ajv({ strict: false, formats: { uuid: true } }),
     original = ajv.compile(a),
     candidate = ajv.compile(b);

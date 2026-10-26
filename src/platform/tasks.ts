@@ -404,7 +404,7 @@ export class TaskStore {
       );
       const rows = (
         await db.query(
-          "SELECT t.*,x.state turn_state,x.code turn_code,x.pending_command,x.unknown_usage,c.revision claimed_revision,a.next_due_at,o.phase recovery_phase FROM platform_tasks t JOIN turns x ON x.id=t.active_turn_id JOIN platform_task_claims c ON c.turn_id=x.id JOIN agents a ON a.id=x.agent_id LEFT JOIN recovery_operations o ON o.turn_id=x.id WHERE t.state IN('running','blocked') AND x.state<>'running' FOR UPDATE OF t",
+          "SELECT t.*,x.state turn_state,x.code turn_code,x.pending_command,x.unknown_usage,x.calls turn_calls,c.revision claimed_revision,a.next_due_at,o.phase recovery_phase FROM platform_tasks t JOIN turns x ON x.id=t.active_turn_id JOIN platform_task_claims c ON c.turn_id=x.id JOIN agents a ON a.id=x.agent_id LEFT JOIN recovery_operations o ON o.turn_id=x.id WHERE t.state IN('running','blocked') AND x.state<>'running' FOR UPDATE OF t",
         )
       ).rows;
       for (const row of rows) {
@@ -418,6 +418,12 @@ export class TaskStore {
         else if (row.turn_code === "WAIT" && row.wake?.kind === "event") {
           state = "waiting";
           wake = row.wake;
+        } else if (
+          Number(row.turn_calls) === 0 &&
+          ["CONTEXT_LIMIT", "SPECIALIST_CONTEXT_INCOMPLETE"].includes(row.turn_code)
+        ) {
+          state = "waiting";
+          wake = { kind: "evidence_change", code: row.turn_code };
         } else if (!["WAIT", "COMMITTED", "ALREADY_COMMITTED", "DEADLINE_MISSED"].includes(row.turn_code)) {
           state = "waiting";
           wake = { kind: "retry", code: row.turn_code };

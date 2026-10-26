@@ -173,6 +173,8 @@ it("negotiates the optional P2 outlook and scopes facts and peer statements thro
     ),
     session = await registry.connect(binding, { continuity: true });
   const snapshot = await session.observe({ continuity: true });
+  const compatible = await session.observe({ continuity: true, coordination: true });
+  expect(compatible.coordination).toBeUndefined();
   expect(snapshot.payload.world).toBeDefined();
   expect(snapshot.payload.guide).toBeDefined();
   expect(session.packObservation).toBeTypeOf("function");

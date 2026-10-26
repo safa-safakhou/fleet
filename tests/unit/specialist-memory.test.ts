@@ -167,3 +167,62 @@ it("fits complete repeated-ID metadata for bounded read history without losing a
   expect(packet.candidateIds).toEqual(input.facts.map((f) => f.id));
   expect(packet.omitted).toHaveLength(59);
 });
+
+it("charges wrapper bookkeeping while fitting whole bundles instead of rejecting a feasible packet", async () => {
+  const { selectNegotiationEvidence } = await import("../../src/modules/evidence/negotiation/v1.js");
+  const facts = [
+    { ...fact("required", "outcome", "required"), detail: { whole: "a".repeat(1000) } },
+    { ...fact("optional", "observation", "optional"), detail: { whole: "b".repeat(700) } },
+  ];
+  const bare = selectNegotiationEvidence({
+    bindingId: "binding:1",
+    goalRefs: [],
+    entityRefs: [],
+    conversationRefs: [],
+    originals: facts,
+    interpretations: [],
+    now,
+    maxBytes: 10000,
+    requiredIds: ["required"],
+  });
+  const limit = Buffer.byteLength(JSON.stringify(bare)) + 20;
+  const packet = selectSpecialistContext({
+    scope: { bindingId: "binding:1" },
+    goalRefs: [],
+    entityRefs: [],
+    conversationRefs: [],
+    requiredEvidenceIds: ["required"],
+    facts,
+    memory: [],
+    now,
+    limits: { maxBytes: limit },
+  });
+  expect(packet.deliveredIds).toContain("required");
+  expect(Buffer.byteLength(JSON.stringify(packet))).toBeLessThanOrEqual(limit);
+});
+it("bounds superseded candidate bookkeeping while retaining protected history and honest omission counts", () => {
+  const facts = Array.from({ length: 100 }, (_, i) => ({
+    ...fact(randomUUID(), "observation", "stock"),
+    createdAt: new Date(Date.parse(now) - 100000 + i).toISOString(),
+    detail: { value: i },
+  }));
+  const before = structuredClone(facts),
+    required = facts[0];
+  const packet = selectSpecialistContext({
+    scope: { bindingId: "binding:1" },
+    goalRefs: [],
+    entityRefs: [],
+    conversationRefs: [],
+    requiredEvidenceIds: [required.id],
+    facts,
+    memory: [],
+    now,
+    limits: { maxBytes: 6000 },
+    boundedHistory: true,
+  });
+  expect(packet.deliveredIds).toEqual(expect.arrayContaining([required.id, facts[facts.length - 1].id]));
+  expect(packet.candidateIds.length).toBeLessThan(10);
+  expect(packet.retrieval).toHaveProperty("supersededObservationCandidates", 98);
+  expect(Buffer.byteLength(JSON.stringify(packet))).toBeLessThanOrEqual(6000);
+  expect(facts).toEqual(before);
+});

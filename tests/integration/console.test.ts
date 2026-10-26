@@ -36,6 +36,16 @@ async function login(app: ReturnType<typeof buildServer>) {
   return { cookie: String(r.headers["set-cookie"]).split(";")[0], origin, "x-csrf-token": r.json().csrf };
 }
 describe("private operator console", () => {
+  it("protects aggregate metrics with operator authentication and validates scope", async () => {
+    const f = await setup();
+    expect((await f.app.inject({ url: "/api/metrics" })).statusCode).toBe(401);
+    const headers = await login(f.app);
+    const metrics = await f.app.inject({ url: "/api/metrics?minutes=15", headers });
+    expect(metrics.statusCode).toBe(200);
+    expect(metrics.json().totals.calls).toBe(0);
+    expect((await f.app.inject({ url: "/api/metrics?minutes=0", headers })).statusCode).toBe(400);
+    expect((await f.app.inject({ url: "/api/metrics?cohortId=invalid", headers })).statusCode).toBe(400);
+  });
   it("loads one complete run with authenticated access, redacted payloads and revocation", async () => {
     const f = await setup();
     const id = await ready(f.store, 1);

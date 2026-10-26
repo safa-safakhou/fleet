@@ -1859,3 +1859,143 @@ dialog.modal::backdrop {
 .architecture-boolean input {
   width: auto;
 }
+.metrics-workspace {
+  display: grid;
+  gap: 18px;
+}
+.metrics-stats {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}
+.metric-grid-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+.metric-card {
+  margin: 0;
+  padding: 22px;
+  border: 1px solid #303640;
+  border-radius: 12px;
+  background: #171a20;
+  min-width: 0;
+}
+.metric-card h3 {
+  margin-bottom: 6px;
+}
+.metric-card p {
+  color: #a5adba;
+  font-size: 13px;
+  line-height: 1.6;
+}
+.metric-card svg {
+  width: 100%;
+  overflow: visible;
+}
+.metric-card svg text {
+  fill: #a5adba;
+  font-size: 11px;
+}
+.metric-grid {
+  stroke: #343b45;
+  stroke-width: 1;
+}
+.metric-line {
+  fill: none;
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+}
+.metric-line.calls {
+  stroke: #72c5d2;
+}
+.metric-line.actions {
+  stroke: #e8bc76;
+}
+.metric-legend {
+  display: flex;
+  gap: 20px;
+  font-size: 13px;
+}
+.metric-legend .calls {
+  color: #72c5d2;
+}
+.metric-legend .actions {
+  color: #e8bc76;
+}
+.metric-dot {
+  fill: #72c5d2;
+  opacity: 0.8;
+}
+.metric-dot.error {
+  fill: #f28e8e;
+}
+.metric-architecture {
+  display: grid;
+  gap: 4px;
+  margin: 14px 0;
+  font-size: 12px;
+}
+.metric-bar {
+  height: 7px;
+  min-width: 1px;
+  border-radius: 3px;
+}
+.metric-bar.calls {
+  background: #72c5d2;
+}
+.metric-bar.actions {
+  background: #e8bc76;
+}
+.metric-outcomes {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+.metric-outcomes span {
+  padding: 8px 12px;
+  background: #222831;
+  border-radius: 6px;
+}
+.metric-filters {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.metric-filters label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+  color: #a5adba;
+}
+.metric-filters select {
+  max-width: 340px;
+}
+.table-scroll {
+  overflow-x: auto;
+}
+.metric-card table {
+  width: 100%;
+  font-size: 12px;
+  border-collapse: collapse;
+  white-space: nowrap;
+}
+.metric-card th,
+.metric-card td {
+  padding: 10px;
+  border-bottom: 1px solid #303640;
+  text-align: left;
+}
+@media (max-width: 1000px) {
+  .metric-grid-layout {
+    grid-template-columns: 1fr;
+  }
+}
+.metric-architecture svg {
+  height: 7px;
+}
+.metric-fill.calls {
+  fill: #72c5d2;
+}
+.metric-fill.actions {
+  fill: #e8bc76;
+}

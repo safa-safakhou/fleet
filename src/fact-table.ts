@@ -98,6 +98,37 @@ export function expandFactTables(value: unknown, scope: unknown = value): unknow
   if (Array.isArray(value)) return value.map((cell) => expandFactTables(cell, scope));
   if (!value || typeof value !== "object") return value;
   const table = unpackEvidenceMetadata(object(value));
+  if (Array.isArray(table.catalogNameParts) && Object.keys(table).length === 1) {
+    // Resolve the independent catalog without following packet references recursively.
+    const catalog = expandFactTables(object(scope).catalog, {});
+    if (
+      Array.isArray(catalog) &&
+      table.catalogNameParts.every(
+        (p) =>
+          typeof p === "string" ||
+          (Number.isInteger(p) &&
+            Number(p) >= 0 &&
+            Number(p) < catalog.length &&
+            typeof object(catalog[Number(p)]).name === "string"),
+      )
+    )
+      return table.catalogNameParts.map((p) => (typeof p === "string" ? p : object(catalog[Number(p)]).name));
+  }
+  if (
+    table.sameFact === "goal.intent" &&
+    Object.keys(table).length === 1 &&
+    typeof object(object(scope).goal).intent === "string"
+  )
+    return object(object(scope).goal).intent;
+  if (
+    object(object(table.link).sourceRef).sameFact === "fact.sourceRef" &&
+    Object.keys(object(object(table.link).sourceRef)).length === 1 &&
+    typeof object(table.fact).sourceRef === "string"
+  )
+    return expandFactTables(
+      { ...table, link: { ...object(table.link), sourceRef: object(table.fact).sourceRef } },
+      scope,
+    );
   if (
     table.sameFact === "authority.allowedActions" &&
     Object.keys(table).length === 1 &&
@@ -141,9 +172,10 @@ export function expandFactTables(value: unknown, scope: unknown = value): unknow
         row.key = `${row.turnId}:${row.decision}:${row.category}`;
       return row;
     });
+    const expanded = decoded.map((row) => expandFactTables(row, scope));
     return table.factTable === "list"
-      ? decoded
-      : Object.fromEntries(table.rows.map((raw, i) => [(raw as unknown[])[0], decoded[i]]));
+      ? expanded
+      : Object.fromEntries(table.rows.map((raw, i) => [(raw as unknown[])[0], expanded[i]]));
   }
   return Object.fromEntries(Object.entries(table).map(([key, cell]) => [key, expandFactTables(cell, scope)]));
 }

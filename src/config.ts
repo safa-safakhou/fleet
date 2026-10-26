@@ -2,6 +2,7 @@ import { z } from "zod";
 import { FleetError } from "./domain.js";
 import { parsePactFactRequests } from "./games/pact/requested-facts.js";
 import { endpoint } from "./http.js";
+import { loadCacheProfile } from "./platform/cache-profile.js";
 export function config(env: NodeJS.ProcessEnv = process.env) {
   const databaseUrl = env.DATABASE_URL,
     operatorSecret = env.FLEET_OPERATOR_SECRET,
@@ -19,6 +20,7 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
     origin,
     gameBase,
     gameId: "pact",
+    pactCoordinationVersion: z.enum(["pact.coordination.v1"]).optional().parse(env.FLEET_PACT_COORDINATION_VERSION),
     pactOutlookVersion: z.enum(["pact.agent-outlook.v1"]).optional().parse(env.FLEET_PACT_OUTLOOK_VERSION),
     pactActionEffectsVersion: z
       .enum(["fleet.action-effects.v1"])
@@ -53,6 +55,39 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
       .min(1)
       .max(16)
       .parse(env.FLEET_CONCURRENCY ?? 1),
+    inferenceConcurrency: {
+      ollama: z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(16)
+        .parse(env.FLEET_OLLAMA_CONCURRENCY ?? 1),
+      "openai-compatible": z.coerce
+        .number()
+        .int()
+        .min(1)
+        .max(16)
+        .parse(env.FLEET_COMPATIBLE_CONCURRENCY ?? 1),
+    },
+    vllmCacheProfile: loadCacheProfile(env.FLEET_VLLM_CACHE_PROFILE),
+    vllmTokenCapacity:
+      env.FLEET_VLLM_TOKEN_CAPACITY === undefined
+        ? undefined
+        : z.coerce.number().int().min(1).max(4194304).parse(env.FLEET_VLLM_TOKEN_CAPACITY),
+    ollamaOptions: {
+      contextLength: z.coerce
+        .number()
+        .int()
+        .min(512)
+        .max(262144)
+        .parse(env.FLEET_OLLAMA_CONTEXT_LENGTH ?? 32768),
+      keepAliveSeconds: z.coerce
+        .number()
+        .int()
+        .min(0)
+        .max(86400)
+        .parse(env.FLEET_OLLAMA_KEEP_ALIVE_SECONDS ?? 0),
+    },
     statePath: env.FLEET_STATE_PATH ?? ".",
     minFreeBytes: z.coerce
       .number()

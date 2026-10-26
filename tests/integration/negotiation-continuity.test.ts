@@ -201,7 +201,7 @@ it("narration is not a memory write; no-write retains the original committed rec
   expect(saved.memories).toEqual([]);
   expect(saved.ack).toMatchObject({ status: "no_op" });
 });
-it("unsupported memory is explicitly rejected before action and acknowledged on the normal corrective call", async () => {
+it("unsupported memory is rejected by generation before a native memory write and corrected within accounting", async () => {
   const f = await platformFixture();
   close = () => f.pool.end();
   await f.store.consent(f.group.id, true);
@@ -240,7 +240,9 @@ it("unsupported memory is explicitly rejected before action and acknowledged on 
   await f.enqueue();
   await host.run(await f.claim());
   expect(packets).toHaveLength(2);
-  expect(packets[1].memoryWriteAck).toMatchObject({ status: "rejected", reason: "missing_delivered_original" });
+  // The invalid generation never reached the native write path, so a rejection
+  // acknowledgement from that path would invent an attempted memory write.
+  expect(packets[1].memoryWriteAck).toMatchObject({ status: "no_op", reason: "no_prior_write" });
   expect(f.board.executions).toBe(0);
   expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(2);
 });

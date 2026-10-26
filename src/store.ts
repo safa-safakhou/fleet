@@ -15,6 +15,7 @@ import {
   strategy,
 } from "./domain.js";
 import { legacyUndispatchedPhase } from "./engines/legacy/execution.js";
+import { modelTurnBound } from "./model-bounds.js";
 import { Observability } from "./observability.js";
 import { ArchitectureRegistry } from "./platform/architecture.js";
 import type { Vault } from "./vault.js";
@@ -167,6 +168,42 @@ export class Store {
       await c.query("UPDATE cohorts SET budget=$2,generation=generation+1 WHERE id=$1", [id, budget]);
       await this.audit(c, id, "cohort.output_allowance_increased", {
         previousMaxOutputTokens: row.budget.maxOutputTokens,
+        maxOutputTokens,
+        reason,
+      });
+    });
+  }
+  /** Explicit operator change; preserves consumed usage and refuses unresolved work. */
+  async enableThinking(id: string, maxOutputTokens: number, reason: string) {
+    if (reason.trim().length < 20 || reason.length > 1000) throw new FleetError("REVIEW_NOTE_REQUIRED");
+    await transaction(this.pool, async (c) => {
+      await c.query("SELECT pg_advisory_xact_lock(19281462)");
+      const row = (await c.query<CohortRow>("SELECT * FROM cohorts WHERE id=$1 FOR UPDATE", [id])).rows[0];
+      if (!row) throw new FleetError("NOT_FOUND");
+      if (
+        row.state !== "paused" ||
+        !row.model ||
+        !row.budget ||
+        (row.budget.deadlineAt && Date.parse(row.budget.deadlineAt) <= this.now().getTime())
+      )
+        throw new FleetError("COHORT_NOT_EDITABLE");
+      if (
+        (
+          await c.query(
+            "SELECT 1 FROM turns WHERE cohort_id=$1 AND (state IN('running','pending','needs_owner') OR pending_command IS NOT NULL) UNION ALL SELECT 1 FROM compute_ledger WHERE cohort_id=$1 AND status IN('reserved','unknown') LIMIT 1",
+            [id],
+          )
+        ).rowCount
+      )
+        throw new FleetError("UNRESOLVED_EXECUTION");
+      if (maxOutputTokens < row.budget.maxOutputTokens) throw new FleetError("OUTPUT_DECREASE_FORBIDDEN");
+      const model = ModelConfig.parse({ ...row.model, thinking: true }),
+        budget = Budget.parse({ ...row.budget, maxOutputTokens });
+      await c.query("UPDATE cohorts SET model=$2,budget=$3,generation=generation+1 WHERE id=$1", [id, model, budget]);
+      await this.audit(c, id, "cohort.thinking_enabled", {
+        previousThinking: row.model.thinking ?? null,
+        previousMaxOutputTokens: row.budget.maxOutputTokens,
+        thinking: true,
         maxOutputTokens,
         reason,
       });
@@ -494,7 +531,10 @@ export class Store {
     if (concurrent >= cohort.budget.concurrency) return null;
     const fence = Number(a.fence) + 1,
       deadline = new Date(
-        Math.min(now.getTime() + 120000, cohort.budget.deadlineAt ? Date.parse(cohort.budget.deadlineAt) : Infinity),
+        Math.min(
+          now.getTime() + modelTurnBound(cohort.model!),
+          cohort.budget.deadlineAt ? Date.parse(cohort.budget.deadlineAt) : Infinity,
+        ),
       ),
       id = randomUUID();
     await c.query("UPDATE agents SET fence=$2 WHERE id=$1", [a.id, fence]);

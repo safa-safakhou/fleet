@@ -158,7 +158,7 @@ export function childFixtureEnvironment(
   parent: NodeJS.ProcessEnv,
 ): NodeJS.ProcessEnv {
   const env: NodeJS.ProcessEnv = {};
-  for (const name of ["PATH", "HOME", "TMPDIR", "LANG", "CI", "NO_COLOR", "FORCE_COLOR"]) {
+  for (const name of ["PATH", "HOME", "TMPDIR", "LANG", "CI", "NO_COLOR", "FORCE_COLOR", "FLEET_OFFLINE_SCHEMAS"]) {
     if (parent[name] !== undefined) env[name] = parent[name];
   }
   return {

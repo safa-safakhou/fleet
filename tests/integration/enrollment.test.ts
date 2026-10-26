@@ -131,6 +131,30 @@ function mockGame() {
   };
 }
 describe("account enrollment", () => {
+  it("explicit owner preparation enrolls a draft while runtime execution stays disabled", async () => {
+    const f = await setup();
+    mockGame();
+    const broker = new CredentialBroker(f.store, "https://fixture.example", "http://127.0.0.1:8820", false, {
+      allowSyntheticEnrollment: true,
+    });
+    const id = f.agents[0].id;
+    await broker.provision(id, { ...mandate, socialDelegation: { mode: "agent_decides", allowedKingdomIds: [] } });
+    expect((await f.store.agent(id)).credential_state).toBe("ready");
+    await expect(broker.game(id)).rejects.toThrow("LIVE_EXECUTION_DISABLED");
+    expect((await f.store.cohort(f.id)).state).toBe("draft");
+    expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger")).rows[0].n).toBe(0);
+    expect((await f.pool.query("SELECT count(*)::int n FROM turns")).rows[0].n).toBe(0);
+    await f.store.setState(f.id, "stopped", true);
+    await expect(broker.provision(id, mandate)).rejects.toThrow("COHORT_NOT_EDITABLE");
+  });
+  it("disabled runtime does not implicitly authorize owner enrollment", async () => {
+    const f = await setup();
+    const remote = vi.fn();
+    vi.stubGlobal("fetch", remote);
+    const broker = new CredentialBroker(f.store, "https://fixture.example", "http://127.0.0.1:8820", false);
+    await expect(broker.provision(f.agents[0].id, mandate)).rejects.toThrow("LIVE_EXECUTION_DISABLED");
+    expect(remote).not.toHaveBeenCalled();
+  });
   it("social setup refreshes an expired grant before authenticated readback", async () => {
     const f = await setup(),
       game = mockGame(),

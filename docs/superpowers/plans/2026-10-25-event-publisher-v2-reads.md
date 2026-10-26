@@ -1,0 +1,10 @@
+# Event publisher and v2 read repair
+
+Owner scope: repair both defects, prove native event-to-agent behavior offline, then repeat two scheduled fleet rounds (30-minute ceiling) on the retained world and pause. Inline, no GUI, Nemotron 4B only; E4/KQ1 blocked. Preserve four original unknown/held kingdoms, doubled eligible input limits, exact commands, native authority, goals, budgets and anchors. No commit/push requested.
+
+1. Reproduce: the owned launcher omits the native notification worker that publishes agent events; v2 generation never receives the environment's existing read-query schema. Add failing lifecycle/read-contract regressions and a complete native event-to-agent integration case using fresh owned fixtures and fake inference.
+2. Repair: start/require/stop the native event publisher as part of owned runs, with external SMTP/Web Push disabled locally. Bind the native read-query contract for v2 while preserving older profile contracts and existing bounded output correction/accounting. Never unwrap arbitrary model output or retry uncertain commands.
+3. Verify: actual publisher process → native outbox/journal → authenticated MCP feed → Fleet intake → durable task/host → corrected read → native action receipt. Check duplicate polling/isolation and worker lifecycle, affected native workflows, units/types/style/boundaries/build. No retained-world tests.
+4. Operational acceptance: fresh package/clock/cache/restore proof and new bounded window on the same world. Supervise publisher too; preserve held actors. Process native event backlog normally without replaying commands. Observe two scheduled rounds plus naturally triggered turns; close/drain/pause, stop owned services, verify encrypted restore and original unknown/configuration preservation. Report actual effects, event delivery and any failures.
+
+Acceptance is receipt/state based; passing fake decisions does not establish model strategy. Stop clocks and services on the existing operational failure policy; no automatic repair loop or additional run.

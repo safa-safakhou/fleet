@@ -24,6 +24,30 @@ it("is disarmed for missing, malformed, prepared and closed files", () => {
   }
   expect(new RunWindow("/nonexistent/fleet-run-window").isOpen()).toBe(false);
 });
+it("supports an explicit 24-hour window and closes at its exact cutoff", () => {
+  const end = 1000 + 86_400_000;
+  const { file } = fixture({ status: "running", startsAt: 1000, endsAt: end });
+  expect(new RunWindow(file, () => 1000).isOpen()).toBe(true);
+  expect(new RunWindow(file, () => end - 1).isOpen()).toBe(true);
+  expect(new RunWindow(file, () => end).isOpen()).toBe(false);
+  expect(new RunWindow(file, () => 999).isOpen()).toBe(false);
+  writeFileSync(file, JSON.stringify({ status: "running", startsAt: 1000, endsAt: end + 1 }));
+  expect(new RunWindow(file, () => 1000).isOpen()).toBe(false);
+});
+it("supports the separately authorized 15-minute canary without changing its closed boundaries", () => {
+  const { file } = fixture({ status: "running", startsAt: 1000, endsAt: 901000 });
+  expect(new RunWindow(file, () => 1000).isOpen()).toBe(true);
+  expect(new RunWindow(file, () => 901000).isOpen()).toBe(false);
+});
+it("a durable cutoff marker prevents a stale writer from reopening admission", () => {
+  const { file } = fixture({ status: "running", startsAt: 1000, endsAt: 901000 });
+  const window = new RunWindow(file, () => 2000);
+  expect(window.isOpen()).toBe(true);
+  writeFileSync(`${file}.closed`, JSON.stringify({ reason: "CLOCK_DISAGREEMENT" }));
+  expect(window.isOpen()).toBe(false);
+  writeFileSync(file, JSON.stringify({ status: "running", startsAt: 1000, endsAt: 901000 }));
+  expect(window.isOpen()).toBe(false);
+});
 it("admits only the exact shared hour, without counting requests", () => {
   const { file } = fixture({ status: "running", startsAt: 1000, endsAt: 3601000 });
   const window = new RunWindow(file, () => 1000);
@@ -111,4 +135,12 @@ it("blocks helper generation while disarmed and leaves ordinary runtime unchange
   await expect(window.recall(recall).choose("query", [], new AbortController().signal)).rejects.toThrow();
   expect(calls).toBe(0);
   expect(new RunWindow().isOpen()).toBe(true);
+});
+it("admits an explicitly six-hour window and closes at its exact boundary", () => {
+  const start = 1000,
+    end = start + 21600000,
+    { file } = fixture({ status: "running", startsAt: start, endsAt: end });
+  expect(new RunWindow(file, () => start).isOpen()).toBe(true);
+  expect(new RunWindow(file, () => end - 1).isOpen()).toBe(true);
+  expect(new RunWindow(file, () => end).isOpen()).toBe(false);
 });

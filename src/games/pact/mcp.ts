@@ -1,5 +1,5 @@
 import { type Data, FleetError, type GamePort, object, type Tool } from "../../domain.js";
-import { jsonRequest, RemoteRejection } from "../../http.js";
+import { RemoteRejection, readJSONResponse } from "../../http.js";
 import { isRead, validateActionTool, validateTool } from "./contracts.js";
 
 export class McpGame implements GamePort {
@@ -10,22 +10,34 @@ export class McpGame implements GamePort {
     private base: string,
     private token: string,
     private isolated = false,
+    private credentialRequest?: (request: (token: string) => Promise<Response>) => Promise<Response>,
   ) {}
-  private headers() {
+  private headers(token = this.token) {
     return {
       "content-type": "application/json",
       accept: "application/json, text/event-stream",
-      authorization: `Bearer ${this.token}`,
+      authorization: `Bearer ${token}`,
       origin: new URL(this.base).origin,
       ...(this.session ? { "Mcp-Session-Id": this.session, "MCP-Protocol-Version": "2025-11-25" } : {}),
     };
   }
+  private request(init: RequestInit) {
+    const send = (token: string) =>
+      fetch(`${this.base}/mcp`, {
+        ...init,
+        headers: this.headers(token),
+        redirect: "error",
+        signal: AbortSignal.timeout(20000),
+      });
+    return this.credentialRequest ? this.credentialRequest(send) : send(this.token);
+  }
   private async rpc(method: string, params: Data) {
-    const { data, headers } = await jsonRequest(`${this.base}/mcp`, {
-      method: "POST",
-      headers: this.headers(),
-      body: JSON.stringify({ jsonrpc: "2.0", id: ++this.seq, method, params }),
-    });
+    const { data, headers } = await readJSONResponse(
+      await this.request({
+        method: "POST",
+        body: JSON.stringify({ jsonrpc: "2.0", id: ++this.seq, method, params }),
+      }),
+    );
     this.session = headers.get("Mcp-Session-Id") ?? this.session;
     if (data.error) throw new FleetError("MCP_REQUEST_REJECTED");
     return object(data.result);
@@ -39,9 +51,8 @@ export class McpGame implements GamePort {
     });
     if (this.isolated && object(initialized._meta)["pact/session-scope"] !== "connection")
       throw new FleetError("SESSION_ISOLATION_UNSUPPORTED", true);
-    const r = await fetch(`${this.base}/mcp`, {
+    const r = await this.request({
       method: "POST",
-      headers: this.headers(),
       body: JSON.stringify({ jsonrpc: "2.0", method: "notifications/initialized" }),
       redirect: "error",
       signal: AbortSignal.timeout(10000),
@@ -103,9 +114,8 @@ export class McpGame implements GamePort {
   }
   async close() {
     if (!this.session) return;
-    const r = await fetch(`${this.base}/mcp`, {
+    const r = await this.request({
       method: "DELETE",
-      headers: this.headers(),
       body: "{}",
       redirect: "error",
       signal: AbortSignal.timeout(10000),

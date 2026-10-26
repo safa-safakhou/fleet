@@ -1,8 +1,10 @@
 import { randomUUID } from "node:crypto";
 import { AwakeGuard } from "./awake.js";
 import { safeCode } from "./domain.js";
+import { stopFailedCanaryTurn } from "./platform/canary-stop.js";
 import { enoughDisk } from "./platform/disk.js";
 import { DispatchScheduler } from "./platform/scheduling.js";
+import { WorkerPool } from "./platform/worker-pool.js";
 import { runtime } from "./runtime.js";
 
 const r = runtime(),
@@ -11,16 +13,23 @@ const r = runtime(),
 let stop = false,
   lastPrune = 0,
   failures = 0,
-  inFlight: Promise<unknown> | undefined,
   recoveryInFlight: Promise<unknown> | undefined,
   intakeInFlight: Promise<unknown> | undefined;
-const platformInFlight = new Set<Promise<unknown>>();
+const workers = new WorkerPool(r.settings.maxConcurrency);
 const participantCancellation = new AbortController();
 const scheduler = new DispatchScheduler();
+const progress = async (turnId: string) => {
+  if (process.env.FLEET_STOP_ON_TURN_FAILURE === "1" && r.settings.runWindowFile) {
+    const turn = (await r.pool.query("SELECT state,code,unknown_usage FROM turns WHERE id=$1", [turnId])).rows[0];
+    if (turn) await stopFailedCanaryTurn(r.settings.runWindowFile, turn);
+  }
+  await r.pool.query("UPDATE worker_health SET last_progress_at=now() WHERE id=$1", [worker]);
+};
 r.pool.on("error", () => console.error("fleet database connection unavailable"));
 for (const signal of ["SIGTERM", "SIGINT"] as const)
   process.once(signal, () => {
     stop = true;
+    workers.close();
     participantCancellation.abort();
     r.legacy.stop();
     void r.host.stop().catch((error) => console.error("fleet stop deferred", safeCode(error)));
@@ -100,50 +109,53 @@ try {
           });
       }
       if (platformEnabled && disk) {
-        const progress = async () => {
-          await r.pool.query("UPDATE worker_health SET last_progress_at=now() WHERE id=$1", [worker]);
-        };
         const legacy = async () => {
-          if (inFlight || platformInFlight.size >= r.settings.maxConcurrency) return;
+          if (!r.runWindow.isOpen() || !workers.hasCapacity) return false;
           const claim = await r.legacy.claim(worker, r.settings.maxConcurrency);
-          if (!claim) return;
-          inFlight = r.legacy
-            .run(claim)
-            .then(progress)
-            .catch((error) => console.error("fleet turn deferred", safeCode(error)))
-            .finally(() => {
-              inFlight = undefined;
+          if (!claim) return false;
+          void workers
+            .run(async () => {
+              await r.legacy.run(claim);
+              await progress(claim.id);
+            })
+            .catch(async (error) => {
+              if (process.env.FLEET_STOP_ON_TURN_FAILURE === "1") await progress(claim.id);
+              console.error("fleet turn deferred", safeCode(error));
             });
+          return true;
         };
         const platform = async () => {
-          if (platformInFlight.size + Number(Boolean(inFlight)) >= r.settings.maxConcurrency) return false;
+          if (!r.runWindow.isOpen() || !workers.hasCapacity) return false;
           const claim = await r.tasks.claim(worker, r.store.now());
           if (!claim) return false;
-          const promise = r.host
-            .run(claim)
-            .then(progress)
-            .catch((error) => console.error("fleet task deferred", safeCode(error)))
-            .finally(() => {
-              platformInFlight.delete(promise);
+          void workers
+            .run(async () => {
+              await r.host.run(claim);
+              await progress(claim.turn.id);
+            })
+            .catch(async (error) => {
+              if (process.env.FLEET_STOP_ON_TURN_FAILURE === "1") await progress(claim.turn.id);
+              console.error("fleet task deferred", safeCode(error));
             });
-          platformInFlight.add(promise);
           return true;
         };
         await scheduler.dispatch({
           legacy,
           platform,
-          hasCapacity: () => platformInFlight.size + Number(Boolean(inFlight)) < r.settings.maxConcurrency,
+          hasCapacity: () => r.runWindow.isOpen() && workers.hasCapacity,
         });
       } else {
-        if (admissionOpen && disk && !inFlight) {
-          inFlight = r.legacy
-            .tick(worker, r.settings.maxConcurrency)
-            .then(async (claim) => {
-              if (claim) await r.pool.query("UPDATE worker_health SET last_progress_at=now() WHERE id=$1", [worker]);
+        while (r.settings.liveAllowed && r.runWindow.isOpen() && disk && workers.hasCapacity) {
+          const claim = await r.legacy.claim(worker, r.settings.maxConcurrency);
+          if (!claim) break;
+          void workers
+            .run(async () => {
+              await r.legacy.run(claim);
+              await progress(claim.id);
             })
-            .catch((error) => console.error("fleet turn deferred", safeCode(error)))
-            .finally(() => {
-              inFlight = undefined;
+            .catch(async (error) => {
+              if (process.env.FLEET_STOP_ON_TURN_FAILURE === "1") await progress(claim.id);
+              console.error("fleet turn deferred", safeCode(error));
             });
         }
       }
@@ -162,8 +174,9 @@ try {
   }
 } finally {
   awake.close();
+  workers.close();
   await r.host.stop();
-  await Promise.allSettled([inFlight, recoveryInFlight, intakeInFlight, ...platformInFlight]);
+  await Promise.allSettled([workers.drain(), recoveryInFlight, intakeInFlight]);
   await r.host.drain();
   await r.pool.end();
 }

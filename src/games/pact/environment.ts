@@ -11,6 +11,7 @@ const core = [
   "agentBriefing",
   "asOfGameTimeMs",
   "balances",
+  "goalFeasibility",
   "buildings",
   "builders",
   "training",
@@ -18,7 +19,6 @@ const core = [
   "constructionRecovery",
   "mandate",
   "authority",
-  "goalFeasibility",
   "socialDelegation",
   "charges",
   "upkeep",
@@ -30,61 +30,34 @@ const rules = ["resourceRules", "developmentRules", "diplomacyRules", "construct
 
 export { expandFactTables } from "../../fact-table.js";
 
+/** Optional explanatory prose repeats system/contract rules; factual fields remain whole. */
+export function compactBriefingGuidance(value: unknown): Data {
+  const briefing = structuredClone(object(value)),
+    omitted: string[] = [];
+  for (const [section, keys] of Object.entries({
+    execution: ["guidance", "humanOnly"],
+    interactions: ["guidance"],
+    training: ["guidance"],
+    construction: ["coverage", "goalReconciliation", "queueScope"],
+  })) {
+    const part = object(briefing[section]);
+    for (const key of keys)
+      if (typeof part[key] === "string") {
+        delete part[key];
+        omitted.push(`${section}.${key}`);
+      }
+  }
+  return { ...briefing, ...(omitted.length ? { guidanceOmitted: omitted } : {}) };
+}
+
 export function compactEnvironment(environment: Data, limit: number): Data {
   if (bytes(environment) <= limit) return environment;
   const output: Data = Object.fromEntries(core.filter((k) => k in environment).map((k) => [k, environment[k]]));
-  let encoded = false;
-  for (const key of ["balances", "buildings", "builders", "nextUpgradeChecks"]) {
-    const packed = factTable(output[key]);
-    if (packed !== output[key]) {
-      output[key] = packed;
-      encoded = true;
-    }
-  }
-  const briefing = structuredClone(object(output.agentBriefing));
-  for (const [section, field, path, source] of [
-    ["ownerIntent", "objective", "ambition", output.ambition],
-    ["construction", "completedBuildings", "buildings", environment.buildings],
-    ["execution", "allowedActions", "authority.allowedActions", object(output.authority).allowedActions],
-  ] as const) {
-    const part = object(briefing[section]),
-      reference = { sameFact: path };
-    if (
-      source !== undefined &&
-      JSON.stringify(part[field]) === JSON.stringify(source) &&
-      bytes(source) > bytes(reference) + 32
-    ) {
-      part[field] = reference;
-      briefing[section] = part;
-      encoded = true;
-    }
-  }
-  if (output.agentBriefing !== undefined) output.agentBriefing = briefing;
-  const authority = object(output.authority),
-    resources = factTable(authority.resources);
-  if (resources !== authority.resources) {
-    output.authority = { ...authority, resources };
-    encoded = true;
-  }
-  const feasibility = object(output.goalFeasibility),
-    upgrades = factTable(feasibility.hallUpgrades);
-  if (upgrades !== feasibility.hallUpgrades) {
-    output.goalFeasibility = { ...feasibility, hallUpgrades: upgrades };
-    encoded = true;
-  }
-  const mandate = object(output.mandate);
-  const sameAllowed = { sameFact: "authority.allowedActions" };
-  if (
-    Array.isArray(mandate.allowedActions) &&
-    JSON.stringify(mandate.allowedActions) === JSON.stringify(object(output.authority).allowedActions) &&
-    bytes(mandate.allowedActions) > bytes(sameAllowed) + 64
-  ) {
-    output.mandate = { ...mandate, allowedActions: sameAllowed };
-    encoded = true;
-  }
-  if (encoded)
-    output.factEncoding =
-      "Whole tables: columns=dotted paths, common=EVERY row, $key=map key, absent[row]=missing (not null/0), keyFormat=field substitution. sameFact paths: environment.";
+  Object.assign(output, compactCurrentFacts(output));
+  const fitGuidance = (extra = 0) => {
+    if (bytes(output) + extra > limit && output.agentBriefing)
+      output.agentBriefing = compactBriefingGuidance(output.agentBriefing);
+  };
   const coverage: Data = { complete: false, omittedFields: [], pages: {} };
   output.coverage = coverage;
   output.observationNotice = "Whole core/authority. Omitted=unknown. Use supported scoped reads/filters.";
@@ -126,6 +99,7 @@ export function compactEnvironment(environment: Data, limit: number): Data {
         omittedFromThisInput: socialRecords.length - 1,
       };
     }
+    fitGuidance();
     if (bytes(output) > limit) throw new FleetError("CONTEXT_LIMIT");
   }
   const discovery = object(environment.publicDiscovery);
@@ -162,6 +136,7 @@ export function compactEnvironment(environment: Data, limit: number): Data {
     const index = omitted.indexOf("publicDiscovery");
     if (index >= 0) omitted.splice(index, 1);
   }
+  fitGuidance(discovered.length ? bytes(discovered[0]) + 64 : 0);
   if (bytes(output) > limit) throw new FleetError("CONTEXT_LIMIT");
   const candidates = pageKinds.map((key) => {
     const values =
@@ -230,5 +205,74 @@ export function compactEnvironment(environment: Data, limit: number): Data {
       omitted.push(key);
     }
   }
+  return output;
+}
+
+/** Reversible representation only; selection and coverage remain with each view policy. */
+export function compactCurrentFacts(input: Data): Data {
+  const output = structuredClone(input);
+  let encoded = false;
+  for (const key of ["balances", "buildings", "builders", "nextUpgradeChecks", "constructionStockChecks"]) {
+    const packed = factTable(output[key]);
+    if (packed !== output[key]) {
+      output[key] = packed;
+      encoded = true;
+    }
+  }
+  const briefing = structuredClone(object(output.agentBriefing));
+  const construction = object(briefing.construction);
+  // Keep every option and field, using the existing reversible whole-row encoding.
+  // Derived briefing repetition must not crowd out an observed peer or authority.
+  for (const key of ["options", "prerequisiteWork"]) {
+    const table = factTable(construction[key]);
+    if (table !== construction[key]) {
+      construction[key] = table;
+      encoded = true;
+    }
+  }
+  if (briefing.construction !== undefined) briefing.construction = construction;
+  for (const [section, field, path, source] of [
+    ["ownerIntent", "objective", "ambition", output.ambition],
+    ["construction", "completedBuildings", "buildings", input.buildings],
+    ["execution", "allowedActions", "authority.allowedActions", object(output.authority).allowedActions],
+  ] as const) {
+    const part = object(briefing[section]),
+      reference = { sameFact: path };
+    if (
+      source !== undefined &&
+      JSON.stringify(part[field]) === JSON.stringify(source) &&
+      bytes(source) > bytes(reference) + 32
+    ) {
+      part[field] = reference;
+      briefing[section] = part;
+      encoded = true;
+    }
+  }
+  if (output.agentBriefing !== undefined) output.agentBriefing = briefing;
+  const authority = object(output.authority),
+    resources = factTable(authority.resources);
+  if (resources !== authority.resources) {
+    output.authority = { ...authority, resources };
+    encoded = true;
+  }
+  const feasibility = object(output.goalFeasibility),
+    upgrades = factTable(feasibility.hallUpgrades);
+  if (upgrades !== feasibility.hallUpgrades) {
+    output.goalFeasibility = { ...feasibility, hallUpgrades: upgrades };
+    encoded = true;
+  }
+  const mandate = object(output.mandate);
+  const sameAllowed = { sameFact: "authority.allowedActions" };
+  if (
+    Array.isArray(mandate.allowedActions) &&
+    JSON.stringify(mandate.allowedActions) === JSON.stringify(object(output.authority).allowedActions) &&
+    bytes(mandate.allowedActions) > bytes(sameAllowed) + 64
+  ) {
+    output.mandate = { ...mandate, allowedActions: sameAllowed };
+    encoded = true;
+  }
+  if (encoded)
+    output.factEncoding =
+      "Whole tables: columns=dotted paths, common=EVERY row, $key=map key, absent[row]=missing (not null/0), keyFormat=field substitution. sameFact paths: environment.";
   return output;
 }

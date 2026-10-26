@@ -1,4 +1,4 @@
-import { readFileSync } from "node:fs";
+import { existsSync, readFileSync } from "node:fs";
 import type { RecallPort } from "./cognition.js";
 import { FleetError, type GamePort, type ModelPort } from "./domain.js";
 
@@ -12,15 +12,17 @@ export class RunWindow {
   isOpen(): boolean {
     if (!this.file) return true;
     try {
+      if (existsSync(`${this.file}.closed`)) return false;
       const value = JSON.parse(readFileSync(this.file, "utf8"));
       const now = this.now();
       return (
         value.status === "running" &&
         Number.isSafeInteger(value.startsAt) &&
         Number.isSafeInteger(value.endsAt) &&
-        [1_800_000, 3_600_000].includes(value.endsAt - value.startsAt) &&
+        [900_000, 1_800_000, 3_600_000, 21_600_000, 86_400_000].includes(value.endsAt - value.startsAt) &&
         now >= value.startsAt &&
-        now < value.endsAt
+        now < value.endsAt &&
+        !existsSync(`${this.file}.closed`)
       );
     } catch {
       return false;
@@ -32,8 +34,18 @@ export class RunWindow {
   }
 
   model(provider: ModelPort): ModelPort {
+    const estimate = provider.estimateInputTokens?.bind(provider);
     return {
       tracksDispatch: provider.tracksDispatch,
+      contextWindow: (model) => provider.contextWindow?.(model),
+      ...(estimate
+        ? {
+            estimateInputTokens: async (input: Parameters<NonNullable<ModelPort["estimateInputTokens"]>>[0]) => {
+              this.assertOpen();
+              return estimate(input);
+            },
+          }
+        : {}),
       decide: async (input) => {
         this.assertOpen();
         return provider.decide({

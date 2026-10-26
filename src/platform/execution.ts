@@ -55,12 +55,17 @@ export class CommandExecutor {
     };
     return client ? write(client) : transaction(this.store.pool, write);
   }
-  async submit(claim: TaskClaim, intent: ActionIntent): Promise<ActionOutcome> {
+  async submit(claim: TaskClaim, intent: ActionIntent, session?: EnvironmentSession): Promise<ActionOutcome> {
+    if (session) this.environments.assertSession(session, await this.bindings.get(claim.bindingId));
     const fresh = await this.prepare(claim, intent);
     if (!fresh) return this.reconcile(claim.turn.id, intent.commandId);
-    return this.dispatchPrepared(claim, intent);
+    return this.dispatchPrepared(claim, intent, session);
   }
-  async dispatchPrepared(claim: TaskClaim, intent: ActionIntent): Promise<ActionOutcome> {
+  async dispatchPrepared(
+    claim: TaskClaim,
+    intent: ActionIntent,
+    borrowed?: EnvironmentSession,
+  ): Promise<ActionOutcome> {
     const row = (
       await this.store.pool.query("SELECT * FROM platform_commands WHERE command_id=$1 AND turn_id=$2", [
         intent.commandId,
@@ -77,9 +82,10 @@ export class CommandExecutor {
       throw new FleetError("COMMAND_ID_REUSE", true);
     if (row.state !== "prepared") return this.reconcile(claim.turn.id, intent.commandId);
     const binding = await this.bindings.get(claim.bindingId);
+    if (borrowed) this.environments.assertSession(borrowed, binding);
     let session: EnvironmentSession | undefined;
     try {
-      session = await this.environments.connect(binding);
+      session = borrowed ?? (await this.environments.connect(binding));
       const task = await this.tasks.get(claim.taskId);
       if (task.deadline) assertDeadline(task.deadline, (await session.observe({})).environmentTime, this.store.now());
       await this.tasks.check(claim);
@@ -115,7 +121,7 @@ export class CommandExecutor {
       await this.settle(claim.turn.id, outcome, false, source);
       return outcome;
     } finally {
-      await session?.close().catch(() => {});
+      if (!borrowed) await session?.close().catch(() => {});
     }
   }
   /** Local expiry can reject only a journal entry proven never to have crossed dispatch. */

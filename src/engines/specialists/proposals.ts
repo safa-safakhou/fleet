@@ -49,6 +49,14 @@ export const ProposalSchema = z
 export const WorkerResultSchema = z
   .object({
     summary: z.string().max(400),
+    deferral: z
+      .object({
+        reason: z.enum(["different_owner_priority", "resource_reserve", "risk_review", "deliberate_pacing"]),
+        explanation: z.string().min(1).max(240),
+        reconsiderWhen: z.string().min(1).max(160),
+      })
+      .strict()
+      .optional(),
     proposal: ProposalSchema.omit({ taskId: true })
       .extend({ intent: z.object({ schemaId: label, payload: data }).strict() })
       .strict()

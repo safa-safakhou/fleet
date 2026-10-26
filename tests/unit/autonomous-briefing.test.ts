@@ -1,7 +1,7 @@
 import { expect, it } from "vitest";
 import { object } from "../../src/domain.js";
 import { compactFacts } from "../../src/games/pact/adapter.js";
-import { compactEnvironment, expandFactTables } from "../../src/games/pact/environment.js";
+import { compactBriefingGuidance, compactEnvironment, expandFactTables } from "../../src/games/pact/environment.js";
 
 it("separates an affordable Hall queue from immediate prerequisite work, and current completion from stale notes", () => {
   const current = structuredClone(facts);
@@ -119,7 +119,9 @@ it("makes a standing owner objective and observed prerequisite options survive p
     ]),
   );
   const packed = compactEnvironment({ ...full, optionalHistory: "x".repeat(40000) }, 12000);
-  expect(object(expandFactTables(packed)).agentBriefing).toEqual(brief);
+  expect(object(expandFactTables(packed)).agentBriefing).toEqual(
+    object(object(expandFactTables(packed)).agentBriefing).guidanceOmitted ? compactBriefingGuidance(brief) : brief,
+  );
   expect(object(brief.execution).humanOnly).toContain(
     "Explicit human-only actions still require their existing owner approval.",
   );
@@ -281,7 +283,11 @@ it("reconciles stale goal assumptions against completed prerequisites and separa
   );
   expect(full.training).toEqual(stockBlocked.world.training);
   const packed = compactEnvironment({ ...full, optionalHistory: "x".repeat(30000) }, 12000);
-  expect(object(expandFactTables(packed)).agentBriefing).toEqual(full.agentBriefing);
+  expect(object(expandFactTables(packed)).agentBriefing).toEqual(
+    object(object(expandFactTables(packed)).agentBriefing).guidanceOmitted
+      ? compactBriefingGuidance(full.agentBriefing)
+      : full.agentBriefing,
+  );
   expect(packed.training).toEqual(stockBlocked.world.training);
   expect(full.ambition).toBe(stockBlocked.world.ambition);
 });

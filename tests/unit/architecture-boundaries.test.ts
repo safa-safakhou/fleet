@@ -101,7 +101,9 @@ it("preserves alternating legacy/platform priority and fills only available slot
         if (slots) {
           seen.push("legacy");
           slots--;
+          return true;
         }
+        return false;
       },
       platform: async () => {
         if (!slots) return false;

@@ -1,0 +1,25 @@
+# Four targeted feedback repairs and matched repeat
+
+Authorized: implement all four investigated repairs inline, test individually, then repeat 24 synthetic kingdom sessions for 30 minutes. Nemotron4B only, no GUI/delegation, game execution disabled, E4/KQ1 blocked. Preserve the previous run and existing uncommitted work; no installed cutover, commit or push requested.
+
+Design: generic host-side utilities bind exact facts to an observed binding/revision, enumerate legal choices without preselecting the optimum, and validate an explicit exact-integer maximization objective with actionable feedback. Extend the bounded proposal loop with a trusted observation-refresh callback which can append evidence/update schema but cannot change model, signal, output limit or discard prior context. A synthetic adapter owns the toy-game oracle; production platform code has no PACT rules/imports. Each repair is opt-in and independently selectable for tests; the repeat enables all four.
+
+Same observation: 24 bindings, eight synthetic variants, 30 rounds, one trigger/minute, eight workflow workers/four inference slots, six model calls/workflow, two corrections/step, 90-second task/60-second call limits, max4320calls. Same Nemotron BF16 weights/tokenizer/parser/runtime/sampling and same synthetic balances/offers/owner requests/historical and peer text. Existing grade() remains the outcome oracle. The new factual contract deliberately removes numeric copying from the model's responsibilities; report that change rather than calling enforced facts improved raw reasoning.
+
+Separate qualification: offline RED→GREEN cases for each repair with other fixes disabled; then eight game-free Nemotron workflows per repair, 32 workflows total / max192calls / ten-minute overall cap. Retain successes/failures; no automatic repeats or mid-run repair. After successful infrastructure checks, run the full unchanged combined candidate for1800monotonic seconds, no command port, fresh private root/one-shot markers. Stop owned provider at completion. Preserve all prior failed grants/evidence.
+
+- [x] Fact binding: reject extra model-authored facts, foreign scope and stale references; render exact current observations, preserve raw proposals separately.
+- [x] Legal choice constraints: eligible IDs plus explicit none, retain inferior-but-legal alternatives and ties.
+- [x] Refresh: stale rejection obtains a fresh authorized observation; preserves context, budget and scope; failed refresh terminates without replay.
+- [x] Objective feedback: exact BigInt score comparisons, incomplete/ambiguous policies refused, subjective choices unaffected.
+- [x] Full offline unit/integration/type/style/build/boundary checks; fresh one-fix Nemotron qualification with metrics.
+- [x] Matched 24-session/30-minute combined repeat and immutable evidence, then owned shutdown.
+- [x] Inline review, final verification, before/after report and current-state update. Do not claim all production architectures activated or all gameplay accepted.
+
+Ruling: the user has explicitly selected and authorized the four designs, so implementation proceeds without repeated design approval. Work on master per AGENTS. Separate testing includes offline isolation and fresh real-model one-fix workflows. A behavioral failure is recorded, not a reason to consume another unbounded trial.
+
+Checkpoint: 972 unit / 51 isolated integrations, type/build/boundaries and 340 actual grammar compilations passed before inference. Separate real one-fix matrix closed at 32 workflows /117 calls: facts5/8, legal6/8, refresh8/8, objective7/8 correct. Combined observation now running at private root `/home/mnim/.local/share/fleet-grounded-20261024-1400/`, runner session18274; preserve tested source pins until closure. Inline review found that an in-place mutation by a trusted refresh callback could defeat reference-based scope/context comparisons. The actual callback returns fresh objects and does not mutate authority; two offline regression tests reproduce the guard weakness. Apply defensive copying after observation, then verify offline without extra model trials.
+
+Observation complete: 720/720 correct vs364/720 baseline; 484 first pass +236 recovered, all 356 prior failures now pass with no regressions. 2396 calls /1625190 measured tokens; 90 host refreshes and146objective corrections. All tested source pins matched at closure and original fixture/oracle/protocol limits match baseline. Provider stopped with verified ownership. Post-run defensive callback-copy fix passes its two regression tests; no extra inference. Final checks pending.
+
+Final checks:974unit/51isolatedintegration tests, type/build/boundaries/changed-code style/links/whitespace passed. PACT clean; Fleet remains uncommitted on master. One pre-existing moderate fast-uri finding preserved. Provider exited and loopback closed, ordinary Ollama unloaded. Final defensive callback-copy guard is offline-verified; only the two recorded post-run source files differ from the tested candidate. No extra model calls or activation. See [before/after results](../../grounded-feedback-repeat-20261024.md).

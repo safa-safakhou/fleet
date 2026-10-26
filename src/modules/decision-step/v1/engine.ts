@@ -3,6 +3,7 @@ import { z } from "zod";
 import { type Data, FleetError, object, type Tool } from "../../../domain.js";
 import { currentOwnerObjectiveInstruction } from "../../../owner-guidance.js";
 import type { ScopedOperation, ScopedServices } from "../../../platform/engine-context.js";
+import { shareGenerationSchema } from "../../generation-schema/v1.js";
 import { type DecisionContext, decisionContext } from "./context.js";
 
 export const ReactiveDecision = z.discriminatedUnion("kind", [
@@ -52,15 +53,21 @@ export class BoundedDecisionStep {
   protected modelObservation(observation: DecisionContext["observation"]) {
     return observation;
   }
+  protected modelPayload(payload: Data): Data {
+    return payload;
+  }
   protected packEveryObservation() {
     return false;
+  }
+  protected async readQueryContract(_ctx: DecisionContext): Promise<Data | undefined> {
+    return undefined; // Preserve older profiles' versioned request contracts.
   }
   protected fitExtension(_payload: Data): void {}
   protected reduceExtension(_payload: Data): boolean {
     return false;
   }
   protected generationSchema(_payload: Data, base: Data): Data {
-    return base;
+    return shareGenerationSchema(base, { compactNames: true, inlineSingleUse: true });
   }
   protected beforeRequest(_ctx: DecisionContext, _payload: Data): void {}
   protected async decode(_ctx: DecisionContext, raw: unknown, _payload: Data) {
@@ -90,6 +97,7 @@ export class BoundedDecisionStep {
         ctx.schemas?.actions ?? [],
         await ctx.actionContracts?.(observation),
         await ctx.waitSchema?.(observation),
+        await this.readQueryContract(ctx),
       );
       const ownerObjective = ctx.accountObjective?.(observation);
       const system =
@@ -118,7 +126,7 @@ export class BoundedDecisionStep {
         payload.observation = ctx.packObservation(this.modelObservation(observation), budget.inputByteLimit);
       const messages = () => [
         { role: "system", content: system },
-        { role: "user", content: JSON.stringify(payload) },
+        { role: "user", content: JSON.stringify(this.modelPayload(payload)) },
       ];
       const fits = () =>
         Buffer.byteLength(JSON.stringify(messages())) +
@@ -154,8 +162,32 @@ export class BoundedDecisionStep {
           } catch (error) {
             // Retry only a known packing failure after removing an optional
             // extension record. The original authorized observation never changes.
-            if (!(error instanceof FleetError) || error.code !== "CONTEXT_LIMIT" || !this.reduceExtension(payload))
+            if (!(error instanceof FleetError) || error.code !== "CONTEXT_LIMIT") throw error;
+            if (this.reduceExtension(payload)) continue;
+            // Trigger references explain scheduling; they do not replace the
+            // authoritative current observation. Coalesced event bursts must
+            // share the same envelope allowance as optional retained memory.
+            const task = object(payload.task);
+            if (!Array.isArray(task.eventRefs) || !task.eventRefs.length) {
+              // Counts/sizes survive a bounded trace even when the original
+              // observation is too large to record. Never copy private facts.
+              await ctx.trace?.("deciding", "Input packing refused before inference", {
+                code: "CONTEXT_LIMIT",
+                inputByteLimit: budget.inputByteLimit,
+                observationBytes: Buffer.byteLength(JSON.stringify(original)),
+                schemaBytes: Buffer.byteLength(JSON.stringify(this.generationSchema(payload, baseSchema))),
+                catalogBytes: Buffer.byteLength(JSON.stringify(payload.catalog)),
+                continuityBytes: Buffer.byteLength(JSON.stringify(payload.continuity ?? null)),
+                observationAllowance: allowance,
+                catalogTools: catalog.length,
+                eventRefs: Array.isArray(task.eventRefs) ? task.eventRefs.length : 0,
+              });
               throw error;
+            }
+            task.eventRefs.shift();
+            task.sourceRefsOmitted = Number(task.sourceRefsOmitted ?? 0) + 1;
+            const note = "older task trigger references omitted for input budget; current observation retained";
+            if (!omitted.omitted.includes(note)) omitted.omitted.push(note);
           }
         }
       }
@@ -165,13 +197,20 @@ export class BoundedDecisionStep {
       const result = await ctx.model.decide({
         messages: messages(),
         schema: decisionSchema,
+        outputContract: this.decisionSchema,
         maxOutputTokens: budget.maxOutputTokens,
         signal: ctx.signal,
       });
+      if (result.groundedObservation) observation = result.groundedObservation;
       if (result.decisionError) throw new FleetError(result.decisionError);
       let parsed: ReturnType<typeof ReactiveDecision.safeParse>;
       try {
         parsed = await this.decode(ctx, result.decision, payload);
+        if (!parsed.success && ctx.model.correctionEnabled)
+          throw new RejectedDecision(
+            "INVALID_MODEL_OUTPUT",
+            `Native envelope rejected these fields: ${JSON.stringify(parsed.error.issues.slice(0, 6).map((e) => ({ path: e.path, code: e.code })))}. Correct them or omit optional updates; no command was prepared.`,
+          );
       } catch (error) {
         if (!(error instanceof RejectedDecision)) throw error;
         previousDecision = {
@@ -202,6 +241,12 @@ export class BoundedDecisionStep {
           if (call + 1 >= budget.maxCallsPerTurn) throw new FleetError("MODEL_WAIT_REJECTED", true);
           continue;
         }
+        await ctx.trace?.("deciding", "Decision deferred", {
+          summary: d.summary,
+          basis: d.basis ?? {},
+          revision: observation.revision,
+          commandSubmitted: false,
+        });
         if (d.untilNextEvent) await ctx.waitForEvent?.();
         return;
       }

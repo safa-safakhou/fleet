@@ -34,6 +34,7 @@ export class CredentialBroker {
     private base: string,
     private origin: string,
     private liveAllowed: boolean,
+    private preparation: { allowSyntheticEnrollment?: boolean } = {},
   ) {}
   private enabled() {
     if (!this.liveAllowed) throw new FleetError("LIVE_EXECUTION_DISABLED");
@@ -347,38 +348,45 @@ export class CredentialBroker {
   }
   async game(id: string) {
     this.enabled();
-    return this.lock(
-      id,
-      async () => {
-        const a = await this.store.agent(id),
-          s = await this.load(id);
-        if (a.credential_state !== "ready" || !s.accessToken || !a.account_id) throw new FleetError("AUTH_REQUIRED");
-        await this.refresh(id, s);
-        let game = new McpGame(this.base, s.accessToken, true);
-        const initialize = async () => {
-          await game.init();
-          return game.profile();
-        };
-        let profile: Awaited<ReturnType<McpGame["profile"]>>;
-        try {
-          profile = await initialize();
-        } catch (error) {
-          if (!(error instanceof Error) || object(error).code !== "AUTH_REQUIRED") throw error;
-          await this.refresh(id, s, true);
-          game = new McpGame(this.base, s.accessToken ?? "", true);
-          profile = await initialize();
-        }
-        if (profile.accountId !== a.account_id) {
-          await game.close();
-          throw new FleetError("IDENTITY_MISMATCH");
-        }
-        return game;
-      },
-      true,
-    );
+    const account = await this.store.agent(id);
+    if (!account.account_id) throw new FleetError("AUTH_REQUIRED");
+    const request = (send: (token: string) => Promise<Response>) =>
+      this.lock(
+        id,
+        async () => {
+          const current = await this.store.agent(id),
+            secret = await this.load(id);
+          if (current.account_id !== account.account_id) throw new FleetError("IDENTITY_MISMATCH");
+          if (current.credential_state !== "ready" || !secret.accessToken) throw new FleetError("AUTH_REQUIRED");
+          await this.refresh(id, secret);
+          let response = await send(secret.accessToken!);
+          if (response.status === 401) {
+            // Native MCP authenticates before dispatch. Only this definitive
+            // rejection is retried; transport/receipt uncertainty is never replayed.
+            await response.body?.cancel();
+            await this.refresh(id, secret, true);
+            response = await send(secret.accessToken!);
+            if (response.status === 401) {
+              await response.body?.cancel();
+              throw new FleetError("AUTH_REQUIRED");
+            }
+          }
+          return response;
+        },
+        true,
+      );
+    const game = new McpGame(this.base, "", true, request);
+    await game.init();
+    if ((await game.profile()).accountId !== account.account_id) {
+      await game.close();
+      throw new FleetError("IDENTITY_MISMATCH");
+    }
+    return game;
   }
   async provision(id: string, mandate: unknown) {
-    this.enabled();
+    // Explicit owner-only preparation does not enable runtime game access, OAuth reconnect,
+    // recovery, workers or inference. The normal runtime never supplies this option.
+    if (!this.preparation.allowSyntheticEnrollment) this.enabled();
     const input = z
       .object({
         allowedActions: z.array(z.string().max(80)).min(1).max(80),

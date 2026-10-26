@@ -10,6 +10,7 @@ import type { EnvironmentSession, ReadQueryOptions } from "../platform/contracts
 import type { ScopedEvidence, ScopedOperation, ScopedServices } from "../platform/engine-context.js";
 import type { EngineContext } from "../platform/engine-registry.js";
 import type { CommandExecutor } from "../platform/execution.js";
+import { executeGroundedDecision } from "../platform/native-grounding.js";
 import type { TaskClaim, TaskStore } from "../platform/tasks.js";
 import type { Store } from "../store.js";
 import { ContinuityV1Repository } from "./continuity-v1-repository.js";
@@ -116,10 +117,18 @@ export async function createScopedServices(
   const model = owned.turn.cohort.model,
     budget = owned.turn.cohort.budget;
   if (!model || !budget) throw new FleetError("MODEL_CONFIGURATION_REQUIRED");
+  const candidateGrounding = _session?.decisionGrounding;
+  const grounding =
+    candidateGrounding && (candidateGrounding.appliesTo?.(owned.profile) ?? true) ? candidateGrounding : undefined;
+  const reserve = grounding?.inputReserveBytes ?? 0;
+  if (!Number.isSafeInteger(reserve) || reserve < 0 || reserve >= budget.inputByteLimit)
+    throw new FleetError("INVALID_GROUNDING_RESERVE", true);
+  const initialInputLimit = budget.inputByteLimit - reserve;
+  let latestObservation = context.observation;
   const services: ScopedServices = {
     configuration: immutable({
       model: structuredClone(model),
-      budget: structuredClone(budget),
+      budget: { ...structuredClone(budget), inputByteLimit: initialInputLimit },
       architectureConfig:
         (
           await store.pool.query("SELECT architecture_config FROM cohort_engine_profiles WHERE cohort_id=$1", [
@@ -134,23 +143,101 @@ export async function createScopedServices(
       await guard();
       const result = await context.observe(query);
       await guard();
+      latestObservation = result;
       return result;
     },
     model: {
+      correctionEnabled: Boolean(grounding),
+      inputBytes: (input) => {
+        const prepared = grounding ? grounding.prepare(input, latestObservation) : input;
+        return (
+          Buffer.byteLength(JSON.stringify(prepared.messages)) + Buffer.byteLength(JSON.stringify(prepared.schema))
+        );
+      },
+      decideWithFeedback: async (request, policy) => {
+        await guard();
+        if (
+          Object.keys(request).some(
+            (k) => !["messages", "schema", "outputContract", "maxOutputTokens", "stage", "signal"].includes(k),
+          )
+        )
+          throw new FleetError("MODEL_REQUEST_NOT_ADMITTED", true);
+        const result = await context.model.decideWithFeedback(
+          owned,
+          {
+            model,
+            messages: request.messages,
+            schema: request.schema,
+            outputContract: request.outputContract,
+            maxOutputTokens: request.maxOutputTokens,
+            signal: request.signal ? AbortSignal.any([context.signal, request.signal]) : context.signal,
+          },
+          policy,
+          request.stage,
+        );
+        await guard();
+        return result;
+      },
       remainingCalls: async () => {
         await guard();
         return context.model.remainingCalls(owned);
       },
       decide: async (request) => {
         await guard();
-        if (Object.keys(request).some((k) => !["messages", "schema", "maxOutputTokens", "stage", "signal"].includes(k)))
+        if (
+          Object.keys(request).some(
+            (k) => !["messages", "schema", "outputContract", "maxOutputTokens", "stage", "signal"].includes(k),
+          )
+        )
           throw new FleetError("MODEL_REQUEST_NOT_ADMITTED", true);
+        if (grounding) {
+          if (
+            Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.schema)) >
+            initialInputLimit
+          )
+            throw new FleetError("CONTEXT_LIMIT", true);
+          const outcome = await executeGroundedDecision(
+            {
+              model,
+              messages: request.messages,
+              schema: request.schema,
+              outputContract: request.outputContract,
+              maxOutputTokens: request.maxOutputTokens,
+              signal: request.signal ? AbortSignal.any([context.signal, request.signal]) : context.signal,
+            },
+            latestObservation,
+            grounding,
+            {
+              run: (attempt, policy) => context.model.decideWithFeedback(owned, attempt, policy, request.stage),
+              observe: (query) => services.observe(query),
+            },
+          );
+          await guard();
+          await services.trace("deciding", "Native grounded decision", {
+            ...outcome.metrics,
+            stopReason: outcome.stopReason,
+            requestScope: grounding.feedbackScope?.(outcome.observation),
+          });
+          if (outcome.metrics.unknownUsageCalls > 0) throw new FleetError("USAGE_UNKNOWN");
+          if (!outcome.result) throw new FleetError(outcome.error ?? "MODEL_FEEDBACK_FAILED", true);
+          const result = outcome.result as typeof outcome.result & { allocationId?: string };
+          if (!result.allocationId) throw new FleetError("ALLOCATION_ID_REQUIRED");
+          return {
+            ...result,
+            allocationId: result.allocationId,
+            groundedObservation: outcome.observation,
+            ...(outcome.stopReason === "accepted"
+              ? {}
+              : { decisionError: outcome.error ?? "MODEL_FEEDBACK_EXHAUSTED" }),
+          };
+        }
         const result = await context.model.decide(
           owned,
           {
             model,
             messages: request.messages,
             schema: request.schema,
+            outputContract: request.outputContract,
             maxOutputTokens: request.maxOutputTokens,
             signal: request.signal ? AbortSignal.any([context.signal, request.signal]) : context.signal,
           },
@@ -165,7 +252,7 @@ export async function createScopedServices(
       submit: async (intent) => {
         await guard();
         if (intent.bindingId !== binding.id) throw new FleetError("BINDING_MISMATCH", true);
-        const result = await commands.submit(owned, intent);
+        const result = await commands.submit(owned, intent, _session);
         await guard();
         return result;
       },

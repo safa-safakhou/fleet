@@ -1,6 +1,7 @@
 import { afterEach, expect, it } from "vitest";
 import { executeOwnedRC1Protocol } from "../../scripts/lib/post-e3-owned-run.js";
 import { FleetError } from "../../src/domain.js";
+import { fixtureWaitBasis } from "../fixtures/pact-progress-basis.js";
 import { ownedRC1Fixture } from "../fixtures/post-e3.js";
 
 let f: Awaited<ReturnType<typeof ownedRC1Fixture>> | undefined;
@@ -19,8 +20,14 @@ it("runs both independent model kingdoms and all four roles within one shared mo
     reviewOutcome: async () => ({ claims: [], reviews: [] }),
     persist: async () => {},
     provider: {
-      decide: async () => ({
-        decision: { decision: { kind: "wait", summary: "No trade or completed delivery is claimed." } },
+      decide: async (request) => ({
+        decision: {
+          decision: {
+            kind: "wait",
+            summary: "No trade or completed delivery is claimed.",
+            ...fixtureWaitBasis(JSON.parse(request.messages[1].content)),
+          },
+        },
         inputTokens: 20,
         outputTokens: 10,
       }),
@@ -237,11 +244,15 @@ it("meters native wake observations outside a claim and stops on bookkeeping err
       if (calls === 2) throw new FleetError("TEST_REVIEW_STOP", true);
     },
     provider: {
-      decide: async () => {
+      decide: async (request) => {
         calls++;
         return {
           decision: {
-            decision: { kind: "wait", summary: "No outcome is claimed." },
+            decision: {
+              kind: "wait",
+              summary: "No outcome is claimed.",
+              ...fixtureWaitBasis(JSON.parse(request.messages[1].content)),
+            },
             ...(calls === 1
               ? {
                   update: {

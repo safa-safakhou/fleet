@@ -2,6 +2,7 @@ import { afterEach, expect, it } from "vitest";
 import { Cognition } from "../../src/cognition.js";
 import { ContinuityEngine } from "../../src/engines/continuity/engine.js";
 import { ContinuityModule } from "../../src/engines/continuity/state.js";
+import { expandFactTables } from "../../src/fact-table.js";
 import type { Observation } from "../../src/platform/contracts.js";
 import { FakeModel } from "../helpers.js";
 import { platformFixture } from "../platform-helpers.js";
@@ -70,7 +71,9 @@ it("delivers an optional source-linked memory to a later engine turn of the same
   const model = {
     decide: async (input: { messages: { content: string }[] }) => {
       calls++;
-      const context = JSON.parse(input.messages[1].content).continuity;
+      const context = expandFactTables(JSON.parse(input.messages[1].content).continuity) as ReturnType<
+        typeof JSON.parse
+      >;
       if (calls === 1) {
         savedRef = context.evidence[0].id;
         return {

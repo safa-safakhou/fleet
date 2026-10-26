@@ -15,10 +15,12 @@ import { LayaRecall } from "../laya.js";
 import { HttpModel, RoutedModel } from "../model.js";
 import { ModelAdmission, RouteCapacity } from "../platform/admission.js";
 import { Bindings } from "../platform/bindings.js";
+import { capacityDemand } from "../platform/cache-profile.js";
 import { EngineRegistry } from "../platform/engine-registry.js";
 import { EnvironmentRegistry } from "../platform/environment-registry.js";
 import { EventIntake } from "../platform/event-intake.js";
 import { CommandExecutor } from "../platform/execution.js";
+import { providerCapacity } from "../platform/provider-policy.js";
 import { OperationSupervisor, PlatformHost } from "../platform/supervisor.js";
 import { TaskStore } from "../platform/tasks.js";
 import { RunWindow } from "../run-window.js";
@@ -38,7 +40,10 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
   const runWindow = new RunWindow(settings.runWindowFile);
   const broker = new CredentialBroker(store, settings.gameBase, settings.origin, settings.liveAllowed),
     model = runWindow.model(
-      new RoutedModel(new HttpModel(settings.routes, settings.apiKey), new CodexModel(settings.codex)),
+      new RoutedModel(
+        new HttpModel(settings.routes, settings.apiKey, settings.ollamaOptions, settings.vllmCacheProfile),
+        new CodexModel(settings.codex),
+      ),
     ),
     owner = new SyntheticOwner(store, broker);
   const game = async (id: string) => runWindow.game(await broker.game(id));
@@ -54,18 +59,18 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
         outlookVersion: settings.pactOutlookVersion,
         actionEffectsVersion: settings.pactActionEffectsVersion,
         factRequests: settings.pactFactRequests,
+        coordinationVersion: settings.pactCoordinationVersion,
       }),
     ],
     settings.environment,
   );
   const cognition = new Cognition(store, runWindow.recall(new LayaRecall(settings.layaEndpoint)));
-  const capacity = new RouteCapacity(store, (model) => ({
-    key:
-      model.route === "codex-cli"
-        ? "codex-cli:process"
-        : `${model.route}:${settings.routes[model.route] ?? "unconfigured"}`,
-    capacity: 1,
-  }));
+  const capacity = new RouteCapacity(
+    store,
+    (selected) => providerCapacity(settings, selected),
+    (request) =>
+      capacityDemand(model, request.model.provider === "vllm" ? settings.vllmCacheProfile : undefined, request),
+  );
   const capacityModel = capacity.wrap(model, currentLegacyClaim);
   const makeLegacyEngine = () =>
     new LegacyEngineBridge(store, capacityModel, game, settings.liveAllowed, pactAdapter, owner, undefined, cognition);

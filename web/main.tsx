@@ -3,6 +3,7 @@ import { createRoot } from "react-dom/client";
 import "./style.css";
 import { ComparisonWorkspace } from "./comparisons.js";
 import { LaunchWizard } from "./launch.js";
+import { MetricsWorkspace } from "./metrics.js";
 import {
   AgentInspector,
   agentStatus,
@@ -321,6 +322,7 @@ function App() {
         <nav>
           {[
             ["overview", "◉", "Overview"],
+            ["metrics", "▥", "Metrics"],
             ["society", "◎", "Society"],
             ["agents", "◈", "Agents"],
             ["activity", "↗", "Runs / debugging"],
@@ -464,7 +466,7 @@ function App() {
             </details>
           </section>
         )}
-        {!["comparisons", "profiles"].includes(tab) && (
+        {!["comparisons", "profiles", "metrics"].includes(tab) && (
           <section className="stats" aria-label="Fleet summary">
             <div>
               <span>AGENTS</span>
@@ -502,6 +504,8 @@ function App() {
               Create a fleet
             </button>
           </div>
+        ) : tab === "metrics" ? (
+          <MetricsWorkspace api={api} cohorts={state?.cohorts ?? []} />
         ) : tab === "overview" ? (
           <Overview
             cohort={cohort}
