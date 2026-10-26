@@ -1,5 +1,7 @@
 # Fleet current state
 
+**Fresh half-hour deployment completed — 26–27 October 2026; world PAUSED.** [Actual results and remaining failures](fresh-half-hour-run-20261026.md): separate fresh 24 kingdoms, Nemotron 4B only, 216 attempts/250 calls/68 actions, 32 completed upgrades, 14 rejection/error outcomes. Final unknown usage 0, in-flight turns 0, pending/unknown commands 0; bounded shutdown and encrypted restore verified. Old world/nine unknown allocations preserved; E4/KQ1 blocked. This supersedes the source-only checkpoint below for deployment status and does not authorize another run.
+
 **Society reliability implementation — 26 October 2026 (source only).** [Changes, research fields and verification](agent-society-reliability-20261026.md) cover bounded inbox delivery, empty skill no-ops, compact state references, legacy read progress, fresh coordinator admission and composed messages, deadline fencing and supervisor diagnostics. Strategic deferral remains valid. The world/services/unknown allocations are untouched; no model calls, deployment or runtime acceptance. E4/KQ1 remain blocked.
 
 **Continue the investigation:** [Six-hour investigation handoff](six-hour-investigation-handoff-20261026.md) collects the findings, source entry points, open questions, private evidence locations and exact source-versus-live limits for another chat or checkout. This is a documentation handoff; the paused world and retained uncertainty are unchanged.
