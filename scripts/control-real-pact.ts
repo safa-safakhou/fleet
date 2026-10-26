@@ -9,6 +9,7 @@ import pg from "pg";
 import { composeRuntime } from "../src/app/composition.js";
 import { config } from "../src/config.js";
 import { LaunchService } from "../src/platform/launch.js";
+import { freshRunProfiles } from "./lib/fresh-run-profile.js";
 import { assertFreshHostClock, currentWindowsClock } from "./lib/host-clock.js";
 import { LocalRunSupervisor, type SupervisorRecord } from "./lib/local-run-supervisor.js";
 import {
@@ -39,6 +40,7 @@ if (
     "start-canary",
     "start-24h",
     "start-6h",
+    "start-30m",
     "watch",
     "snapshot",
     "restore",
@@ -290,7 +292,7 @@ async function watch() {
 }
 
 if (action === "prepare") {
-  assert(["real-workflow-canary", "fresh-six-hour"].includes(c.purpose ?? ""));
+  assert(["real-workflow-canary", "fresh-six-hour", "fresh-half-hour"].includes(c.purpose ?? ""));
   assert.equal((await json("window.json")).status, "prepared");
   await startOwnedProcess(c, "pact-api", "pact", ["services/api/dist/main.js"]);
   await ready(c.pactEnv.PACT_ORIGIN);
@@ -306,7 +308,9 @@ if (action === "prepare") {
   } finally {
     await clock(c, "pause");
   }
-  const deployment = c.purpose === "fresh-six-hour" ? await json("deployment.json") : null;
+  const deployment = ["fresh-six-hour", "fresh-half-hour"].includes(c.purpose ?? "")
+    ? await json("deployment.json")
+    : null;
   if (deployment) assert(String(deployment.stage).startsWith(`${c.root}/deployments/`), "OWNED_STAGE_REQUIRED");
   await startOwnedProcess(c, "fleet-console", "fleet", [
     deployment ? `${deployment.stage}/server/main.js` : "dist/server/main.js",
@@ -323,13 +327,14 @@ if (action === "prepare") {
       modelCalls: 0,
     }),
   );
-} else if (action === "start-canary" || action === "start-24h" || action === "start-6h") {
+} else if (action === "start-canary" || action === "start-24h" || action === "start-6h" || action === "start-30m") {
+  const profile = freshRunProfiles[action];
   const canary = action === "start-canary",
-    sixHour = action === "start-6h",
-    durationMs = canary ? 900000 : sixHour ? 21600000 : 86400000,
+    exploratory = profile.exploratory,
+    durationMs = profile.durationMs,
     perActorCalls = canary ? 6 : 2000;
   if (canary) assert.equal(c.purpose, "real-workflow-canary");
-  if (sixHour) assert.equal(c.purpose, "fresh-six-hour");
+  if (exploratory) assert.equal(c.purpose, profile.purpose);
   else {
     const approval = await json("activation-approval.json");
     assert.equal(approval.id, c.id);
@@ -369,8 +374,8 @@ if (action === "prepare") {
         wallStartMs: start,
         monoStartMs: mono(),
         bootId: (await boot()).trim(),
-        drainMs: sixHour ? 210000 : 90000,
-        ...(sixHour ? { faultPolicy: "isolate-actors" as const } : {}),
+        drainMs: exploratory ? 210000 : 90000,
+        ...(exploratory ? { faultPolicy: "isolate-actors" as const } : {}),
         hostStart: hostAtStart,
       };
     await writeFile(file("supervisor.json"), JSON.stringify(record, null, 2), { mode: 0o600, flag: "wx" });
@@ -381,7 +386,7 @@ if (action === "prepare") {
       endsAt: start + durationMs,
       durationMs,
       blockedScenarios: ["E4", "KQ1"],
-      scope: canary ? "bounded-real-canary" : sixHour ? "approved-fresh-six-hour" : "approved-24h",
+      scope: profile.scope,
     });
     const launcher = new LaunchService(r.store, r.tasks, r.environments, r.architectures, {
       liveAllowed: true,
@@ -460,8 +465,8 @@ if (action === "prepare") {
       await writeFile(file("logs/seed-inputs.json"), seed.stdout, { mode: 0o600, flag: "wx" });
     }
     await startOwnedProcess(c, "pact-rules", "pact", ["workers/rules/dist/main.js"]);
-    const deployment = sixHour ? await json("deployment.json") : null;
-    if (sixHour) assert(String(deployment.stage).startsWith(`${c.root}/deployments/`), "OWNED_STAGE_REQUIRED");
+    const deployment = exploratory ? await json("deployment.json") : null;
+    if (exploratory) assert(String(deployment.stage).startsWith(`${c.root}/deployments/`), "OWNED_STAGE_REQUIRED");
     await startOwnedProcess(
       c,
       "fleet-worker",
@@ -474,7 +479,7 @@ if (action === "prepare") {
     await writePrivateJson(file("window.json"), { ...armed, status: "running", admissionOpenedAt: Date.now() });
     console.log(
       JSON.stringify({
-        started: canary ? "bounded-real-canary" : sixHour ? "approved-fresh-six-hour" : "approved-24h",
+        started: profile.scope,
         durationMs,
         callCeiling: record.maxCalls,
         root: c.root,

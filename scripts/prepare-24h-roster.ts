@@ -9,6 +9,7 @@ import { CredentialBroker } from "../src/games/pact/credentials.js";
 import { McpGame } from "../src/games/pact/mcp.js";
 import { LaunchService } from "../src/platform/launch.js";
 import { runtime } from "../src/runtime.js";
+import { freshRunProfiles } from "./lib/fresh-run-profile.js";
 
 const root = resolve(process.argv[2] ?? "/nonexistent");
 const config = JSON.parse(readFileSync(resolve(root, "config.json"), "utf8"));
@@ -22,10 +23,10 @@ const window = JSON.parse(readFileSync(config.fleetEnv.FLEET_RUN_WINDOW_FILE, "u
 assert.equal(window.status, "prepared");
 assert.equal(window.startsAt, null);
 assert.equal(window.endsAt, null);
-const sixHour = config.purpose === "fresh-six-hour";
+const exploratory = ["fresh-six-hour", "fresh-half-hour"].includes(config.purpose);
 assert.equal(
   window.durationMs,
-  config.purpose === "real-workflow-canary" ? 900_000 : sixHour ? 21_600_000 : 86_400_000,
+  Object.values(freshRunProfiles).find((profile) => profile.purpose === config.purpose)?.durationMs ?? 86_400_000,
 );
 // An interrupted preparation is evidence to inspect, never a reason to create replacement owners.
 const marker = resolve(root, "enrollment-started.json");
@@ -148,7 +149,7 @@ try {
           route: "openai-compatible",
           provider: "vllm",
           model: config.model.servedName,
-          thinking: sixHour,
+          thinking: exploratory,
           temperature: 0,
           ...(manifest.ref.id === "legacy-cognition" ? { cognition: "llm-centered-v1" } : {}),
         },
@@ -158,8 +159,8 @@ try {
           tokenLimit: 80000000,
           deadlineAt: config.proposalDeadline,
           perCallTokenLimit: 40000,
-          maxOutputTokens: sixHour ? 8192 : 1536,
-          inputByteLimit: sixHour ? 64000 : 32000,
+          maxOutputTokens: exploratory ? 8192 : 1536,
+          inputByteLimit: exploratory ? 64000 : 32000,
           maxCallsPerTurn: 3,
           maxActionsPerTurn: 1,
           concurrency: 1,
