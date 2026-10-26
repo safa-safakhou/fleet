@@ -28,6 +28,7 @@ import {
 } from "./lib/owned-local-world.js";
 import { reviewProgress } from "./lib/review-progress.js";
 import { independentHeartbeat, serializedFinalization } from "./lib/run-control-io.js";
+import { supervisorDiagnostic } from "./lib/supervisor-diagnostic.js";
 
 const exec = promisify(execFile),
   [action, directory] = process.argv.slice(2);
@@ -201,12 +202,15 @@ async function watch() {
     }),
   );
   await heartbeat.ready;
+  let stage = "heartbeat";
   try {
     while (true) {
+      stage = "heartbeat";
       heartbeat.check();
       controlMonoMs = mono();
       const now = Date.now(),
         currentMono = mono();
+      stage = "telemetry";
       const stats = await readStats(pool).catch(() => null);
       const window = await json("window.json"),
         starting = window.status === "armed" && now < record.wallStartMs + 60000;
@@ -227,6 +231,7 @@ async function watch() {
         supervisor.stop(String(window.reason ?? "EXTERNAL_GUARD"), currentMono);
       const request = await json("stop-request.json").catch(() => null);
       if (request) supervisor.stop(String(request.reason ?? "OPERATOR_STOP"), currentMono);
+      stage = "poll";
       let state: ReturnType<LocalRunSupervisor["record"]>;
       try {
         state = await supervisor.poll({
@@ -258,16 +263,26 @@ async function watch() {
           drainTimedOut: finalTimedOut,
           clock: await clock(c, "status"),
         });
+        stage = "finalize";
         await finalize();
         break;
       }
       first = false;
       await new Promise((done) => setTimeout(done, 500));
     }
-  } catch {
-    // Also covers database/heartbeat storage failures, without clearing unknown allocations.
-    await park("SUPERVISOR_FAILURE", true);
-    throw Error("SUPERVISOR_FAILED_CLOSED");
+  } catch (error) {
+    // Preserve the first diagnostic even if parking or storage also fails.
+    const diagnostic = supervisorDiagnostic(error, stage);
+    await writePrivateJson(file("evidence/supervisor-failure.json"), diagnostic).catch(() => {});
+    try {
+      await park("SUPERVISOR_FAILURE", true);
+    } catch (parkingError) {
+      await writePrivateJson(
+        file("evidence/supervisor-parking-failure.json"),
+        supervisorDiagnostic(parkingError, "park"),
+      ).catch(() => {});
+    }
+    throw Error(`SUPERVISOR_FAILED_CLOSED:${diagnostic.code}:${stage}`);
   } finally {
     await heartbeat.stop();
     await pool.end();

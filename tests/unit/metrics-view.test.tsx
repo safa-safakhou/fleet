@@ -19,6 +19,23 @@ it("renders empty and unknown context without claiming zero utilization or expos
       unknownCalls: 0,
       reservedCalls: 0,
     },
+    research: {
+      taskAttempts: 0,
+      distinctTasksAttempted: 0,
+      repeatedTaskAttempts: 0,
+      legacyAttempts: 0,
+      attemptsWithEffects: 0,
+      waitsWithoutEffects: 0,
+      responseMetadataCalls: 0,
+      truncatedCalls: 0,
+      emptyFinalCalls: 0,
+      outputErrorCalls: 0,
+      lateUsage: { observations: 0, input: 0, output: 0 },
+      availability: [],
+      strategicQuality: null,
+      reciprocalCommunication: { messages: 0, pairs: 0, reciprocal_pairs: 0, directed_edges: 0, participants: 0 },
+      coverage: "Metadata coverage only",
+    },
     series: [],
     outcomes: [],
     commandOutcomes: [],
@@ -29,6 +46,8 @@ it("renders empty and unknown context without claiming zero utilization or expos
   const html = renderToStaticMarkup(<MetricsCharts data={data} />);
   expect(html).toContain("No calls in this period");
   expect(html).toContain("Context usage");
+  expect(html).toContain("Distinct tasks");
+  expect(html).toContain("Empty final answers");
   expect(html).toContain("Confirmed actions");
   expect(html).not.toContain("style=");
   const call = {
@@ -48,6 +67,16 @@ it("renders empty and unknown context without claiming zero utilization or expos
     inputLimitBytes: null,
     thinking: null,
     elapsedMs: null,
+    messageBytes: null,
+    schemaBytes: null,
+    inputBytePercent: null,
+    inboxDelivered: null,
+    inboxOmitted: null,
+    quotedOptionsOmitted: null,
+    queueDelayMs: null,
+    firstContentMs: null,
+    generationMs: null,
+    finalTextChars: null,
     reasoningChars: null,
     finishReason: null,
     error: null,

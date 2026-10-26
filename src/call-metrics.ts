@@ -3,6 +3,26 @@ import { FleetError, type ModelPort, object } from "./domain.js";
 import type { Store } from "./store.js";
 
 type Request = Parameters<ModelPort["decide"]>[0];
+const count = (n: unknown) => (Number.isSafeInteger(n) && Number(n) >= 0 ? Number(n) : null);
+/** Counts and byte sizes only. Never persist prompts, peer text or schema contents. */
+export function callPacketMetrics(request: Pick<Request, "messages" | "schema">) {
+  const packets = request.messages.flatMap((m) => {
+    try {
+      return [object(JSON.parse(m.content))];
+    } catch {
+      return [];
+    }
+  });
+  const inbox = packets.map((p) => object(p.inbox)).find((p) => Array.isArray(p.records));
+  const coverage = packets.map((p) => object(p.coverage));
+  return {
+    messageBytes: Buffer.byteLength(JSON.stringify(request.messages)),
+    schemaBytes: Buffer.byteLength(JSON.stringify(request.schema)),
+    inboxDelivered: inbox ? (inbox.records as unknown[]).length : null,
+    inboxOmitted: inbox ? count(inbox.omitted) : null,
+    quotedOptionsOmitted: coverage.map((c) => count(c.quotedOptionsOmitted)).find((n) => n !== null) ?? null,
+  };
+}
 type Result = Awaited<ReturnType<ModelPort["decide"]>>;
 export async function recordCallRequest(
   store: Store,
@@ -10,11 +30,14 @@ export async function recordCallRequest(
   request: Request,
   inputLimitBytes: number,
   provider: Pick<ModelPort, "contextWindow">,
+  timing?: { queueDelayMs: number },
 ) {
   const window = provider.contextWindow?.(request.model);
   await store.pool.query("UPDATE compute_ledger SET request_metrics=$2 WHERE id=$1", [
     id,
     {
+      ...callPacketMetrics(request),
+      queueDelayMs: timing ? count(Math.round(timing.queueDelayMs)) : null,
       contextWindowTokens: Number.isSafeInteger(window) && Number(window) > 0 ? window : null,
       requestBytes:
         Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.schema)),
@@ -37,6 +60,10 @@ export async function recordCallResponse(store: Store, id: string, result: Resul
           : "other"
         : null,
       reasoningChars: result.execution?.reasoningChars ?? null,
+      finalTextChars:
+        typeof result.outputText === "string" ? result.outputText.length : (result.execution?.contentChars ?? null),
+      firstContentMs: result.execution?.firstContentMs ?? null,
+      generationMs: result.execution?.elapsedMs ?? null,
       decisionError: code && /^[A-Z0-9_]{1,80}$/.test(code) ? code : null,
     },
   ]);
@@ -61,7 +88,20 @@ export class FleetMetrics {
     if (q.cohortId && !(await this.store.pool.query("SELECT 1 FROM cohorts WHERE id=$1", [q.cohortId])).rowCount)
       throw new FleetError("NOT_FOUND");
     const args = [since, now, q.cohortId ?? null];
-    const [usage, turns, points, outcomes, calls, architectures, commands] = await Promise.all([
+    const [
+      usage,
+      turns,
+      points,
+      outcomes,
+      calls,
+      architectures,
+      commands,
+      taskCounts,
+      diagnostics,
+      availability,
+      lateUsage,
+      communication,
+    ] = await Promise.all([
       this.store.pool.query(
         "SELECT count(*)::int calls,count(*) FILTER(WHERE status='unknown')::int unknown,count(*) FILTER(WHERE status='reserved')::int reserved,coalesce(sum(input_tokens),0)::float8 input,coalesce(sum(output_tokens),0)::float8 output FROM compute_ledger WHERE created_at>=$1 AND created_at<=$2 AND ($3::uuid IS NULL OR cohort_id=$3)",
         args,
@@ -88,6 +128,38 @@ export class FleetMetrics {
       ),
       this.store.pool.query(
         "SELECT p.state,coalesce(p.outcome->>'code',p.state) code,count(*)::int n FROM platform_commands p JOIN turns t ON t.id=p.turn_id WHERE p.created_at>=$1 AND p.created_at<=$2 AND ($3::uuid IS NULL OR t.cohort_id=$3) GROUP BY 1,2 ORDER BY 1,2",
+        args,
+      ),
+      this.store.pool.query(
+        "SELECT count(c.turn_id)::int task_attempts,count(DISTINCT c.task_id)::int tasks,count(*) FILTER(WHERE c.turn_id IS NULL)::int legacy_attempts,count(*) FILTER(WHERE t.actions>0)::int attempts_with_effects,count(*) FILTER(WHERE t.actions=0 AND t.state='finished' AND t.code='WAIT')::int waits_without_effects FROM turns t LEFT JOIN platform_task_claims c ON c.turn_id=t.id WHERE t.started_at>=$1 AND t.started_at<=$2 AND ($3::uuid IS NULL OR t.cohort_id=$3)",
+        args,
+      ),
+      this.store.pool.query(
+        "SELECT count(*) FILTER(WHERE response_metrics ? 'elapsedMs')::int recorded,count(*) FILTER(WHERE response_metrics->>'finishReason'='length')::int truncated,count(*) FILTER(WHERE response_metrics->>'finalTextChars'='0')::int empty_final,count(*) FILTER(WHERE response_metrics->>'decisionError' IS NOT NULL)::int output_errors FROM compute_ledger WHERE created_at>=$1 AND created_at<=$2 AND ($3::uuid IS NULL OR cohort_id=$3)",
+        args,
+      ),
+      this.store.pool.query(
+        "SELECT c.state cohort_state,a.state agent_state,a.credential_state,count(*)::int agents FROM agents a JOIN cohorts c ON c.id=a.cohort_id WHERE ($1::uuid IS NULL OR c.id=$1) GROUP BY 1,2,3 ORDER BY 1,2,3",
+        [q.cohortId ?? null],
+      ),
+      this.store.pool.query(
+        "SELECT count(*)::int observations,coalesce(sum(u.input_tokens),0)::float8 input,coalesce(sum(u.output_tokens),0)::float8 output FROM usage_observations u JOIN compute_ledger l ON l.id=u.allocation_id WHERE u.observed_at>=$1 AND u.observed_at<=$2 AND ($3::uuid IS NULL OR l.cohort_id=$3)",
+        args,
+      ),
+      this.store.pool.query(
+        `WITH messages AS (
+        SELECT DISTINCT m.source_id,
+          CASE WHEN m.direction='outgoing' THEN a.kingdom_id::text ELSE m.peer_kingdom_id END sender,
+          CASE WHEN m.direction='incoming' THEN a.kingdom_id::text ELSE m.peer_kingdom_id END recipient
+        FROM communications m JOIN agents a ON a.id=m.owner_agent_id JOIN cohorts c ON c.id=m.cohort_id
+        WHERE m.kind='message' AND m.direction IN('incoming','outgoing') AND a.kingdom_id IS NOT NULL
+          AND c.observation_consent AND m.occurred_at>=$1 AND m.occurred_at<=$2 AND ($3::uuid IS NULL OR m.cohort_id=$3)
+      ), edges AS (SELECT DISTINCT sender,recipient FROM messages WHERE sender<>recipient),
+      pairs AS (SELECT least(sender,recipient) a,greatest(sender,recipient) b,count(*) directions FROM edges GROUP BY 1,2)
+      SELECT (SELECT count(*)::int FROM messages) messages,(SELECT count(*)::int FROM edges) directed_edges,
+        count(*)::int pairs,count(*) FILTER(WHERE directions=2)::int reciprocal_pairs,
+        (SELECT count(*)::int FROM (SELECT sender FROM edges UNION SELECT recipient FROM edges) participants) participants
+      FROM pairs`,
         args,
       ),
     ]);
@@ -126,6 +198,24 @@ export class FleetMetrics {
         outputTokens: usage.rows[0].output,
         ...turns.rows[0],
       },
+      research: {
+        taskAttempts: taskCounts.rows[0].task_attempts,
+        distinctTasksAttempted: taskCounts.rows[0].tasks,
+        repeatedTaskAttempts: taskCounts.rows[0].task_attempts - taskCounts.rows[0].tasks,
+        legacyAttempts: taskCounts.rows[0].legacy_attempts,
+        attemptsWithEffects: taskCounts.rows[0].attempts_with_effects,
+        waitsWithoutEffects: taskCounts.rows[0].waits_without_effects,
+        responseMetadataCalls: diagnostics.rows[0].recorded,
+        truncatedCalls: diagnostics.rows[0].truncated,
+        emptyFinalCalls: diagnostics.rows[0].empty_final,
+        outputErrorCalls: diagnostics.rows[0].output_errors,
+        lateUsage: lateUsage.rows[0],
+        availability: availability.rows,
+        strategicQuality: null,
+        reciprocalCommunication: communication.rows[0],
+        coverage:
+          "Attempt counts use turn start time; legacy turns have no durable task ID. Availability is current, not time-integrated exposure. Completion counts require recorded response metadata. Late usage is evidence, not settled accounting. Communication counts cover consented messages actually ingested during this window, deduplicated by native message ID and direction; observation time is not send time. Reciprocal edges show both directions, not meaningful replies or cooperation. Unobserved messages and strategic quality remain unknown.",
+      },
       series,
       outcomes: outcomes.rows,
       commandOutcomes: commands.rows,
@@ -151,6 +241,19 @@ export class FleetMetrics {
           contextPercent: r.status === "reported" && window && input !== null ? (100 * input) / window : null,
           outputPercent: r.status === "reported" && limit && output !== null ? (100 * output) / limit : null,
           requestBytes: num(a.requestBytes),
+          messageBytes: num(a.messageBytes),
+          schemaBytes: num(a.schemaBytes),
+          inputBytePercent:
+            num(a.requestBytes) !== null && num(a.inputLimitBytes)
+              ? (100 * Number(a.requestBytes)) / Number(a.inputLimitBytes)
+              : null,
+          inboxDelivered: num(a.inboxDelivered),
+          inboxOmitted: num(a.inboxOmitted),
+          quotedOptionsOmitted: num(a.quotedOptionsOmitted),
+          queueDelayMs: num(a.queueDelayMs),
+          firstContentMs: num(b.firstContentMs),
+          generationMs: num(b.generationMs),
+          finalTextChars: num(b.finalTextChars),
           inputLimitBytes: num(a.inputLimitBytes),
           thinking: typeof a.thinking === "boolean" ? a.thinking : null,
           elapsedMs: num(b.elapsedMs),

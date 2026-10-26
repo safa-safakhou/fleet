@@ -7,6 +7,7 @@ import type {
   EnvironmentAdapter,
   EnvironmentRef,
   EnvironmentSession,
+  Observation,
   SchemaRequirements,
 } from "./contracts.js";
 export function sameEnvironment(a: EnvironmentRef, b: EnvironmentRef) {
@@ -21,6 +22,48 @@ export function scopedSource(binding: BindingRef, source: string) {
     binding.entityRef,
     source,
   ]);
+}
+/** Decode only this binding's exact host-added scope; foreign references never reach an adapter. */
+function nativeSource(binding: BindingRef, source: string) {
+  let parts: unknown;
+  try {
+    parts = JSON.parse(source);
+  } catch {
+    throw new FleetError("UNSCOPED_EVIDENCE");
+  }
+  if (
+    !Array.isArray(parts) ||
+    parts.length !== 6 ||
+    typeof parts[5] !== "string" ||
+    scopedSource(binding, parts[5]) !== source
+  )
+    throw new FleetError("UNSCOPED_EVIDENCE");
+  return parts[5];
+}
+function nativeObservation(binding: BindingRef, observation: Observation): Observation {
+  return {
+    ...observation,
+    sourceRefs: observation.sourceRefs.map((r) => nativeSource(binding, r)),
+    ...(observation.coordination
+      ? {
+          coordination: {
+            ...observation.coordination,
+            focuses: observation.coordination.focuses.map((f) => ({
+              ...f,
+              sourceRefs: f.sourceRefs.map((r) => nativeSource(binding, r)),
+            })),
+          },
+        }
+      : {}),
+    ...(observation.continuity
+      ? {
+          continuity: {
+            ...observation.continuity,
+            facts: observation.continuity.facts.map((f) => ({ ...f, sourceRef: nativeSource(binding, f.sourceRef) })),
+          },
+        }
+      : {}),
+  };
 }
 export function requireCapabilities(
   adapter: EnvironmentAdapter,
@@ -149,6 +192,17 @@ export class EnvironmentRegistry {
       ...(session.waitSchema ? { waitSchema: session.waitSchema.bind(session) } : {}),
       ...(session.readQuerySchema ? { readQuerySchema: session.readQuerySchema.bind(session) } : {}),
       ...(session.validateWait ? { validateWait: session.validateWait.bind(session) } : {}),
+      ...(session.refreshProposal
+        ? ({
+            refreshProposal: async (proposal, observation) => {
+              const refreshed = await session.refreshProposal!(
+                { ...proposal, evidenceRefs: proposal.evidenceRefs.map((r) => nativeSource(binding, r)) },
+                nativeObservation(binding, observation),
+              );
+              return { ...refreshed, evidenceRefs: refreshed.evidenceRefs.map((r) => scopedSource(binding, r)) };
+            },
+          } satisfies Pick<EnvironmentSession, "refreshProposal">)
+        : {}),
       ...(session.validateProposal ? { validateProposal: session.validateProposal.bind(session) } : {}),
       ...(session.actionContracts
         ? {

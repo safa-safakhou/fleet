@@ -10,6 +10,7 @@ import type { EnvironmentSession } from "../platform/contracts.js";
 import type { ScopedEvidence, ScopedOperation, ScopedServices } from "../platform/engine-context.js";
 import type { EngineContext } from "../platform/engine-registry.js";
 import type { CommandExecutor } from "../platform/execution.js";
+import { selectInboxPacket } from "../platform/inbox-packet.js";
 import { launchDigest } from "../platform/launch.js";
 import { SpecialistPresetSchema, type SpecialistScope } from "../platform/participant-state.js";
 import type { TaskStore } from "../platform/tasks.js";
@@ -75,7 +76,8 @@ export async function createParticipantPorts(deps: {
     })),
   );
   const cutoff = () => new Date(store.now().getTime() - 30 * 86400000);
-  const inbox = async () => {
+  const deliveredIds = new Set<string>();
+  const inbox = async (options?: { maxBytes: number }) => {
     await guard();
     const rows = (
       await store.pool.query(
@@ -90,7 +92,7 @@ export async function createParticipantPorts(deps: {
       )
     ).rows[0].n;
     await guard();
-    return {
+    const packet = {
       records: rows.map((r) => ({
         id: r.id as string,
         rootId: r.root_id as string,
@@ -107,6 +109,12 @@ export async function createParticipantPorts(deps: {
         Math.max(0, count - rows.length) +
         rows.filter((r) => !r.detail_cipher || new Date(r.received_at) <= cutoff()).length,
     };
+    const selected = selectInboxPacket(
+      packet,
+      options?.maxBytes ?? Math.max(1024, Math.floor(services.configuration.budget.inputByteLimit / 8)),
+    );
+    for (const record of selected.records) deliveredIds.add(record.id);
+    return selected;
   };
   const ports: NonNullable<ScopedServices["participants"]> = {
     load: () => repository.load(scope),
@@ -229,10 +237,9 @@ export async function createParticipantPorts(deps: {
         goal.evidenceIds = [...new Set([...goal.evidenceIds, proof.id])];
       }
     }
-    const delivered = await inbox();
     const messaging = new ParticipantMessages(store, tasks, op.binding, op.instanceId, {
       taskId: op.task.id,
-      deliveryIds: delivered.records.map((r) => r.id),
+      deliveryIds: [...deliveredIds],
       clock: op.observation.environmentTime,
     });
     const routines = input.envelope.goals.filter((g) => g.routine);

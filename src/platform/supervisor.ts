@@ -169,6 +169,7 @@ export class PlatformHost {
           readQuerySchema: session?.readQuerySchema,
           validateWait: session?.validateWait,
           validateProposal: session?.validateProposal,
+          refreshProposal: session?.refreshProposal,
           actionContracts: session?.actionContracts,
           projectObservation: session?.projectObservation,
           packObservation: session?.packObservation,

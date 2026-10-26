@@ -345,3 +345,115 @@ it("quotes factual peer replies only for contacts actually present in the author
   expect(payload.body).toContain("1000");
   expect(payload.body).not.toMatch(/delivered|completed|guarantee/i);
 });
+
+function proposalFor(f: ReturnType<typeof fixture>, view: Observation): Proposal {
+  const option = (view.coordination!.focuses[0].observation.options as Data[])[0];
+  return {
+    taskId: "task",
+    intent: {
+      commandId: randomUUID(),
+      bindingId: f.binding.id,
+      schemaId: "pact.action.v1",
+      expectedVersion: view.revision,
+      payload: option.payload as Data,
+    },
+    evidenceRefs: view.coordination!.focuses[0].sourceRefs,
+    expectedOutcome: option.expectedOutcome as Data,
+    claims: option.claims as Proposal["claims"],
+    conflicts: [],
+  };
+}
+it("refreshes unchanged semantic choices after clock/stock revisions while retaining exact command identity", async () => {
+  const f = fixture(),
+    old = await f.policy.observe(f.base),
+    proposal = proposalFor(f, old);
+  f.advance();
+  const current = await f.policy.observe(f.base);
+  const refreshed = await f.policy.refreshProposal(proposal, current);
+  expect(refreshed.intent).toEqual({ ...proposal.intent, expectedVersion: current.revision });
+  expect(refreshed.claims).toEqual(proposal.claims);
+  expect(await f.policy.validate(refreshed, current)).toMatchObject({ valid: true });
+  expect(await f.policy.execute(refreshed.intent)).toMatchObject({ code: "COMMITTED" });
+});
+it("refuses fresh admission when cost, choice, or original evidence changed", async () => {
+  for (const change of ["cost", "choice", "evidence"] as const) {
+    const f = fixture(),
+      old = await f.policy.observe(f.base),
+      proposal = proposalFor(f, old);
+    f.advance();
+    if (change === "cost") {
+      const original = f.game.effects!;
+      f.game.effects = async (c) => ({
+        ...(await original(c)),
+        claims: [{ kind: "resource", schemaId: "pact.stock.v1", key: "iron:founding", units: "6" }],
+      });
+    }
+    if (change === "choice") f.actions[0] = { ...f.actions[0], targetLevel: 3 };
+    if (change === "evidence") proposal.evidenceRefs = ["invented"];
+    const current = await f.policy.observe(f.base);
+    await expect(f.policy.refreshProposal(proposal, current)).rejects.toThrow(/COORDINATION_|CLAIMS_/);
+    expect(f.counts().guarded).toBe(0);
+  }
+});
+it("lets a worker compose text for an observed contact, then quotes that exact message", async () => {
+  const f = fixture(),
+    peer = randomUUID();
+  f.base.payload.guide = { contacts: [{ kingdomId: peer }] };
+  const view = await f.policy.observe(f.base),
+    focus = view.coordination!.focuses.find((x) => x.id === "game.message.send")!;
+  const option = (focus.observation.options as Data[])[0];
+  const input = f.policy.grounding.prepare(
+    {
+      messages: [{ role: "user", content: JSON.stringify({ stage: "worker", focus }) }],
+      schema: z.toJSONSchema(WorkerResultSchema, { target: "draft-7" }),
+    },
+    view,
+  );
+  const accepts = new Ajv({ strict: false }).compile(input.schema);
+  const raw = {
+    intent: {
+      schemaId: "pact.action.v1",
+      payload: {
+        kind: "game.message.send",
+        recipientKingdomId: peer,
+        body: "Could we exchange grain for iron? What do you need?",
+      },
+    },
+    evidenceRefs: focus.sourceRefs,
+    expectedOutcome: option.expectedOutcome,
+    claims: [],
+    conflicts: [],
+  };
+  expect(accepts({ summary: "Ask a peer", proposal: raw })).toBe(true);
+  expect(
+    accepts({
+      summary: "Invent peer",
+      proposal: {
+        ...raw,
+        intent: { ...raw.intent, payload: { ...raw.intent.payload, recipientKingdomId: randomUUID() } },
+      },
+    }),
+  ).toBe(false);
+  const proposal = {
+    ...raw,
+    taskId: "task",
+    intent: { ...raw.intent, commandId: randomUUID(), bindingId: f.binding.id, expectedVersion: view.revision },
+  } as Proposal;
+  const admitted = await f.policy.refreshProposal(proposal, view);
+  expect(admitted.intent.payload).toEqual(raw.intent.payload);
+  expect(admitted.claims.length).toBeGreaterThan(0);
+  expect(await f.policy.validate(admitted, view)).toMatchObject({ valid: true });
+});
+it.each([false, true])(
+  "requires reconsideration when owner intent changes without a construction checkpoint (revision=%s)",
+  async (advance) => {
+    const f = fixture();
+    f.base.payload.world = { ambition: "Discuss grain trade" };
+    const old = await f.policy.observe(f.base),
+      proposal = proposalFor(f, old);
+    if (advance) f.advance();
+    f.base.payload.world = { ambition: "Keep all resources for defense" };
+    const current = await f.policy.observe(f.base);
+    await expect(f.policy.refreshProposal(proposal, current)).rejects.toThrow("COORDINATION_CHOICE_CHANGED");
+  },
+);

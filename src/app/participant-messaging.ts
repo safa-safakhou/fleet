@@ -205,6 +205,13 @@ export class ParticipantMessages {
     await db.query("UPDATE specialist_deliveries SET status='acknowledged' WHERE id=ANY($1::uuid[])", [
       envelope.deliveryIds,
     ]);
+    // Finish only the delivered batch. Remaining work must survive even if the
+    // model chose to wait and no new external event arrives to wake this task.
+    if (envelope.deliveryIds.length && this.context)
+      await db.query(
+        "UPDATE platform_tasks SET revision=revision+1 WHERE id=$1 AND EXISTS(SELECT 1 FROM specialist_deliveries WHERE task_id=$1 AND status='pending')",
+        [this.context.taskId],
+      );
   }
   private limit(limit: number) {
     if (!Number.isInteger(limit) || limit < 1 || limit > 100) throw new FleetError("PARTICIPANT_WORK_LIMIT");

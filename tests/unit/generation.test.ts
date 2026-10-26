@@ -34,6 +34,15 @@ const invalid = [
   },
   { kind: "read", summary: "Fixture", tool: "pact_conversation_read_v2", args: {} },
 ];
+it("advertises executable reads without inviting lookup of a schema already in the packet", () => {
+  const check = new Ajv({ strict: false, validateFormats: false }).compile(schema);
+  expect(
+    check({ kind: "read", summary: "Inspect", tool: "fleet_read_schema", args: { name: "pact_world_read_v1" } }),
+  ).toBe(false);
+  expect(check({ kind: "read", summary: "Observe", tool: "pact_world_read_v1", args: { forecastMinutes: 1 } })).toBe(
+    true,
+  );
+});
 it("closes exact operations/args, rejects all four archived synthetic calls and retains a legitimate call", () => {
   const check = new Ajv({ strict: false, validateFormats: false }).compile(schema);
   expect(check(valid)).toBe(true);

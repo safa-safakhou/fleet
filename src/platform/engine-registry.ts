@@ -28,6 +28,7 @@ export interface EngineContext {
   accountObjective?: (observation: Observation) => import("./contracts.js").AccountObjective | undefined;
   trace?: (stage: "thinking" | "deciding", label: string, detail: Data) => Promise<void>;
   capabilities?: import("./contracts.js").Capabilities;
+  refreshProposal?: import("./contracts.js").EnvironmentSession["refreshProposal"];
   validateProposal?: (
     proposal: import("./contracts.js").Proposal,
     observation: Observation,

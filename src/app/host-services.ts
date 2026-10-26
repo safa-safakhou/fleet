@@ -427,6 +427,16 @@ export async function createScopedServices(
         await guard();
         return result;
       },
+      refreshProposal: context.refreshProposal
+        ? async (proposal, observation) => {
+            await guard();
+            const refresh = context.refreshProposal;
+            if (!refresh) throw new FleetError("UNSUPPORTED_CAPABILITY");
+            const result = await refresh(proposal, observation);
+            await guard();
+            return result;
+          }
+        : undefined,
       validateProposal: context.validateProposal
         ? async (...args: Parameters<NonNullable<EngineContext["validateProposal"]>>) => {
             await guard();

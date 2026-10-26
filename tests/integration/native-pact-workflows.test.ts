@@ -253,7 +253,7 @@ it.each(
                   proposal: {
                     intent: { schemaId: "pact.action.v1", payload: o.payload },
                     evidenceRefs: focus.sourceRefs,
-                    claims: o.claims,
+                    claims: Array.isArray(o.textFields) ? [] : o.claims,
                     conflicts: [],
                     expectedOutcome: o.expectedOutcome,
                   },

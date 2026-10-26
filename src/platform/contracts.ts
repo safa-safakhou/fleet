@@ -98,6 +98,7 @@ export interface EnvironmentSession {
   execute(intent: ActionIntent): Promise<ActionOutcome>;
   resolve(commandId: string): Promise<ActionOutcome>;
   events?(cursor: string | null): Promise<EventPage>;
+  refreshProposal?(proposal: Proposal, observation: Observation): Promise<Proposal>;
   validateProposal?(proposal: Proposal, observation: Observation): Promise<ProposalValidation>;
   waitSchema?(observation: Observation): Promise<Data | undefined>;
   validateWait?(basis: Data, observation: Observation): Promise<ProposalValidation>;

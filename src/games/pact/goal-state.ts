@@ -73,7 +73,31 @@ export function pactCurrentObjective(facts: Data): AccountObjective | undefined 
   return typeof intent === "string" && intent.trim() ? intent : undefined;
 }
 export function pactActionBasis(facts: Data): Data | undefined {
-  return pactWaitSchema(facts) ? checkpoint(facts)?.basis : undefined;
+  const current = checkpoint(facts);
+  return current && pactWaitSchema(facts) ? { observationRef: observationRef(facts, current) } : undefined;
+}
+function observationRef(facts: Data, current: NonNullable<ReturnType<typeof checkpoint>>) {
+  const canonical = (value: unknown): unknown =>
+    Array.isArray(value)
+      ? value.map(canonical)
+      : value && typeof value === "object"
+        ? Object.fromEntries(
+            Object.entries(value)
+              .sort(([a], [b]) => a.localeCompare(b))
+              .map(([k, v]) => [k, canonical(v)]),
+          )
+        : value;
+  return createHash("sha256")
+    .update(
+      JSON.stringify(
+        canonical({
+          kingdomId: object(object(facts.world).profile).kingdomId ?? null,
+          intent: current.intent,
+          basis: current.basis,
+        }),
+      ),
+    )
+    .digest("hex");
 }
 const deferralSchema: Data = {
   type: "object",
@@ -89,22 +113,15 @@ const deferralSchema: Data = {
 export function pactWaitSchema(facts: Data): Data | undefined {
   const current = checkpoint(facts);
   if (!current || (!current.actionable && !current.progress.some((b) => b.phase === "stock_shortage"))) return;
-  // Key/value truth is checked against the observation below. Do not duplicate
-  // every observed key in generation: large goal/continuity packets share a budget.
-  const map = (valueSchema: Data) => ({ type: "object", additionalProperties: valueSchema });
+  // Exact current facts remain in the host and observation. The model selects
+  // the supplied reference instead of transcribing an entire state map.
   return {
     type: "object",
     properties: {
-      completedLevels: map({ type: "integer", minimum: 0 }),
-      queuedPhases: map({
-        type: "string",
-        enum: ["active", "building_prerequisites", "stock_shortage", "queue_or_admission_check"],
-      }),
-      ...(current.actionable
-        ? { opportunityRevision: { const: current.basis.opportunityRevision }, deferral: deferralSchema }
-        : {}),
+      observationRef: { const: observationRef(facts, current) },
+      ...(current.actionable ? { deferral: deferralSchema } : {}),
     },
-    required: ["completedLevels", "queuedPhases", ...(current.actionable ? ["opportunityRevision", "deferral"] : [])],
+    required: ["observationRef", ...(current.actionable ? ["deferral"] : [])],
     additionalProperties: false,
   };
 }
@@ -119,21 +136,32 @@ export function validatePactWait(basis: Data, facts: Data): ProposalValidation {
   return validateBasis(basis, facts, true);
 }
 function validateBasis(basis: Data, facts: Data, waiting: boolean): ProposalValidation {
-  if (!pactWaitSchema(facts)) return { valid: true, code: "VALID" };
+  if (!pactWaitSchema(facts))
+    return Object.hasOwn(basis, "observationRef")
+      ? {
+          valid: false,
+          code: "PACT_CURRENT_STATE_REQUIRED",
+          guidance: "The referenced state is no longer applicable. Read the current observation before deciding.",
+        }
+      : { valid: true, code: "VALID" };
   const current = checkpoint(facts);
   if (!current) return { valid: true, code: "VALID" };
-  if (
-    Object.keys(basis).every((k) =>
-      [
-        "completedLevels",
-        "queuedPhases",
-        ...(current.actionable ? ["opportunityRevision", ...(waiting ? ["deferral"] : [])] : []),
-      ].includes(k),
-    ) &&
-    sameMap(basis.completedLevels, current.basis.completedLevels) &&
-    sameMap(basis.queuedPhases, current.basis.queuedPhases) &&
-    (!current.actionable || basis.opportunityRevision === current.basis.opportunityRevision)
-  ) {
+  const referenced = Object.hasOwn(basis, "observationRef");
+  const matches = referenced
+    ? Object.keys(basis).every((k) =>
+        ["observationRef", ...(waiting && current.actionable ? ["deferral"] : [])].includes(k),
+      ) && basis.observationRef === observationRef(facts, current)
+    : Object.keys(basis).every((k) =>
+        [
+          "completedLevels",
+          "queuedPhases",
+          ...(current.actionable ? ["opportunityRevision", ...(waiting ? ["deferral"] : [])] : []),
+        ].includes(k),
+      ) &&
+      sameMap(basis.completedLevels, current.basis.completedLevels) &&
+      sameMap(basis.queuedPhases, current.basis.queuedPhases) &&
+      (!current.actionable || basis.opportunityRevision === current.basis.opportunityRevision);
+  if (matches) {
     const d = object(basis.deferral);
     if (
       waiting &&
@@ -151,7 +179,7 @@ function validateBasis(basis: Data, facts: Data, waiting: boolean): ProposalVali
       return {
         valid: false,
         code: "PACT_WAIT_DEFERRAL_REQUIRED",
-        detail: { currentState: current.basis },
+        detail: { currentState: current.basis, expectedBasis: { observationRef: observationRef(facts, current) } },
         guidance:
           "No action occurred. Ready prerequisite/development choices or introductions are present. Choose useful work/read, or explicitly defer with basis.deferral reason, explanation of the owner-goal tradeoff and reconsiderWhen. Waiting will not complete prerequisites or create incoming contacts. Do not invent a shortage or claim a proposal was committed.",
       };
@@ -160,9 +188,13 @@ function validateBasis(basis: Data, facts: Data, waiting: boolean): ProposalVali
   return {
     valid: false,
     code: "PACT_WAIT_STATE_MISMATCH",
-    detail: { currentState: current.basis, stockShortfallsWholeCeil: current.currentState.stockShortfallsWholeCeil },
+    detail: {
+      currentState: current.basis,
+      expectedBasis: { observationRef: observationRef(facts, current) },
+      stockShortfallsWholeCeil: current.currentState.stockShortfallsWholeCeil,
+    },
     guidance:
-      "Wait not accepted. Reconcile basis with detail.currentState: completed levels are facts, stock_shortage needs resources, and ready prerequisites require their own commands. Visible peers need an introduction before incoming messages are possible. Choose useful permitted work/read, or explicitly explain a strategic deferral of available opportunities. Include current factual basis; do not duplicate queued work, cancel jobs or invent effects.",
+      "Wait not accepted. Use detail.expectedBasis.observationRef for the delivered current facts; do not recopy the state map. A reference does not assert that a queued upgrade completed. Choose permitted work/read or explain a strategic deferral when requested by the schema.",
   };
 }
 
@@ -180,7 +212,7 @@ export function goalActionOutcomeSchema(facts: Data, kinds: string[], base?: Dat
         enum: kinds,
         description: "Must equal actual payload.kind. An offer or signature is not construction or delivery.",
       },
-      basis: { const: current.basis },
+      basis: { const: pactActionBasis(facts) },
     },
     required: [
       ...new Set([...(Array.isArray(base?.required) ? (base.required as string[]) : []), "actionKind", "basis"]),

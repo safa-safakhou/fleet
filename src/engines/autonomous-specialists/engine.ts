@@ -218,7 +218,7 @@ export class AutonomousSpecialistsEngine {
             })
           : undefined;
       const state = await p.load(),
-        inbox = await p.inbox(),
+        inbox = await p.inbox({ maxBytes: Math.max(1024, Math.floor(budget.inputByteLimit / 8)) }),
         originals = await p.originals(selected.flatMap((v) => v.body.evidence.sourceIds));
       const goals = state.goals.filter((g) => ["active", "suspended"].includes(g.status));
       const requiredEvidenceIds = [
@@ -751,7 +751,11 @@ export class AutonomousSpecialistsEngine {
           : result.decision,
       );
       if (!parsed.success) throw new FleetError("INVALID_MODEL_OUTPUT", true);
-      const { decision, update, skills } = parsed.data;
+      const { decision, update } = parsed.data;
+      const changes = Object.fromEntries(
+        Object.entries(parsed.data.skills ?? {}).filter(([, refs]) => refs.length > 0),
+      );
+      const skills = Object.keys(changes).length ? (changes as z.infer<typeof SkillChanges>) : undefined;
       if (boundedReadProgress && decision.kind === "action" && decision.summary !== prospectiveActionSummary)
         throw new FleetError("ACTION_PROPOSAL_SUMMARY_REQUIRED", true);
       if (boundedReadProgress)

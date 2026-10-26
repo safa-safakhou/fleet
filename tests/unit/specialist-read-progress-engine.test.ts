@@ -109,6 +109,21 @@ function actionFixture(summary: string) {
   ];
   return f;
 }
+it.each([{}, { select: [] }, { publish: [] }, { adopt: [] }, { select: [], publish: [], adopt: [] }])(
+  "accepts an empty optional skill operation with skills disabled: %j",
+  async (skills) => {
+    const f = actionFixture("Action proposed."),
+      decide = f.services.model.decide;
+    f.services.model.decide = async (request) => {
+      const result = await decide(request);
+      return { ...result, decision: { ...(result.decision as object), skills } };
+    };
+    await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+    expect(f.calls()).toBe(1);
+    expect(f.accept).toHaveBeenCalledTimes(1);
+    expect(f.accept.mock.calls[0][0].intent.payload).toEqual({ accept: true });
+  },
+);
 it("rejects the unsupported delivery guarantee before proposal validation or acceptance", async () => {
   const f = actionFixture(
     "Accept the incoming contact request. Response will be delivered to the sender's social attention.",

@@ -1,5 +1,7 @@
 # Six-hour run: investigation handoff
 
+Follow-up: [Agent society systems investigation](agent-society-system-investigation-20261026.md) connects the architecture, context, model, timing, game-state and reporting findings, including newly established causes and remaining uncertainties. No runtime changes were made.
+
 This is the starting point for continuing the investigation in another chat or checkout. Findings come from the read-only inspection on **26 October 2026 at 08:51 UTC**. No new live inspection, game execution, model calls or deployment was performed to prepare this handoff.
 
 ## Outcome and retained state

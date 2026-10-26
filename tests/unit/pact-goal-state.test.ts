@@ -4,7 +4,32 @@ import { expect, it } from "vitest";
 import { type Data, object } from "../../src/domain.js";
 import { ReactiveEngine } from "../../src/engines/reactive/engine.js";
 import { createPactEnvironment } from "../../src/environments/pact.js";
-import { pactCurrentObjective, pactWaitSchema, validatePactWait } from "../../src/games/pact/goal-state.js";
+import {
+  pactActionBasis,
+  pactCurrentObjective,
+  pactWaitSchema,
+  validatePactWait,
+} from "../../src/games/pact/goal-state.js";
+
+it("offers a compact current observation reference and accepts strategic deferral without recopying state", () => {
+  const native = JSON.parse(readFileSync("tests/fixtures/pact-initial-packing.json", "utf8")).observation.payload;
+  const basis = pactActionBasis(native)!;
+  expect(basis).toEqual({ observationRef: expect.stringMatching(/^[a-f0-9]{64}$/) });
+  const decision = {
+    ...basis,
+    deferral: { reason: "risk_review", explanation: "Consider the tradeoff", reconsiderWhen: "Next review" },
+  };
+  expect(new Ajv({ strict: false }).compile(pactWaitSchema(native)!)(decision)).toBe(true);
+  expect(validatePactWait(decision, native)).toMatchObject({ valid: true });
+  expect(validatePactWait({ ...decision, observationRef: "0".repeat(64) }, native)).toMatchObject({ valid: false });
+  const changed = structuredClone(native);
+  changed.world.ambition += " Changed priority";
+  expect(validatePactWait(decision, changed)).toMatchObject({ valid: false });
+  const foreign = structuredClone(native);
+  foreign.world.profile.kingdomId = "other-owner";
+  expect(validatePactWait(decision, foreign)).toMatchObject({ valid: false });
+});
+
 import { decisionProbe } from "../scoped-probe.js";
 
 it("requires an explicit factual deferral when prerequisite work or free introductions are available", () => {
@@ -88,7 +113,8 @@ it("rejects a stale or missing wait basis while retaining an honest resource wai
     expect(s.waitSchema).toBeTypeOf("function");
     const schema = await s.waitSchema?.(observation as never);
     const check = new Ajv({ strict: false }).compile(object(schema));
-    expect(check(correct)).toBe(true);
+    expect(check(pactActionBasis(facts))).toBe(true);
+    expect(check(correct)).toBe(false); // Historical explicit maps remain valid at the native validator only.
     expect(check({})).toBe(false);
     expect(await s.validateWait?.(stale, observation as never)).toMatchObject({
       valid: false,
@@ -188,7 +214,7 @@ it("replans a rejected factual wait before preparing a useful action, and delive
     expect(String(messages[0].content)).not.toContain(facts.world.ambition);
     const check = new Ajv({ strict: false, validateFormats: false }).compile(object(inputs[0].schema));
     expect(check({ kind: "wait", summary: "Old unsupported wait" })).toBe(false);
-    expect(check({ kind: "wait", summary: "Wait for actual stock", basis: correct })).toBe(true);
+    expect(check({ kind: "wait", summary: "Wait for actual stock", basis: pactActionBasis(facts) })).toBe(true);
   } finally {
     await session.close();
   }
@@ -256,7 +282,10 @@ it("checks current goal facts and actual command kind on actions, not only waits
   };
   const check = new Ajv({ strict: false }).compile(schema);
   expect(check({ payload: action, expectedOutcome: {} })).toBe(false);
-  expect(check({ payload: action, expectedOutcome: { actionKind: action.kind, basis: correct } })).toBe(true);
+  expect(check({ payload: action, expectedOutcome: { actionKind: action.kind, basis: pactActionBasis(facts) } })).toBe(
+    true,
+  );
+  expect(check({ payload: action, expectedOutcome: { actionKind: action.kind, basis: correct } })).toBe(false);
   expect(check({ payload: action, expectedOutcome: { actionKind: action.kind, basis: stale } })).toBe(false);
 });
 it("corrects a stale action premise before proposing actual Hall resource acquisition", async () => {

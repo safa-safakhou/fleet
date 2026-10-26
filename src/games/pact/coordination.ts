@@ -11,19 +11,48 @@ import { normalizePactEffects, pactEffectCommand, pactRemoteGuard } from "./acti
 import { pactActionBasis } from "./goal-state.js";
 import { observedTradePerspective } from "./trade.js";
 
-type Option = { commandId: string; payload: Data; claims: EffectClaim[]; sourceRefs: string[]; expectedOutcome: Data };
+type Option = {
+  textFields?: string[];
+  commandId: string;
+  payload: Data;
+  claims: EffectClaim[];
+  sourceRefs: string[];
+  expectedOutcome: Data;
+};
+function matchesOption(option: Option, payload: Data) {
+  if (!option.textFields?.includes("body")) return isDeepStrictEqual(option.payload, payload);
+  return (
+    payload.kind === "game.message.send" &&
+    typeof payload.body === "string" &&
+    payload.body.length > 0 &&
+    payload.body.length <= 4000 &&
+    isDeepStrictEqual({ ...payload, body: option.payload.body }, option.payload)
+  );
+}
 const rows = (raw: unknown): Data[] => (Array.isArray(raw) ? raw.map(object) : []);
-/** Native message claims contain the host-assigned UUID. A stable within-task key permits
- * comparing proposals before the engine assigns their UUID; native commit still uses the real key. */
+/** Normalize only native per-command promise keys for reasoning comparisons.
+ * Guarded commit still receives the full native quote with the real command UUID. */
 export function coordinationClaims(quote: ActionEffects, commandId: string): EffectClaim[] {
+  const prefix = (
+    { "game.message.send": "message", "game.training.queue": "training", "game.supply.offer": "offer" } as Record<
+      string,
+      string
+    >
+  )[quote.actionKey];
   return quote.claims.map((c) =>
-    c.kind === "promise" && c.key === `message:${commandId}` ? { ...c, key: "message:current-command" } : c,
+    prefix && c.kind === "promise" && c.key === `${prefix}:${commandId}`
+      ? { ...c, key: `${prefix}:current-command` }
+      : c,
   );
 }
 
 /** Optional PACT-specific protocol. Costs, capacities and atomic staleness all come from PACT. */
 export class PactCoordination {
   private leaseOpened = false;
+  private snapshots = new Map<
+    string,
+    { options: Option[]; sourceRefs: string[]; ownerIntent: unknown; ownerChanged: boolean }
+  >();
   private validated = new Map<string, { digest: string; command: Data; quote: ActionEffects }>();
   constructor(
     private binding: BindingRef,
@@ -100,8 +129,8 @@ export class PactCoordination {
     if (/^\d+$/.test(time))
       for (const contact of rows(guide.contacts)) {
         if (typeof contact.kingdomId !== "string" || contact.kingdomId === this.binding.entityRef) continue;
-        // A literal factual reply is a selectable blueprint, never a delivery guarantee or an
-        // instruction to send. Arbitrary prose is outside this version's quoted choice menu.
+        // The recipient is observed. Text is authored by the worker, then its exact
+        // bytes and promises receive a native quote before coordinator selection.
         candidates.push({
           kind: "action",
           action: {
@@ -192,6 +221,7 @@ export class PactCoordination {
       options.push({
         commandId: intent.commandId,
         payload: structuredClone(payload),
+        ...(payload.kind === "game.message.send" ? { textFields: ["body"] } : {}),
         claims,
         sourceRefs: q.sourceRefs,
         expectedOutcome,
@@ -222,10 +252,25 @@ export class PactCoordination {
         observation: {
           options: choices,
           meaning:
-            "Native effect quotes, not permissions or fulfilment. Choose a quoted payload with its complete claims, or abstain.",
+            "Native effect quotes, not permissions or fulfilment. Choose a quoted payload, or abstain. For textFields choices, compose body for that recipient and return claims:[]; the host quotes the exact text before selection.",
         },
       };
     });
+    const previousSnapshot = this.snapshots.get(revision),
+      ownerIntent = object(base.payload.world).ambition ?? null;
+    this.snapshots.set(revision, {
+      // Effect revisions need not cover owner prose. If one revision denotes two
+      // owner intents in this session, fresh admission cannot prove which was chosen.
+      ownerChanged: Boolean(
+        previousSnapshot?.ownerChanged ||
+          (previousSnapshot && !isDeepStrictEqual(previousSnapshot.ownerIntent, ownerIntent)),
+      ),
+      options: structuredClone(options),
+      ownerIntent,
+      sourceRefs: [...new Set(options.flatMap((o) => o.sourceRefs))],
+    });
+    // Session-local evidence only; bounded by the existing observation/call budget.
+    if (this.snapshots.size > 16) this.snapshots.delete(this.snapshots.keys().next().value!);
     return {
       ...base,
       revision,
@@ -248,6 +293,50 @@ export class PactCoordination {
       },
     };
   }
+  /** Re-admit an unchanged decision against current quotes; never replay a dispatched command. */
+  async refreshProposal(proposal: Proposal, observation: Observation): Promise<Proposal> {
+    const old = this.snapshots.get(String(proposal.intent.expectedVersion));
+    const current = this.snapshots.get(observation.revision);
+    if (
+      !old ||
+      !current ||
+      !proposal.evidenceRefs.length ||
+      proposal.evidenceRefs.some((r) => !old.sourceRefs.includes(r))
+    )
+      throw new FleetError("COORDINATION_EVIDENCE_UNAVAILABLE", true);
+    if (proposal.intent.bindingId !== this.binding.id || proposal.intent.schemaId !== "pact.action.v1")
+      throw new FleetError("COORDINATION_BINDING_MISMATCH", true);
+    if (old.ownerChanged || current.ownerChanged || !isDeepStrictEqual(old.ownerIntent, current.ownerIntent))
+      throw new FleetError("COORDINATION_CHOICE_CHANGED", true);
+    const previous = old.options.find((o) => matchesOption(o, proposal.intent.payload));
+    const fresh = current.options.find((o) => matchesOption(o, proposal.intent.payload));
+    if (
+      !previous ||
+      !fresh ||
+      !isDeepStrictEqual(previous.expectedOutcome, proposal.expectedOutcome) ||
+      !isDeepStrictEqual(fresh.expectedOutcome, proposal.expectedOutcome)
+    )
+      throw new FleetError("COORDINATION_CHOICE_CHANGED", true);
+    const textChoice = previous.textFields?.includes("body") && fresh.textFields?.includes("body");
+    if (
+      !textChoice &&
+      (!isDeepStrictEqual(previous.claims, proposal.claims) || !isDeepStrictEqual(fresh.claims, proposal.claims))
+    )
+      throw new FleetError("CLAIMS_DO_NOT_MATCH_ACTION", true);
+    const intent = { ...proposal.intent, expectedVersion: observation.revision };
+    let claims = proposal.claims;
+    if (textChoice) {
+      const { quote } = await this.quote(intent);
+      if (quote.revision !== observation.revision || quote.sourceRefs.some((r) => !observation.sourceRefs.includes(r)))
+        throw new FleetError("STALE_PROPOSAL", true);
+      claims = coordinationClaims(quote, intent.commandId);
+      // Initial text proposals have no guessed claims. Subsequent refreshes must
+      // retain the exact already-admitted costs and promises.
+      if (proposal.claims.length && !isDeepStrictEqual(proposal.claims, claims))
+        throw new FleetError("CLAIMS_DO_NOT_MATCH_ACTION", true);
+    }
+    return { ...proposal, intent, claims, evidenceRefs: fresh.sourceRefs };
+  }
   async validate(proposal: Proposal, observation: Observation): Promise<ProposalValidation> {
     this.validated.delete(proposal.intent.commandId);
     const deny = (code: string) => ({ valid: false, code });
@@ -255,7 +344,7 @@ export class PactCoordination {
       return deny("BINDING_MISMATCH");
     if (proposal.intent.expectedVersion !== observation.revision) return deny("STALE_PROPOSAL");
     const options = (observation.coordination?.focuses ?? []).flatMap((f) => rows(f.observation.options));
-    if (!options.some((o) => isDeepStrictEqual(o.payload, proposal.intent.payload)))
+    if (!options.some((o) => matchesOption(o as Option, proposal.intent.payload)))
       return deny("COORDINATION_ACTION_NOT_QUOTED");
     const { command, quote } = await this.quote(proposal.intent);
     if (quote.revision !== proposal.intent.expectedVersion) return deny("STALE_PROPOSAL");
@@ -303,10 +392,30 @@ export class PactCoordination {
       const options = choices.map((o) => ({
         type: "object",
         properties: {
-          intent: { const: { schemaId: "pact.action.v1", payload: o.payload } },
+          intent:
+            Array.isArray(o.textFields) && o.textFields.includes("body")
+              ? {
+                  type: "object",
+                  properties: {
+                    schemaId: { const: "pact.action.v1" },
+                    payload: {
+                      type: "object",
+                      properties: {
+                        kind: { const: "game.message.send" },
+                        recipientKingdomId: { const: object(o.payload).recipientKingdomId },
+                        body: { type: "string", minLength: 1, maxLength: 4000 },
+                      },
+                      required: ["kind", "recipientKingdomId", "body"],
+                      additionalProperties: false,
+                    },
+                  },
+                  required: ["schemaId", "payload"],
+                  additionalProperties: false,
+                }
+              : { const: { schemaId: "pact.action.v1", payload: o.payload } },
           evidenceRefs: { const: focus.sourceRefs },
           expectedOutcome: { const: o.expectedOutcome ?? {} },
-          claims: { const: o.claims },
+          claims: { const: Array.isArray(o.textFields) ? [] : o.claims },
           conflicts: { const: [] },
         },
         required: ["intent", "evidenceRefs", "expectedOutcome", "claims", "conflicts"],

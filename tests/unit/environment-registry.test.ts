@@ -117,3 +117,39 @@ it("requires explicit complete-effect capability and its actual quote protocol",
   await expect(registry.connect(binding, { actionEffects: true })).rejects.toThrow("ACTION_EFFECTS_PROTOCOL_REQUIRED");
   expect(board.executions).toBe(0);
 });
+
+it("round-trips fresh-admission evidence through the native adapter and rejects foreign scope", async () => {
+  const board = boardEnvironment(),
+    connect = board.adapter.connect;
+  const refresh = vi.fn(
+    async (
+      proposal: import("../../src/platform/contracts.js").Proposal,
+      observation: import("../../src/platform/contracts.js").Observation,
+    ) => {
+      expect(proposal.evidenceRefs).toEqual(observation.sourceRefs);
+      expect(observation.sourceRefs.every((ref) => !ref.startsWith("["))).toBe(true);
+      return proposal;
+    },
+  );
+  board.adapter.connect = async (b) => ({ ...(await connect(b)), refreshProposal: refresh });
+  const session = await new EnvironmentRegistry([board.adapter], boardRef).connect(binding);
+  const observation = await session.observe({});
+  const proposal = {
+    taskId: "task",
+    intent: { commandId: "command", bindingId: binding.id, schemaId: "board.move.v1", payload: { to: "a2" } },
+    evidenceRefs: observation.sourceRefs,
+    expectedOutcome: {},
+    claims: [],
+    conflicts: [],
+  };
+  expect((await session.refreshProposal!(proposal, observation)).evidenceRefs).toEqual(observation.sourceRefs);
+  for (const ref of [
+    "unscoped",
+    JSON.stringify([boardRef.id, boardRef.version, boardRef.instanceId, "foreign-actor", binding.entityRef, "source"]),
+  ])
+    await expect(session.refreshProposal!({ ...proposal, evidenceRefs: [ref] }, observation)).rejects.toThrow(
+      "UNSCOPED_EVIDENCE",
+    );
+  expect(refresh).toHaveBeenCalledTimes(1);
+  await session.close();
+});

@@ -74,7 +74,7 @@ export interface ScopedServices {
   };
   participants?: {
     load(): Promise<import("./participant-state.js").SpecialistState>;
-    inbox(): Promise<{
+    inbox(options?: { maxBytes: number }): Promise<{
       records: { id: string; event: EnvironmentEvent | null; rootId: string; depth: number }[];
       omitted: number;
     }>;
@@ -143,6 +143,7 @@ export interface ScopedServices {
     accountObjective?(observation: Observation): AccountObjective | undefined;
     catalog(): Promise<Tool[]>;
     readQuerySchema?(options?: ReadQueryOptions): Promise<Data>;
+    refreshProposal?(proposal: Proposal, observation: Observation): Promise<Proposal>;
     validateProposal?(proposal: Proposal, observation: Observation): Promise<ProposalValidation>;
     waitSchema?(observation: Observation): Promise<Data | undefined>;
     validateWait?(basis: Data, observation: Observation): Promise<ProposalValidation>;

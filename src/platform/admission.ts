@@ -4,7 +4,7 @@ import { isDeepStrictEqual } from "node:util";
 import { recordCallRequest, recordCallResponse } from "../call-metrics.js";
 import { transaction } from "../db.js";
 import { FleetError, type ModelPort, type ModelSettings, safeCode } from "../domain.js";
-import { modelCallBound } from "../model-bounds.js";
+import { modelDeadline } from "../model-deadline.js";
 import { modelFailureProgress } from "../model-progress.js";
 import { recoverModelOutput } from "../model-recovery.js";
 import { Observability } from "../observability.js";
@@ -27,7 +27,7 @@ export class RouteCapacity {
   async run<T>(
     claim: Claim,
     request: Parameters<ModelPort["decide"]>[0],
-    operation: () => Promise<T>,
+    operation: (timing: { queueDelayMs: number }) => Promise<T>,
     siblingWorker = false,
   ): Promise<T> {
     const queuedAt = this.store.now().getTime();
@@ -196,7 +196,7 @@ export class RouteCapacity {
         queueDelayMs: Math.max(0, this.store.now().getTime() - queuedAt),
       });
       await this.store.active(claim);
-      return await operation();
+      return await operation({ queueDelayMs: Math.max(0, this.store.now().getTime() - queuedAt) });
     } finally {
       await this.store.pool.query("DELETE FROM model_capacity_leases WHERE id=$1", [id]);
     }
@@ -211,7 +211,11 @@ export class RouteCapacity {
       decide: async (request) => {
         const claim = current();
         if (!claim) throw new FleetError("MODEL_CLAIM_REQUIRED", true);
-        return this.run(claim, request, async () => {
+        return this.run(claim, request, async (timing) => {
+          await this.store.pool.query(
+            "UPDATE compute_ledger SET request_metrics=coalesce(request_metrics,'{}'::jsonb)||$2::jsonb WHERE turn_id=$1 AND status='reserved'",
+            [claim.id, timing],
+          );
           const allocations = (
             await this.store.pool.query(
               "SELECT a.allocation_id FROM architecture_allocations a JOIN compute_ledger l ON l.id=a.allocation_id WHERE a.turn_id=$1 AND l.status='reserved' ORDER BY l.created_at LIMIT 2",
@@ -384,7 +388,7 @@ export class ModelAdmission {
     const settled = await this.capacity.run(
       turn,
       request,
-      async () => {
+      async (timing) => {
         await this.guard?.(claim);
         await this.tasks.check(claim);
         if (this.provider.tracksDispatch) await this.store.phase(turn, "model_preparing_tracked");
@@ -393,13 +397,14 @@ export class ModelAdmission {
           "UPDATE architecture_allocations SET tracked=$2,updated_at=$3 WHERE allocation_id=$1",
           [allocation, Boolean(this.provider.tracksDispatch), this.store.now()],
         );
+        let deadline: ReturnType<typeof modelDeadline> | undefined;
         let dispatched = false,
           invoked = false,
           execution = 0,
           modelStartedAt = this.store.now().getTime();
         const observation = new Observability(this.store);
         try {
-          await recordCallRequest(this.store, allocation, request, budget.inputByteLimit, this.provider);
+          await recordCallRequest(this.store, allocation, request, budget.inputByteLimit, this.provider, timing);
           await this.store.phase(turn, this.provider.tracksDispatch ? "model_reserved_tracked" : "model_reserved");
           execution = (await this.store.pool.query("SELECT calls FROM turns WHERE id=$1", [turn.id])).rows[0].calls;
           await observation.recordDebug(turn, "ready", "Model request", {
@@ -425,28 +430,28 @@ export class ModelAdmission {
             )
               throw new FleetError("TASK_FENCED", true);
           }
+          deadline = modelDeadline(
+            {
+              ...request,
+              onDispatch: async () => {
+                await this.tasks.check(claim);
+                await this.store.phase(turn, "model_dispatched");
+                await this.store.pool.query(
+                  "UPDATE architecture_allocations SET dispatch_state='dispatched',updated_at=$2 WHERE allocation_id=$1",
+                  [allocation, this.store.now()],
+                );
+                dispatched = true;
+                await request.onDispatch?.();
+              },
+            },
+            claim.turn.deadline,
+            this.store.now,
+          );
           invoked = true;
           const result = await this.provider.decide({
             ...request,
-            signal: AbortSignal.any([
-              request.signal,
-              AbortSignal.timeout(
-                Math.max(
-                  1,
-                  Math.min(modelCallBound(request.model), claim.turn.deadline.getTime() - this.store.now().getTime()),
-                ),
-              ),
-            ]),
-            onDispatch: async () => {
-              await this.tasks.check(claim);
-              await this.store.phase(turn, "model_dispatched");
-              await this.store.pool.query(
-                "UPDATE architecture_allocations SET dispatch_state='dispatched',updated_at=$2 WHERE allocation_id=$1",
-                [allocation, this.store.now()],
-              );
-              dispatched = true;
-              await request.onDispatch?.();
-            },
+            signal: deadline.signal,
+            onDispatch: deadline.onDispatch,
           });
           const elapsedMs = Math.max(0, this.store.now().getTime() - modelStartedAt);
           await this.store.recordUsage(allocation, result.inputTokens, result.outputTokens);
@@ -465,6 +470,7 @@ export class ModelAdmission {
             generationProgress: result.execution,
             coverage: "Provider final answer only; provider internal reasoning is not captured.",
           });
+          deadline.check();
           if (result.inputTokens === null || result.outputTokens === null) throw new FleetError("USAGE_UNKNOWN");
           if (result.inputTokens + result.outputTokens > budget.perCallTokenLimit)
             throw new FleetError("USAGE_EXCEEDED");
@@ -490,6 +496,8 @@ export class ModelAdmission {
             })
             .catch(() => {});
           throw error;
+        } finally {
+          deadline?.close();
         }
       },
       this.siblingWorkers && stage?.kind === "worker",

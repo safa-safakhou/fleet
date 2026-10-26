@@ -131,7 +131,7 @@ it("rejects a quote invalidated by a native clock tick, then accepts a fresh exa
     ).rows[0].n,
   ).toBe(0);
 });
-it("uses native communication claims and the host's original command ID for a factual peer reply", async () => {
+it("quotes composed peer text with native byte costs and the host's original command ID", async () => {
   const x = await setup(),
     peer = await f.owner();
   const request = f.command(x.owner.principal, {
@@ -165,13 +165,15 @@ it("uses native communication claims and the host's original command ID for a fa
       ...x.proposal.intent,
       commandId: randomUUID(),
       expectedVersion: view.revision,
-      payload: option.payload as Data,
+      payload: { ...(option.payload as Data), body: "Could we exchange grain for iron? What does your kingdom need?" },
     },
     evidenceRefs: focus.sourceRefs,
-    claims: option.claims as Proposal["claims"],
+    claims: [],
   };
-  expect(await x.policy.validate(proposal, view)).toMatchObject({ valid: true });
-  expect(await x.policy.execute(proposal.intent)).toMatchObject({
+  const admitted = await x.policy.refreshProposal(proposal, view);
+  expect(admitted.claims).not.toEqual(option.claims);
+  expect(await x.policy.validate(admitted, view)).toMatchObject({ valid: true });
+  expect(await x.policy.execute(admitted.intent)).toMatchObject({
     commandId: proposal.intent.commandId,
     code: "COMMITTED",
   });
@@ -205,3 +207,29 @@ it("retains the quoted command identity for native training claims through guard
       .rows[0].n,
   ).toBe(1);
 });
+
+it.each(["game.building.queue", "game.training.queue"])(
+  "admits an unchanged %s proposal after a native tick using its original command ID",
+  async (kind) => {
+    const x = await setup();
+    const focus = x.view.coordination!.focuses.find((f) => f.id === kind)!;
+    const option = (focus.observation.options as Data[])[0];
+    x.proposal.intent = {
+      ...x.proposal.intent,
+      commandId: option.commandId as string,
+      payload: option.payload as Data,
+    };
+    x.proposal.claims = option.claims as Proposal["claims"];
+    x.proposal.evidenceRefs = focus.sourceRefs;
+    const now = (await f.world.read()).gameTimeMs;
+    await f.settleSupply(now + 60000);
+    const fresh = await x.policy.observe(x.base);
+    const admitted = await x.policy.refreshProposal(x.proposal, fresh);
+    expect(admitted.intent.commandId).toBe(x.proposal.intent.commandId);
+    expect(await x.policy.validate(admitted, fresh)).toMatchObject({ valid: true });
+    expect(await x.policy.execute(admitted.intent)).toMatchObject({
+      code: "COMMITTED",
+      commandId: x.proposal.intent.commandId,
+    });
+  },
+);

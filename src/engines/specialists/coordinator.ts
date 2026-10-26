@@ -93,6 +93,19 @@ function requireFrame(observation: Observation) {
     throw new FleetError("DUPLICATE_FOCUS", true);
   return parsed.data;
 }
+async function refreshProposal(ctx: DecisionContext, proposal: Proposal, observation: Observation) {
+  if (!ctx.refreshProposal) return proposal;
+  const fresh = await ctx.refreshProposal(proposal, observation);
+  const semantic = (p: Proposal) => ({
+    taskId: p.taskId,
+    intent: { ...p.intent, expectedVersion: undefined },
+    expectedOutcome: p.expectedOutcome,
+    conflicts: p.conflicts,
+    validUntil: p.validUntil,
+  });
+  if (!isDeepStrictEqual(semantic(proposal), semantic(fresh))) throw new FleetError("PROPOSAL_INTENT_CHANGED", true);
+  return fresh;
+}
 /** Bound to the same parent claim/model allowance; never a second action permission system. */
 export class ProposalCoordinator {
   constructor(
@@ -208,22 +221,26 @@ export class SpecialistCoordinatorEngine {
     for (let attempt = 0; attempt < (ctx.configuration.budget?.maxCallsPerTurn ?? 0); attempt++) {
       let submissionStarted = false;
       try {
-        const { proposals, state } = await this.focusedProposals(ctx, true, undefined, previousSelection);
+        const focused = await this.focusedProposals(ctx, true, undefined, previousSelection);
+        let proposals = focused.proposals;
+        const state = focused.state;
         if (!proposals.length) return;
-        const current = await ctx.observe(query),
-          coordinator = new ProposalCoordinator(ctx, continuity, state),
+        const current = await ctx.observe(query);
+        proposals = await Promise.all(proposals.map((p) => refreshProposal(ctx, p, current)));
+        const coordinator = new ProposalCoordinator(ctx, continuity, state),
           selected = await coordinator.select(proposals, current);
         for (const intent of selected) {
-          const proposal = proposals.find((p) => p.intent.commandId === intent.commandId);
+          let proposal = proposals.find((p) => p.intent.commandId === intent.commandId);
           if (!proposal) throw new FleetError("UNKNOWN_PROPOSAL_SELECTION", true);
-          const fresh = await ctx.observe(query),
-            local = checkProposals([proposal], fresh);
+          const fresh = await ctx.observe(query);
+          proposal = await refreshProposal(ctx, proposal, fresh);
+          const local = checkProposals([proposal], fresh);
           if (!local.valid) throw new FleetError(local.code, true);
           const checked = await validateProposal(proposal, fresh);
           if (!checked.valid) throw new FleetError(checked.code, true);
-          // The environment must atomically enforce expectedVersion again at commit. Do not rebase a stale intent.
+          // Fresh admission preserves semantic intent; native commit still atomically enforces the quote.
           submissionStarted = true;
-          const outcome = await ctx.actions.submit(intent);
+          const outcome = await ctx.actions.submit(proposal.intent);
           await continuity.recordCommand(outcome);
         }
         return;

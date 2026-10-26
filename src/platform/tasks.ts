@@ -413,7 +413,10 @@ export class TaskStore {
           due = row.due_at;
         if (row.turn_state === "cancelled") state = "cancelled";
         else if (row.pending_command || row.unknown_usage || row.turn_state === "needs_owner") state = "blocked";
-        else if (Number(row.revision) > Number(row.claimed_revision) || row.turn_code === "WORKER_EXPIRED")
+        else if (row.turn_code === "SPECIALIST_DELIVERY_TOO_LARGE") {
+          state = "blocked";
+          wake = { kind: "input_limit", code: row.turn_code };
+        } else if (Number(row.revision) > Number(row.claimed_revision) || row.turn_code === "WORKER_EXPIRED")
           state = "ready";
         else if (row.turn_code === "WAIT" && row.wake?.kind === "event") {
           state = "waiting";

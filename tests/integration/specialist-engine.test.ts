@@ -708,3 +708,41 @@ it("replans a proposal invalidated during reasoning within the original three-ca
     { status: "reported" },
   ]);
 });
+
+it.each([false, true])(
+  "uses the scoped fresh-admission port while rejecting changed semantic intent (change=%s)",
+  async (change) => {
+    const f = await setup(),
+      inputs: unknown[] = [];
+    const connect = f.board.adapter.connect;
+    f.board.adapter.connect = async (binding) => ({
+      ...(await connect(binding)),
+      refreshProposal: async (proposal, observation) => ({
+        ...proposal,
+        intent: {
+          ...proposal.intent,
+          expectedVersion: observation.revision,
+          ...(change ? { payload: { to: "unselected" } } : {}),
+        },
+        evidenceRefs: observation.sourceRefs,
+      }),
+    });
+    const base = modelFor(inputs),
+      model = {
+        decide: async (input: Parameters<typeof base.decide>[0]) => {
+          const r = await base.decide(input);
+          if (JSON.parse(input.messages[1].content).stage === "coordinator") f.board.advance();
+          return r;
+        },
+      };
+    const h = f.host(model);
+    h.engines.register(new SpecialistCoordinatorEngine());
+    if (change) {
+      await expect(h.host.run(f.claim)).rejects.toThrow("PROPOSAL_INTENT_CHANGED");
+      expect(f.board.debits).toBe(0);
+    } else {
+      await h.host.run(f.claim);
+      expect(f.board.debits).toBe(40);
+    }
+  },
+);

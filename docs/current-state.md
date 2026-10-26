@@ -1,5 +1,7 @@
 # Fleet current state
 
+**Society reliability implementation — 26 October 2026 (source only).** [Changes, research fields and verification](agent-society-reliability-20261026.md) cover bounded inbox delivery, empty skill no-ops, compact state references, legacy read progress, fresh coordinator admission and composed messages, deadline fencing and supervisor diagnostics. Strategic deferral remains valid. The world/services/unknown allocations are untouched; no model calls, deployment or runtime acceptance. E4/KQ1 remain blocked.
+
 **Continue the investigation:** [Six-hour investigation handoff](six-hour-investigation-handoff-20261026.md) collects the findings, source entry points, open questions, private evidence locations and exact source-versus-live limits for another chat or checkout. This is a documentation handoff; the paused world and retained uncertainty are unchanged.
 
 **Six-hour run ended; world PAUSED — inspected 26 October 2026.** Window02:31:04–08:31:04 Berlin ended on `DEADLINE`; verified paused tick359, all runtime services/provider stopped, zero running turns/capacity leases/pending-or-unknown commands. All24 kingdoms participated:2430 turn attempts,207 committed actions,52 completed upgrades,55 messages,3 accepted contacts,4 active/1 defaulted supply contracts. Model allocations3071:3062 reported (34,305,904 known tokens) plus9 unknowns with360000 reserved tokens retained;9 kingdoms held `WORKER_EXPIRED`. Only Nemotron4B, thinking enabled,8192 output cap. E4/KQ1 blocked.

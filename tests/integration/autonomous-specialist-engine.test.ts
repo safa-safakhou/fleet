@@ -97,6 +97,42 @@ async function setup(tokens = 100) {
     );
   return { ...f, binding, enqueue };
 }
+it("drains whole inbox batches and keeps later arrivals pending until they are actually delivered", async () => {
+  const f = await setup();
+  const taskIds = [];
+  for (let i = 0; i < 32; i++) taskIds.push(...(await f.enqueue("resource")));
+  const taskId = taskIds[0];
+  expect(new Set(taskIds).size).toBe(1);
+  const seen = new Set<string>();
+  let calls = 0;
+  const model = {
+    decide: async (request: { messages: { content: string }[] }) => {
+      const packet = JSON.parse(request.messages[1].content);
+      expect(Buffer.byteLength(JSON.stringify(packet.inbox))).toBeLessThanOrEqual(3000);
+      for (const record of packet.inbox.records) {
+        expect(seen.has(record.id)).toBe(false);
+        seen.add(record.id);
+      }
+      if (++calls === 1) await f.enqueue("resource");
+      return {
+        decision: { decision: { kind: "wait", summary: "Deliberate pacing", untilNextEvent: true }, skills: {} },
+        inputTokens: 10,
+        outputTokens: 10,
+      };
+    },
+  };
+  for (let i = 0; i < 20; i++) {
+    const claim = await f.tasks.claim("batch-reader", f.now(), taskId);
+    if (!claim) break;
+    await f.host(model, undefined, {}, f.store.architectures).host.run(claim);
+    const acknowledged = (await f.pool.query("SELECT id FROM specialist_deliveries WHERE status='acknowledged'")).rows;
+    expect(new Set(acknowledged.map((r) => r.id))).toEqual(seen);
+  }
+  expect(calls).toBeGreaterThan(1);
+  expect(calls).toBeLessThan(20);
+  expect(seen.size).toBe(33);
+  expect((await f.pool.query("SELECT 1 FROM specialist_deliveries WHERE status='pending'")).rowCount).toBe(0);
+});
 it("persists deferred proposals and gates real dispatch on bounded peer conflict without a coordinator", async () => {
   const f = await setup(10);
   let calls = 0;
@@ -244,7 +280,8 @@ it("keeps independent goals across events and restart and lets each specialist a
         role = packet.specialist.id as keyof typeof goals;
       seen.push(role);
       expect(packet.specialist.charter.id).toBe(role);
-      expect(packet.specialist.ownerIntent).toMatchObject({ intent: "Owner board objective" });
+      expect(packet.specialist.ownerIntent).toBe("Owner board objective");
+      expect(packet.specialist.currentState).toHaveProperty("revision");
       expect(request.messages[0].content).toContain("Board instructions fixture");
       const source = packet.evidence.bundles
         .flatMap((b: { originals: { id: string; kind: string }[] }) => b.originals)
@@ -1658,4 +1695,34 @@ it("records call exhaustion without fabricating a final decision or executing an
     maxCallsPerTurn: 3,
   });
   expect((await f.pool.query("SELECT count(*)::int n FROM platform_commands")).rows[0].n).toBe(0);
+});
+
+it("blocks an oversized oldest delivery without acknowledging it or reopening on later events", async () => {
+  const f = await setup();
+  const [taskId] = await f.enqueue("resource");
+  const row = (await f.pool.query("SELECT * FROM specialist_deliveries WHERE task_id=$1", [taskId])).rows[0];
+  const aad = `specialist-delivery:${row.instance_id}:${row.binding_id}:${row.recipient}:${row.id}`;
+  const event = f.store.vault.decrypt<Record<string, unknown>>(row.detail_cipher, aad);
+  await f.pool.query("UPDATE specialist_deliveries SET detail_cipher=$2 WHERE id=$1", [
+    row.id,
+    f.store.vault.encrypt({ ...event, metadata: { category: "resource", evidence: "x".repeat(24000) } }, aad),
+  ]);
+  const claim = (await f.tasks.claim("oversize", f.now(), taskId))!;
+  let calls = 0;
+  const model = {
+    decide: async () => {
+      calls++;
+      throw Error("MUST_NOT_CALL");
+    },
+  };
+  await expect(f.host(model, undefined, {}, f.store.architectures).host.run(claim)).rejects.toThrow(
+    "SPECIALIST_DELIVERY_TOO_LARGE",
+  );
+  expect(calls).toBe(0);
+  await f.enqueue("resource");
+  expect(await f.tasks.claim("no-retry", f.now(), taskId)).toBeNull();
+  expect((await f.pool.query("SELECT state FROM platform_tasks WHERE id=$1", [taskId])).rows[0].state).toBe("blocked");
+  expect((await f.pool.query("SELECT status FROM specialist_deliveries WHERE id=$1", [row.id])).rows[0].status).toBe(
+    "pending",
+  );
 });

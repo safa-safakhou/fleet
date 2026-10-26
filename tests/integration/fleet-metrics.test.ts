@@ -47,8 +47,16 @@ it("records safe call metadata and aggregates exact calls/actions with unknown c
       contextPercent: 25,
       outputPercent: 50,
       reasoningChars: 40,
+      finalTextChars: 4,
+      firstContentMs: 1,
+      schemaBytes: Buffer.byteLength(JSON.stringify(request.schema)),
+      messageBytes: Buffer.byteLength(JSON.stringify(request.messages)),
     });
     expect(data.calls.find((x) => x.id === second)?.contextPercent).toBeNull();
+    expect(data.calls.find((x) => x.id === second)?.finalTextChars).toBeNull();
+    expect(data.research.taskAttempts).toBe(0);
+    expect(data.research.legacyAttempts).toBe(1);
+    expect(data.research.responseMetadataCalls).toBe(1);
     expect(JSON.stringify(data)).not.toContain("PRIVATE_SENTINEL");
     expect(
       (await f.pool.query("SELECT request_metrics,response_metrics FROM compute_ledger WHERE id=$1", [allocation]))
@@ -65,6 +73,29 @@ it("records safe call metadata and aggregates exact calls/actions with unknown c
     expect(completed.totals.actions).toBe(2);
     expect(completed.series.reduce((sum, p) => sum + p.actions, 0)).toBe(2);
     expect(completed.architectures.reduce((sum, a) => sum + a.actions, 0)).toBe(2);
+    await f.pool.query("UPDATE cohorts SET observation_consent=true WHERE id=$1", [id]);
+    const agent = (await f.pool.query("SELECT id,kingdom_id FROM agents WHERE cohort_id=$1 LIMIT 1", [id])).rows[0];
+    for (const [source, direction] of [
+      ["one", "outgoing"],
+      ["two", "outgoing"],
+      ["three", "incoming"],
+    ])
+      await f.pool.query(
+        "INSERT INTO communications(id,cohort_id,owner_agent_id,peer_kingdom_id,source_id,kind,direction,occurred_at,body_cipher) VALUES(gen_random_uuid(),$1,$2,'synthetic-peer',$3,'message',$4,$5,'PRIVATE_CIPHER')",
+        [id, agent.id, source, direction, f.store.now()],
+      );
+    const social = await new FleetMetrics(f.store).read({ minutes: 60, cohortId: id });
+    expect(social.research.reciprocalCommunication).toMatchObject({
+      messages: 3,
+      pairs: 1,
+      reciprocal_pairs: 1,
+      participants: 2,
+    });
+    expect(JSON.stringify(social)).not.toContain("PRIVATE_CIPHER");
+    await f.pool.query("UPDATE cohorts SET observation_consent=false WHERE id=$1", [id]);
+    expect(
+      (await new FleetMetrics(f.store).read({ minutes: 60, cohortId: id })).research.reciprocalCommunication.messages,
+    ).toBe(0);
     await expect(new FleetMetrics(f.store).read({ minutes: 0 })).rejects.toThrow();
   } finally {
     await f.pool.end();

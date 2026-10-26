@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "fleet.legacy-read-progress.v1",
+  "reason": "Owner-authorized society reliability: already-delivered native read schemas are executable choices and no longer offered as schema lookup choices. This also makes available-read coverage explicit where a lookup enum no longer enumerates the whole catalog. Preserve original controller and archived input digests; direct/bridge/capacity parity and read-feedback regression remain required. No authority or model allowance changes.",
+  "archivedGolden": "legacy-reasoning-effects-20261020.json",
+  "cases": [
+    {
+      "priorModelInputDigest": "4b625a180ebc057c9aa056f08fc3866239004e49451d86234dd29865c23a47d8",
+      "modelInputDigest": "cb4bf5c7e550954aae7a4db801f982987592a9c34dabcfb532310ed85fced6c3"
+    },
+    {
+      "priorModelInputDigest": "41f05b826de91675093d217e1de4f343bf5b6a77ec0c057c5bed7c7840dd740d",
+      "modelInputDigest": "c4aa76beeb1fb9386d2e36541d7f0e2a0eed368873652278bfb0e2c413760030"
+    }
+  ]
+}

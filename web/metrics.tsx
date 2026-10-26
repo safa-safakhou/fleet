@@ -157,6 +157,46 @@ export function MetricsCharts({ data }: { data: MetricsData }) {
         </section>
       </div>
       <section className="metric-card">
+        <h3>Research coverage</h3>
+        <div className="metric-outcomes">
+          {[
+            ["Distinct tasks", data.research.distinctTasksAttempted],
+            ["Task attempts", data.research.taskAttempts],
+            ["Repeated task attempts", data.research.repeatedTaskAttempts],
+            ["Legacy attempts", data.research.legacyAttempts],
+            ["Attempts with effects", data.research.attemptsWithEffects],
+            ["Waits without effects", data.research.waitsWithoutEffects],
+            ["Truncated calls", data.research.truncatedCalls],
+            ["Empty final answers", data.research.emptyFinalCalls],
+            ["Late usage observations", data.research.lateUsage.observations],
+          ].map(([label, n]) => (
+            <span key={label}>
+              {label} <strong>{fmt(Number(n))}</strong>
+            </span>
+          ))}
+        </div>
+        <p>
+          {data.research.responseMetadataCalls} calls have completion metadata. Strategy quality and reciprocal
+          cooperation are not inferred from these counts.
+        </p>
+        <p className="muted">{data.research.coverage}</p>
+        <h4>Observed communication</h4>
+        <p>
+          {data.research.reciprocalCommunication.messages} distinct messages ·{" "}
+          {data.research.reciprocalCommunication.pairs} pairs · {data.research.reciprocalCommunication.reciprocal_pairs}{" "}
+          pairs with messages in both directions. These counts cover retained observations, not the whole world;
+          reciprocity does not prove cooperation.
+        </p>
+        <h4>Current availability</h4>
+        <div className="metric-outcomes">
+          {data.research.availability.map((a) => (
+            <span key={`${a.cohort_state}:${a.agent_state}:${a.credential_state}`}>
+              {a.cohort_state} / {a.agent_state} / {a.credential_state}: <strong>{fmt(a.agents)}</strong>
+            </span>
+          ))}
+        </div>
+      </section>
+      <section className="metric-card">
         <h3>Turn outcomes</h3>
         <p>
           WAIT is a runtime code and can include an action. Turns without effects above include waits and rejected
@@ -202,6 +242,11 @@ export function MetricsCharts({ data }: { data: MetricsData }) {
                   "Output / allowance",
                   "Output fill",
                   "Duration",
+                  "Queue / generation",
+                  "Request bytes / limit",
+                  "Schema bytes",
+                  "Final text chars",
+                  "Inbox delivered / omitted",
                   "Result",
                 ].map((h) => (
                   <th key={h}>{h}</th>
@@ -224,6 +269,18 @@ export function MetricsCharts({ data }: { data: MetricsData }) {
                   </td>
                   <td>{c.outputPercent === null ? "Not recorded" : `${fmt(c.outputPercent)}%`}</td>
                   <td>{c.elapsedMs === null ? "Not recorded" : `${fmt(c.elapsedMs / 1000)}s`}</td>
+                  <td>
+                    {fmt(c.queueDelayMs === null ? null : c.queueDelayMs / 1000)} /{" "}
+                    {fmt(c.generationMs === null ? null : c.generationMs / 1000)} s
+                  </td>
+                  <td>
+                    {fmt(c.requestBytes)} / {fmt(c.inputLimitBytes)} ({fmt(c.inputBytePercent)}%)
+                  </td>
+                  <td>{fmt(c.schemaBytes)}</td>
+                  <td>{fmt(c.finalTextChars)}</td>
+                  <td>
+                    {fmt(c.inboxDelivered)} / {fmt(c.inboxOmitted)}
+                  </td>
                   <td>{c.error ?? c.finishReason ?? "Not recorded"}</td>
                 </tr>
               ))}

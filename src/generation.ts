@@ -119,6 +119,7 @@ export function closedDecisionSchema(input: {
     wait.required = [...new Set([...(wait.required as string[]), "basis"])];
   } else delete object(wait.properties).basis;
   const readNames = [...new Set(input.reads.map((t) => t.name))];
+  const lookupNames = readNames.filter((name) => !input.selectedReadNames.includes(name));
   const local: Tool[] = [
     ...(input.continuationLookup
       ? [
@@ -147,13 +148,13 @@ export function closedDecisionSchema(input: {
           },
         ]
       : []),
-    ...(readNames.length
+    ...(lookupNames.length
       ? [
           {
             name: "fleet_read_schema",
             inputSchema: {
               type: "object",
-              properties: { name: { enum: readNames } },
+              properties: { name: { enum: lookupNames } },
               required: ["name"],
               additionalProperties: false,
             },

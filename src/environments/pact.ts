@@ -364,6 +364,9 @@ export function createPactEnvironment(ports: {
         },
         projectObservation: projectPactObservation,
         packObservation: packPactObservation,
+        refreshProposal: coordination
+          ? (proposal, observation) => coordination.refreshProposal(proposal, observation)
+          : undefined,
         validateProposal: async (proposal, observation) => {
           const local = validatePactProposal(proposal.intent.payload, observation.payload, proposal.expectedOutcome);
           if (!local.valid) return local;

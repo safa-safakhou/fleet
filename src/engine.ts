@@ -17,7 +17,7 @@ import { promptFeedback } from "./feedback.js";
 import type { GameAdapter } from "./game.js";
 import { bindGenerationSchema, closedDecisionSchema, executableActionSchema } from "./generation.js";
 import { RemoteRejection } from "./http.js";
-import { modelCallBound } from "./model-bounds.js";
+import { modelDeadline } from "./model-deadline.js";
 import { modelFailureProgress } from "./model-progress.js";
 import { compileGenerationSchema } from "./model-schema.js";
 import { Observability, scrub } from "./observability.js";
@@ -422,8 +422,14 @@ export class Engine {
           )
             ? await continuation.schema(claim.agentId)
             : undefined;
-        const buildGeneration = (pageOptional: boolean) =>
-          closedDecisionSchema({
+        let deliveredReadNames: string[] = [];
+        const buildGeneration = (pageOptional: boolean) => {
+          deliveredReadNames = pageOptional
+            ? lookups
+                .filter((entry) => entry === requestedRead && entry.tool === "fleet_read_schema")
+                .map((entry) => String(object(entry.args).name))
+            : [...selectedReads];
+          return closedDecisionSchema({
             actionKinds: capability?.kinds ?? actionKinds,
             actionSchemas: pageOptional
               ? actionShapes.filter(
@@ -439,16 +445,13 @@ export class Engine {
                 )
               : actionShapes,
             reads: tools.filter(isRead),
-            selectedReadNames: pageOptional
-              ? lookups
-                  .filter((entry) => entry === requestedRead && entry.tool === "fleet_read_schema")
-                  .map((entry) => String(object(entry.args).name))
-              : [...selectedReads],
+            selectedReadNames: deliveredReadNames,
             memory: !!cognition,
             waitSchema: this.adapter.waitSchema?.(facts),
             continuationLookup: true,
             ...(continuationShape ? { continuationSchema: continuationShape } : {}),
           });
+        };
         let pageCognitiveEdits = false;
         const nativeSchema = (delivered: Data) =>
           analysisSchemaForVersion(object(context.cognition).version, delivered, {
@@ -658,21 +661,19 @@ export class Engine {
           void this.store.active(claim).catch(() => controller.abort());
         }, 500);
         let response: Awaited<ReturnType<ModelPort["decide"]>>;
+        let deadline: ReturnType<typeof modelDeadline> | undefined;
         const modelStartedAt = this.store.now().getTime();
         try {
-          response = await this.model.decide({
+          const request = {
             model: m,
             messages,
             schema: outputSchema,
             maxOutputTokens: b.maxOutputTokens,
             onDispatch: () => this.store.phase(claim, "model_dispatched"),
-            signal: AbortSignal.any([
-              controller.signal,
-              AbortSignal.timeout(
-                Math.max(1, Math.min(modelCallBound(m), claim.deadline.getTime() - this.store.now().getTime())),
-              ),
-            ]),
-          });
+            signal: controller.signal,
+          };
+          deadline = modelDeadline(request, claim.deadline, this.store.now);
+          response = await this.model.decide({ ...request, signal: deadline.signal, onDispatch: deadline.onDispatch });
         } catch (error) {
           if (error instanceof FleetError && error.notDispatched) await this.store.notDispatched(reservation);
           await observation.recordDebug(claim, "thinking", "Model execution failed", {
@@ -684,6 +685,7 @@ export class Engine {
           });
           throw error;
         } finally {
+          deadline?.close();
           clearInterval(guard);
           this.controllers.delete(controller);
         }
@@ -700,10 +702,31 @@ export class Engine {
           coverage: "Provider final answer only; provider internal reasoning is not captured.",
           generationProgress: response.execution,
         });
+        deadline?.check();
         if (response.inputTokens === null || response.outputTokens === null) throw new FleetError("USAGE_UNKNOWN");
         if (response.inputTokens + response.outputTokens > b.perCallTokenLimit) throw new FleetError("USAGE_EXCEEDED");
         await this.store.active(claim);
         await this.store.phase(claim, "model_settled");
+        const proposedRead = object(object(response.decision).decision ?? response.decision);
+        if (
+          !response.decisionError &&
+          proposedRead.kind === "read" &&
+          proposedRead.tool === "fleet_read_schema" &&
+          deliveredReadNames.includes(String(object(proposedRead.args).name))
+        ) {
+          lastCode = "READ_SCHEMA_ALREADY_DELIVERED";
+          const feedback = {
+            code: lastCode,
+            tool: object(proposedRead.args).name,
+            submitted: false,
+            committed: false,
+            guidance:
+              "This read's exact input schema is already in the delivered output contract. Choose that read with its observed arguments if needed, another permitted decision, or a deliberate wait. No read was executed; do not request the same schema again.",
+          };
+          await rememberFeedback(feedback);
+          await observation.record(claim, "deciding", "Repeated schema lookup rejected", feedback);
+          continue;
+        }
         if (grounding && !response.decisionError) {
           const feedback = compileGenerationSchema(authoritativeOutputSchema)(response.decision)
             ? await grounding.policy.validate(response.decision, grounding.observation, {

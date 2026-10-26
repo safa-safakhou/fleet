@@ -6,8 +6,8 @@ import { pactAdapter } from "../../src/games/pact/adapter.js";
 import { Observability } from "../../src/observability.js";
 import { legacyManifestFor, legacyProfileFor } from "../../src/platform/profiles.js";
 import type { Claim } from "../../src/store.js";
-import priorGolden from "../fixtures/legacy-prompt-guidance-20261020.json" with { type: "json" };
-import golden from "../fixtures/legacy-reasoning-effects-20261020.json" with { type: "json" };
+import golden from "../fixtures/legacy-read-progress-20261026.json" with { type: "json" };
+import priorGolden from "../fixtures/legacy-reasoning-effects-20261020.json" with { type: "json" };
 import { FakeGame, FakeModel, fixture, ready } from "../helpers.js";
 import { modelInputDigest, normalizedModelInputs } from "../legacy-parity.js";
 
