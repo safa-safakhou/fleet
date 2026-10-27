@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { consumeClaimCapacity } from "../../claim-capacity.js";
 import type { Observation } from "../../platform/contracts.js";
 
 export type { Proposal } from "../../platform/contracts.js";
@@ -123,10 +124,8 @@ export function checkProposals(
         if (promises.has(key) && promises.get(key) !== c.value) return deny("STRUCTURED_PROMISE_CONFLICT", key);
         promises.set(key, c.value);
       } else {
-        const available = pools.get(key);
-        if (available === undefined) return deny("UNKNOWN_CLAIM_CAPACITY", key);
-        if (BigInt(c.units) > available) return deny("STRUCTURED_CAPACITY_CONFLICT", key);
-        pools.set(key, available - BigInt(c.units));
+        const conflict = consumeClaimCapacity(pools, c);
+        if (conflict) return deny(conflict, key);
       }
     }
   }

@@ -47,6 +47,20 @@ it("releases failed jobs and drains accepted work after closing admission", asyn
 it.each([0, -1, 1.5, 17, NaN])("rejects invalid worker capacity %s", (capacity) => {
   expect(() => new WorkerPool(capacity)).toThrow("INVALID_WORKER_CAPACITY");
 });
+it("bounds suspended continuations and drains them after closing", async () => {
+  const pool = new WorkerPool(2, 2),
+    release = deferred();
+  const jobs = Array.from({ length: 4 }, () => pool.run(() => release.promise));
+  await expect(pool.run(async () => {})).rejects.toThrow("WORKER_POOL_FULL");
+  pool.close();
+  release.resolve();
+  await pool.drain();
+  await Promise.all(jobs);
+  expect(pool.hasCapacity).toBe(false);
+});
+it.each([-1, 1.5, 3, NaN])("rejects invalid waiting allowance %s", (n) => {
+  expect(() => new WorkerPool(2, n)).toThrow("INVALID_WORKER_CAPACITY");
+});
 
 function deferred() {
   let resolve!: () => void;

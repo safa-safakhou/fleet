@@ -1140,7 +1140,37 @@ export class Engine {
           await this.store.active(claim);
           if (this.stopping) throw new FleetError("CLAIM_FENCED");
           await this.store.phase(claim, "command_dispatched");
-          receipt = await game.submit(id, action);
+          try {
+            receipt = await game.submit(id, action);
+          } catch (error) {
+            const retry = this.adapter.retryKnownRejection?.(error);
+            if (
+              !retry ||
+              this.stopping ||
+              !Number.isSafeInteger(retry.delayMs) ||
+              retry.delayMs < 1 ||
+              retry.delayMs > 1000 ||
+              claim.deadline.getTime() - this.store.now().getTime() <= retry.delayMs + 1000
+            )
+              throw error;
+            await observation.record(claim, "deciding", "Definitive rejection awaiting one exact-command retry", {
+              code: safeCode(error),
+              commandId: id,
+              committed: false,
+              retry: 1,
+              delayMs: retry.delayMs,
+            });
+            await new Promise((resolve) => setTimeout(resolve, retry.delayMs));
+            // Retain the first known denial if the turn cannot continue. An uncertain
+            // second submission instead escapes below with the original pending identity.
+            try {
+              await this.store.active(claim);
+            } catch {
+              throw error;
+            }
+            if (this.stopping) throw error;
+            receipt = await game.submit(id, action);
+          }
         } catch (error) {
           if (error instanceof RemoteRejection && error.status >= 500) throw new FleetError("TRANSPORT_UNCERTAIN");
           if (this.adapter.ownerFallback(error) && this.owner) {

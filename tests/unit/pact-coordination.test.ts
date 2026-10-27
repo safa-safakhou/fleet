@@ -9,6 +9,7 @@ import { WorkerResultSchema } from "../../src/engines/specialists/proposals.js";
 import { createPactEnvironment } from "../../src/environments/pact.js";
 import { pactNativeIntentDigest } from "../../src/games/pact/action-effects.js";
 import { PactCoordination } from "../../src/games/pact/coordination.js";
+import { ActionEffectsSchema } from "../../src/platform/action-effects.js";
 import type { BindingRef, Observation, Proposal } from "../../src/platform/contracts.js";
 
 function fixture() {
@@ -77,6 +78,52 @@ function fixture() {
     },
   };
 }
+it("excludes unaffordable aggregate claims using exact native capacity while retaining alternatives", async () => {
+  const f = fixture(),
+    effects = f.game.effects!.bind(f.game);
+  f.actions.push({ kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 1 });
+  f.game.effects = async (...args) => {
+    const q = ActionEffectsSchema.parse(await effects(...args));
+    return (args[0].action as Data).building === "hall"
+      ? { ...q, claims: [...q.claims, { ...q.claims[0], units: "6" }] }
+      : q;
+  };
+  const view = await f.policy.observe(f.base);
+  const options = view.coordination!.focuses.flatMap((f) => f.observation.options as Data[]);
+  expect(options.map((o) => (o.payload as Data).building)).toEqual(["farm"]);
+  expect(view.coordination!.coverage.capacityExcluded).toBe(1);
+});
+it("keeps an empty unaffordable menu structurally valid without inventing capacities", async () => {
+  const f = fixture(),
+    effects = f.game.effects!.bind(f.game);
+  f.game.effects = async (...args) => ({ ...(await effects(...args)), capacities: [] });
+  const view = await f.policy.observe(f.base);
+  expect(view.coordination!.focuses).toEqual([]);
+  expect(view.coordination!.claimSchemas).toEqual([]);
+  expect(view.coordination!.capacities).toEqual([]);
+  expect(view.coordination!.coverage.capacityExcluded).toBe(1);
+  expect(view.revision).toBe("native-revision");
+});
+it.each(["resource", "authority"] as const)(
+  "compares %s capacity exactly above floating-point precision",
+  async (kind) => {
+    const f = fixture(),
+      effects = f.game.effects!.bind(f.game);
+    f.actions.push({ kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 1 });
+    f.game.effects = async (...args) => {
+      const q = await effects(...args),
+        claim = { kind, schemaId: "synthetic.units", key: "exact", units: "9007199254740992" };
+      return {
+        ...q,
+        claims: [claim, ...((args[0].action as Data).building === "hall" ? [{ ...claim, units: "1" }] : [])],
+        capacities: [{ schemaId: claim.schemaId, key: claim.key, remainingUnits: claim.units }],
+      };
+    };
+    const view = await f.policy.observe(f.base);
+    const options = view.coordination!.focuses.flatMap((f) => f.observation.options as Data[]);
+    expect(options.map((o) => (o.payload as Data).building)).toEqual(["farm"]);
+  },
+);
 it("requires an explicit version plus both native protocols before advertising coordination", () => {
   expect(createPactEnvironment({} as never).capabilities.coordination).toBeUndefined();
   expect(() => createPactEnvironment({ coordinationVersion: "pact.coordination.v1" } as never)).toThrow(

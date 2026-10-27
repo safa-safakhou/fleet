@@ -3,6 +3,7 @@ import { FleetError, type ModelPort } from "../../src/domain.js";
 import { LegacyEngineBridge } from "../../src/engines/legacy/bridge.js";
 import { pactAdapter } from "../../src/games/pact/adapter.js";
 import { RouteCapacity } from "../../src/platform/admission.js";
+import { TaskStore } from "../../src/platform/tasks.js";
 import { FakeGame, fixture, ready } from "../helpers.js";
 import { platformFixture } from "../platform-helpers.js";
 
@@ -10,6 +11,275 @@ let cleanup: (() => Promise<void>) | undefined;
 afterEach(async () => {
   await cleanup?.();
   cleanup = undefined;
+});
+
+it("backfills spare cache behind a large waiter without exceeding physical capacity", async () => {
+  const f = await platformFixture(4);
+  cleanup = () => f.pool.end();
+  const group = await f.cohort(3);
+  for (const binding of group.bindings) await f.enqueue(binding);
+  const claims = [await f.claim(), await f.claim(), await f.claim()];
+  const abort = new AbortController(),
+    release = deferred();
+  const route = new RouteCapacity(
+    f.store,
+    () => ({
+      key: "backfill",
+      capacity: 4,
+      resource: { unit: "kv-cache-blocks.v1", capacity: 92, fingerprint: "a".repeat(64) },
+    }),
+    async (r) => ({ tokenUnits: 100, resourceUnits: Number(r.messages[0].content) }),
+  );
+  const seen: number[] = [];
+  const run = (n: number, blocks: number) =>
+    route
+      .run(
+        claims[n].turn,
+        { ...f.request(abort.signal), messages: [{ role: "user", content: String(blocks) }] },
+        async () => {
+          seen.push(n);
+          const sum = (
+            await f.pool.query("SELECT sum(resource_units)::int n FROM model_capacity_leases WHERE state='active'")
+          ).rows[0].n;
+          expect(sum).toBeLessThanOrEqual(92);
+          await release.promise;
+        },
+      )
+      .catch((e) => {
+        if (!abort.signal.aborted) throw e;
+      });
+  const runs = [run(0, 55)];
+  try {
+    await expect.poll(() => seen).toEqual([0]);
+    runs.push(run(1, 54));
+    await expect
+      .poll(
+        async () =>
+          (await f.pool.query("SELECT count(*)::int n FROM model_capacity_leases WHERE state='queued'")).rows[0].n,
+      )
+      .toBe(1);
+    runs.push(run(2, 32));
+    await expect.poll(() => seen, { timeout: 1000 }).toEqual([0, 2]);
+  } finally {
+    abort.abort();
+    release.resolve();
+    await Promise.all(runs);
+  }
+});
+
+it("lets unrelated work claim an execution slot while an inference turn waits, preserving the original turn", async () => {
+  const f = await platformFixture(4);
+  cleanup = () => f.pool.end();
+  const tasks = new TaskStore(f.store, f.bindings, 2, f.environments);
+  const group = await f.cohort(3);
+  for (const binding of group.bindings) await f.enqueue(binding);
+  const first = await tasks.claim("worker", f.now()),
+    second = await tasks.claim("worker", f.now());
+  if (!first || !second) throw Error("FIXTURE_CLAIMS_REQUIRED");
+  const route = new RouteCapacity(f.store, () => ({ key: "worker-wait", capacity: 1 }), undefined, {
+    workerCapacity: 2,
+  });
+  const abort = new AbortController(),
+    release = deferred();
+  let started = false,
+    resumed = false;
+  const active = route.run(first.turn, f.request(abort.signal), async () => {
+    started = true;
+    await release.promise;
+  });
+  const runs = [active];
+  try {
+    await expect.poll(() => started).toBe(true);
+    runs.push(
+      route
+        .run(second.turn, f.request(abort.signal), async () => {
+          resumed = true;
+        })
+        .catch((e) => {
+          if (!abort.signal.aborted) throw e;
+        }),
+    );
+    await expect
+      .poll(
+        async () =>
+          (await f.pool.query("SELECT count(*)::int n FROM model_capacity_leases WHERE state='queued'")).rows[0].n,
+      )
+      .toBe(1);
+    const third = await tasks.claim("worker-2", f.now());
+    expect(third).not.toBeNull();
+    expect(third?.turn.agentId).not.toBe(second.turn.agentId);
+    expect(
+      (await f.pool.query("SELECT state,fence,deadline_at FROM turns WHERE id=$1", [second.turn.id])).rows[0],
+    ).toMatchObject({ state: "running", fence: String(second.turn.fence), deadline_at: second.turn.deadline });
+    expect(await tasks.claim("worker-3", f.now())).toBeNull();
+    release.resolve();
+    await active;
+    expect(resumed).toBe(false); // Provider is free, but the first turn still owns an execution slot.
+    await f.store.finish(first.turn, "WAIT");
+    await expect.poll(() => resumed).toBe(true);
+    expect(
+      (await f.pool.query("SELECT count(*)::int n FROM turns WHERE state='running' AND NOT worker_waiting")).rows[0].n,
+    ).toBe(2);
+  } finally {
+    abort.abort();
+    release.resolve();
+    await Promise.all(runs);
+  }
+});
+
+it("reserves capacity for an older large waiter after four backfills", async () => {
+  const f = await platformFixture(4);
+  cleanup = () => f.pool.end();
+  const group = await f.cohort(3);
+  for (const binding of group.bindings) await f.enqueue(binding);
+  const claims = [await f.claim(), await f.claim(), await f.claim()];
+  const abort = new AbortController(),
+    release = deferred(),
+    order: string[] = [];
+  const route = new RouteCapacity(
+    f.store,
+    () => ({ key: "fair-backfill", capacity: 4, tokenCapacity: 100 }),
+    async (r) => Number(r.messages[0].content),
+  );
+  const run = (n: number, units: number, name: string, hold = false) =>
+    route.run(
+      claims[n].turn,
+      { ...f.request(abort.signal), messages: [{ role: "user", content: String(units) }] },
+      async () => {
+        order.push(name);
+        if (hold) await release.promise;
+      },
+    );
+  const active = run(0, 60, "active", true);
+  let large: Promise<unknown> | undefined, last: Promise<unknown> | undefined;
+  try {
+    await expect.poll(() => order).toEqual(["active"]);
+    large = run(1, 60, "large").catch((e) => {
+      if (!abort.signal.aborted) throw e;
+    });
+    await expect
+      .poll(
+        async () =>
+          (await f.pool.query("SELECT count(*)::int n FROM model_capacity_leases WHERE state='queued'")).rows[0].n,
+      )
+      .toBe(1);
+    for (let i = 0; i < 4; i++) await run(2, 30, `small-${i}`);
+    last = run(2, 30, "last").catch((e) => {
+      if (!abort.signal.aborted) throw e;
+    });
+    await expect
+      .poll(
+        async () =>
+          (await f.pool.query("SELECT count(*)::int n FROM model_capacity_leases WHERE state='queued'")).rows[0].n,
+      )
+      .toBe(2);
+    expect(order).toEqual(["active", "small-0", "small-1", "small-2", "small-3"]);
+    release.resolve();
+    await Promise.all([active, large, last]);
+    expect(order.slice(-2)).toEqual(["large", "last"]);
+  } finally {
+    abort.abort();
+    release.resolve();
+    await Promise.allSettled([active, large, last]);
+  }
+});
+
+it("bounds outstanding turns across workers even when additional execution slots are free", async () => {
+  const f = await platformFixture(4);
+  cleanup = () => f.pool.end();
+  const tasks = new TaskStore(f.store, f.bindings, 2, f.environments),
+    group = await f.cohort(4);
+  for (const binding of [...group.bindings, ...f.group.bindings]) await f.enqueue(binding);
+  const abort = new AbortController(),
+    release = deferred(),
+    route = new RouteCapacity(f.store, () => ({ key: "bounded-waiters", capacity: 1 }), undefined, {
+      workerCapacity: 2,
+    });
+  const runs: Promise<unknown>[] = [];
+  let started = false;
+  try {
+    const first = await tasks.claim("worker-1", f.now());
+    if (!first) throw Error("NO_CLAIM");
+    runs.push(
+      route.run(first.turn, f.request(abort.signal), async () => {
+        started = true;
+        await release.promise;
+      }),
+    );
+    await expect.poll(() => started).toBe(true);
+    for (let i = 0; i < 3; i++) {
+      const c = await tasks.claim(`worker-${i + 2}`, f.now());
+      expect(c).not.toBeNull();
+      runs.push(
+        route
+          .run(c!.turn, f.request(abort.signal), async () => {})
+          .catch((e) => {
+            if (!abort.signal.aborted) throw e;
+          }),
+      );
+      await expect
+        .poll(
+          async () =>
+            (await f.pool.query("SELECT count(*)::int n FROM turns WHERE state='running' AND worker_waiting")).rows[0]
+              .n,
+        )
+        .toBe(i + 1);
+    }
+    expect(await tasks.claim("worker-5", f.now())).toBeNull();
+    expect(await f.store.claim("legacy-worker", 2)).toBeNull();
+  } finally {
+    // End the synthetic parent claims before draining cancelled continuations.
+    await f.store.setState(group.id, "paused", true);
+    await f.store.setState(f.group.id, "paused", true);
+    abort.abort();
+    release.resolve();
+    await Promise.allSettled(runs);
+  }
+});
+
+it("removes a queued call as soon as the model-start window drains", async () => {
+  const f = await platformFixture(2);
+  cleanup = () => f.pool.end();
+  for (const binding of f.group.bindings) await f.enqueue(binding);
+  const first = await f.claim(),
+    second = await f.claim(),
+    release = deferred();
+  let draining = false,
+    started = false,
+    dispatched = false;
+  const route = new RouteCapacity(f.store, () => ({ key: "draining-waiters", capacity: 1 }), undefined, {
+    workerCapacity: 2,
+    assertWaiting: () => {
+      if (draining) throw new FleetError("RUN_WINDOW_MODEL_DRAINING", true);
+    },
+  });
+  const active = route.run(first.turn, f.request(), async () => {
+    started = true;
+    await release.promise;
+  });
+  try {
+    await expect.poll(() => started).toBe(true);
+    const queued = route
+      .run(second.turn, f.request(), async () => {
+        dispatched = true;
+      })
+      .catch((e) => e);
+    await expect
+      .poll(
+        async () =>
+          (await f.pool.query("SELECT count(*)::int n FROM model_capacity_leases WHERE state='queued'")).rows[0].n,
+      )
+      .toBe(1);
+    draining = true;
+    expect(await queued).toMatchObject({ code: "RUN_WINDOW_MODEL_DRAINING", notDispatched: true });
+    expect(dispatched).toBe(false);
+    expect(
+      (await f.pool.query("SELECT worker_waiting FROM turns WHERE id=$1", [second.turn.id])).rows[0].worker_waiting,
+    ).toBe(false);
+  } finally {
+    release.resolve();
+    await active;
+  }
 });
 
 it.each(["MODEL_DEADLINE_EXCEEDED", "TURN_DEADLINE_EXCEEDED", "DEADLINE_MISSED", "HOST_STOPPED"])(
@@ -21,7 +291,9 @@ it.each(["MODEL_DEADLINE_EXCEEDED", "TURN_DEADLINE_EXCEEDED", "DEADLINE_MISSED",
     for (const binding of group.bindings) await f.enqueue(binding);
     const first = await f.claim(),
       second = await f.claim();
-    const route = new RouteCapacity(f.store, () => ({ key: "cancel-fixture", capacity: 1 }));
+    const route = new RouteCapacity(f.store, () => ({ key: "cancel-fixture", capacity: 1 }), undefined, {
+      workerCapacity: 2,
+    });
     let release!: () => void,
       admitted = false,
       invoked = false;

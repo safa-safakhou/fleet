@@ -3,6 +3,7 @@ import type { PoolClient } from "pg";
 import { transaction } from "../db.js";
 import { type Data, FleetError } from "../domain.js";
 import type { Claim, Store } from "../store.js";
+import { canClaimWorker } from "../worker-admission.js";
 import type { EngineProfileRef, RecipientSpec } from "./architecture.js";
 import type { Bindings } from "./bindings.js";
 import type { BindingRef, DomainTime, EnvironmentEvent } from "./contracts.js";
@@ -303,8 +304,7 @@ export class TaskStore {
     await this.seedScheduled();
     return transaction(this.store.pool, async (db) => {
       await db.query("SELECT pg_advisory_xact_lock(19281462)");
-      if ((await db.query("SELECT count(*)::int n FROM turns WHERE state='running'")).rows[0].n >= this.maxConcurrency)
-        return null;
+      if (!(await canClaimWorker(db, this.maxConcurrency))) return null;
       await db.query(
         "UPDATE platform_tasks SET state='ready' WHERE state='waiting' AND wake->>'kind'='retry' AND due_at<=$1",
         [now],

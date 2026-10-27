@@ -513,6 +513,11 @@ export const pactAdapter: GameAdapter = {
       return code;
     return undefined;
   },
+  retryKnownRejection(error) {
+    if (error instanceof RemoteRejection && error.status < 500 && error.code === "TICK_PENDING")
+      return { delayMs: 1000 };
+    return undefined;
+  },
   normalizeCommunications: normalize,
 };
 

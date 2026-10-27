@@ -20,6 +20,7 @@ import { modelTurnBound } from "./model-bounds.js";
 import { Observability } from "./observability.js";
 import { ArchitectureRegistry } from "./platform/architecture.js";
 import type { Vault } from "./vault.js";
+import { canClaimWorker } from "./worker-admission.js";
 
 export interface AgentRow {
   id: string;
@@ -514,8 +515,7 @@ export class Store {
         "UPDATE cohorts SET state='finished',generation=generation+1 WHERE state='running' AND (budget->>'deadlineAt')::timestamptz<=$1",
         [now],
       );
-      const total = (await c.query("SELECT count(*)::int n FROM turns WHERE state='running'")).rows[0].n;
-      if (total >= maxConcurrency) return null;
+      if (!(await canClaimWorker(c, maxConcurrency))) return null;
       const a = (
         await c.query<AgentRow>(
           "SELECT a.* FROM agents a JOIN cohorts c ON c.id=a.cohort_id WHERE c.state='running' AND NOT EXISTS(SELECT 1 FROM cohort_engine_profiles p WHERE p.cohort_id=c.id) AND a.state='ready' AND a.credential_state='ready' AND a.next_due_at<=$1 AND NOT EXISTS(SELECT 1 FROM agent_blockers b WHERE b.agent_id=a.id) AND NOT EXISTS(SELECT 1 FROM turns t WHERE t.agent_id=a.id AND t.state IN('running','pending','needs_owner')) AND NOT EXISTS(SELECT 1 FROM maintenance_holds h WHERE h.cohort_id=c.id AND h.released_at IS NULL) AND (SELECT count(*) FROM turns x WHERE x.cohort_id=c.id AND x.state='running') < (c.budget->>'concurrency')::int ORDER BY a.next_due_at,a.ordinal FOR UPDATE OF a SKIP LOCKED LIMIT 1",

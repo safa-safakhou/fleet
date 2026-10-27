@@ -4,7 +4,12 @@ import { type Data, FleetError, type GamePort, object, ProposalRejection } from 
 import { expandFactTables } from "../../fact-table.js";
 import { RemoteRejection } from "../../http.js";
 import { shareGenerationSchema } from "../../modules/generation-schema/v1.js";
-import { type ActionEffects, actionIntentDigest, type EffectClaim } from "../../platform/action-effects.js";
+import {
+  type ActionEffects,
+  actionIntentDigest,
+  type EffectClaim,
+  fitsClaimCapacities,
+} from "../../platform/action-effects.js";
 import type { ActionIntent, BindingRef, Observation, Proposal, ProposalValidation } from "../../platform/contracts.js";
 import type { DecisionGrounding } from "../../platform/native-grounding.js";
 import { normalizePactEffects, pactEffectCommand, pactRemoteGuard } from "./action-effects.js";
@@ -240,6 +245,11 @@ export class PactCoordination {
         await this.quote({ commandId: randomUUID(), bindingId: this.binding.id, schemaId: "pact.action.v1", payload })
       ).quote.revision;
     }
+    // Compare every complete option against the lowest native capacity observed in this revision.
+    // Do not ask a worker to choose a quote that the shared proposal validator must reject.
+    const quotedCount = options.length;
+    const affordable = options.filter((o) => fitsClaimCapacities(o.claims, [...capacities.values()]));
+    options.splice(0, options.length, ...affordable);
     const schemas = new Map<string, "resource" | "authority" | "promise">();
     for (const c of options.flatMap((o) => o.claims)) {
       if (schemas.has(c.schemaId) && schemas.get(c.schemaId) !== c.kind)
@@ -282,13 +292,14 @@ export class PactCoordination {
         evidenceFrameRef,
         atomicExpectedVersion: true,
         claimSchemas: [...schemas].map(([id, kind]) => ({ id, kind })),
-        capacities: [...capacities.values()],
+        capacities: [...capacities.values()].filter((c) => schemas.has(c.schemaId)),
         promises: [],
         focuses,
         ownerPriorities: {},
         coverage: {
           completeWorld: false,
           nativeQuotes: options.length,
+          capacityExcluded: quotedCount - options.length,
           candidateActionsObserved: candidates.length,
           candidateActionsOmitted: candidates.length - options.length,
           menu: "bounded native decision-support blueprints; other native commands are not enumerated",

@@ -366,7 +366,7 @@ it.each(
         store,
         tasks,
         model,
-        new RouteCapacity(store, () => ({ key: "offline-native", capacity: 1 })),
+        new RouteCapacity(store, () => ({ key: "offline-native", capacity: 1 }), undefined, { workerCapacity: 4 }),
       ),
       commands = new CommandExecutor(store, tasks, bindings, environments);
     const host = new PlatformHost(

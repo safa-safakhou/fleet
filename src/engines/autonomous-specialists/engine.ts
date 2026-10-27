@@ -748,14 +748,27 @@ export class AutonomousSpecialistsEngine {
         await services.tasks.waitForEvent();
         return;
       }
-      const parsed = Decision.safeParse(
-        goalReferences
-          ? decodeParticipantGoalParents(
-              result.decision,
-              goals.map((goal) => goal.id),
-            )
-          : result.decision,
-      );
+      let decoded = result.decision;
+      try {
+        if (goalReferences)
+          decoded = decodeParticipantGoalParents(
+            result.decision,
+            goals.map((goal) => goal.id),
+          );
+      } catch (error) {
+        if (
+          error instanceof FleetError &&
+          error.code === "GOAL_PARENT_NOT_DELIVERED" &&
+          (await correctProposal(
+            call,
+            error.code,
+            "Use only delivered goal parents or a goalIndex in this update, or null for a root. Nothing was accepted.",
+          ))
+        )
+          continue;
+        throw error;
+      }
+      const parsed = Decision.safeParse(decoded);
       if (!parsed.success) {
         if (
           parsed.error.issues.every((issue) => issue.code === "custom" && issue.message === "Duplicate support") &&
@@ -791,7 +804,31 @@ export class AutonomousSpecialistsEngine {
             : "REQUESTED_FACT_SUMMARY_REQUIRED",
           true,
         );
-      if (goalReferences && update) reviseGoals(state.goals, update.goals, state.charter);
+      if (update) {
+        try {
+          reviseGoals(state.goals, update.goals, state.charter);
+        } catch (error) {
+          if (
+            error instanceof FleetError &&
+            [
+              "DUPLICATE_GOAL",
+              "TERMINAL_GOAL",
+              "ACTIVE_GOAL_LIMIT",
+              "GOAL_HISTORY_LIMIT",
+              "GOAL_CYCLE",
+              "UNKNOWN_PARENT_GOAL",
+            ].includes(error.code) &&
+            (await correctProposal(
+              call,
+              error.code,
+              "Revise or omit the rejected goal update. Use unique goals and valid parents; no goal may parent itself or form a cycle. Respect active-goal limits and terminal history. No state update or action was accepted.",
+              { maxActiveGoals: state.charter.maxActiveGoals },
+            ))
+          )
+            continue;
+          throw error;
+        }
+      }
       if (listedSkills) {
         assertListedSkillReferences(skills, listedRefs);
         if (decision.kind === "read" && (skills?.publish || skills?.adopt))

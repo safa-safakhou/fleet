@@ -1,15 +1,20 @@
 import { FleetError } from "../domain.js";
 
-/** Process-local execution slots. Durable claims remain the cross-process authority. */
+/** Bounded process-local continuations, including waiters. Durable claims enforce execution slots. */
 export class WorkerPool {
   private readonly active = new Set<Promise<unknown>>();
   private closed = false;
-  constructor(private readonly capacity: number) {
+  constructor(
+    private readonly capacity: number,
+    private readonly waitingCapacity = 0,
+  ) {
     if (!Number.isInteger(capacity) || capacity < 1 || capacity > 16)
+      throw new FleetError("INVALID_WORKER_CAPACITY", true);
+    if (!Number.isInteger(waitingCapacity) || waitingCapacity < 0 || waitingCapacity > capacity)
       throw new FleetError("INVALID_WORKER_CAPACITY", true);
   }
   get hasCapacity() {
-    return !this.closed && this.active.size < this.capacity;
+    return !this.closed && this.active.size < this.capacity + this.waitingCapacity;
   }
   run<T>(operation: () => Promise<T>): Promise<T> {
     if (this.closed) return Promise.reject(new FleetError("WORKER_POOL_CLOSED", true));

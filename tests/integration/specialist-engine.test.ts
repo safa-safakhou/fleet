@@ -115,6 +115,51 @@ it("rejects a proposal made stale during coordinator inference before any comman
   expect((await f.pool.query("SELECT * FROM platform_commands")).rowCount).toBe(0);
 });
 
+it.each([true, false])(
+  "reconsiders an unaffordable structured proposal before submission (correct=%s)",
+  async (correct) => {
+    const f = await setup(false, 1, 3),
+      inputs: unknown[] = [],
+      connect = f.board.adapter.connect;
+    f.board.adapter.connect = async (binding) => {
+      const session = await connect(binding);
+      return {
+        ...session,
+        observe: async (query) => {
+          const view = await session.observe(query);
+          view.coordination!.focuses = view.coordination!.focuses.slice(0, 1);
+          return view;
+        },
+        decisionGrounding: { prepare: (input) => input, validate: () => null },
+      };
+    };
+    const base = modelFor(inputs);
+    const h = f.host({
+      decide: async (input) => {
+        const result = await base.decide(input);
+        if (result.decision.proposal && (inputs.length === 1 || !correct))
+          result.decision.proposal.claims[0].units = "999";
+        return result;
+      },
+    });
+    h.engines.register(new SpecialistCoordinatorEngine());
+    if (correct) {
+      await h.host.run(f.claim);
+      expect(f.board.debits).toBe(40);
+      expect(inputs).toHaveLength(3);
+    } else {
+      await expect(h.host.run(f.claim)).rejects.toThrow("STRUCTURED_CAPACITY_CONFLICT");
+      expect(inputs).toHaveLength(2); // One remaining slot cannot fund a worker plus coordinator.
+      expect(f.board.debits).toBe(0);
+    }
+    expect(inputs[1]).toMatchObject({
+      previousSelection: { code: "STRUCTURED_CAPACITY_CONFLICT", submitted: false, committed: false },
+    });
+    expect((await f.pool.query("SELECT status FROM compute_ledger")).rows.every((r) => r.status === "reported")).toBe(
+      true,
+    );
+  },
+);
 it.each([
   [false, 2, 1],
   [true, 1, 1],

@@ -1,4 +1,5 @@
 import { randomUUID } from "node:crypto";
+import { Ajv } from "ajv";
 import Fastify from "fastify";
 import { expect, it, vi } from "vitest";
 import { composeRuntime } from "../../src/app/composition.js";
@@ -9,6 +10,7 @@ import { compactFacts, pactAdapter } from "../../src/games/pact/adapter.js";
 import { HttpModel } from "../../src/model.js";
 import { prepareVllmGenerationSchema } from "../../src/model-schema.js";
 import { nativePactWorkflow } from "../fixtures/native-pact-workflow.js";
+import { fixtureSchemaBasis } from "../fixtures/pact-progress-basis.js";
 import { fixture, key, testUrl } from "../helpers.js";
 
 const intent =
@@ -55,28 +57,16 @@ it.each([
       expect(object(object(body.response_format).json_schema).schema).toEqual(
         prepareVllmGenerationSchema(logical.schema),
       );
-      const state = object(object(packet.goal).currentState);
       const decision = {
         decision: {
           kind: "wait",
           summary: "Synthetic offline composition check",
-          basis: {
-            completedLevels: state.completedLevels,
-            queuedPhases: state.queuedPhases,
-            ...(state.opportunityRevision
-              ? {
-                  opportunityRevision: state.opportunityRevision,
-                  deferral: {
-                    reason: "deliberate_pacing",
-                    explanation: "Measure this synthetic input without prescribing a game action.",
-                    reconsiderWhen: "Next synthetic review.",
-                  },
-                }
-              : {}),
-          },
+          basis: fixtureSchemaBasis(prepareVllmGenerationSchema(logical.schema), "wait"),
         },
       };
       const event = (v: unknown) => `data: ${JSON.stringify(v)}\n\n`;
+      const valid = new Ajv({ strict: false, validateFormats: false }).compile(logical.schema);
+      expect(valid(decision), JSON.stringify(valid.errors)).toBe(true);
       return reply.type("text/event-stream").send(
         event({
           id: "synthetic",

@@ -3,6 +3,7 @@ import { afterAll, beforeAll, expect, it } from "vitest";
 import { DecisionSupportReader } from "../../../pact/packages/application/src/decision-support.js";
 import { actionEffectsFixture } from "../../../pact/tests/fixtures/action-effects.js";
 import type { Data, GamePort } from "../../src/domain.js";
+import { checkProposals } from "../../src/engines/specialists/proposals.js";
 import { PactCoordination } from "../../src/games/pact/coordination.js";
 import { RemoteRejection } from "../../src/http.js";
 import type { BindingRef, Observation, Proposal } from "../../src/platform/contracts.js";
@@ -65,6 +66,50 @@ async function setup() {
   };
   return { owner, policy, view, proposal, binding, game, base };
 }
+it("does not advertise a native supply signature whose bond exceeds stock or authority", async () => {
+  const x = await setup(),
+    peer = await f.owner();
+  await f.pool.query(
+    "INSERT INTO social_contacts(product_scope,kingdom_a,kingdom_b,accepted_game_time_ms) VALUES('pact',$1,$2,0)",
+    [...[x.owner.kingdomId, peer.kingdomId].sort()],
+  );
+  const offer = f.command(peer.principal, {
+    kind: "game.supply.offer",
+    counterpartyKingdomId: x.owner.kingdomId,
+    terms: {
+      aToB: { resource: "iron", wholePerHour: 1 },
+      bToA: { resource: "silver", wholePerHour: 1 },
+      aBond: null,
+      bBond: { resource: "silver", wholeAmount: 1 },
+      durationHours: 1,
+      noticeHours: 0,
+    },
+  });
+  await f.dispatcher.dispatchGuarded(peer.principal, await f.guarded(peer.principal, offer));
+  const first = f.command(peer.principal, { kind: "game.supply.sign", offerId: offer.commandId, version: 1 });
+  await f.dispatcher.dispatchGuarded(peer.principal, await f.guarded(peer.principal, first));
+  await f.pool.query(
+    "UPDATE resource_balances SET ordinary_units=0,allowance_units=0 WHERE kingdom_id=$1 AND resource='silver'",
+    [x.owner.kingdomId],
+  );
+  const quote = await f.effects.quote(
+    x.owner.principal,
+    f.command(x.owner.principal, { kind: "game.supply.sign", offerId: offer.commandId, version: 1 }),
+  );
+  expect(quote.claims).toContainEqual(expect.objectContaining({ kind: "resource", units: "600" }));
+  x.base.payload.guide = { openSupplyOffers: [{ id: offer.commandId, version: 1 }] };
+  const view = await x.policy.observe(x.base);
+  expect(view.coordination!.focuses.map((f) => f.id)).not.toContain("game.supply.sign");
+  expect(view.coordination!.coverage.capacityExcluded).toBeGreaterThan(0);
+  expect(checkProposals([], view).valid).toBe(true);
+  expect((await f.pool.query("SELECT * FROM supply_contracts WHERE offer_id=$1", [offer.commandId])).rowCount).toBe(0);
+  await f.pool.query("UPDATE resource_balances SET ordinary_units=60000 WHERE kingdom_id=$1 AND resource='silver'", [
+    x.owner.kingdomId,
+  ]);
+  const funded = await x.policy.observe(x.base);
+  expect(funded.coordination!.focuses.map((f) => f.id)).toContain("game.supply.sign");
+  expect(funded.coordination!.focuses.map((f) => f.id)).toContain("game.building.queue");
+});
 it("uses actual PACT quotes and commits exactly one native command with the original receipt ID", async () => {
   const x = await setup();
   expect(await x.policy.validate(x.proposal, x.view)).toMatchObject({ valid: true });

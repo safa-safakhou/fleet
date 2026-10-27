@@ -55,4 +55,6 @@ export interface GameAdapter {
   normalizeCommunications: NormalizeCommunications;
   ownerFallback(error: unknown): boolean;
   rejection(error: unknown, owner: boolean): string | undefined;
+  /** Exact-command retry only after a definitive, non-committing transient native denial. */
+  retryKnownRejection?(error: unknown): { delayMs: number } | undefined;
 }

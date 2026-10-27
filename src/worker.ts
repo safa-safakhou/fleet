@@ -15,7 +15,7 @@ let stop = false,
   failures = 0,
   recoveryInFlight: Promise<unknown> | undefined,
   intakeInFlight: Promise<unknown> | undefined;
-const workers = new WorkerPool(r.settings.maxConcurrency);
+const workers = new WorkerPool(r.settings.maxConcurrency, r.settings.maxConcurrency);
 const participantCancellation = new AbortController();
 const scheduler = new DispatchScheduler();
 const progress = async (turnId: string) => {

@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { mkdir, mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { resolve } from "node:path";
+import { Ajv } from "ajv";
 import Fastify from "fastify";
 import { expect, it } from "vitest";
 import {
@@ -14,7 +15,7 @@ import { config } from "../../src/config.js";
 import { type Data, object } from "../../src/domain.js";
 import { expandFactTables } from "../../src/fact-table.js";
 import { nativePactWorkflow } from "../fixtures/native-pact-workflow.js";
-import { fixtureGoalBasis } from "../fixtures/pact-progress-basis.js";
+import { fixtureSchemaBasis } from "../fixtures/pact-progress-basis.js";
 import { fixture, key, testUrl } from "../helpers.js";
 
 it.each([
@@ -84,10 +85,19 @@ it.each([
                 kind: "action",
                 schemaId: "pact.action.v1",
                 payload: { kind: "game.contact.answer", requestId, accept: true },
-                expectedOutcome: { actionKind: "game.contact.answer", basis: fixtureGoalBasis(packet) },
+                expectedOutcome: {
+                  actionKind: "game.contact.answer",
+                  basis: fixtureSchemaBasis(object(object(object(body.response_format).json_schema).schema), "action"),
+                },
                 summary: "Accept the observed synthetic introduction",
               };
       expect(calls).toBeLessThanOrEqual(3);
+      if (calls > 1) {
+        const valid = new Ajv({ strict: false, validateFormats: false }).compile(
+          object(object(object(body.response_format).json_schema).schema),
+        );
+        expect(valid({ decision }), JSON.stringify(valid.errors)).toBe(true);
+      }
       if (calls === 3) expect(JSON.stringify(packet)).toContain(requestId);
       const event = (v: unknown) => `data: ${JSON.stringify(v)}\n\n`;
       return reply.type("text/event-stream").send(

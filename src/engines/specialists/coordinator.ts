@@ -93,6 +93,15 @@ function requireFrame(observation: Observation) {
     throw new FleetError("DUPLICATE_FOCUS", true);
   return parsed.data;
 }
+function proposalFailure(code: string, detail: Data = {}) {
+  return code === "STRUCTURED_CAPACITY_CONFLICT"
+    ? new ProposalRejection(
+        code,
+        "The quoted resource or authority claims exceed available capacity. Choose an affordable fresh option or abstain; no command was submitted.",
+        detail,
+      )
+    : new FleetError(code, true);
+}
 async function refreshProposal(ctx: DecisionContext, proposal: Proposal, observation: Observation) {
   if (!ctx.refreshProposal) return proposal;
   const fresh = await ctx.refreshProposal(proposal, observation);
@@ -131,7 +140,13 @@ export class ProposalCoordinator {
         ctx.schemas?.actions.includes(p.intent.schemaId)
       )
         admitted.push(p);
-      else rejected.push({ commandId: p.intent.commandId, code: valid.code, status: "rejected" });
+      else
+        rejected.push({
+          commandId: p.intent.commandId,
+          code: valid.code,
+          status: "rejected",
+          conflictRefs: local.conflictRefs,
+        });
     }
     await ctx.trace?.("deciding", "Focused proposals checked", {
       taskId: ctx.task.id,
@@ -140,7 +155,7 @@ export class ProposalCoordinator {
       formalGuarantee: "Advertised structured claims only; prose consistency remains judgment.",
     });
     if (!admitted.length) {
-      if (rejected.length) throw new FleetError(String(rejected[0].code), true);
+      if (rejected.length) throw proposalFailure(String(rejected[0].code), { rejected });
       return [];
     }
     const schema = z.toJSONSchema(Selection, { target: "draft-7" });
@@ -182,7 +197,7 @@ export class ProposalCoordinator {
       selected.filter((p): p is Proposal => !!p),
       observation,
     );
-    if (!checked.valid) throw new FleetError(checked.code, true);
+    if (!checked.valid) throw proposalFailure(checked.code, { conflictRefs: checked.conflictRefs });
     if (parsed.data.continuity) {
       const update = await this.continuity.apply(Number(this.context.version), parsed.data.continuity);
       if (!update.accepted) throw new FleetError(`CONTINUITY_${update.code}`, true);
@@ -235,7 +250,7 @@ export class SpecialistCoordinatorEngine {
           const fresh = await ctx.observe(query);
           proposal = await refreshProposal(ctx, proposal, fresh);
           const local = checkProposals([proposal], fresh);
-          if (!local.valid) throw new FleetError(local.code, true);
+          if (!local.valid) throw proposalFailure(local.code, { conflictRefs: local.conflictRefs });
           const checked = await validateProposal(proposal, fresh);
           if (!checked.valid) throw new FleetError(checked.code, true);
           // Fresh admission preserves semantic intent; native commit still atomically enforces the quote.
@@ -246,7 +261,9 @@ export class SpecialistCoordinatorEngine {
         return;
       } catch (error) {
         const code = error instanceof FleetError ? error.code : "UNKNOWN";
-        const changed = error instanceof ProposalRejection && code === "COORDINATION_CHOICE_CHANGED";
+        const changed =
+          error instanceof ProposalRejection &&
+          ["COORDINATION_CHOICE_CHANGED", "STRUCTURED_CAPACITY_CONFLICT"].includes(code);
         if (
           submissionStarted ||
           (!changed && !["STALE_PROPOSAL", "STALE_VERSION", "EXPIRED", "COORDINATION_SNAPSHOT_CHANGED"].includes(code))

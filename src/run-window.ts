@@ -38,7 +38,7 @@ export class RunWindow {
     if (!this.isOpen()) throw new FleetError("RUN_WINDOW_CLOSED", true);
   }
 
-  private assertModelTime(model: Parameters<ModelPort["decide"]>[0]["model"]): void {
+  assertModelTime(model: Parameters<ModelPort["decide"]>[0]["model"]): void {
     this.assertOpen();
     if (!this.file) return;
     // A queued call must not begin just before this operator-owned window expires.

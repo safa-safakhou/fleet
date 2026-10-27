@@ -1,5 +1,6 @@
 import { createHash } from "node:crypto";
 import { z } from "zod";
+import { consumeClaimCapacity } from "../claim-capacity.js";
 import type { ActionIntent } from "./contracts.js";
 
 const id = z.string().min(1).max(2000),
@@ -25,6 +26,10 @@ export const ActionEffectsSchema = z
   .strict();
 export type ActionEffects = z.infer<typeof ActionEffectsSchema>;
 export type EffectClaim = z.infer<typeof StructuredClaimSchema>;
+export function fitsClaimCapacities(claims: EffectClaim[], capacities: ActionEffects["capacities"]) {
+  const pools = new Map(capacities.map((c) => [JSON.stringify([c.schemaId, c.key]), BigInt(c.remainingUnits)]));
+  return claims.every((c) => c.kind === "promise" || !consumeClaimCapacity(pools, c));
+}
 function canonical(value: unknown): unknown {
   return Array.isArray(value)
     ? value.map(canonical)

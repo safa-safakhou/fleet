@@ -73,6 +73,7 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
     (selected) => providerCapacity(settings, selected),
     (request) =>
       capacityDemand(model, request.model.provider === "vllm" ? settings.vllmCacheProfile : undefined, request),
+    { workerCapacity: settings.maxConcurrency, assertWaiting: (request) => runWindow.assertModelTime(request.model) },
   );
   const capacityModel = capacity.wrap(model, currentLegacyClaim);
   const makeLegacyEngine = () =>

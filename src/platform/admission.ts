@@ -23,7 +23,15 @@ export class RouteCapacity {
       resource?: CapacityResource;
     },
     private demand?: (request: Parameters<ModelPort["decide"]>[0]) => Promise<CapacityDemand>,
-  ) {}
+    private control: {
+      workerCapacity?: number;
+      assertWaiting?: (request: Parameters<ModelPort["decide"]>[0]) => void;
+    } = {},
+  ) {
+    const capacity = control.workerCapacity;
+    if (capacity !== undefined && (!Number.isInteger(capacity) || capacity < 1 || capacity > 16))
+      throw new FleetError("INVALID_WORKER_CAPACITY", true);
+  }
   async run<T>(
     claim: Claim,
     request: Parameters<ModelPort["decide"]>[0],
@@ -84,6 +92,7 @@ export class RouteCapacity {
       await this.store.active(claim);
     }
     await transaction(this.store.pool, async (db) => {
+      if (this.control.workerCapacity) await db.query("SELECT pg_advisory_xact_lock(19281462)");
       await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,19281492))", [claim.id]);
       if (
         (
@@ -123,6 +132,8 @@ export class RouteCapacity {
         "INSERT INTO model_capacity_leases(id,route_key,turn_id,state,expires_at,sibling_worker,token_units,resource_units) VALUES($1,$2,$3,'queued',$4,$5,$6,$7)",
         [id, policy.key, claim.id, claim.deadline, siblingWorker, tokenUnits, resourceUnits],
       );
+      if (this.control.workerCapacity && !siblingWorker)
+        await db.query("UPDATE turns SET worker_waiting=true WHERE id=$1", [claim.id]);
     });
     try {
       await observation.record(claim, "thinking", "Provider capacity queued", {
@@ -135,8 +146,10 @@ export class RouteCapacity {
       });
       while (true) {
         if (request.signal.aborted) throw new FleetError(modelAbortCode(request.signal.reason), true);
+        this.control.assertWaiting?.(request);
         await this.store.active(claim);
         const admitted = await transaction(this.store.pool, async (db) => {
+          if (this.control.workerCapacity) await db.query("SELECT pg_advisory_xact_lock(19281462)");
           await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,19281470))", [policy.key]);
           await db.query(
             "DELETE FROM model_capacity_leases l USING turns t WHERE l.turn_id=t.id AND l.expires_at<=$1 AND t.state<>'running'",
@@ -150,8 +163,18 @@ export class RouteCapacity {
           ).rows[0];
           const next = (
             await db.query(
-              "SELECT id FROM model_capacity_leases WHERE route_key=$1 AND state='queued' ORDER BY sequence LIMIT 1",
-              [policy.key],
+              `SELECT l.id,l.sequence FROM model_capacity_leases l WHERE l.route_key=$1 AND l.state='queued'
+               AND ($2::bigint IS NULL OR coalesce(l.token_units,$2)<=$2-$3)
+               AND ($4::bigint IS NULL OR coalesce(l.resource_units,$4)<=$4-$5)
+               AND NOT EXISTS (SELECT 1 FROM model_capacity_leases older WHERE older.route_key=l.route_key AND older.state='queued' AND older.sequence<l.sequence AND older.bypasses>=4)
+               ORDER BY l.sequence LIMIT 1`,
+              [
+                policy.key,
+                policy.tokenCapacity ?? null,
+                active.tokens,
+                policy.resource?.capacity ?? null,
+                active.resources,
+              ],
             )
           ).rows[0];
           if (
@@ -163,6 +186,18 @@ export class RouteCapacity {
               Number(active.resources) + (resourceUnits ?? policy.resource.capacity) > policy.resource.capacity)
           )
             return false;
+          if (this.control.workerCapacity && !siblingWorker) {
+            const executing = (
+              await db.query("SELECT count(*)::int n FROM turns WHERE state='running' AND NOT worker_waiting")
+            ).rows[0].n;
+            if (executing >= this.control.workerCapacity) return false;
+            await this.store.active(claim, db);
+            await db.query("UPDATE turns SET worker_waiting=false WHERE id=$1", [claim.id]);
+          }
+          await db.query(
+            "UPDATE model_capacity_leases SET bypasses=least(4,bypasses+1) WHERE route_key=$1 AND state='queued' AND sequence<$2",
+            [policy.key, next.sequence],
+          );
           await db.query("UPDATE model_capacity_leases SET state='active' WHERE id=$1", [id]);
           return true;
         });
@@ -188,6 +223,31 @@ export class RouteCapacity {
       return await operation({ queueDelayMs: Math.max(0, this.store.now().getTime() - queuedAt) });
     } finally {
       await this.store.pool.query("DELETE FROM model_capacity_leases WHERE id=$1", [id]);
+      // A rejected queued request resumes under the execution cap before its engine handles feedback.
+      const workerCapacity = this.control.workerCapacity;
+      if (workerCapacity && !siblingWorker) {
+        while (true) {
+          const resumed = await transaction(this.store.pool, async (db) => {
+            await db.query("SELECT pg_advisory_xact_lock(19281462)");
+            const turn = (await db.query("SELECT state,worker_waiting FROM turns WHERE id=$1", [claim.id])).rows[0];
+            if (turn?.state !== "running" || !turn.worker_waiting) return true;
+            try {
+              await this.store.active(claim, db);
+            } catch (error) {
+              if (error instanceof FleetError && error.code === "CLAIM_FENCED") return true;
+              throw error;
+            }
+            const executing = (
+              await db.query("SELECT count(*)::int n FROM turns WHERE state='running' AND NOT worker_waiting")
+            ).rows[0].n;
+            if (executing >= workerCapacity) return false;
+            await db.query("UPDATE turns SET worker_waiting=false WHERE id=$1", [claim.id]);
+            return true;
+          });
+          if (resumed) break;
+          await delay(20);
+        }
+      }
     }
   }
   supportsOverlap(model: ModelSettings) {

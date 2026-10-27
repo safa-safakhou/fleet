@@ -1217,7 +1217,7 @@ it("rejects unlisted skill responses through bounded recovery before any request
   ]);
 });
 
-it.each([false, true])(
+it.each([false, true, "correct"])(
   "resolves scoped goal parents through HTTP and refuses cycles before persistence cycle=%s",
   async (cycle) => {
     const f = await setup(),
@@ -1251,9 +1251,11 @@ it.each([false, true])(
         decision: { kind: "wait", summary: "No board effect or completion claimed" },
         update: {
           goals:
-            calls === 1
+            calls === 1 || cycle === true
               ? [goal(child, { goalIndex: 1 }), goal(parent, cycle ? { goalIndex: 0 } : null)]
-              : [goal(child, parent)],
+              : cycle === "correct"
+                ? [goal(child, null)]
+                : [goal(child, parent)],
           memories: [],
           predictions: [],
           plan: null,
@@ -1287,10 +1289,16 @@ it.each([false, true])(
       bindingId: f.binding.id,
       specialistId: "resources",
     };
-    if (cycle) {
+    if (cycle === true) {
       await expect(run()).rejects.toThrow("GOAL_CYCLE");
       expect((await new SpecialistRepository(f.store, scope).load(scope)).goals).toEqual([]);
-      expect(calls).toBe(1);
+      expect(calls).toBe(3);
+    } else if (cycle === "correct") {
+      await run();
+      const goals = (await new SpecialistRepository(f.store, scope).load(scope)).goals;
+      expect(goals).toHaveLength(1);
+      expect(goals[0].parentId).toBe(null);
+      expect(calls).toBe(2);
     } else {
       await run();
       let goals = (await new SpecialistRepository(f.store, scope).load(scope)).goals;

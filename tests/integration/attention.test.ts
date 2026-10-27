@@ -20,16 +20,54 @@ async function setup() {
   return { ...f, id, claim, game: new FakeGame(claim) };
 }
 const building = { kind: "game.building.queue", building: "farm", targetLevel: 2, slot: 1 };
+it.each(["committed", "uncertain", "stopped"])(
+  "retries one definitive tick rejection with the exact command, preserving %s",
+  async (result) => {
+    const f = await setup(),
+      submitted: { id: string; action: unknown }[] = [];
+    f.claim.cohort.budget!.maxCallsPerTurn = 1;
+    const model = new FakeModel([{ kind: "action", action: building, summary: "Queue farm" }]);
+    const engine = new Engine(f.store, model, async () => f.game, true);
+    f.game.submit = async (id, action) => {
+      submitted.push({ id, action });
+      if (submitted.length === 1) {
+        if (result === "stopped") engine.stop();
+        throw new RemoteRejection("TICK_PENDING", 200);
+      }
+      if (result === "uncertain") throw new RemoteRejection("TICK_PENDING", 503);
+      return { commandId: id, code: "COMMITTED" };
+    };
+    await engine.run(f.claim);
+    const turn = (await f.store.publicState()).turns[0];
+    expect(submitted).toHaveLength(result === "stopped" ? 1 : 2);
+    if (submitted.length === 2) expect(submitted[1]).toEqual(submitted[0]);
+    expect(model.inputs).toHaveLength(1);
+    if (result === "committed") {
+      expect(turn.actions).toBe(1);
+      expect(turn.pending_command).toBeNull();
+    } else if (result === "uncertain") {
+      expect(turn.state).toBe("pending");
+      expect(turn.pending_command).toBe(submitted[0].id);
+      expect((await f.pool.query("SELECT * FROM command_resolutions")).rowCount).toBe(0);
+    } else {
+      expect(turn.actions).toBe(0);
+      expect(turn.pending_command).toBeNull();
+    }
+  },
+);
 it.each(["INVALID_LEVEL", "TICK_PENDING", "BUILDING_BUSY", "REQUEST_EXISTS", "CONTACT_QUEUE_FULL"])(
   "explicit %s denial remains scheduled and archives the exact command",
   async (code) => {
     const f = await setup();
+    let submissions = 0;
     f.game.submit = async () => {
+      submissions++;
       throw new RemoteRejection(code, 200);
     };
     const model = new FakeModel([{ kind: "action", action: building, summary: "Attempt building" }]);
     await new Engine(f.store, model, async () => f.game, true).run(f.claim);
     const turn = (await f.store.publicState()).turns[0];
+    expect(submissions).toBe(code === "TICK_PENDING" ? 2 : 1);
     expect(turn.state).toBe("finished");
     expect(turn.pending_command).toBeNull();
     expect(turn.actions).toBe(0);
