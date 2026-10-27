@@ -34,4 +34,9 @@ export class Communications extends Journal {
   constructor(store: Store) {
     super(store, normalize);
   }
+  async observeRead(agentId: string, tool: string, args: Data, result: Data) {
+    if (!["pact_council_thread_v1", "pact_conversation_history_v2"].includes(tool)) return;
+    if (typeof args.kingdomId !== "string" || !args.kingdomId) return;
+    await this.ingest(agentId, args.kingdomId, tool, result);
+  }
 }

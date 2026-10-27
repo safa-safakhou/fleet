@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { expect, it, vi } from "vitest";
+import { FleetError, ProposalRejection } from "../../src/domain.js";
 import { AutonomousSpecialistsEngine } from "../../src/engines/autonomous-specialists/engine.js";
 import { pactReadQuerySchema } from "../../src/games/pact/read-queries.js";
 import type { Observation } from "../../src/platform/contracts.js";
@@ -93,8 +94,11 @@ function setup(responses: unknown[]) {
   };
   return { services, operation, observe, accept, submit, calls: () => calls };
 }
-function actionFixture(summary: string) {
-  const f = setup([{ kind: "action", schemaId: "fixture.answer.v1", payload: { accept: true }, summary }]);
+function actionFixture(summary: string, following: unknown[] = []) {
+  const f = setup([
+    { kind: "action", schemaId: "fixture.answer.v1", payload: { accept: true }, summary },
+    ...following,
+  ]);
   f.services.environment.schemas.actions = ["fixture.answer.v1"];
   f.services.environment.actionContracts = async () => [
     {
@@ -109,6 +113,120 @@ function actionFixture(summary: string) {
   ];
   return f;
 }
+it("feeds back a proven unaccepted proposal within the original call budget", async () => {
+  const f = actionFixture("Action proposed.", [
+    { kind: "action", schemaId: "fixture.answer.v1", payload: { accept: false }, summary: "Action proposed." },
+  ]);
+  const requests: unknown[] = [],
+    decide = f.services.model.decide;
+  f.services.model.decide = async (request) => {
+    requests.push(request);
+    return decide(request);
+  };
+  f.accept
+    .mockRejectedValueOnce(
+      new ProposalRejection("RESOURCE_CLAIM_CONFLICT", "Use the quoted available stock.", {
+        resourceRequirements: [{ requestedUnits: "8", remainingUnits: "2" }],
+      }),
+    )
+    .mockResolvedValue({ accepted: true, version: 2 });
+  await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+  expect(f.calls()).toBe(2);
+  expect(JSON.stringify(requests[1])).toContain("RESOURCE_CLAIM_CONFLICT");
+  expect(JSON.stringify(requests[1])).toContain("remainingUnits");
+  expect(f.accept.mock.calls[1][0].intent.payload).toEqual({ accept: false });
+  expect(f.submit).not.toHaveBeenCalled();
+});
+it("never retries a possibly accepted action based only on a generic error code", async () => {
+  const f = actionFixture("Action proposed.");
+  f.accept.mockRejectedValue(new FleetError("RESOURCE_CLAIM_CONFLICT", true));
+  await expect(new AutonomousSpecialistsEngine().run(f.operation, f.services)).rejects.toThrow(
+    "RESOURCE_CLAIM_CONFLICT",
+  );
+  expect(f.calls()).toBe(1);
+  expect(f.accept).toHaveBeenCalledTimes(1);
+});
+it("uses environment-provided correction without embedding domain rules in the engine", async () => {
+  const f = actionFixture("Action proposed.", [
+    { kind: "action", schemaId: "fixture.answer.v1", payload: { accept: false }, summary: "Action proposed." },
+  ]);
+  const validate = vi
+    .fn()
+    .mockResolvedValueOnce({
+      valid: false,
+      code: "FIXTURE_DIRECTION",
+      correctable: true,
+      guidance: "Reverse the selected direction.",
+    })
+    .mockResolvedValue({ valid: true, code: "VALID" });
+  f.services.environment.validateProposal = validate;
+  await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+  expect(f.calls()).toBe(2);
+  expect(f.accept).toHaveBeenCalledTimes(1);
+  expect(f.accept.mock.calls[0][0].intent.payload).toEqual({ accept: false });
+});
+it("stops unaccepted-proposal correction at the existing call limit", async () => {
+  const next = {
+    kind: "action",
+    schemaId: "fixture.answer.v1",
+    payload: { accept: false },
+    summary: "Action proposed.",
+  };
+  const f = actionFixture("Action proposed.", [next, next]);
+  f.accept.mockRejectedValue(new ProposalRejection("RESOURCE_CLAIM_CONFLICT", "Insufficient current capacity."));
+  await expect(new AutonomousSpecialistsEngine().run(f.operation, f.services)).rejects.toThrow(
+    "RESOURCE_CLAIM_CONFLICT",
+  );
+  expect(f.calls()).toBe(3);
+  expect(f.accept).toHaveBeenCalledTimes(3);
+});
+it("explains duplicate evidence support instead of reporting valid JSON as a generic model-output failure", async () => {
+  const next = {
+    kind: "action",
+    schemaId: "fixture.answer.v1",
+    payload: { accept: false },
+    summary: "Action proposed.",
+  };
+  const f = actionFixture("Action proposed.", [next]),
+    ref = randomUUID(),
+    decide = f.services.model.decide;
+  const requests: unknown[] = [];
+  f.services.model.decide = async (request) => {
+    requests.push(request);
+    const result = await decide(request);
+    return f.calls() === 1
+      ? {
+          ...result,
+          decision: {
+            ...(result.decision as object),
+            update: {
+              goals: [
+                {
+                  id: randomUUID(),
+                  parentId: null,
+                  objective: "Synthetic goal",
+                  rationale: "Current need",
+                  status: "active",
+                  evidenceIds: [ref, ref],
+                  assessment: "Still open",
+                  wake: "Next update",
+                },
+              ],
+              memories: [],
+              predictions: [],
+              plan: null,
+              messages: [],
+              wakeConditions: [],
+            },
+          },
+        }
+      : result;
+  };
+  await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+  expect(f.calls()).toBe(2);
+  expect(JSON.stringify(requests[1])).toContain("DUPLICATE_EVIDENCE_REFERENCE");
+  expect(f.accept).toHaveBeenCalledTimes(1);
+});
 it.each([{}, { select: [] }, { publish: [] }, { adopt: [] }, { select: [], publish: [], adopt: [] }])(
   "accepts an empty optional skill operation with skills disabled: %j",
   async (skills) => {

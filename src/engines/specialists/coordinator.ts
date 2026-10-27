@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
 import { z } from "zod";
-import { type Data, FleetError, object } from "../../domain.js";
+import { type Data, FleetError, object, ProposalRejection } from "../../domain.js";
 import { factTable } from "../../fact-table.js";
 import { recoverableOutput } from "../../model-recovery.js";
 import type { ContinuityV1Ports } from "../../modules/continuity/v1/ports.js";
@@ -246,20 +246,28 @@ export class SpecialistCoordinatorEngine {
         return;
       } catch (error) {
         const code = error instanceof FleetError ? error.code : "UNKNOWN";
+        const changed = error instanceof ProposalRejection && code === "COORDINATION_CHOICE_CHANGED";
         if (
           submissionStarted ||
-          !["STALE_PROPOSAL", "STALE_VERSION", "EXPIRED", "COORDINATION_SNAPSHOT_CHANGED"].includes(code) ||
-          (await ctx.model.remainingCalls()) < 2
+          (!changed && !["STALE_PROPOSAL", "STALE_VERSION", "EXPIRED", "COORDINATION_SNAPSHOT_CHANGED"].includes(code))
         )
           throw error;
+        const remaining = await ctx.model.remainingCalls();
         previousSelection = {
           code,
           submitted: false,
           committed: false,
-          guidance:
-            "Previous proposal was rejected before submission. Reconsider fresh native choices; never copy an old expected version or replay an uncertain command.",
+          guidance: changed
+            ? error.feedback.guidance
+            : "Previous proposal was rejected before submission. Reconsider fresh native choices; never copy an old expected version or replay an uncertain command.",
+          ...(changed ? { detail: error.feedback.detail } : {}),
         };
-        await ctx.trace?.("deciding", "Proposal requires fresh reconsideration", previousSelection);
+        await ctx.trace?.("deciding", "Proposal requires fresh reconsideration", {
+          ...previousSelection,
+          remainingCallSlots: remaining,
+          reconsiderationAdmitted: remaining >= 2,
+        });
+        if (remaining < 2) throw error;
         ctx = { ...ctx, observation: await ctx.observe(query) };
       }
     }
@@ -377,6 +385,7 @@ export class SpecialistCoordinatorEngine {
       const proposal: Proposal = {
         ...raw,
         taskId: ctx.task.id,
+        evidenceFrameRef: proposalObservation.coordination?.evidenceFrameRef,
         intent: {
           ...raw.intent,
           commandId: (() => {

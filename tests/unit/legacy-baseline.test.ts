@@ -10,6 +10,16 @@ it("preserves the recorded controller except explicit context, owner, proposal a
   // any other controller drift still fails against the original source digest.
   let historical = source.toString();
   const reviewed: [string, string][] = [
+    // Shared reliability repairs: preserve cancellation cause and declare elapsed-time scope.
+    ['controller.abort(new FleetError("HOST_STOPPED"))', "controller.abort()"],
+    [
+      "this.store.active(claim).catch((error) => controller.abort(error))",
+      "this.store.active(claim).catch(() => controller.abort())",
+    ],
+    [
+      'await recordCallResponse(\n          this.store,\n          reservation,\n          response,\n          this.store.now().getTime() - modelStartedAt,\n          "queue_and_provider",\n        );',
+      "await recordCallResponse(this.store, reservation, response, this.store.now().getTime() - modelStartedAt);",
+    ],
     // Approved society repairs: read-progress feedback and bounded model settlement.
     [
       'import type { GameAdapter } from "./game.js";\nimport { bindGenerationSchema, closedDecisionSchema, executableActionSchema } from "./generation.js";\nimport { RemoteRejection } from "./http.js";\nimport { modelDeadline } from "./model-deadline.js";\nimport { modelFailureProgress } from "./model-progress.js";\nimport { compileGenerationSchema } from "./model-schema.js";\nimport { Observability, scrub } from "./observability.js";\n',

@@ -1,5 +1,5 @@
 import { expect, it } from "vitest";
-import { validateClaims } from "../../src/modules/action-admission/v1/claims.js";
+import { checkClaims, validateClaims } from "../../src/modules/action-admission/v1/claims.js";
 import { ActionEffectsSchema, actionIntentDigest } from "../../src/platform/action-effects.js";
 
 const effects = {
@@ -20,6 +20,18 @@ const effects = {
   coverage: { complete: true, omitted: [] },
   supported: true,
 };
+it("explains the exact requested and available units without changing claim admission", () => {
+  const quote = ActionEffectsSchema.parse(effects);
+  const checked = checkClaims(quote, [quote.claims]);
+  expect(checked.reasons).toContain("RESOURCE_CLAIM_CONFLICT");
+  expect(checked.resourceRequirements).toContainEqual({
+    schemaId: "board.tokens.v1",
+    key: "stock",
+    kind: "resource",
+    requestedUnits: "12",
+    remainingUnits: "10",
+  });
+});
 it("rejects jointly excessive spends with exact integer arithmetic", () => {
   const quote = ActionEffectsSchema.parse(effects);
   expect(validateClaims(quote, [])).toEqual([]);

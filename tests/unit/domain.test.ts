@@ -1,10 +1,57 @@
 import { describe, expect, it } from "vitest";
-import { Budget, Draft, nextSlot, safeCode, strategy } from "../../src/domain.js";
+import {
+  Budget,
+  Draft,
+  ModelConfig,
+  nextSlot,
+  safeCode,
+  strategy,
+  supportsExtendedContextBudget,
+} from "../../src/domain.js";
 import { actionContract, actionKinds, actionSchema, isRead, validateTool } from "../../src/games/pact/contracts.js";
 import { Vault } from "../../src/vault.js";
 import { budget, continuousBudget, key } from "../helpers.js";
 
 describe("schedule and values", () => {
+  it("admits an explicitly accounted local context without trusting an unqualified route", () => {
+    const extended = Budget.parse({
+      ...budget,
+      inputByteLimit: 128000,
+      perCallTokenLimit: 65536,
+      executionAccountingAccepted: true,
+    });
+    const model = {
+      route: "openai-compatible" as const,
+      provider: "vllm" as const,
+      model: "nemotron-4b",
+      contextWindowTokens: 65536,
+    };
+    expect(ModelConfig.safeParse(model).success).toBe(true);
+    expect(supportsExtendedContextBudget(model, extended)).toBe(true);
+    expect(supportsExtendedContextBudget({ ...model, contextWindowTokens: undefined }, extended)).toBe(false);
+    expect(supportsExtendedContextBudget({ ...model, provider: undefined }, extended)).toBe(false);
+    expect(supportsExtendedContextBudget(model, { ...extended, perCallTokenLimit: 40000 })).toBe(false);
+  });
+  it("admits explicit Codex large-context budgets without enlarging ordinary model allowances", () => {
+    const extended = {
+      ...budget,
+      mode: "finite" as const,
+      inputByteLimit: 1048576,
+      perCallTokenLimit: 1200000,
+      tokenLimit: 600000000,
+      concurrency: 1,
+      executionAccountingAccepted: true as const,
+    };
+    const model = { route: "codex-cli" as const, model: "gpt-6.1-terra", contextWindowTokens: 500000 };
+    expect(Budget.safeParse(extended).success).toBe(true);
+    expect(ModelConfig.safeParse(model).success).toBe(true);
+    expect(supportsExtendedContextBudget(model, extended)).toBe(true);
+    expect(Budget.safeParse({ ...extended, executionAccountingAccepted: undefined }).success).toBe(false);
+    expect(supportsExtendedContextBudget({ route: "ollama", model: "existing" }, extended)).toBe(false);
+    expect(supportsExtendedContextBudget({ route: "codex-cli", model: "unqualified" }, extended)).toBe(false);
+    expect(ModelConfig.safeParse({ ...model, route: "ollama" }).success).toBe(false);
+    expect(supportsExtendedContextBudget({ route: "ollama", model: "existing" }, Budget.parse(budget))).toBe(true);
+  });
   it("skips missed slots rather than replaying an outage", () => {
     expect(nextSlot(0, 900000, 18000, 7200000)).toBe(7218000);
     expect(nextSlot(0, 900000, 0, 0)).toBe(900000);

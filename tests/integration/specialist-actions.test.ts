@@ -100,7 +100,14 @@ it("serializes individually affordable local claims and retains unknown protecti
         intentDigest: actionIntentDigest(second),
       }),
     ),
-  ).rejects.toThrow("RESOURCE_CLAIM_CONFLICT");
+  ).rejects.toMatchObject({
+    code: "RESOURCE_CLAIM_CONFLICT",
+    notDispatched: true,
+    feedback: {
+      code: "RESOURCE_CLAIM_CONFLICT",
+      detail: { resourceRequirements: expect.any(Array) },
+    },
+  });
   f.advance(2 * 60000);
   expect((await f.pool.query("SELECT status FROM specialist_claims")).rows[0].status).toBe("held");
 });

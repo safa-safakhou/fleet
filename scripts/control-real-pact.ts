@@ -9,7 +9,7 @@ import pg from "pg";
 import { composeRuntime } from "../src/app/composition.js";
 import { config } from "../src/config.js";
 import { LaunchService } from "../src/platform/launch.js";
-import { freshRunProfiles } from "./lib/fresh-run-profile.js";
+import { freshRunProfiles, localInferenceLimits } from "./lib/fresh-run-profile.js";
 import { assertFreshHostClock, currentWindowsClock } from "./lib/host-clock.js";
 import { LocalRunSupervisor, type SupervisorRecord } from "./lib/local-run-supervisor.js";
 import {
@@ -25,6 +25,7 @@ import {
   startOwnedProcess,
   stopOwnedProcess,
   stopOwnedProvider,
+  verifyOwnedCodexReadiness,
   writePrivateJson,
 } from "./lib/owned-local-world.js";
 import { reviewProgress } from "./lib/review-progress.js";
@@ -41,6 +42,7 @@ if (
     "start-24h",
     "start-6h",
     "start-30m",
+    "start-codex-1h",
     "watch",
     "snapshot",
     "restore",
@@ -108,6 +110,16 @@ async function resources() {
     ["--query-gpu=memory.used,memory.total,utilization.gpu", "--format=csv,noheader,nounits"],
     { timeout: 2000 },
   ).catch(() => null);
+  if (c.model.route === "codex-cli")
+    return {
+      availableRamKiB: Number(memory.match(/^MemAvailable:\s+(\d+)/m)?.[1] ?? NaN),
+      gpu: gpu?.stdout.trim() ?? null,
+      provider: "codex-cli",
+      sharedCapacity: 1,
+      providerRunning: null,
+      providerWaiting: null,
+      providerPreemptions: null,
+    };
   const key = (await readFile(file("provider/api-key"), "utf8")).trim();
   const base = c.model.endpoint.replace(/\/v1$/, "");
   const response = await fetch(`${base}/metrics`, {
@@ -292,7 +304,9 @@ async function watch() {
 }
 
 if (action === "prepare") {
-  assert(["real-workflow-canary", "fresh-six-hour", "fresh-half-hour"].includes(c.purpose ?? ""));
+  assert(
+    ["real-workflow-canary", "fresh-six-hour", "fresh-half-hour", "fresh-codex-one-hour"].includes(c.purpose ?? ""),
+  );
   assert.equal((await json("window.json")).status, "prepared");
   await startOwnedProcess(c, "pact-api", "pact", ["services/api/dist/main.js"]);
   await ready(c.pactEnv.PACT_ORIGIN);
@@ -308,7 +322,7 @@ if (action === "prepare") {
   } finally {
     await clock(c, "pause");
   }
-  const deployment = ["fresh-six-hour", "fresh-half-hour"].includes(c.purpose ?? "")
+  const deployment = ["fresh-six-hour", "fresh-half-hour", "fresh-codex-one-hour"].includes(c.purpose ?? "")
     ? await json("deployment.json")
     : null;
   if (deployment) assert(String(deployment.stage).startsWith(`${c.root}/deployments/`), "OWNED_STAGE_REQUIRED");
@@ -327,12 +341,18 @@ if (action === "prepare") {
       modelCalls: 0,
     }),
   );
-} else if (action === "start-canary" || action === "start-24h" || action === "start-6h" || action === "start-30m") {
+} else if (
+  action === "start-canary" ||
+  action === "start-24h" ||
+  action === "start-6h" ||
+  action === "start-30m" ||
+  action === "start-codex-1h"
+) {
   const profile = freshRunProfiles[action];
   const canary = action === "start-canary",
     exploratory = profile.exploratory,
     durationMs = profile.durationMs,
-    perActorCalls = canary ? 6 : 2000;
+    perActorCalls = canary ? 6 : c.model.route === "codex-cli" ? 500 : 2000;
   if (canary) assert.equal(c.purpose, "real-workflow-canary");
   if (exploratory) assert.equal(c.purpose, profile.purpose);
   else {
@@ -345,19 +365,25 @@ if (action === "prepare") {
   assert.equal((await json("window.json")).status, "prepared");
   const hostStart = await currentWindowsClock();
   assertFreshHostClock(await json("clock-control.json"), hostStart);
-  const key = (await readFile(file("provider/api-key"), "utf8")).trim();
-  const cache = await json("provider/cache-profile.json");
-  const live = await fetch(`${c.model.endpoint.replace(/\/v1$/, "")}/fleet/cache-profile`, {
-    headers: { authorization: `Bearer ${key}` },
-    signal: AbortSignal.timeout(3000),
-  });
-  assert.equal(live.status, 200);
-  assert.deepEqual(await live.json(), cache);
+  let providerEnv: Record<string, string> = {};
+  if (c.model.route === "codex-cli") await verifyOwnedCodexReadiness(c);
+  else {
+    const key = (await readFile(file("provider/api-key"), "utf8")).trim();
+    const cache = await json("provider/cache-profile.json");
+    if (c.localInference)
+      assert.equal(cache.contextLength, localInferenceLimits(c.localInference, exploratory).contextWindowTokens);
+    const live = await fetch(`${c.model.endpoint.replace(/\/v1$/, "")}/fleet/cache-profile`, {
+      headers: { authorization: `Bearer ${key}` },
+      signal: AbortSignal.timeout(3000),
+    });
+    assert.equal(live.status, 200);
+    assert.deepEqual(await live.json(), cache);
+    providerEnv = { MODEL_API_KEY: key, FLEET_VLLM_CACHE_PROFILE: file("provider/cache-profile.json") };
+  }
   const liveEnv = {
     ...c.fleetEnv,
+    ...providerEnv,
     FLEET_LIVE_ENABLED: "1",
-    MODEL_API_KEY: key,
-    FLEET_VLLM_CACHE_PROFILE: file("provider/cache-profile.json"),
     ...(canary ? { FLEET_STOP_ON_TURN_FAILURE: "1" } : {}),
   };
   const r = composeRuntime(config(liveEnv)),
@@ -405,7 +431,7 @@ if (action === "prepare") {
         budget: {
           ...row.spec.budget,
           callLimit,
-          tokenLimit: callLimit * 40000,
+          tokenLimit: callLimit * row.spec.budget.perCallTokenLimit,
           deadlineAt: new Date(start + durationMs).toISOString(),
         },
       };

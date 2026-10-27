@@ -1,6 +1,7 @@
 import { setTimeout as delay } from "node:timers/promises";
 import { Ajv } from "ajv";
-import { FleetError, type ModelPort, safeCode } from "./domain.js";
+import { FleetError, type ModelPort } from "./domain.js";
+import { modelAbortCode } from "./model-deadline.js";
 import { compileGenerationSchema } from "./model-schema.js";
 
 type Request = Parameters<ModelPort["decide"]>[0];
@@ -29,11 +30,7 @@ export async function recoverModelOutput(
   let input = request,
     previous: Result | undefined;
   for (let attempt = 1; ; attempt++) {
-    if (request.signal.aborted)
-      throw new FleetError(
-        safeCode(request.signal.reason) === "DEADLINE_MISSED" ? "DEADLINE_MISSED" : "CLAIM_FENCED",
-        true,
-      );
+    if (request.signal.aborted) throw new FleetError(modelAbortCode(request.signal.reason), true);
     let raw: Result;
     try {
       raw = await policy.attempt(input, attempt);
@@ -41,16 +38,13 @@ export async function recoverModelOutput(
       if (
         previous &&
         error instanceof FleetError &&
-        ["TURN_CALL_LIMIT", "BUDGET_EXHAUSTED", "MODEL_RETRY_BUDGET"].includes(error.code)
+        (["TURN_CALL_LIMIT", "BUDGET_EXHAUSTED", "MODEL_RETRY_BUDGET"].includes(error.code) ||
+          (error.code === "RUN_WINDOW_MODEL_DRAINING" && error.notDispatched))
       )
         return previous;
       throw error;
     }
-    if (request.signal.aborted)
-      throw new FleetError(
-        safeCode(request.signal.reason) === "DEADLINE_MISSED" ? "DEADLINE_MISSED" : "CLAIM_FENCED",
-        true,
-      );
+    if (request.signal.aborted) throw new FleetError(modelAbortCode(request.signal.reason), true);
     const result =
       !raw.decisionError && (!validate(raw.decision) || (nativeContract && !nativeContract(raw.decision)))
         ? { ...raw, decisionError: "INVALID_MODEL_OUTPUT" }
@@ -60,11 +54,7 @@ export async function recoverModelOutput(
     );
     const code = result.decisionError;
     if (!known || !code || !recoverableOutput(code) || attempt >= 2) return result;
-    if (request.signal.aborted)
-      throw new FleetError(
-        safeCode(request.signal.reason) === "DEADLINE_MISSED" ? "DEADLINE_MISSED" : "CLAIM_FENCED",
-        true,
-      );
+    if (request.signal.aborted) throw new FleetError(modelAbortCode(request.signal.reason), true);
     if (!(await policy.canRetry())) return result;
     const correction =
       "The previous response did not provide a valid final answer. Return one complete JSON value matching the supplied schema. If reasoning is enabled, finish it and provide the final answer. Keep the same task, evidence and authority; do not invent outcomes.";
@@ -75,15 +65,15 @@ export async function recoverModelOutput(
     const fits =
       Buffer.byteLength(JSON.stringify(messages)) + Buffer.byteLength(JSON.stringify(request.schema)) <=
       policy.inputByteLimit;
-    input = fits ? { ...request, messages } : request;
-    await policy.onRetry?.({ code, attempt: attempt + 1, correctionDelivered: fits });
+    // A correction must reach the model. Do not spend another call on identical
+    // failed input or remove evidence to make space for feedback.
+    if (!fits) return result;
+    input = { ...request, messages };
+    await policy.onRetry?.({ code, attempt: attempt + 1, correctionDelivered: true });
     try {
       await delay(100, undefined, { signal: request.signal });
     } catch {
-      throw new FleetError(
-        safeCode(request.signal.reason) === "DEADLINE_MISSED" ? "DEADLINE_MISSED" : "CLAIM_FENCED",
-        true,
-      );
+      throw new FleetError(modelAbortCode(request.signal.reason), true);
     }
     // A concurrent reservation may consume the final slot; preserve the known failed output then.
     previous = result;

@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
-import { FleetError } from "../../../domain.js";
+import { FleetError, ProposalRejection } from "../../../domain.js";
 import {
   type ActionEffects,
   ActionEffectsSchema,
@@ -10,7 +10,7 @@ import {
 import type { ActionIntent } from "../../../platform/contracts.js";
 import type { SpecialistScope } from "../../../platform/participant-state.js";
 import type { Store } from "../../../store.js";
-import { validateClaims } from "./claims.js";
+import { checkClaims } from "./claims.js";
 /** Caller owns the binding lock and the transaction including state and native command journal. */
 export class ActionClaimRepository {
   constructor(private store: Store) {}
@@ -45,8 +45,17 @@ export class ActionClaimRepository {
         `specialist-claim:${r.instance_id}:${r.binding_id}:${r.command_id}`,
       );
     });
-    const reasons = validateClaims(effects, pending);
-    if (reasons.length) throw new FleetError(reasons[0], true);
+    const checked = checkClaims(effects, pending);
+    if (checked.reasons.length) {
+      const code = checked.reasons[0];
+      if (["RESOURCE_CLAIM_CONFLICT", "AUTHORITY_CLAIM_CONFLICT", "PROMISE_CLAIM_CONFLICT"].includes(code))
+        throw new ProposalRejection(
+          code,
+          "This proposal was not accepted or dispatched. Requested units include outstanding local claims; compare them with remaining units in the same native resource/authority bucket. Resource buckets are not interchangeable. Reconsider, read missing facts, or wait for a real change.",
+          checked,
+        );
+      throw new FleetError(code, true);
+    }
     const id = randomUUID();
     await db.query(
       "INSERT INTO specialist_claims(id,command_id,instance_id,binding_id,specialist_id,intent_digest,claims_cipher,valid_until,created_at,updated_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,$9)",

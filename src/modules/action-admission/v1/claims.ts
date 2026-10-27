@@ -2,6 +2,9 @@ import type { ActionEffects, EffectClaim } from "../../../platform/action-effect
 
 const key = (c: { schemaId: string; key: string }) => JSON.stringify([c.schemaId, c.key]);
 export function validateClaims(effects: ActionEffects, pending: EffectClaim[][]): string[] {
+  return checkClaims(effects, pending).reasons;
+}
+export function checkClaims(effects: ActionEffects, pending: EffectClaim[][]) {
   const reasons = new Set<string>();
   if (!effects.supported || !effects.coverage.complete || effects.coverage.omitted.length)
     reasons.add("INCOMPLETE_ACTION_EFFECTS");
@@ -40,5 +43,17 @@ export function validateClaims(effects: ActionEffects, pending: EffectClaim[][])
   for (const [k, request] of requested)
     if (request.units > (capacities.get(k) ?? 0n))
       reasons.add(request.kind === "resource" ? "RESOURCE_CLAIM_CONFLICT" : "AUTHORITY_CLAIM_CONFLICT");
-  return [...reasons];
+  return {
+    reasons: [...reasons],
+    resourceRequirements: [...requested].map(([k, request]) => {
+      const [schemaId, claimKey] = JSON.parse(k) as [string, string];
+      return {
+        schemaId,
+        key: claimKey,
+        kind: request.kind,
+        requestedUnits: request.units.toString(),
+        remainingUnits: (capacities.get(k) ?? 0n).toString(),
+      };
+    }),
+  };
 }

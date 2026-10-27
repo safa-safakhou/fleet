@@ -3,6 +3,8 @@ import { lstat, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { isAbsolute, join } from "node:path";
 import { Decision, FleetError, type ModelPort, object } from "./domain.js";
+import { compileGenerationSchema } from "./model-schema.js";
+import { evidenceDecisionContract, validateEvidenceDecision } from "./platform/evidence-decision.js";
 
 const maxBytes = 1024 * 1024;
 const outputSchema = {
@@ -116,6 +118,12 @@ async function execute(
 
 export class CodexModel implements ModelPort {
   readonly tracksDispatch = true;
+  contextWindow(model: import("./domain.js").ModelSettings) {
+    const value = model.contextWindowTokens;
+    if (value !== undefined && (!Number.isSafeInteger(value) || value < 512 || value > 1050000))
+      throw new FleetError("CODEX_CONTEXT_WINDOW_INVALID", true);
+    return value;
+  }
   private busy = false;
   constructor(
     private settings: { executable?: string; home?: string },
@@ -127,6 +135,10 @@ export class CodexModel implements ModelPort {
   async decide(input: Parameters<ModelPort["decide"]>[0]) {
     const { executable, home } = this.settings;
     if (input.model.route !== "codex-cli") throw new FleetError("CODEX_ROUTE_REQUIRED", true);
+    const validate = compileGenerationSchema(input.schema);
+    const nativeContract = input.outputContract ? compileGenerationSchema(input.outputContract) : undefined;
+    const contextWindow = this.contextWindow(input.model);
+    if (input.decisionEvidence) evidenceDecisionContract(input.decisionEvidence);
     if (!executable || !home || !isAbsolute(executable) || !isAbsolute(home))
       throw new FleetError("CODEX_CONFIGURATION_REQUIRED", true);
     if (process.platform !== "linux") throw new FleetError("CODEX_LINUX_REQUIRED", true);
@@ -177,6 +189,7 @@ export class CodexModel implements ModelPort {
       const args = [
         ...common,
         ...(input.model.reasoningEffort ? ["-c", `model_reasoning_effort="${input.model.reasoningEffort}"`] : []),
+        ...(contextWindow ? ["-c", `model_context_window=${contextWindow}`] : []),
         "-c",
         'forced_login_method="chatgpt"',
         "-c",
@@ -275,13 +288,35 @@ export class CodexModel implements ModelPort {
         outputText = envelope.decisionJson;
         const raw = object(JSON.parse(envelope.decisionJson));
         const { cognition, ...base } = raw;
-        const parsed = Decision.safeParse(input.model.cognition ? base : raw);
-        if (!parsed.success) throw new FleetError("CODEX_INVALID_DECISION");
-        decision = input.model.cognition && cognition !== undefined ? { ...parsed.data, cognition } : parsed.data;
+        // The legacy engine still accepts its canonical flat cognition envelope,
+        // even when its generation schema requests the newer wrapped analysis form.
+        // It owns cognition/version/evidence validation. Native engine contracts
+        // never use this compatibility exception.
+        const legacyCognition =
+          !nativeContract && input.model.cognition && cognition !== undefined && Decision.safeParse(base).success;
+        if ((!validate(raw) && !legacyCognition) || (nativeContract && !nativeContract(raw)))
+          throw new FleetError("CODEX_INVALID_DECISION");
+        decision = raw;
       } catch {
         decisionError = "INVALID_MODEL_OUTPUT";
       }
-      response = { decision, inputTokens, outputTokens, outputText, ...(decisionError ? { decisionError } : {}) };
+      let verifiedEvidence: ReturnType<typeof validateEvidenceDecision> | undefined;
+      if (!decisionError && input.decisionEvidence) {
+        try {
+          verifiedEvidence = validateEvidenceDecision(decision, input.decisionEvidence);
+        } catch (error) {
+          decision = null;
+          decisionError = error instanceof FleetError ? error.code : "DECISION_EVIDENCE_INVALID";
+        }
+      }
+      response = {
+        decision,
+        inputTokens,
+        outputTokens,
+        outputText,
+        ...(decisionError ? { decisionError } : {}),
+        ...(verifiedEvidence ? { verifiedEvidence } : {}),
+      };
       return response;
     } catch (error) {
       if (error instanceof FleetError) throw new FleetError(error.code, !dispatched || error.notDispatched);

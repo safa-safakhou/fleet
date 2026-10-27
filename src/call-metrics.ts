@@ -15,12 +15,16 @@ export function callPacketMetrics(request: Pick<Request, "messages" | "schema">)
   });
   const inbox = packets.map((p) => object(p.inbox)).find((p) => Array.isArray(p.records));
   const coverage = packets.map((p) => object(p.coverage));
+  const feedback = packets.map((p) => object(p.previousDecision)).find((p) => p.submitted === false);
   return {
     messageBytes: Buffer.byteLength(JSON.stringify(request.messages)),
     schemaBytes: Buffer.byteLength(JSON.stringify(request.schema)),
     inboxDelivered: inbox ? (inbox.records as unknown[]).length : null,
     inboxOmitted: inbox ? count(inbox.omitted) : null,
     quotedOptionsOmitted: coverage.map((c) => count(c.quotedOptionsOmitted)).find((n) => n !== null) ?? null,
+    decisionFeedbackCode:
+      typeof feedback?.code === "string" && /^[A-Z0-9_]{1,80}$/.test(feedback.code) ? feedback.code : null,
+    decisionFeedbackRetryable: typeof feedback?.retryable === "boolean" ? feedback.retryable : null,
   };
 }
 type Result = Awaited<ReturnType<ModelPort["decide"]>>;
@@ -44,29 +48,50 @@ export async function recordCallRequest(
       inputLimitBytes,
       maxOutputTokens: request.maxOutputTokens,
       thinking: request.model.thinking ?? null,
+      reasoningEffort: request.model.reasoningEffort ?? null,
     },
   ]);
 }
-export async function recordCallResponse(store: Store, id: string, result: Result, elapsedMs: number) {
+export async function recordCallResponse(
+  store: Store,
+  id: string,
+  result: Result,
+  elapsedMs: number,
+  elapsedScope?: "provider" | "queue_and_provider",
+) {
   const code = result.decisionError;
   const finish = result.execution?.finishReason;
-  await store.pool.query("UPDATE compute_ledger SET response_metrics=$2 WHERE id=$1", [
-    id,
-    {
-      elapsedMs: Math.max(0, Math.round(elapsedMs)),
-      finishReason: finish
-        ? ["stop", "length", "tool_calls", "function_call", "content_filter"].includes(finish)
-          ? finish
-          : "other"
-        : null,
-      reasoningChars: result.execution?.reasoningChars ?? null,
-      finalTextChars:
-        typeof result.outputText === "string" ? result.outputText.length : (result.execution?.contentChars ?? null),
-      firstContentMs: result.execution?.firstContentMs ?? null,
-      generationMs: result.execution?.elapsedMs ?? null,
-      decisionError: code && /^[A-Z0-9_]{1,80}$/.test(code) ? code : null,
-    },
-  ]);
+  const duration = Math.max(0, Math.round(elapsedMs));
+  await store.pool.query(
+    `UPDATE compute_ledger SET response_metrics=$2::jsonb || jsonb_build_object(
+    'providerExecutionMs',CASE WHEN $3::text='provider' THEN $4::double precision
+      WHEN $3='queue_and_provider' AND request_metrics->>'queueDelayMs' IS NOT NULL
+        THEN greatest(0,$4::double precision-(request_metrics->>'queueDelayMs')::double precision) ELSE NULL END,
+    'endToEndMs',CASE WHEN $3::text='queue_and_provider' THEN $4::double precision
+      WHEN $3='provider' AND request_metrics->>'queueDelayMs' IS NOT NULL
+        THEN $4::double precision+(request_metrics->>'queueDelayMs')::double precision ELSE NULL END
+    ) WHERE id=$1`,
+    [
+      id,
+      {
+        elapsedMs: duration,
+        elapsedScope: elapsedScope ?? null,
+        finishReason: finish
+          ? ["stop", "length", "tool_calls", "function_call", "content_filter"].includes(finish)
+            ? finish
+            : "other"
+          : null,
+        reasoningChars: result.execution?.reasoningChars ?? null,
+        finalTextChars:
+          typeof result.outputText === "string" ? result.outputText.length : (result.execution?.contentChars ?? null),
+        firstContentMs: result.execution?.firstContentMs ?? null,
+        generationMs: result.execution?.elapsedMs ?? null,
+        decisionError: code && /^[A-Z0-9_]{1,80}$/.test(code) ? code : null,
+      },
+      elapsedScope ?? null,
+      duration,
+    ],
+  );
 }
 export const MetricsQuery = z
   .object({
@@ -135,7 +160,7 @@ export class FleetMetrics {
         args,
       ),
       this.store.pool.query(
-        "SELECT count(*) FILTER(WHERE response_metrics ? 'elapsedMs')::int recorded,count(*) FILTER(WHERE response_metrics->>'finishReason'='length')::int truncated,count(*) FILTER(WHERE response_metrics->>'finalTextChars'='0')::int empty_final,count(*) FILTER(WHERE response_metrics->>'decisionError' IS NOT NULL)::int output_errors FROM compute_ledger WHERE created_at>=$1 AND created_at<=$2 AND ($3::uuid IS NULL OR cohort_id=$3)",
+        "SELECT count(*) FILTER(WHERE response_metrics ? 'elapsedMs')::int recorded,count(*) FILTER(WHERE request_metrics->>'decisionFeedbackCode' IS NOT NULL)::int correction_calls,count(*) FILTER(WHERE response_metrics->>'finishReason' IS NOT NULL)::int finish_reason_calls,count(*) FILTER(WHERE response_metrics->>'reasoningChars' IS NOT NULL)::int reasoning_calls,count(*) FILTER(WHERE response_metrics->>'providerExecutionMs' IS NOT NULL AND response_metrics->>'endToEndMs' IS NOT NULL)::int comparable_timing_calls,count(*) FILTER(WHERE response_metrics->>'finishReason'='length')::int truncated,count(*) FILTER(WHERE response_metrics->>'finalTextChars'='0')::int empty_final,count(*) FILTER(WHERE response_metrics->>'decisionError' IS NOT NULL)::int output_errors FROM compute_ledger WHERE created_at>=$1 AND created_at<=$2 AND ($3::uuid IS NULL OR cohort_id=$3)",
         args,
       ),
       this.store.pool.query(
@@ -206,6 +231,10 @@ export class FleetMetrics {
         attemptsWithEffects: taskCounts.rows[0].attempts_with_effects,
         waitsWithoutEffects: taskCounts.rows[0].waits_without_effects,
         responseMetadataCalls: diagnostics.rows[0].recorded,
+        finishReasonCalls: diagnostics.rows[0].finish_reason_calls,
+        reasoningMetadataCalls: diagnostics.rows[0].reasoning_calls,
+        comparableTimingCalls: diagnostics.rows[0].comparable_timing_calls,
+        correctionCalls: diagnostics.rows[0].correction_calls,
         truncatedCalls: diagnostics.rows[0].truncated,
         emptyFinalCalls: diagnostics.rows[0].empty_final,
         outputErrorCalls: diagnostics.rows[0].output_errors,
@@ -239,6 +268,10 @@ export class FleetMetrics {
           contextWindowTokens: window,
           maxOutputTokens: limit,
           contextPercent: r.status === "reported" && window && input !== null ? (100 * input) / window : null,
+          contextDemandPercent:
+            r.status === "reported" && window && input !== null && limit !== null
+              ? (100 * (input + limit)) / window
+              : null,
           outputPercent: r.status === "reported" && limit && output !== null ? (100 * output) / limit : null,
           requestBytes: num(a.requestBytes),
           messageBytes: num(a.messageBytes),
@@ -250,13 +283,20 @@ export class FleetMetrics {
           inboxDelivered: num(a.inboxDelivered),
           inboxOmitted: num(a.inboxOmitted),
           quotedOptionsOmitted: num(a.quotedOptionsOmitted),
+          decisionFeedbackCode: typeof a.decisionFeedbackCode === "string" ? a.decisionFeedbackCode : null,
+          decisionFeedbackRetryable:
+            typeof a.decisionFeedbackRetryable === "boolean" ? a.decisionFeedbackRetryable : null,
           queueDelayMs: num(a.queueDelayMs),
           firstContentMs: num(b.firstContentMs),
           generationMs: num(b.generationMs),
           finalTextChars: num(b.finalTextChars),
           inputLimitBytes: num(a.inputLimitBytes),
           thinking: typeof a.thinking === "boolean" ? a.thinking : null,
+          reasoningEffort: typeof a.reasoningEffort === "string" ? a.reasoningEffort : null,
           elapsedMs: num(b.elapsedMs),
+          elapsedScope: typeof b.elapsedScope === "string" ? b.elapsedScope : null,
+          providerExecutionMs: num(b.providerExecutionMs),
+          endToEndMs: num(b.endToEndMs),
           reasoningChars: num(b.reasoningChars),
           finishReason: typeof b.finishReason === "string" ? b.finishReason : null,
           error: typeof b.decisionError === "string" ? b.decisionError : null,
@@ -265,7 +305,7 @@ export class FleetMetrics {
       coverage: {
         callLimit: 200,
         scope:
-          "Totals cover the selected time window; individual charts show the latest 200 calls. Context uses reported prompt tokens / recorded provider context. Missing historical metadata stays unknown. Output includes provider-reported thinking and final-answer tokens. Actions are confirmed game effects, not narration.",
+          "Totals cover the selected time window; individual charts show the latest 200 calls. Context uses reported prompt tokens / recorded provider context; demand adds the configured output allowance, not measured cache occupancy. Missing historical metadata stays unknown. Completion/truncation claims require finish-reason coverage. Compare providerExecutionMs or endToEndMs; legacy elapsedMs can include queueing and has an explicit scope on new records. Output includes provider-reported thinking and final-answer tokens. Actions are confirmed game effects, not narration.",
       },
     };
   }

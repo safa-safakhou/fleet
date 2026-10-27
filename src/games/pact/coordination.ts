@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { isDeepStrictEqual } from "node:util";
-import { type Data, FleetError, type GamePort, object } from "../../domain.js";
+import { type Data, FleetError, type GamePort, object, ProposalRejection } from "../../domain.js";
 import { expandFactTables } from "../../fact-table.js";
 import { RemoteRejection } from "../../http.js";
 import { shareGenerationSchema } from "../../modules/generation-schema/v1.js";
@@ -51,8 +51,10 @@ export class PactCoordination {
   private leaseOpened = false;
   private snapshots = new Map<
     string,
-    { options: Option[]; sourceRefs: string[]; ownerIntent: unknown; ownerChanged: boolean }
+    { revision: string; options: Option[]; sourceRefs: string[]; ownerIntent: unknown; ownerEpoch: number }
   >();
+  private ownerIntent: unknown;
+  private ownerEpoch = 0;
   private validated = new Map<string, { digest: string; command: Data; quote: ActionEffects }>();
   constructor(
     private binding: BindingRef,
@@ -256,17 +258,17 @@ export class PactCoordination {
         },
       };
     });
-    const previousSnapshot = this.snapshots.get(revision),
+    const evidenceFrameRef = randomUUID(),
       ownerIntent = object(base.payload.world).ambition ?? null;
-    this.snapshots.set(revision, {
-      // Effect revisions need not cover owner prose. If one revision denotes two
-      // owner intents in this session, fresh admission cannot prove which was chosen.
-      ownerChanged: Boolean(
-        previousSnapshot?.ownerChanged ||
-          (previousSnapshot && !isDeepStrictEqual(previousSnapshot.ownerIntent, ownerIntent)),
-      ),
+    // Native revisions protect effects, not the identity of delivered evidence.
+    // Keep owner changes monotonic so a change and reversion still fences old choices.
+    if (this.ownerIntent !== undefined && !isDeepStrictEqual(this.ownerIntent, ownerIntent)) this.ownerEpoch++;
+    this.ownerIntent = structuredClone(ownerIntent);
+    this.snapshots.set(evidenceFrameRef, {
+      revision,
+      ownerEpoch: this.ownerEpoch,
       options: structuredClone(options),
-      ownerIntent,
+      ownerIntent: structuredClone(ownerIntent),
       sourceRefs: [...new Set(options.flatMap((o) => o.sourceRefs))],
     });
     // Session-local evidence only; bounded by the existing observation/call budget.
@@ -277,6 +279,7 @@ export class PactCoordination {
       sourceRefs: [...new Set([...base.sourceRefs, ...options.flatMap((o) => o.sourceRefs)])],
       coordination: {
         schemaVersion: "fleet.coordination.v1",
+        evidenceFrameRef,
         atomicExpectedVersion: true,
         claimSchemas: [...schemas].map(([id, kind]) => ({ id, kind })),
         capacities: [...capacities.values()],
@@ -295,28 +298,31 @@ export class PactCoordination {
   }
   /** Re-admit an unchanged decision against current quotes; never replay a dispatched command. */
   async refreshProposal(proposal: Proposal, observation: Observation): Promise<Proposal> {
-    const old = this.snapshots.get(String(proposal.intent.expectedVersion));
-    const current = this.snapshots.get(observation.revision);
-    if (
-      !old ||
-      !current ||
-      !proposal.evidenceRefs.length ||
-      proposal.evidenceRefs.some((r) => !old.sourceRefs.includes(r))
-    )
-      throw new FleetError("COORDINATION_EVIDENCE_UNAVAILABLE", true);
+    const old = this.snapshots.get(proposal.evidenceFrameRef ?? "");
+    const current = this.snapshots.get(observation.coordination?.evidenceFrameRef ?? "");
+    if (!old) throw new FleetError("COORDINATION_ORIGIN_FRAME_UNAVAILABLE", true);
+    if (!current) throw new FleetError("COORDINATION_CURRENT_FRAME_UNAVAILABLE", true);
+    if (old.revision !== proposal.intent.expectedVersion || current.revision !== observation.revision)
+      throw new FleetError("COORDINATION_FRAME_REVISION_MISMATCH", true);
+    if (!proposal.evidenceRefs.length || proposal.evidenceRefs.some((r) => !old.sourceRefs.includes(r)))
+      throw new FleetError("COORDINATION_REFERENCE_NOT_DELIVERED", true);
     if (proposal.intent.bindingId !== this.binding.id || proposal.intent.schemaId !== "pact.action.v1")
       throw new FleetError("COORDINATION_BINDING_MISMATCH", true);
-    if (old.ownerChanged || current.ownerChanged || !isDeepStrictEqual(old.ownerIntent, current.ownerIntent))
-      throw new FleetError("COORDINATION_CHOICE_CHANGED", true);
     const previous = old.options.find((o) => matchesOption(o, proposal.intent.payload));
     const fresh = current.options.find((o) => matchesOption(o, proposal.intent.payload));
-    if (
-      !previous ||
-      !fresh ||
-      !isDeepStrictEqual(previous.expectedOutcome, proposal.expectedOutcome) ||
-      !isDeepStrictEqual(fresh.expectedOutcome, proposal.expectedOutcome)
-    )
+    // An invalid original proposal is not evidence of a changing environment.
+    if (!previous || !isDeepStrictEqual(previous.expectedOutcome, proposal.expectedOutcome))
       throw new FleetError("COORDINATION_CHOICE_CHANGED", true);
+    const changed = (reason: string) =>
+      new ProposalRejection(
+        "COORDINATION_CHOICE_CHANGED",
+        "The observed choice or its evidence changed before submission. Make a new proposal from fresh evidence; do not reuse the rejected command or its expected outcome.",
+        { reason },
+      );
+    if (old.ownerEpoch !== current.ownerEpoch || !isDeepStrictEqual(old.ownerIntent, current.ownerIntent))
+      throw changed("owner_intent_changed");
+    if (!fresh) throw changed("current_option_unavailable");
+    if (!isDeepStrictEqual(fresh.expectedOutcome, proposal.expectedOutcome)) throw changed("expected_outcome_changed");
     const textChoice = previous.textFields?.includes("body") && fresh.textFields?.includes("body");
     if (
       !textChoice &&
@@ -335,7 +341,13 @@ export class PactCoordination {
       if (proposal.claims.length && !isDeepStrictEqual(proposal.claims, claims))
         throw new FleetError("CLAIMS_DO_NOT_MATCH_ACTION", true);
     }
-    return { ...proposal, intent, claims, evidenceRefs: fresh.sourceRefs };
+    return {
+      ...proposal,
+      intent,
+      claims,
+      evidenceRefs: fresh.sourceRefs,
+      evidenceFrameRef: observation.coordination!.evidenceFrameRef,
+    };
   }
   async validate(proposal: Proposal, observation: Observation): Promise<ProposalValidation> {
     this.validated.delete(proposal.intent.commandId);

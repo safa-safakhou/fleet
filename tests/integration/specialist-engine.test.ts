@@ -1,6 +1,7 @@
 import { writeFile } from "node:fs/promises";
 import { afterEach, expect, it } from "vitest";
 import { Cognition } from "../../src/cognition.js";
+import { FleetError, ProposalRejection } from "../../src/domain.js";
 import { ContinuityModule } from "../../src/engines/continuity/state.js";
 import { SpecialistCoordinatorEngine } from "../../src/engines/specialists/coordinator.js";
 import { Observability } from "../../src/observability.js";
@@ -678,7 +679,8 @@ it("replans a proposal invalidated during reasoning within the original three-ca
       ...session,
       observe: async (query) => {
         const view = await session.observe(query);
-        view.coordination!.focuses = view.coordination!.focuses.slice(0, 1);
+        if (!view.coordination) throw Error("FIXTURE_COORDINATION_REQUIRED");
+        view.coordination.focuses = view.coordination.focuses.slice(0, 1);
         return view;
       },
       decisionGrounding: { prepare: (input) => input, validate: () => null },
@@ -744,5 +746,69 @@ it.each([false, true])(
       await h.host.run(f.claim);
       expect(f.board.debits).toBe(40);
     }
+  },
+);
+
+it.each([
+  [true, 3, true],
+  [true, 2, false],
+  [false, 3, false],
+])(
+  "reconsiders only a typed pre-submission choice change within remaining budget (typed=%s, calls=%s)",
+  async (typed, maxCalls, recovers) => {
+    const f = await setup(false, 1, maxCalls),
+      inputs: unknown[] = [],
+      connect = f.board.adapter.connect;
+    const proposalIds: string[] = [];
+    f.board.adapter.connect = async (binding) => {
+      const session = await connect(binding);
+      return {
+        ...session,
+        observe: async (query) => {
+          const view = await session.observe(query);
+          if (!view.coordination) throw Error("FIXTURE_COORDINATION_REQUIRED");
+          view.coordination.focuses = view.coordination.focuses.slice(0, 1);
+          return view;
+        },
+        decisionGrounding: { prepare: (input) => input, validate: () => null },
+        refreshProposal: async (proposal) => {
+          proposalIds.push(proposal.intent.commandId);
+          if (proposalIds.length === 1) {
+            if (typed)
+              throw new ProposalRejection("COORDINATION_CHOICE_CHANGED", "Reconsider fresh evidence", {
+                reason: "expected_outcome_changed",
+              });
+            throw new FleetError("COORDINATION_CHOICE_CHANGED", true);
+          }
+          return proposal;
+        },
+      };
+    };
+    const h = f.host(modelFor(inputs));
+    h.engines.register(new SpecialistCoordinatorEngine());
+    if (recovers) {
+      await h.host.run(f.claim);
+      expect(inputs).toHaveLength(3);
+      expect(inputs[1]).toMatchObject({
+        previousSelection: {
+          code: "COORDINATION_CHOICE_CHANGED",
+          submitted: false,
+          detail: { reason: "expected_outcome_changed" },
+        },
+      });
+      expect(proposalIds[1]).not.toBe(proposalIds[0]);
+      expect(f.board.debits).toBe(40);
+      expect((await f.pool.query("SELECT command_id FROM platform_commands")).rows).toEqual([
+        { command_id: proposalIds[1] },
+      ]);
+    } else {
+      await expect(h.host.run(f.claim)).rejects.toThrow("COORDINATION_CHOICE_CHANGED");
+      expect(inputs).toHaveLength(1);
+      expect(f.board.debits).toBe(0);
+      expect((await f.pool.query("SELECT * FROM platform_commands")).rowCount).toBe(0);
+    }
+    const ledger = (await f.pool.query("SELECT status FROM compute_ledger")).rows;
+    expect(ledger).toHaveLength(recovers ? 3 : 1);
+    expect(ledger.every((r) => r.status === "reported")).toBe(true);
   },
 );

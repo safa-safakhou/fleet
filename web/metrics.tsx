@@ -166,7 +166,8 @@ export function MetricsCharts({ data }: { data: MetricsData }) {
             ["Legacy attempts", data.research.legacyAttempts],
             ["Attempts with effects", data.research.attemptsWithEffects],
             ["Waits without effects", data.research.waitsWithoutEffects],
-            ["Truncated calls", data.research.truncatedCalls],
+            ["Recorded truncations", data.research.truncatedCalls],
+            ["Correction calls", data.research.correctionCalls],
             ["Empty final answers", data.research.emptyFinalCalls],
             ["Late usage observations", data.research.lateUsage.observations],
           ].map(([label, n]) => (
@@ -176,8 +177,9 @@ export function MetricsCharts({ data }: { data: MetricsData }) {
           ))}
         </div>
         <p>
-          {data.research.responseMetadataCalls} calls have completion metadata. Strategy quality and reciprocal
-          cooperation are not inferred from these counts.
+          {data.research.responseMetadataCalls} calls have response metadata. {data.research.finishReasonCalls} calls
+          report a finish reason; {data.research.reasoningMetadataCalls} report reasoning metadata. Strategy quality and
+          reciprocal cooperation are not inferred from these counts.
         </p>
         <p className="muted">{data.research.coverage}</p>
         <h4>Observed communication</h4>
@@ -241,7 +243,7 @@ export function MetricsCharts({ data }: { data: MetricsData }) {
                   "Context fill",
                   "Output / allowance",
                   "Output fill",
-                  "Duration",
+                  "End-to-end",
                   "Queue / generation",
                   "Request bytes / limit",
                   "Schema bytes",
@@ -268,7 +270,7 @@ export function MetricsCharts({ data }: { data: MetricsData }) {
                     {fmt(c.outputTokens)} / {fmt(c.maxOutputTokens)}
                   </td>
                   <td>{c.outputPercent === null ? "Not recorded" : `${fmt(c.outputPercent)}%`}</td>
-                  <td>{c.elapsedMs === null ? "Not recorded" : `${fmt(c.elapsedMs / 1000)}s`}</td>
+                  <td>{c.endToEndMs === null ? "Not recorded" : `${fmt(c.endToEndMs / 1000)}s`}</td>
                   <td>
                     {fmt(c.queueDelayMs === null ? null : c.queueDelayMs / 1000)} /{" "}
                     {fmt(c.generationMs === null ? null : c.generationMs / 1000)} s

@@ -35,7 +35,7 @@ process.stdin.on('end', () => {
     setInterval(()=>{},1000); return;
   }
   const output = args[args.indexOf('--output-last-message')+1];
-  fs.writeFileSync(output, mode === 'bad-output' ? '{' : JSON.stringify({decisionJson: JSON.stringify(mode === 'action'
+  fs.writeFileSync(output, mode === 'bad-output' ? '{' : JSON.stringify({decisionJson: JSON.stringify(mode === 'custom' ? JSON.parse(fs.readFileSync(path.join(home,'response.json'),'utf8')) : mode === 'action'
     ? {kind:'action',action:{kind:'game.message.send',recipientKingdomId:'00000000-0000-4000-8000-000000000001',body:'Synthetic offer'},summary:'Offer'}
     : mode === 'cognition'
       ? {kind:'wait',summary:'Await evidence',cognition:{expectedVersion:JSON.parse(JSON.parse(input).messages[1].content).cognition.version,plan:{goal:'Maintain a reliable supply relationship',steps:['Review the next delivery'],status:'waiting',reconsiderWhen:'New receipt contradicts the prediction',evidenceRefs:[JSON.parse(JSON.parse(input).messages[1].content).cognition.evidence[0].id]}}}

@@ -6,6 +6,9 @@ import type { GamePort, ModelPort } from "../../src/domain.js";
 import { RunWindow } from "../../src/run-window.js";
 
 const dirs: string[] = [];
+const request = {
+  model: { route: "openai-compatible", provider: "vllm", model: "nemotron-4b", thinking: true },
+} as Parameters<ModelPort["decide"]>[0];
 function fixture(state: unknown) {
   const dir = mkdtempSync(join(tmpdir(), "fleet-window-"));
   dirs.push(dir);
@@ -109,7 +112,7 @@ it("checks again at actual provider dispatch and does not abort a dispatched res
       throw Error("must not dispatch");
     },
   };
-  await expect(window.model(model).decide({} as Parameters<ModelPort["decide"]>[0])).rejects.toMatchObject({
+  await expect(window.model(model).decide(request)).rejects.toMatchObject({
     notDispatched: true,
   });
   now = 1000;
@@ -120,8 +123,69 @@ it("checks again at actual provider dispatch and does not abort a dispatched res
       return { decision: { kind: "wait" }, inputTokens: 10, outputTokens: 1 };
     },
   };
-  expect((await window.model(late).decide({} as Parameters<ModelPort["decide"]>[0])).inputTokens).toBe(10);
+  expect((await window.model(late).decide(request)).inputTokens).toBe(10);
   expect(window.isOpen()).toBe(false);
+});
+it("leaves a full thinking-call bound and settlement time before the operator cutoff", async () => {
+  const end = 1801000;
+  const { file } = fixture({ status: "running", startsAt: 1000, endsAt: end });
+  let calls = 0;
+  const provider: ModelPort = {
+    async decide() {
+      calls++;
+      return { decision: { kind: "wait" }, inputTokens: 1, outputTokens: 1 };
+    },
+  };
+  const window = new RunWindow(file, () => end - 180999);
+  expect(window.isOpen()).toBe(true);
+  await expect(window.model(provider).decide(request)).rejects.toMatchObject({
+    code: "RUN_WINDOW_MODEL_DRAINING",
+    notDispatched: true,
+  });
+  expect(calls).toBe(0);
+});
+it("rechecks remaining generation time after queueing and before wire dispatch", async () => {
+  const end = 1801000;
+  const { file } = fixture({ status: "running", startsAt: 1000, endsAt: end });
+  let now = end - 181001,
+    wireCalls = 0;
+  const provider: ModelPort = {
+    tracksDispatch: true,
+    async decide(input) {
+      now = end - 1500;
+      await input.onDispatch?.();
+      wireCalls++;
+      return { decision: { kind: "wait" }, inputTokens: 1, outputTokens: 1 };
+    },
+  };
+  await expect(new RunWindow(file, () => now).model(provider).decide(request)).rejects.toMatchObject({
+    code: "RUN_WINDOW_MODEL_DRAINING",
+    notDispatched: true,
+  });
+  expect(wireCalls).toBe(0);
+});
+it("rechecks headroom after the accounting callback without cancelling an already dispatched response", async () => {
+  const end = 1801000;
+  const { file } = fixture({ status: "running", startsAt: 1000, endsAt: end });
+  let now = end - 181001,
+    wireCalls = 0;
+  const provider: ModelPort = {
+    tracksDispatch: true,
+    async decide(input) {
+      await input.onDispatch?.();
+      wireCalls++;
+      return { decision: { kind: "wait" }, inputTokens: 1, outputTokens: 1 };
+    },
+  };
+  await expect(
+    new RunWindow(file, () => now).model(provider).decide({
+      ...request,
+      onDispatch: async () => {
+        now = end - 1500;
+      },
+    }),
+  ).rejects.toMatchObject({ code: "RUN_WINDOW_MODEL_DRAINING", notDispatched: true });
+  expect(wireCalls).toBe(0);
 });
 it("blocks helper generation while disarmed and leaves ordinary runtime unchanged", async () => {
   const { window } = fixture({ status: "prepared" });

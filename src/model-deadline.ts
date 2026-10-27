@@ -1,6 +1,21 @@
 import { FleetError, type ModelPort } from "./domain.js";
 import { modelCallBound } from "./model-bounds.js";
 
+/** Preserve explicit host cancellation causes without exposing arbitrary provider text. */
+export function modelAbortCode(reason: unknown): string {
+  return reason instanceof FleetError &&
+    [
+      "MODEL_DEADLINE_EXCEEDED",
+      "TURN_DEADLINE_EXCEEDED",
+      "DEADLINE_MISSED",
+      "TASK_FENCED",
+      "CLAIM_FENCED",
+      "HOST_STOPPED",
+    ].includes(reason.code)
+    ? reason.code
+    : "CLAIM_FENCED";
+}
+
 /** Leave accounting time inside the turn lease. Cancellation does not prove non-dispatch,
  * and the caller must retain its capacity lease until the provider actually settles. */
 export function modelDeadline(request: Parameters<ModelPort["decide"]>[0], deadline: Date, now: () => Date) {
@@ -13,7 +28,7 @@ export function modelDeadline(request: Parameters<ModelPort["decide"]>[0], deadl
   const check = (beforeDispatch = false) => {
     if (now().getTime() >= endsAt || controller.signal.aborted)
       throw new FleetError("MODEL_DEADLINE_EXCEEDED", beforeDispatch && !dispatched);
-    if (signal.aborted) throw new FleetError("CLAIM_FENCED", beforeDispatch && !dispatched);
+    if (signal.aborted) throw new FleetError(modelAbortCode(signal.reason), beforeDispatch && !dispatched);
   };
   return {
     signal,

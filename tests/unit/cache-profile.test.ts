@@ -94,6 +94,10 @@ it("checks endpoint and configured concurrency against the attested provider", a
   expect(() => assertCacheSelection(p, m, "http://127.0.0.1:18535/v1", 4)).not.toThrow();
   expect(() => assertCacheSelection(p, m, "http://127.0.0.1:9999/v1", 4)).toThrow();
   expect(() => assertCacheSelection(p, m, p.endpoint, 5)).toThrow();
+  expect(() => assertCacheSelection(p, { ...m, contextWindowTokens: p.contextLength }, p.endpoint, 4)).not.toThrow();
+  expect(() => assertCacheSelection(p, { ...m, contextWindowTokens: p.contextLength * 2 }, p.endpoint, 4)).toThrow(
+    "PROVIDER_CACHE_PROFILE_MISMATCH",
+  );
 });
 it("loads only bounded valid operator cache profiles", async () => {
   const { mkdtempSync, writeFileSync, rmSync } = await import("node:fs"),

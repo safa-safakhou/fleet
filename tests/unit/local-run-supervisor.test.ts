@@ -43,7 +43,7 @@ function fixture(durationMs = 900000) {
     },
   };
 }
-it.each([900000, 1800000, 21600000, 86400000])(
+it.each([900000, 1800000, 3600000, 21600000, 86400000])(
   "closes exactly at the %s cutoff and parks without extending admission",
   async (duration) => {
     const f = fixture(duration);

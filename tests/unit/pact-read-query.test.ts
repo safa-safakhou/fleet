@@ -18,7 +18,7 @@ const readTool: Tool = {
     additionalProperties: false,
   },
 };
-async function setup(factRequests?: unknown[]) {
+async function setup(factRequests?: unknown[], observeRead?: (...args: unknown[]) => Promise<void>) {
   const read = vi.fn(async (name: string) =>
     name === "pact_world_read_v1"
       ? { profile: { kingdomId: "self" }, asOfGameTimeMs: 0 }
@@ -31,6 +31,7 @@ async function setup(factRequests?: unknown[]) {
   ];
   const environment = createPactEnvironment({
     factRequests,
+    observeRead,
     bindings: { agentFor: async () => "actor" },
     game: async () => ({
       profile: async () => ({ accountId: "owner" }),
@@ -48,6 +49,24 @@ async function setup(factRequests?: unknown[]) {
     },
   };
 }
+it("observes only successful authenticated reads through the injected journal hook", async () => {
+  const observeRead = vi.fn(async () => {}),
+    { session, read } = await setup(undefined, observeRead);
+  await session.observe({ tool: readTool.name, args: { kingdomId: "peer" } });
+  expect(observeRead).toHaveBeenCalledWith(
+    "actor",
+    readTool.name,
+    { kingdomId: "peer" },
+    expect.objectContaining({ records: [] }),
+  );
+  observeRead.mockClear();
+  read.mockImplementation(async (name) => {
+    if (name === readTool.name) throw Error("AUTH_REQUIRED");
+    return { profile: { kingdomId: "self" }, asOfGameTimeMs: 0 } as never;
+  });
+  await expect(session.observe({ tool: readTool.name, args: { kingdomId: "peer" } })).rejects.toThrow("AUTH_REQUIRED");
+  expect(observeRead.mock.calls.some((call: unknown[]) => call[1] === readTool.name)).toBe(false);
+});
 it("delivers operator-scoped requested facts through the production PACT session", async () => {
   const { session } = await setup([
     { entityRef: "self", id: "thread.records", tool: readTool.name, args: { kingdomId: "peer" }, path: ["records"] },

@@ -9,6 +9,7 @@ import { currentLegacyClaim, legacyProfileFor } from "../engines/legacy/executio
 import { LegacyRunner } from "../engines/legacy/runner.js";
 import { createPactEnvironment, PactBindings } from "../environments/pact.js";
 import { pactAdapter } from "../games/pact/adapter.js";
+import { Communications } from "../games/pact/communications.js";
 import { CredentialBroker } from "../games/pact/credentials.js";
 import { SyntheticOwner } from "../games/pact/owner.js";
 import { LayaRecall } from "../laya.js";
@@ -47,6 +48,7 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
     ),
     owner = new SyntheticOwner(store, broker);
   const game = async (id: string) => runWindow.game(await broker.game(id));
+  const communications = new Communications(store);
   const bindings = new Bindings(store, settings.environment);
   const environments = new EnvironmentRegistry(
     [
@@ -54,6 +56,7 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
         store,
         bindings: new PactBindings(store, bindings),
         game,
+        observeRead: (agentId, tool, args, result) => communications.observeRead(agentId, tool, args, result),
         now: store.now,
         eventFeedVersion: settings.pactEventFeedVersion,
         outlookVersion: settings.pactOutlookVersion,

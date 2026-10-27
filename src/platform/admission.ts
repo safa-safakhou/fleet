@@ -4,7 +4,7 @@ import { isDeepStrictEqual } from "node:util";
 import { recordCallRequest, recordCallResponse } from "../call-metrics.js";
 import { transaction } from "../db.js";
 import { FleetError, type ModelPort, type ModelSettings, safeCode } from "../domain.js";
-import { modelDeadline } from "../model-deadline.js";
+import { modelAbortCode, modelDeadline } from "../model-deadline.js";
 import { modelFailureProgress } from "../model-progress.js";
 import { recoverModelOutput } from "../model-recovery.js";
 import { Observability } from "../observability.js";
@@ -134,11 +134,7 @@ export class RouteCapacity {
         resourceUnits,
       });
       while (true) {
-        if (request.signal.aborted)
-          throw new FleetError(
-            safeCode(request.signal.reason) === "DEADLINE_MISSED" ? "DEADLINE_MISSED" : "CLAIM_FENCED",
-            true,
-          );
+        if (request.signal.aborted) throw new FleetError(modelAbortCode(request.signal.reason), true);
         await this.store.active(claim);
         const admitted = await transaction(this.store.pool, async (db) => {
           await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,19281470))", [policy.key]);
@@ -174,18 +170,11 @@ export class RouteCapacity {
         try {
           await delay(20, undefined, { signal: request.signal });
         } catch {
-          throw new FleetError(
-            safeCode(request.signal.reason) === "DEADLINE_MISSED" ? "DEADLINE_MISSED" : "CLAIM_FENCED",
-            true,
-          );
+          throw new FleetError(modelAbortCode(request.signal.reason), true);
         }
       }
       await this.store.active(claim);
-      if (request.signal.aborted)
-        throw new FleetError(
-          safeCode(request.signal.reason) === "DEADLINE_MISSED" ? "DEADLINE_MISSED" : "CLAIM_FENCED",
-          true,
-        );
+      if (request.signal.aborted) throw new FleetError(modelAbortCode(request.signal.reason), true);
       await observation.record(claim, "thinking", "Provider capacity admitted", {
         route: request.model.route,
         capacity: policy.capacity,
@@ -455,7 +444,7 @@ export class ModelAdmission {
           });
           const elapsedMs = Math.max(0, this.store.now().getTime() - modelStartedAt);
           await this.store.recordUsage(allocation, result.inputTokens, result.outputTokens);
-          await recordCallResponse(this.store, allocation, result, elapsedMs);
+          await recordCallResponse(this.store, allocation, result, elapsedMs, "provider");
           await observation.recordDebug(turn, "deciding", "Model response", {
             execution,
             allocationId: allocation,

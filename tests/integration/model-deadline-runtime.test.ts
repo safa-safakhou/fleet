@@ -4,9 +4,36 @@ import { vllmCompletion } from "../../src/vllm-transport.js";
 import { platformFixture } from "../platform-helpers.js";
 
 let close: (() => Promise<void>) | undefined;
+const directories: string[] = [];
 afterEach(async () => {
   vi.unstubAllGlobals();
   await close?.();
+  for (const dir of directories.splice(0)) rmSync(dir, { recursive: true, force: true });
+});
+it("refuses the final-window dispatch through the complete host path without unknown usage", async () => {
+  const f = await platformFixture(1);
+  close = () => f.pool.end();
+  await f.enqueue();
+  const claim = await f.claim();
+  const dir = mkdtempSync(join(tmpdir(), "fleet-headroom-"));
+  directories.push(dir);
+  const file = join(dir, "window.json"),
+    end = f.now().getTime() + 1500;
+  writeFileSync(file, JSON.stringify({ status: "running", startsAt: end - 1800000, endsAt: end }));
+  let calls = 0;
+  const provider = new RunWindow(file, () => f.now().getTime()).model({
+    tracksDispatch: true,
+    async decide(request) {
+      await request.onDispatch?.();
+      calls++;
+      return { decision: { kind: "wait" }, inputTokens: 1, outputTokens: 1 };
+    },
+  });
+  await expect(f.host(provider).host.run(claim)).rejects.toThrow("RUN_WINDOW_MODEL_DRAINING");
+  expect(calls).toBe(0);
+  expect(f.board.executions).toBe(0);
+  expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([{ status: "not_dispatched" }]);
+  expect((await f.pool.query("SELECT 1 FROM model_capacity_leases")).rowCount).toBe(0);
 });
 it("cancels a streamed response through host, admission, capacity and window wrappers without losing uncertain accounting", async () => {
   const f = await platformFixture(1);
@@ -91,3 +118,7 @@ it("settles reported usage but fences a late final answer from an uncooperative 
     "MODEL_DEADLINE_EXCEEDED",
   );
 });
+
+import { mkdtempSync, rmSync, writeFileSync } from "node:fs";
+import { tmpdir } from "node:os";
+import { join } from "node:path";

@@ -27,6 +27,10 @@ it("renders empty and unknown context without claiming zero utilization or expos
       attemptsWithEffects: 0,
       waitsWithoutEffects: 0,
       responseMetadataCalls: 0,
+      finishReasonCalls: 0,
+      reasoningMetadataCalls: 0,
+      comparableTimingCalls: 0,
+      correctionCalls: 0,
       truncatedCalls: 0,
       emptyFinalCalls: 0,
       outputErrorCalls: 0,
@@ -49,6 +53,7 @@ it("renders empty and unknown context without claiming zero utilization or expos
   expect(html).toContain("Distinct tasks");
   expect(html).toContain("Empty final answers");
   expect(html).toContain("Confirmed actions");
+  expect(html).toContain("0 calls report a finish reason");
   expect(html).not.toContain("style=");
   const call = {
     id: "synthetic",
@@ -62,17 +67,24 @@ it("renders empty and unknown context without claiming zero utilization or expos
     contextWindowTokens: null,
     maxOutputTokens: null,
     contextPercent: null,
+    contextDemandPercent: null,
     outputPercent: null,
     requestBytes: null,
     inputLimitBytes: null,
     thinking: null,
+    reasoningEffort: null,
     elapsedMs: null,
+    elapsedScope: null,
+    providerExecutionMs: null,
+    endToEndMs: null,
     messageBytes: null,
     schemaBytes: null,
     inputBytePercent: null,
     inboxDelivered: null,
     inboxOmitted: null,
     quotedOptionsOmitted: null,
+    decisionFeedbackCode: null,
+    decisionFeedbackRetryable: null,
     queueDelayMs: null,
     firstContentMs: null,
     generationMs: null,
@@ -84,4 +96,8 @@ it("renders empty and unknown context without claiming zero utilization or expos
   const unknown = renderToStaticMarkup(<MetricsCharts data={{ ...data, calls: [call] }} />);
   expect(unknown).toContain("Not recorded");
   expect(unknown).not.toContain("NaN");
+  const timing = renderToStaticMarkup(
+    <MetricsCharts data={{ ...data, calls: [{ ...call, elapsedMs: 20000, endToEndMs: 30000 }] }} />,
+  );
+  expect(timing).toContain("<td>30s</td>");
 });

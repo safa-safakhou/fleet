@@ -161,7 +161,7 @@ it("retains reported overrun without attempting another execution", async () => 
   ]);
   expect((await f.tasks.get(c.taskId)).state).toBe("blocked");
 });
-it("keeps full input facts when a corrective instruction would exceed the input allowance", async () => {
+it("keeps full input facts and does not spend another call when correction exceeds the input allowance", async () => {
   const f = await setup(),
     c = await f.claim(),
     inputs: Parameters<ModelPort["decide"]>[0][] = [];
@@ -174,9 +174,12 @@ it("keeps full input facts when a corrective instruction would exceed the input 
   const request = f.request(),
     bytes = Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.schema));
   request.messages[0].content += "x".repeat(24000 - bytes);
-  await h.admission.decide(c, request);
-  expect(inputs).toHaveLength(2);
-  expect(inputs[1].messages).toEqual(inputs[0].messages);
+  expect(await h.admission.decide(c, request)).toMatchObject(empty);
+  expect(inputs).toHaveLength(1);
+  expect(inputs[0].messages).toEqual(request.messages);
+  expect((await f.pool.query("SELECT status,input_tokens,output_tokens FROM compute_ledger")).rows).toEqual([
+    { status: "reported", input_tokens: "70", output_tokens: "44" },
+  ]);
 });
 it("atomically preserves other-worker and coordinator call slots during competing retries", async () => {
   const f = await setup(4),

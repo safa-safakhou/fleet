@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
+import { readFileSync } from "node:fs";
 import { Ajv } from "ajv";
 import { expect, it } from "vitest";
 import { z } from "zod";
 import { config } from "../../src/config.js";
-import { type Data, FleetError, type GamePort } from "../../src/domain.js";
+import { type Data, FleetError, type GamePort, ProposalRejection } from "../../src/domain.js";
 import { WorkerResultSchema } from "../../src/engines/specialists/proposals.js";
 import { createPactEnvironment } from "../../src/environments/pact.js";
 import { pactNativeIntentDigest } from "../../src/games/pact/action-effects.js";
@@ -350,6 +351,7 @@ function proposalFor(f: ReturnType<typeof fixture>, view: Observation): Proposal
   const option = (view.coordination!.focuses[0].observation.options as Data[])[0];
   return {
     taskId: "task",
+    evidenceFrameRef: view.coordination!.evidenceFrameRef,
     intent: {
       commandId: randomUUID(),
       bindingId: f.binding.id,
@@ -363,6 +365,52 @@ function proposalFor(f: ReturnType<typeof fixture>, view: Observation): Proposal
     conflicts: [],
   };
 }
+it("retains the exact delivered frame when another observation reuses its native revision", async () => {
+  const f = fixture();
+  let evidence = "old";
+  const effects = f.game.effects!;
+  f.game.effects = async (command) => ({ ...(await effects(command)), sourceRefs: [`peer:${evidence}`] });
+  const old = await f.policy.observe(f.base),
+    proposal = proposalFor(f, old);
+  evidence = "current";
+  const current = await f.policy.observe(f.base);
+  expect(current.revision).toBe(old.revision);
+  const refreshed = await f.policy.refreshProposal(proposal, current);
+  expect(refreshed.intent.commandId).toBe(proposal.intent.commandId);
+  expect(refreshed.evidenceRefs).toEqual(["peer:current"]);
+  expect(old.coordination!.evidenceFrameRef).not.toBe(current.coordination!.evidenceFrameRef);
+  expect(refreshed.evidenceFrameRef).toBe(current.coordination!.evidenceFrameRef);
+  expect(await f.policy.validate(refreshed, current)).toMatchObject({ valid: true });
+  expect(await f.policy.execute(refreshed.intent)).toMatchObject({ code: "COMMITTED" });
+  expect(f.counts().guarded).toBe(1);
+  await expect(f.policy.execute(refreshed.intent)).rejects.toThrow("COORDINATION_VALIDATION_REQUIRED");
+});
+it("rejects foreign frame references and mixed citations without falling back to a native revision", async () => {
+  const f = fixture(),
+    old = await f.policy.observe(f.base),
+    proposal = proposalFor(f, old);
+  const current = await f.policy.observe(f.base);
+  await expect(f.policy.refreshProposal({ ...proposal, evidenceFrameRef: randomUUID() }, current)).rejects.toThrow(
+    "COORDINATION_ORIGIN_FRAME_UNAVAILABLE",
+  );
+  await expect(
+    f.policy.refreshProposal({ ...proposal, evidenceRefs: [...proposal.evidenceRefs, "foreign"] }, current),
+  ).rejects.toThrow("COORDINATION_REFERENCE_NOT_DELIVERED");
+  expect(f.counts().guarded).toBe(0);
+});
+it("does not forget an intervening owner change or reinterpret an evicted frame", async () => {
+  const f = fixture();
+  f.base.payload.world = { ambition: "trade" };
+  const old = await f.policy.observe(f.base),
+    proposal = proposalFor(f, old);
+  f.base.payload.world = { ambition: "defense" };
+  await f.policy.observe(f.base);
+  f.base.payload.world = { ambition: "trade" };
+  const reverted = await f.policy.observe(f.base);
+  await expect(f.policy.refreshProposal(proposal, reverted)).rejects.toThrow("COORDINATION_CHOICE_CHANGED");
+  for (let i = 0; i < 16; i++) await f.policy.observe(f.base);
+  await expect(f.policy.refreshProposal(proposal, reverted)).rejects.toThrow("COORDINATION_ORIGIN_FRAME_UNAVAILABLE");
+});
 it("refreshes unchanged semantic choices after clock/stock revisions while retaining exact command identity", async () => {
   const f = fixture(),
     old = await f.policy.observe(f.base),
@@ -437,6 +485,7 @@ it("lets a worker compose text for an observed contact, then quotes that exact m
   const proposal = {
     ...raw,
     taskId: "task",
+    evidenceFrameRef: view.coordination!.evidenceFrameRef,
     intent: { ...raw.intent, commandId: randomUUID(), bindingId: f.binding.id, expectedVersion: view.revision },
   } as Proposal;
   const admitted = await f.policy.refreshProposal(proposal, view);
@@ -454,6 +503,43 @@ it.each([false, true])(
     if (advance) f.advance();
     f.base.payload.world = { ambition: "Keep all resources for defense" };
     const current = await f.policy.observe(f.base);
-    await expect(f.policy.refreshProposal(proposal, current)).rejects.toThrow("COORDINATION_CHOICE_CHANGED");
+    await expect(f.policy.refreshProposal(proposal, current)).rejects.toBeInstanceOf(ProposalRejection);
+    await expect(f.policy.refreshProposal(proposal, current)).rejects.toMatchObject({
+      feedback: { code: "COORDINATION_CHOICE_CHANGED", detail: { reason: "owner_intent_changed" } },
+    });
   },
 );
+
+it("distinguishes a vanished current choice from an invalid original proposal", async () => {
+  const f = fixture(),
+    old = await f.policy.observe(f.base),
+    proposal = proposalFor(f, old);
+  f.actions[0] = { ...f.actions[0], targetLevel: 3 };
+  const fresh = await f.policy.observe(f.base);
+  await expect(f.policy.refreshProposal(proposal, fresh)).rejects.toMatchObject({
+    feedback: { code: "COORDINATION_CHOICE_CHANGED", detail: { reason: "current_option_unavailable" } },
+  });
+  const forged = { ...proposal, expectedOutcome: { invented: true } };
+  await expect(f.policy.refreshProposal(forged, fresh)).rejects.not.toBeInstanceOf(ProposalRejection);
+  expect(f.counts().guarded).toBe(0);
+});
+
+it("requires a fresh proposal when construction changes its observed outcome basis", async () => {
+  const f = fixture();
+  const facts = JSON.parse(readFileSync("tests/fixtures/pact-initial-packing.json", "utf8")).observation.payload;
+  facts.world.profile.kingdomId = f.binding.entityRef;
+  f.base.payload = facts;
+  const old = await f.policy.observe(f.base),
+    proposal = proposalFor(f, old);
+  expect(proposal.expectedOutcome.basis).toBeDefined();
+  facts.world.buildings.find((b: Data) => b.kind === "barracks").level = 2;
+  const fresh = await f.policy.observe(f.base);
+  await expect(f.policy.refreshProposal(proposal, fresh)).rejects.toMatchObject({
+    feedback: { code: "COORDINATION_CHOICE_CHANGED", detail: { reason: "expected_outcome_changed" } },
+  });
+  const reconsidered = proposalFor(f, fresh);
+  expect(reconsidered.intent.commandId).not.toBe(proposal.intent.commandId);
+  expect(reconsidered.expectedOutcome).not.toEqual(proposal.expectedOutcome);
+  expect(await f.policy.refreshProposal(reconsidered, fresh)).toMatchObject(reconsidered);
+  expect(f.counts().guarded).toBe(0);
+});

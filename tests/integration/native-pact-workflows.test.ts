@@ -1,14 +1,17 @@
 import { randomUUID } from "node:crypto";
-import { writeFile } from "node:fs/promises";
+import { rm, writeFile } from "node:fs/promises";
+import { join } from "node:path";
 import { afterAll, beforeAll, expect, it } from "vitest";
 import { builtinArchitectures } from "../../src/app/builtins.js";
 import { compatibilityContextFor, hostScopeFactory } from "../../src/app/host-services.js";
+import { CodexModel } from "../../src/codex.js";
 import { Cognition } from "../../src/cognition.js";
 import { type Data, type ModelPort, object } from "../../src/domain.js";
 import { LegacyEngineBridge } from "../../src/engines/legacy/bridge.js";
 import { createPactEnvironment, PactBindings } from "../../src/environments/pact.js";
 import { expandFactTables } from "../../src/fact-table.js";
 import { pactAdapter } from "../../src/games/pact/adapter.js";
+import { Communications } from "../../src/games/pact/communications.js";
 import { pactActionBasis, pactWaitSchema } from "../../src/games/pact/goal-state.js";
 import { compileGenerationSchema, prepareVllmGenerationSchema } from "../../src/model-schema.js";
 import { Observability } from "../../src/observability.js";
@@ -20,17 +23,23 @@ import { CommandExecutor } from "../../src/platform/execution.js";
 import { OperationSupervisor, PlatformHost } from "../../src/platform/supervisor.js";
 import { TaskStore } from "../../src/platform/tasks.js";
 import { Store } from "../../src/store.js";
+import { codexFixture } from "../codex-fixture.js";
 import { nativePactWorkflow } from "../fixtures/native-pact-workflow.js";
 import { fixture } from "../helpers.js";
 
 let pact: Awaited<ReturnType<typeof nativePactWorkflow>>;
 const schemas: Data[] = [];
+const collectedPackets: Data[] = [];
 beforeAll(async () => {
   pact = await nativePactWorkflow();
 });
 afterAll(async () => {
   if (process.env.FLEET_OFFLINE_SCHEMAS)
     await writeFile(process.env.FLEET_OFFLINE_SCHEMAS, JSON.stringify(schemas), { mode: 0o600 });
+  if (process.env.FLEET_OFFLINE_SCHEMAS)
+    await writeFile(`${process.env.FLEET_OFFLINE_SCHEMAS}.packets.json`, JSON.stringify(collectedPackets), {
+      mode: 0o600,
+    });
   await pact?.close();
 });
 const profiles = [
@@ -46,12 +55,18 @@ const profiles = [
 const prerequisiteOwners: { kingdomId: string; token: string }[] = [];
 
 it.each(
-  profiles.flatMap((profile) => ["prerequisite", "introduction", "message"].map((phase) => ({ profile, phase }))),
+  profiles.flatMap((profile) =>
+    ["prerequisite", "introduction", "message"].flatMap((phase) =>
+      ["http-fixture", "codex-fixture"].map((provider) => ({ profile, phase, provider })),
+    ),
+  ),
 )(
-  "$profile completes native $phase through real MCP and the durable host",
-  async ({ profile, phase }) => {
+  "$profile completes native $phase through real MCP and the durable host using $provider",
+  async ({ profile, phase, provider }) => {
     const f = await fixture(),
       owner = await pact.addOwner();
+    const cli = provider === "codex-fixture" ? await codexFixture("custom") : undefined;
+    const codex = cli ? new CodexModel(cli) : undefined;
     if (phase === "prerequisite") prerequisiteOwners.push(owner);
     const ref = { id: "pact", version: "1", instanceId: "owned-native-inactivity-fixture" };
     let model: ModelPort;
@@ -90,6 +105,8 @@ it.each(
           store,
           bindings: legacyBindings,
           game: makeGame,
+          observeRead: (agentId, tool, args, result) =>
+            new Communications(store).observeRead(agentId, tool, args, result),
           now: store.now,
           eventFeedVersion: "pact.agent-events.v1",
           outlookVersion: "pact.agent-outlook.v1",
@@ -125,9 +142,9 @@ it.each(
       ]);
     await store.configure(group.id, {
       model: {
-        route: "openai-compatible",
-        provider: "vllm",
-        model: "nemotron-4b",
+        ...(cli
+          ? { route: "codex-cli", model: "synthetic-model" }
+          : { route: "openai-compatible", provider: "vllm", model: "nemotron-4b", contextWindowTokens: 65536 }),
         ...(id === "legacy-cognition" ? { cognition: "llm-centered-v1" } : {}),
       },
       budget: {
@@ -135,12 +152,13 @@ it.each(
         callLimit: 100,
         tokenLimit: 4000000,
         deadlineAt: new Date(Date.now() + 600000).toISOString(),
-        perCallTokenLimit: 40000,
-        maxOutputTokens: 1536,
-        inputByteLimit: 32000,
+        perCallTokenLimit: cli ? 40000 : 65536,
+        maxOutputTokens: 8192,
+        inputByteLimit: cli ? 64000 : 128000,
         maxCallsPerTurn: 3,
         maxActionsPerTurn: 1,
         concurrency: 1,
+        executionAccountingAccepted: true,
       },
     });
     await store.consent(group.id, true);
@@ -212,6 +230,7 @@ it.each(
     let calls = 0,
       callsThisTurn = 0,
       rejectedIdle = phase !== "prerequisite";
+    const schemaFallbacks: Data[] = [];
     model = {
       decide: async (request) => {
         calls++;
@@ -219,7 +238,14 @@ it.each(
         expect(callsThisTurn).toBeLessThanOrEqual(3);
         expect(
           Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.schema)),
-        ).toBeLessThanOrEqual(32000);
+        ).toBeLessThanOrEqual(128000);
+        collectedPackets.push({
+          profile,
+          phase,
+          messages: request.messages,
+          schema: request.schema,
+          maxOutputTokens: request.maxOutputTokens,
+        });
         schemas.push(prepareVllmGenerationSchema(request.schema));
         const packets = request.messages.flatMap((m) => {
           try {
@@ -270,6 +296,15 @@ it.each(
           }
         } else {
           const legacy = id.startsWith("legacy");
+          if (legacy && phase === "introduction") {
+            // Legacy discovery rotates with the turn/ordinal. A preview's peer
+            // can be outside the delivered page; the fake agent must use its input.
+            const players = object(object(p.environment).publicDiscovery).players;
+            expect(Array.isArray(players) && players.length > 0).toBe(true);
+            targetAction.recipientKingdomId = object((players as Data[])[0]).kingdomId;
+            expect(typeof targetAction.recipientKingdomId).toBe("string");
+            expect(targetAction.recipientKingdomId).not.toBe(owner.kingdomId);
+          }
           const action = targetAction;
           const env = object(p.observation),
             goal = object(p.goal),
@@ -304,6 +339,7 @@ it.each(
           if (calls > 1) {
             let check = compileGenerationSchema(request.schema);
             if (legacy && !check(decision)) {
+              schemaFallbacks.push({ call: calls, errors: structuredClone(check.errors) });
               const read = {
                 kind: "read",
                 tool: "fleet_action_schema",
@@ -318,6 +354,10 @@ it.each(
             );
           }
           void facts;
+        }
+        if (cli && codex) {
+          await writeFile(join(cli.home, "response.json"), JSON.stringify(decision));
+          return codex.decide(request);
         }
         return { decision, inputTokens: 1, outputTokens: 1 };
       },
@@ -404,6 +444,7 @@ it.each(
           profile,
           phase,
           calls,
+          schemaFallbacks,
           turn: (await f.pool.query("SELECT state,code,calls FROM turns")).rows,
           events: report.turn.events
             .filter((e) => !e.label.startsWith("Debug:"))
@@ -416,6 +457,23 @@ it.each(
             : { recipient_kingdom_id: targetAction.recipientKingdomId },
         ),
       );
+      if (phase === "message") {
+        const session = await environments.connect(binding);
+        try {
+          await session.observe({ tool: "pact_council_thread_v1", args: { kingdomId: messagePeer } });
+          await session.observe({ tool: "pact_council_thread_v1", args: { kingdomId: messagePeer } });
+          expect(
+            (
+              await f.pool.query(
+                "SELECT count(*)::int n FROM communications WHERE owner_agent_id=$1 AND kind='message'",
+                [claim!.turn.agentId],
+              )
+            ).rows[0].n,
+          ).toBe(1);
+        } finally {
+          await session.close();
+        }
+      }
       expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger WHERE status='unknown'")).rows[0].n).toBe(
         0,
       );
@@ -429,6 +487,7 @@ it.each(
       ).toBe(0);
       expect((await f.pool.query("SELECT max(calls)::int n FROM turns")).rows[0].n).toBeLessThanOrEqual(3);
     } finally {
+      if (cli) await rm(cli.root, { recursive: true, force: true });
       await f.pool.end();
     }
   },
@@ -436,7 +495,7 @@ it.each(
 );
 
 it("native ticks complete the prerequisite chain and then the existing Hall order, without duplicating it", async () => {
-  expect(prerequisiteOwners).toHaveLength(8);
+  expect(prerequisiteOwners).toHaveLength(16);
   await pact.settleSupply(31 * 60000);
   for (const owner of prerequisiteOwners) {
     const levels = () =>

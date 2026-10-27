@@ -68,6 +68,7 @@ export function assertCacheSelection(profile: CacheProfile, model: ModelSettings
     model.route !== "openai-compatible" ||
     model.provider !== "vllm" ||
     model.model !== profile.model ||
+    (model.contextWindowTokens !== undefined && model.contextWindowTokens !== profile.contextLength) ||
     (endpoint !== undefined && endpoint.replace(/\/$/, "") !== profile.endpoint.replace(/\/$/, "")) ||
     (slots !== undefined && slots > profile.maxNumSeqs)
   )

@@ -16,6 +16,7 @@ export const StructuredClaimSchema = z.discriminatedUnion("kind", [
 export const CoordinationFrameSchema = z
   .object({
     schemaVersion: z.literal("fleet.coordination.v1"),
+    evidenceFrameRef: z.uuid().optional(),
     atomicExpectedVersion: z.literal(true),
     claimSchemas: z.array(z.object({ id: label, kind: z.enum(["resource", "authority", "promise"]) }).strict()).max(32),
     capacities: z.array(z.object({ schemaId: label, key: label, remainingUnits: units }).strict()).max(64),
@@ -30,6 +31,7 @@ export const CoordinationFrameSchema = z
 export const ProposalSchema = z
   .object({
     taskId: label,
+    evidenceFrameRef: z.uuid().optional(),
     intent: z
       .object({
         commandId: z.uuid(),
@@ -57,7 +59,7 @@ export const WorkerResultSchema = z
       })
       .strict()
       .optional(),
-    proposal: ProposalSchema.omit({ taskId: true })
+    proposal: ProposalSchema.omit({ taskId: true, evidenceFrameRef: true })
       .extend({ intent: z.object({ schemaId: label, payload: data }).strict() })
       .strict()
       .nullable(),

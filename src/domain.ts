@@ -28,6 +28,7 @@ export const ModelConfig = z
     route: z.enum(["ollama", "openai-compatible", "codex-cli"]),
     model: z.string().min(1).max(100),
     reasoningEffort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional(),
+    contextWindowTokens: z.number().int().min(512).max(1050000).optional(),
     thinking: z.boolean().optional(),
     provider: z.literal("vllm").optional(),
     temperature: z.number().min(0).max(2).optional(),
@@ -38,6 +39,13 @@ export const ModelConfig = z
     recallAssist: z.enum(["laya-recall-v1"]).optional(),
   })
   .strict()
+  .refine(
+    (m) =>
+      m.contextWindowTokens === undefined ||
+      m.route === "codex-cli" ||
+      (m.route === "openai-compatible" && m.provider === "vllm" && m.contextWindowTokens <= 262144),
+    "Explicit context requires a supported provider",
+  )
   .refine((m) => m.provider === undefined || m.route === "openai-compatible", "vLLM requires a compatible route")
   .refine(
     (m) => m.thinking === undefined || m.route === "ollama" || m.provider === "vllm",
@@ -50,9 +58,9 @@ export const ModelConfig = z
   .refine((m) => !m.cognition || !m.decisionPolicy, "LLM-centered cognition does not use VW")
   .refine((m) => !m.recallAssist || m.cognition === "llm-centered-v1", "Recall assistance requires cognition");
 const executionLimits = {
-  perCallTokenLimit: z.number().int().min(100).max(40000),
+  perCallTokenLimit: z.number().int().min(100).max(2000000),
   maxOutputTokens: z.number().int().min(1).max(16384),
-  inputByteLimit: z.number().int().min(500).max(64000),
+  inputByteLimit: z.number().int().min(500).max(1048576),
   maxCallsPerTurn: z.number().int().min(1).max(3),
   maxActionsPerTurn: z.number().int().min(1).max(3),
   concurrency: z.number().int().min(1).max(16),
@@ -81,11 +89,30 @@ export const Budget = z
       .strict(),
   ])
   .refine(
+    (b) => (b.perCallTokenLimit <= 40000 && b.inputByteLimit <= 64000) || b.executionAccountingAccepted === true,
+    "Extended context requires explicit execution accounting",
+  )
+  .refine(
     (b) => (b.mode === "continuous" || b.tokenLimit >= b.perCallTokenLimit) && b.perCallTokenLimit > b.maxOutputTokens,
     "Budget must cover one complete call",
   );
 export type BudgetConfig = z.infer<typeof Budget>;
 export type ModelSettings = z.infer<typeof ModelConfig>;
+export function supportsExtendedContextBudget(model: ModelSettings, budget: BudgetConfig): boolean {
+  return (
+    (budget.perCallTokenLimit <= 40000 && budget.inputByteLimit <= 64000) ||
+    (model.route === "openai-compatible" &&
+      model.provider === "vllm" &&
+      (model.contextWindowTokens ?? 0) >= 32768 &&
+      (model.contextWindowTokens ?? 0) <= 262144 &&
+      budget.perCallTokenLimit >= (model.contextWindowTokens ?? Infinity) &&
+      budget.executionAccountingAccepted === true) ||
+    (model.route === "codex-cli" &&
+      (model.contextWindowTokens ?? 0) >= 262144 &&
+      budget.executionAccountingAccepted === true &&
+      budget.concurrency === 1)
+  );
+}
 export interface Strategy {
   profile: Profile;
   objective: string;
@@ -124,6 +151,15 @@ export class FleetError extends Error {
     super(code);
   }
 }
+/** Only preparation code may issue this: no accepted state/command survives the rejection. */
+export class ProposalRejection extends FleetError {
+  readonly feedback: { code: string; guidance: string; detail: Data };
+  constructor(code: string, guidance: string, detail: Data = {}) {
+    super(code, true);
+    this.feedback = { code, guidance, detail };
+  }
+}
+
 export const Decision = z.discriminatedUnion("kind", [
   z
     .object({

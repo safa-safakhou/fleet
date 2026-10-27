@@ -1,6 +1,87 @@
 import { expect, it } from "vitest";
 import { FleetMetrics, recordCallRequest, recordCallResponse } from "../../src/call-metrics.js";
+import { Communications } from "../../src/games/pact/communications.js";
 import { fixture, ready } from "../helpers.js";
+
+it("ingests scoped communication reads once and honors observation consent", async () => {
+  const f = await fixture();
+  try {
+    const cohort = await ready(f.store, 1),
+      claim = (await f.store.claim("communications"))!;
+    const journal = new Communications(f.store),
+      peer = "synthetic-peer";
+    const page = {
+      messages: [
+        { id: "sent-one", senderKingdomId: claim.agent.kingdom_id, sentGameTimeMs: "100", body: "PRIVATE_ONE" },
+        { id: "received-one", senderKingdomId: peer, sentGameTimeMs: "101", body: "PRIVATE_TWO" },
+      ],
+    };
+    await f.pool.query("UPDATE cohorts SET observation_consent=true WHERE id=$1", [cohort]);
+    await journal.observeRead(claim.agentId, "pact_council_thread_v1", { kingdomId: peer }, page);
+    await journal.observeRead(claim.agentId, "pact_council_thread_v1", { kingdomId: peer }, page);
+    const metrics = await new FleetMetrics(f.store).read({ minutes: 60, cohortId: cohort });
+    expect(metrics.research.reciprocalCommunication).toMatchObject({ messages: 2, reciprocal_pairs: 1 });
+    expect(JSON.stringify(metrics)).not.toContain("PRIVATE_");
+    await f.pool.query("UPDATE cohorts SET observation_consent=false WHERE id=$1", [cohort]);
+    await journal.observeRead(
+      claim.agentId,
+      "pact_council_thread_v1",
+      { kingdomId: peer },
+      { messages: [{ ...page.messages[0], id: "unconsented" }] },
+    );
+    expect((await f.pool.query("SELECT count(*)::int n FROM communications")).rows[0].n).toBe(2);
+  } finally {
+    await f.pool.end();
+  }
+});
+
+it("compares queue and execution time across both runtime paths without inventing missing completion metadata", async () => {
+  const f = await fixture();
+  try {
+    const cohort = await ready(f.store, 1),
+      claim = (await f.store.claim("timing"))!;
+    const result = { decision: null, inputTokens: 10, outputTokens: 5 };
+    const ids: string[] = [];
+    for (const scope of ["queue_and_provider", "provider"] as const) {
+      const id = await f.store.reserveCall(claim);
+      ids.push(id);
+      await recordCallRequest(
+        f.store,
+        id,
+        {
+          model: claim.cohort.model!,
+          messages: [],
+          schema: {},
+          maxOutputTokens: 100,
+          signal: new AbortController().signal,
+        },
+        64000,
+        {},
+        { queueDelayMs: 12 },
+      );
+      await f.store.recordUsage(id, 10, 5);
+      await recordCallResponse(f.store, id, result, scope === "provider" ? 18 : 30, scope);
+    }
+    const metrics = await new FleetMetrics(f.store).read({ minutes: 60, cohortId: cohort });
+    for (const id of ids)
+      expect(metrics.calls.find((c) => c.id === id)).toMatchObject({
+        queueDelayMs: 12,
+        providerExecutionMs: 18,
+        endToEndMs: 30,
+        finishReason: null,
+        reasoningChars: null,
+      });
+    expect(metrics.research).toMatchObject({
+      responseMetadataCalls: 2,
+      finishReasonCalls: 0,
+      reasoningMetadataCalls: 0,
+      comparableTimingCalls: 2,
+      truncatedCalls: 0,
+    });
+  } finally {
+    await f.pool.end();
+  }
+});
 
 it("records safe call metadata and aggregates exact calls/actions with unknown context kept unknown", async () => {
   const f = await fixture();

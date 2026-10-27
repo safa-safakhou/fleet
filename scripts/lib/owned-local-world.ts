@@ -2,7 +2,7 @@ import { execFile, spawn } from "node:child_process";
 import { createCipheriv, createDecipheriv, createHash, randomBytes, randomUUID } from "node:crypto";
 import { closeSync, openSync } from "node:fs";
 import { readFile, realpath, rename, stat, writeFile } from "node:fs/promises";
-import { dirname, resolve } from "node:path";
+import { dirname, isAbsolute, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 
@@ -19,9 +19,17 @@ export type OwnedWorldConfig = {
   pactContainer: string;
   fleetContainer: string;
   purpose?: string;
+  localInference?: { contextWindowTokens: number; inputByteLimit: number; maxOutputTokens: number };
   pactEnv: Record<string, string>;
   fleetEnv: Record<string, string>;
-  model: { endpoint: string; servedName: string; repository: string; revision: string };
+  model: {
+    endpoint: string;
+    servedName: string;
+    repository: string;
+    revision: string;
+    route?: "codex-cli";
+    contextWindowTokens?: number;
+  };
 };
 /** Native local event publication is part of the run, without external delivery adapters. */
 export function ownedEventPublisher(c: OwnedWorldConfig) {
@@ -51,7 +59,19 @@ export async function startOwnedEventPublisher(c: OwnedWorldConfig) {
   throw Error("EVENT_PUBLISHER_NOT_READY");
 }
 export function assertOwnedConfiguration(c: OwnedWorldConfig, root: string) {
-  if (
+  if (c.model.route === "codex-cli") {
+    if (
+      c.purpose !== "fresh-codex-one-hour" ||
+      c.model.servedName !== "gpt-6.1-terra" ||
+      c.model.repository !== "openai" ||
+      c.model.revision !== "gpt-6.1-terra" ||
+      c.model.endpoint !== "codex://local" ||
+      c.model.contextWindowTokens !== 500000 ||
+      !isAbsolute(c.fleetEnv.FLEET_CODEX_EXECUTABLE ?? "") ||
+      c.fleetEnv.FLEET_CODEX_HOME !== resolve(root, "provider/home")
+    )
+      throw Error("PINNED_CODEX_REQUIRED");
+  } else if (
     c.model.servedName !== "nemotron-4b" ||
     c.model.repository !== "nvidia/NVIDIA-Nemotron-3-Nano-4B-BF16" ||
     c.model.revision !== "dfaf35de3e30f1867dd8dbc38a7fc9fb52d3914f" ||
@@ -87,6 +107,24 @@ export function assertOwnedConfiguration(c: OwnedWorldConfig, root: string) {
     c.fleetEnv.FLEET_RUN_WINDOW_FILE !== resolve(root, "window.json")
   )
     throw Error("OWNED_WORLD_IDENTITY_MISMATCH");
+}
+/** Recheck a measured, game-free provider probe before admitting this new world. */
+export async function verifyOwnedCodexReadiness(c: OwnedWorldConfig) {
+  if (c.model.route !== "codex-cli") throw Error("CODEX_ROUTE_REQUIRED");
+  const proof = JSON.parse(await readFile(resolve(c.root, "provider/readiness.json"), "utf8"));
+  const binary = await readFile(c.fleetEnv.FLEET_CODEX_EXECUTABLE);
+  const home = await stat(c.fleetEnv.FLEET_CODEX_HOME);
+  if (
+    proof.passed !== true ||
+    proof.model !== c.model.servedName ||
+    proof.contextWindowTokens !== c.model.contextWindowTokens ||
+    proof.cliSha256 !== createHash("sha256").update(binary).digest("hex") ||
+    binary.subarray(0, 4).toString("hex") !== "7f454c46" ||
+    !home.isDirectory() ||
+    (home.mode & 0o077) !== 0 ||
+    home.uid !== process.getuid?.()
+  )
+    throw Error("CODEX_READINESS_REQUIRED");
 }
 export async function loadOwnedWorld(root: string) {
   root = resolve(root);

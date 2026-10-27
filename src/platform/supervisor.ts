@@ -18,10 +18,11 @@ export class OperationSupervisor {
     if (this.operations.has(claim.taskId)) return Promise.reject(new FleetError("OPERATION_ALREADY_ACTIVE"));
     const controller = new AbortController();
     const promise = (async () => {
-      const signal = AbortSignal.any([
-        controller.signal,
-        AbortSignal.timeout(Math.max(1, claim.turn.deadline.getTime() - this.tasks.store.now().getTime())),
-      ]);
+      const timer = setTimeout(
+        () => controller.abort(new FleetError("TURN_DEADLINE_EXCEEDED")),
+        Math.max(1, claim.turn.deadline.getTime() - this.tasks.store.now().getTime()),
+      );
+      const signal = controller.signal;
       const guard = setInterval(() => {
         void this.tasks.check(claim).catch((error) => controller.abort(error));
       }, 250);
@@ -34,6 +35,7 @@ export class OperationSupervisor {
         await this.tasks.finish(claim, safeCode(error));
         throw error;
       } finally {
+        clearTimeout(timer);
         clearInterval(guard);
         this.operations.delete(claim.taskId);
       }
@@ -45,7 +47,7 @@ export class OperationSupervisor {
     if (taskId === undefined) this.stopping = true;
     const operations = [...this.operations.values()].filter((op) => taskId === undefined || op.claim.taskId === taskId);
     for (const operation of operations) {
-      operation.controller.abort();
+      operation.controller.abort(new FleetError("HOST_STOPPED"));
       try {
         await this.tasks.cancel(operation.claim);
       } catch (error) {

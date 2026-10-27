@@ -34,7 +34,7 @@ export class Engine {
   private readonly controllers = new Set<AbortController>();
   stop() {
     this.stopping = true;
-    for (const controller of this.controllers) controller.abort();
+    for (const controller of this.controllers) controller.abort(new FleetError("HOST_STOPPED"));
   }
   constructor(
     private store: Store,
@@ -658,7 +658,7 @@ export class Engine {
         const controller = new AbortController();
         this.controllers.add(controller);
         const guard = setInterval(() => {
-          void this.store.active(claim).catch(() => controller.abort());
+          void this.store.active(claim).catch((error) => controller.abort(error));
         }, 500);
         let response: Awaited<ReturnType<ModelPort["decide"]>>;
         let deadline: ReturnType<typeof modelDeadline> | undefined;
@@ -690,7 +690,13 @@ export class Engine {
           this.controllers.delete(controller);
         }
         await this.store.recordUsage(reservation, response.inputTokens, response.outputTokens);
-        await recordCallResponse(this.store, reservation, response, this.store.now().getTime() - modelStartedAt);
+        await recordCallResponse(
+          this.store,
+          reservation,
+          response,
+          this.store.now().getTime() - modelStartedAt,
+          "queue_and_provider",
+        );
         await observation.recordDebug(claim, "deciding", "Model response", {
           execution: n + 1,
           elapsedMs: Math.max(0, this.store.now().getTime() - modelStartedAt),

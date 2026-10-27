@@ -3,7 +3,12 @@ import Fastify from "fastify";
 import { DecisionSupportReader, outlookFeasibility } from "../../../pact/packages/application/src/index.js";
 import { ProductScopeSchema } from "../../../pact/packages/contracts/src/index.js";
 import { AgentEventService } from "../../../pact/packages/inbox/src/agent-events.js";
-import { AgentOutlookService, KingdomDiscoveryReader } from "../../../pact/packages/kingdom/dist/index.js";
+import {
+  AgentOutlookService,
+  CouncilReader,
+  KingdomDiscoveryReader,
+  SocialOverviewReader,
+} from "../../../pact/packages/kingdom/dist/index.js";
 import { AgentEventProjector } from "../../../pact/packages/kingdom/src/agent-events.js";
 import { McpTransport } from "../../../pact/packages/mcp/src/transport.js";
 import { OAuthService } from "../../../pact/packages/oauth/src/service.js";
@@ -20,7 +25,8 @@ export async function nativePactWorkflow(options: { completeCatalog?: boolean } 
   let oauth: OAuthService;
   let agentFeed: AgentEventService;
   const clock = { now: () => new Date() },
-    runs = new RunService(f.pool, { productScope: "pact", clock });
+    runs = new RunService(f.pool, { productScope: "pact", clock }),
+    council = new CouncilReader(f.pool, "pact", new SocialOverviewReader(f.pool, "pact"), async () => ({}));
   const unused = async (): Promise<never> => {
     throw Error("UNEXPECTED_OPTIONAL_FIXTURE_OPERATION");
   };
@@ -63,6 +69,8 @@ export async function nativePactWorkflow(options: { completeCatalog?: boolean } 
     kingdomDiscovery: new KingdomDiscoveryReader(f.pool, "pact"),
     decisionSupport: new DecisionSupportReader(f.views),
     agentOutlook: new AgentOutlookService(f.pool, "pact", f.views, outlookFeasibility),
+    councilThreads: { read: (account, peer, before) => council.thread(account, peer, before) },
+    playView: { read: unused },
   });
   let connections = 0;
   app.route({

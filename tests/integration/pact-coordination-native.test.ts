@@ -50,6 +50,7 @@ async function setup() {
   const option = (focus.observation.options as Data[])[0];
   const proposal: Proposal = {
     taskId: "task",
+    evidenceFrameRef: view.coordination!.evidenceFrameRef,
     intent: {
       commandId: randomUUID(),
       bindingId: binding.id,
@@ -161,6 +162,7 @@ it("quotes composed peer text with native byte costs and the host's original com
   const option = (focus.observation.options as Data[])[0];
   const proposal: Proposal = {
     ...x.proposal,
+    evidenceFrameRef: view.coordination!.evidenceFrameRef,
     intent: {
       ...x.proposal.intent,
       commandId: randomUUID(),

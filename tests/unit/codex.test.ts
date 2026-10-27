@@ -26,6 +26,50 @@ const input = () => ({
   signal: AbortSignal.timeout(5000),
 });
 describe.skipIf(process.platform !== "linux")("subscription Codex process adapter", () => {
+  it("preserves canonical legacy cognition for the engine's compatibility validator", async () => {
+    const f = await setup("custom");
+    const answer = { kind: "wait", summary: "Await evidence", cognition: { expectedVersion: 0 } };
+    await writeFile(join(f.home, "response.json"), JSON.stringify(answer));
+    const schema = { type: "object", required: ["decision", "cognition"] };
+    const request = { ...input(), model: { ...input().model, cognition: "llm-centered-v1" as const }, schema };
+    expect(await f.model.decide(request)).toMatchObject({ decision: answer, inputTokens: 123, outputTokens: 45 });
+    expect(await f.model.decide({ ...request, outputContract: schema })).toMatchObject({
+      decision: null,
+      decisionError: "INVALID_MODEL_OUTPUT",
+    });
+  });
+  it("validates the selected engine schema instead of forcing legacy decisions", async () => {
+    const f = await setup("custom");
+    await writeFile(join(f.home, "response.json"), JSON.stringify({ proposals: [], abstain: "No applicable action" }));
+    const schema = {
+      type: "object",
+      properties: { proposals: { type: "array", maxItems: 0 }, abstain: { type: "string" } },
+      required: ["proposals", "abstain"],
+      additionalProperties: false,
+    };
+    expect(await f.model.decide({ ...input(), schema, outputContract: schema })).toMatchObject({
+      decision: { proposals: [], abstain: "No applicable action" },
+      inputTokens: 123,
+      outputTokens: 45,
+    });
+  });
+  it("rejects an inner contract mismatch while retaining completed usage", async () => {
+    const f = await setup();
+    const outputContract = { type: "object", properties: { kind: { const: "read" } }, required: ["kind"] };
+    expect(await f.model.decide({ ...input(), outputContract })).toMatchObject({
+      decision: null,
+      decisionError: "INVALID_MODEL_OUTPUT",
+      inputTokens: 123,
+      outputTokens: 45,
+    });
+  });
+  it("passes the explicitly selected context window to Codex and exposes it to metrics", async () => {
+    const f = await setup();
+    const model = { ...input().model, contextWindowTokens: 500000 };
+    await f.model.decide({ ...input(), model });
+    expect((await f.invocations())[1].args).toContain("model_context_window=500000");
+    expect(f.model.contextWindow(model)).toBe(500000);
+  });
   it("uses ChatGPT auth, explicit model, isolated schema and no inherited service credentials", async () => {
     const f = await setup();
     vi.stubEnv("OPENAI_API_KEY", "PRIVATE_TEXT");

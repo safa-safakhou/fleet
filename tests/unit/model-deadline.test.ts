@@ -1,6 +1,6 @@
 import { afterEach, expect, it, vi } from "vitest";
-import type { ModelPort } from "../../src/domain.js";
-import { modelDeadline } from "../../src/model-deadline.js";
+import { FleetError, type ModelPort } from "../../src/domain.js";
+import { modelAbortCode, modelDeadline } from "../../src/model-deadline.js";
 
 afterEach(() => vi.useRealTimers());
 const request = () =>
@@ -8,6 +8,26 @@ const request = () =>
     model: { route: "ollama", model: "nemotron-4b", thinking: true },
     signal: new AbortController().signal,
   }) as Parameters<ModelPort["decide"]>[0];
+it.each([
+  "MODEL_DEADLINE_EXCEEDED",
+  "TURN_DEADLINE_EXCEEDED",
+  "DEADLINE_MISSED",
+  "TASK_FENCED",
+  "CLAIM_FENCED",
+  "HOST_STOPPED",
+])("preserves the actual %s cancellation before dispatch", async (code) => {
+  const controller = new AbortController(),
+    r = { ...request(), signal: controller.signal, onDispatch: vi.fn() };
+  const d = modelDeadline(r, new Date(Date.now() + 5000), () => new Date());
+  controller.abort(new FleetError(code));
+  try {
+    expect(modelAbortCode(controller.signal.reason)).toBe(code);
+    await expect(d.onDispatch()).rejects.toMatchObject({ code, notDispatched: true });
+    expect(r.onDispatch).not.toHaveBeenCalled();
+  } finally {
+    d.close();
+  }
+});
 it("does not dispatch when queue time consumed the settlement reserve", async () => {
   vi.useFakeTimers();
   const r = { ...request(), onDispatch: vi.fn() };

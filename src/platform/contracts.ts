@@ -84,7 +84,14 @@ export type CapabilityRequirements = {
 export type SchemaRequirements = { observations?: string[]; actions?: string[] };
 export type AccountObjective = string | { intent: string; currentState: Data };
 export type ActionContract = { schemaId: string; payloadSchema: Data; expectedOutcomeSchema?: Data };
-export type ProposalValidation = { valid: boolean; code: string; guidance?: string; detail?: Data };
+export type ProposalValidation = {
+  valid: boolean;
+  code: string;
+  guidance?: string;
+  detail?: Data;
+  /** Pure pre-acceptance failure with actionable feedback; never execution/reconciliation. */
+  correctable?: boolean;
+};
 export type ConditionContract = { name: string; version: string; description: string; argsSchema: Data };
 export const knownReadArgumentContract = "fleet.read-query.known-arguments.v1";
 export const knownReadArgumentContractV3 = "fleet.read-query.known-arguments.v3";
@@ -146,6 +153,8 @@ export type StructuredClaim = { schemaId: string; key: string } & (
 );
 export type Proposal = {
   taskId: string;
+  /** Host-issued identity of the evidence frame; never a model-selected revision. */
+  evidenceFrameRef?: string;
   intent: ActionIntent;
   evidenceRefs: string[];
   expectedOutcome: Data;
@@ -155,6 +164,7 @@ export type Proposal = {
 };
 export type CoordinationFrame = {
   schemaVersion: "fleet.coordination.v1";
+  evidenceFrameRef?: string;
   atomicExpectedVersion: true;
   claimSchemas: { id: string; kind: "resource" | "authority" | "promise" }[];
   capacities: { schemaId: string; key: string; remainingUnits: string }[];

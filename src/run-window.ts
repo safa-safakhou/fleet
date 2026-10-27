@@ -1,6 +1,7 @@
 import { existsSync, readFileSync } from "node:fs";
 import type { RecallPort } from "./cognition.js";
 import { FleetError, type GamePort, type ModelPort } from "./domain.js";
+import { modelCallBound } from "./model-bounds.js";
 
 /** Optional operator-owned wall-clock gate. It adds no request or token quota. */
 export class RunWindow {
@@ -10,6 +11,10 @@ export class RunWindow {
   ) {}
 
   isOpen(): boolean {
+    return this.hasTime(0);
+  }
+
+  private hasTime(requiredMs: number): boolean {
     if (!this.file) return true;
     try {
       if (existsSync(`${this.file}.closed`)) return false;
@@ -21,7 +26,7 @@ export class RunWindow {
         Number.isSafeInteger(value.endsAt) &&
         [900_000, 1_800_000, 3_600_000, 21_600_000, 86_400_000].includes(value.endsAt - value.startsAt) &&
         now >= value.startsAt &&
-        now < value.endsAt &&
+        now + requiredMs < value.endsAt &&
         !existsSync(`${this.file}.closed`)
       );
     } catch {
@@ -33,6 +38,14 @@ export class RunWindow {
     if (!this.isOpen()) throw new FleetError("RUN_WINDOW_CLOSED", true);
   }
 
+  private assertModelTime(model: Parameters<ModelPort["decide"]>[0]["model"]): void {
+    this.assertOpen();
+    if (!this.file) return;
+    // A queued call must not begin just before this operator-owned window expires.
+    // Keep the existing full provider bound plus the accounting margin; never extend the window.
+    if (!this.hasTime(modelCallBound(model) + 1000)) throw new FleetError("RUN_WINDOW_MODEL_DRAINING", true);
+  }
+
   model(provider: ModelPort): ModelPort {
     const estimate = provider.estimateInputTokens?.bind(provider);
     return {
@@ -41,19 +54,19 @@ export class RunWindow {
       ...(estimate
         ? {
             estimateInputTokens: async (input: Parameters<NonNullable<ModelPort["estimateInputTokens"]>>[0]) => {
-              this.assertOpen();
+              this.assertModelTime(input.model);
               return estimate(input);
             },
           }
         : {}),
       decide: async (input) => {
-        this.assertOpen();
+        this.assertModelTime(input.model);
         return provider.decide({
           ...input,
           onDispatch: async () => {
-            this.assertOpen();
+            this.assertModelTime(input.model);
             await input.onDispatch?.();
-            this.assertOpen();
+            this.assertModelTime(input.model);
           },
         });
       },

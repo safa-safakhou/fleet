@@ -51,3 +51,13 @@ it("refuses parallel vLLM admission without a physical cache profile", () => {
     providerCapacity(settings, { route: "openai-compatible", provider: "vllm", model: "nemotron-4b" }),
   ).toThrow("PROVIDER_CACHE_PROFILE_REQUIRED");
 });
+it("also requires verified cache metadata for an explicitly enlarged single-slot context", () => {
+  expect(() =>
+    providerCapacity(config(base), {
+      route: "openai-compatible",
+      provider: "vllm",
+      model: "nemotron-4b",
+      contextWindowTokens: 65536,
+    }),
+  ).toThrow("PROVIDER_CACHE_PROFILE_REQUIRED");
+});

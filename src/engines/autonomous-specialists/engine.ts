@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
-import { type Data, FleetError, object, type Tool } from "../../domain.js";
+import { type Data, FleetError, object, ProposalRejection, type Tool } from "../../domain.js";
 import { packEvidenceMetadata } from "../../evidence-metadata.js";
 import { bindActionContracts, ReactiveDecision } from "../../modules/decision-step/v1/engine.js";
 import { shareGenerationSchema } from "../../modules/generation-schema/v1.js";
@@ -78,11 +78,17 @@ export class AutonomousSpecialistsEngine {
       boundedHistory || services.configuration.architectureConfig.contextPackingContract === "required-first.v1";
     let retrievedReadTool: Tool | undefined;
     let pendingReadTool: string | undefined;
-    let previousWaitRejection: Data | undefined;
+    let previousDecisionRejection: Data | undefined;
     let selected: SkillVersion[] = [],
       learningMode = false;
     const budget = services.configuration.budget,
       config = { ...defaults, ...services.configuration.architectureConfig };
+    const correctProposal = async (call: number, code: string, guidance: string, detail: Data = {}) => {
+      const retryable = call + 1 < budget.maxCallsPerTurn && (await services.model.remainingCalls()) > 0;
+      previousDecisionRejection = { code, guidance, detail, submitted: false, committed: false, retryable };
+      await services.trace("deciding", "Proposal rejected before acceptance", previousDecisionRejection);
+      return retryable;
+    };
     const boundedReadProgress = services.configuration.architectureConfig.decisionContract === "read-final.v3";
     let requestedFacts = boundedReadProgress ? parseRequestedFacts(observation.requestedFacts) : [];
     const preDispatchContract =
@@ -482,7 +488,7 @@ export class AutonomousSpecialistsEngine {
             }
           : null,
         observation: modelObservation,
-        ...(previousWaitRejection ? { previousDecision: previousWaitRejection } : {}),
+        ...(previousDecisionRejection ? { previousDecision: previousDecisionRejection } : {}),
         actionSchemas: allowed,
         ...(visibleContract ? { responseInterface: responseContractGuide(schema) } : {}),
         ...(observationSemantics !== undefined ? { observationSemantics } : {}),
@@ -750,7 +756,19 @@ export class AutonomousSpecialistsEngine {
             )
           : result.decision,
       );
-      if (!parsed.success) throw new FleetError("INVALID_MODEL_OUTPUT", true);
+      if (!parsed.success) {
+        if (
+          parsed.error.issues.every((issue) => issue.code === "custom" && issue.message === "Duplicate support") &&
+          (await correctProposal(
+            call,
+            "DUPLICATE_EVIDENCE_REFERENCE",
+            "Each state update evidenceIds list must contain unique delivered original IDs. Repeating a citation is not additional support. Revise or omit the update; nothing was accepted.",
+            { fields: parsed.error.issues.map((issue) => issue.path.join(".")).slice(0, 8) },
+          ))
+        )
+          continue;
+        throw new FleetError("INVALID_MODEL_OUTPUT", true);
+      }
       const { decision, update } = parsed.data;
       const changes = Object.fromEntries(
         Object.entries(parsed.data.skills ?? {}).filter(([, refs]) => refs.length > 0),
@@ -849,8 +867,20 @@ export class AutonomousSpecialistsEngine {
         [...update.goals, ...update.memories, ...update.predictions].some((record) =>
           record.evidenceIds.some((id) => !delivered.has(id)),
         )
-      )
+      ) {
+        if (
+          !skills?.publish?.length &&
+          !skills?.adopt?.length &&
+          (await correctProposal(
+            call,
+            "UNDISPATCHED_EVIDENCE_REFERENCE",
+            "State updates must cite delivered evidence original IDs, not world source references, goal IDs or invented IDs. Revise the update or omit it; no state or game command was accepted.",
+            { deliveredEvidenceIds: [...delivered] },
+          ))
+        )
+          continue;
         throw new FleetError("UNDISPATCHED_EVIDENCE_REFERENCE", true);
+      }
       const envelope: Omit<SpecialistEnvelope, "intent"> = {
         goals: [],
         memories: [],
@@ -864,14 +894,14 @@ export class AutonomousSpecialistsEngine {
       if (decision.kind === "wait") {
         const validation = await services.environment.validateWait?.(decision.basis ?? {}, observation);
         if (validation && !validation.valid) {
-          previousWaitRejection = {
+          previousDecisionRejection = {
             code: validation.code,
             guidance: validation.guidance,
             detail: validation.detail,
             submitted: false,
             committed: false,
           };
-          await services.trace("deciding", "Wait rejected before completion", previousWaitRejection);
+          await services.trace("deciding", "Wait rejected before completion", previousDecisionRejection);
           if (call + 1 >= budget.maxCallsPerTurn || (await services.model.remainingCalls()) < 1)
             throw new FleetError(validation.code, true);
           continue;
@@ -898,8 +928,36 @@ export class AutonomousSpecialistsEngine {
         },
         observation,
       );
-      if (validation && !validation.valid) throw new FleetError(validation.code, true);
-      await p.accept({ expectedVersion: state.version, envelope, intent, defer: decision.defer });
+      if (validation && !validation.valid) {
+        if (
+          validation.correctable === true &&
+          !skills?.publish?.length &&
+          !skills?.adopt?.length &&
+          (await correctProposal(
+            call,
+            validation.code,
+            validation.guidance ??
+              "Revise this unsubmitted proposal using the delivered validation details and current evidence, or read missing facts.",
+            validation.detail,
+          ))
+        )
+          continue;
+        throw new FleetError(validation.code, true);
+      }
+      try {
+        await p.accept({ expectedVersion: state.version, envelope, intent, defer: decision.defer });
+      } catch (error) {
+        // The host issues this type only before acceptance or after transaction rollback.
+        // A generic notDispatched flag alone never permits replacing a prepared command.
+        if (
+          error instanceof ProposalRejection &&
+          !skills?.publish?.length &&
+          !skills?.adopt?.length &&
+          (await correctProposal(call, error.code, error.feedback.guidance, error.feedback.detail))
+        )
+          continue;
+        throw error;
+      }
       return;
     }
     await services.trace("deciding", "Specialist call limit reached without a final decision", {

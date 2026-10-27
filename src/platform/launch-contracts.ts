@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { Budget, ModelConfig } from "../domain.js";
+import { Budget, ModelConfig, supportsExtendedContextBudget } from "../domain.js";
 import { ArchitectureRefSchema } from "./architecture-schema.js";
 import { WakePolicySchema } from "./event-intake.js";
 export const WorkLimitsSchema = z
@@ -31,7 +31,8 @@ export const LaunchSpecSchema = z
       .strict(),
     nonModelLimits: WorkLimitsSchema.optional(),
   })
-  .strict();
+  .strict()
+  .refine((s) => supportsExtendedContextBudget(s.model, s.budget), "Unsupported extended context budget");
 export type LaunchSpec = z.infer<typeof LaunchSpecSchema>;
 export type LaunchCheck = {
   valid: boolean;

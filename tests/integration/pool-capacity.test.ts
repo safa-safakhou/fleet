@@ -1,5 +1,5 @@
 import { afterEach, expect, it } from "vitest";
-import type { ModelPort } from "../../src/domain.js";
+import { FleetError, type ModelPort } from "../../src/domain.js";
 import { LegacyEngineBridge } from "../../src/engines/legacy/bridge.js";
 import { pactAdapter } from "../../src/games/pact/adapter.js";
 import { RouteCapacity } from "../../src/platform/admission.js";
@@ -11,6 +11,51 @@ afterEach(async () => {
   await cleanup?.();
   cleanup = undefined;
 });
+
+it.each(["MODEL_DEADLINE_EXCEEDED", "TURN_DEADLINE_EXCEEDED", "DEADLINE_MISSED", "HOST_STOPPED"])(
+  "preserves %s while queued and never dispatches cancelled work",
+  async (code) => {
+    const f = await platformFixture(2);
+    cleanup = () => f.pool.end();
+    const group = await f.cohort(2);
+    for (const binding of group.bindings) await f.enqueue(binding);
+    const first = await f.claim(),
+      second = await f.claim();
+    const route = new RouteCapacity(f.store, () => ({ key: "cancel-fixture", capacity: 1 }));
+    let release!: () => void,
+      admitted = false,
+      invoked = false;
+    const running = route.run(first.turn, f.request(), async () => {
+      admitted = true;
+      await new Promise<void>((resolve) => {
+        release = resolve;
+      });
+    });
+    try {
+      await expect.poll(() => admitted).toBe(true);
+      const controller = new AbortController();
+      const queued = route
+        .run(second.turn, { ...f.request(), signal: controller.signal }, async () => {
+          invoked = true;
+        })
+        .catch((error: unknown) => error);
+      await expect
+        .poll(
+          async () =>
+            (await f.pool.query("SELECT count(*)::int n FROM model_capacity_leases WHERE state='queued'")).rows[0].n,
+        )
+        .toBe(1);
+      controller.abort(new FleetError(code));
+      expect(await queued).toMatchObject({ code, notDispatched: true });
+      expect(invoked).toBe(false);
+      expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger")).rows[0].n).toBe(0);
+    } finally {
+      release?.();
+      await running;
+    }
+    expect((await f.pool.query("SELECT count(*)::int n FROM model_capacity_leases")).rows[0].n).toBe(0);
+  },
+);
 
 it.each([
   { demand: 60, expected: 1 },

@@ -3,7 +3,11 @@ import { FleetError, type ModelSettings } from "../domain.js";
 import { assertCacheSelection, cacheResource } from "./cache-profile.js";
 
 export function providerCapacity(settings: ReturnType<typeof config>, model: ModelSettings) {
-  if (model.provider === "vllm" && settings.inferenceConcurrency["openai-compatible"] > 1 && !settings.vllmCacheProfile)
+  if (
+    model.provider === "vllm" &&
+    (settings.inferenceConcurrency["openai-compatible"] > 1 || model.contextWindowTokens !== undefined) &&
+    !settings.vllmCacheProfile
+  )
     throw new FleetError("PROVIDER_CACHE_PROFILE_REQUIRED", true);
   if (settings.vllmCacheProfile && (model.route === "openai-compatible" || model.provider === "vllm")) {
     if (!settings.routes["openai-compatible"]) throw new FleetError("PROVIDER_CACHE_PROFILE_MISMATCH", true);

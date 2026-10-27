@@ -103,6 +103,29 @@ function fixture(): OwnedWorldConfig {
     },
   };
 }
+it("accepts only the separate pinned Codex comparison without relaxing old Nemotron ownership", () => {
+  const c = fixture();
+  c.purpose = "fresh-codex-one-hour";
+  c.model = {
+    route: "codex-cli",
+    servedName: "gpt-6.1-terra",
+    endpoint: "codex://local",
+    repository: "openai",
+    revision: "gpt-6.1-terra",
+    contextWindowTokens: 500000,
+  };
+  c.fleetEnv.FLEET_CODEX_EXECUTABLE = "/private/native/codex";
+  c.fleetEnv.FLEET_CODEX_HOME = `${c.root}/provider/home`;
+  expect(() => assertOwnedConfiguration(c, c.root)).not.toThrow();
+  for (const changes of [
+    { purpose: "fresh-half-hour" },
+    { model: { ...c.model, servedName: "another" } },
+    { model: { ...c.model, contextWindowTokens: 128000 } },
+    { fleetEnv: { ...c.fleetEnv, FLEET_CODEX_HOME: "/shared/interactive-home" } },
+  ]) {
+    expect(() => assertOwnedConfiguration({ ...c, ...changes }, c.root)).toThrow();
+  }
+});
 it("rejects retained/default databases, mismatched ownership, public routes and any other model", () => {
   const good = fixture();
   expect(() => assertOwnedConfiguration(good, good.root)).not.toThrow();

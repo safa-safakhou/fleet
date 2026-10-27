@@ -122,3 +122,64 @@ it("rejects oversized input before schema compilation or model dispatch", async 
   ).rejects.toThrow("MODEL_REQUEST_NOT_ADMITTED");
   expect(calls).toBe(0);
 });
+
+it("preserves a known failed output without repeating unchanged input when correction cannot fit", async () => {
+  let calls = 0,
+    retries = 0;
+  const result = await recoverModelOutput(request, {
+    inputByteLimit:
+      Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.schema)),
+    canRetry: async () => true,
+    attempt: async () => {
+      calls++;
+      return invalid;
+    },
+    onRetry: async () => {
+      retries++;
+    },
+  });
+  expect(result).toBe(invalid);
+  expect(calls).toBe(1);
+  expect(retries).toBe(0);
+});
+
+it.each(["MODEL_DEADLINE_EXCEEDED", "TURN_DEADLINE_EXCEEDED", "TASK_FENCED", "HOST_STOPPED"])(
+  "preserves %s cancellation after an accounted output instead of reporting lease loss",
+  async (code) => {
+    const controller = new AbortController();
+    let calls = 0;
+    await expect(
+      recoverModelOutput(
+        { ...request, signal: controller.signal },
+        {
+          inputByteLimit: 24000,
+          canRetry: async () => true,
+          attempt: async () => {
+            calls++;
+            controller.abort(new FleetError(code));
+            return invalid;
+          },
+        },
+      ),
+    ).rejects.toThrow(code);
+    expect(calls).toBe(1);
+  },
+);
+
+it.each([true, false])(
+  "retains the accounted output only when draining proves no corrective dispatch (%s)",
+  async (notDispatched) => {
+    let calls = 0;
+    const result = recoverModelOutput(request, {
+      inputByteLimit: 24000,
+      canRetry: async () => true,
+      attempt: async () => {
+        if (++calls === 1) return invalid;
+        throw new FleetError("RUN_WINDOW_MODEL_DRAINING", notDispatched);
+      },
+    });
+    if (notDispatched) expect(await result).toBe(invalid);
+    else await expect(result).rejects.toThrow("RUN_WINDOW_MODEL_DRAINING");
+    expect(calls).toBe(2);
+  },
+);

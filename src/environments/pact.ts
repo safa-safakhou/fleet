@@ -84,6 +84,7 @@ export function createPactEnvironment(ports: {
   store: Store;
   bindings: PactBindings;
   game: (agentId: string) => Promise<GamePort>;
+  observeRead?: (agentId: string, tool: string, args: Data, result: Data) => Promise<void>;
   now: () => Date;
   eventFeedVersion?: "pact.agent-events.v1";
   outlookVersion?: "pact.agent-outlook.v1";
@@ -141,6 +142,16 @@ export function createPactEnvironment(ports: {
       const requests = (ports.factRequests ?? []).filter((r) => r.entityRef === binding.entityRef);
       const tracker = createPactFactTracker(requests, binding.entityRef);
       const game = await ports.game(agentId);
+      if (ports.observeRead) {
+        // Each connect owns this game session. Journal only the authorized page
+        // actually returned; observation never triggers additional reads.
+        const read = game.read.bind(game);
+        game.read = async (tool, args) => {
+          const result = await read(tool, args);
+          await ports.observeRead!(agentId, tool, args, result);
+          return result;
+        };
+      }
       const coordination = ports.coordinationVersion ? new PactCoordination(binding, game, ports.now) : undefined;
       let leaseOpened = false;
       const ensureWriteLease = async () => {

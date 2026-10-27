@@ -13,6 +13,7 @@ import {
   object,
   type Strategy,
   strategy,
+  supportsExtendedContextBudget,
 } from "./domain.js";
 import { legacyUndispatchedPhase } from "./engines/legacy/execution.js";
 import { modelTurnBound } from "./model-bounds.js";
@@ -123,6 +124,8 @@ export class Store {
       if (!row) throw new FleetError("NOT_FOUND");
       if (row.state !== "paused" || !row.budget) throw new FleetError("COHORT_NOT_EDITABLE");
       const budget = Budget.parse({ ...row.budget, inputByteLimit });
+      if (!row.model || !supportsExtendedContextBudget(row.model, budget))
+        throw new FleetError("LARGE_CONTEXT_CONFIGURATION_REQUIRED");
       if (inputByteLimit <= row.budget.inputByteLimit) throw new FleetError("INPUT_INCREASE_REQUIRED");
       if (
         (
@@ -216,6 +219,7 @@ export class Store {
     if (model.decisionPolicy) throw new FleetError("VW_UNUSED");
     if (model.route === "codex-cli" && (!budget.executionAccountingAccepted || budget.concurrency !== 1))
       throw new FleetError("CODEX_EXECUTION_BUDGET_REQUIRED");
+    if (!supportsExtendedContextBudget(model, budget)) throw new FleetError("LARGE_CONTEXT_CONFIGURATION_REQUIRED");
     if (model.decisionPolicy && budget.concurrency !== 1) throw new FleetError("DECISION_SERIAL_REQUIRED");
     if (budget.deadlineAt && new Date(budget.deadlineAt) <= this.now()) throw new FleetError("DEADLINE_PASSED");
     const write = async (c: PoolClient) => {

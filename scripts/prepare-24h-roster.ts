@@ -9,7 +9,7 @@ import { CredentialBroker } from "../src/games/pact/credentials.js";
 import { McpGame } from "../src/games/pact/mcp.js";
 import { LaunchService } from "../src/platform/launch.js";
 import { runtime } from "../src/runtime.js";
-import { freshRunProfiles } from "./lib/fresh-run-profile.js";
+import { freshRunProfiles, localInferenceLimits } from "./lib/fresh-run-profile.js";
 
 const root = resolve(process.argv[2] ?? "/nonexistent");
 const config = JSON.parse(readFileSync(resolve(root, "config.json"), "utf8"));
@@ -23,7 +23,9 @@ const window = JSON.parse(readFileSync(config.fleetEnv.FLEET_RUN_WINDOW_FILE, "u
 assert.equal(window.status, "prepared");
 assert.equal(window.startsAt, null);
 assert.equal(window.endsAt, null);
-const exploratory = ["fresh-six-hour", "fresh-half-hour"].includes(config.purpose);
+const codex = config.model.route === "codex-cli";
+const exploratory = ["fresh-six-hour", "fresh-half-hour", "fresh-codex-one-hour"].includes(config.purpose);
+const localLimits = localInferenceLimits(config.localInference, exploratory);
 assert.equal(
   window.durationMs,
   Object.values(freshRunProfiles).find((profile) => profile.purpose === config.purpose)?.durationMs ?? 86_400_000,
@@ -88,7 +90,7 @@ try {
         name: `${label} ${manifest.ref.id}@${manifest.ref.version}`,
         count: 1,
         intervalMinutes: 15,
-        seed: `${config.id}:${ordinal}`,
+        seed: `${config.strategySeed ?? config.id}:${ordinal}`,
         strategies: [personas[ordinal]],
       });
       await r.store.consent(id, true);
@@ -146,21 +148,27 @@ try {
             : {}),
         },
         model: {
-          route: "openai-compatible",
-          provider: "vllm",
+          ...(codex
+            ? { route: "codex-cli", contextWindowTokens: config.model.contextWindowTokens, reasoningEffort: "medium" }
+            : {
+                route: "openai-compatible",
+                provider: "vllm",
+                thinking: exploratory,
+                temperature: 0,
+                ...(config.localInference ? { contextWindowTokens: localLimits.contextWindowTokens } : {}),
+              }),
           model: config.model.servedName,
-          thinking: exploratory,
-          temperature: 0,
           ...(manifest.ref.id === "legacy-cognition" ? { cognition: "llm-centered-v1" } : {}),
         },
         budget: {
           mode: "finite",
-          callLimit: 2000,
-          tokenLimit: 80000000,
+          callLimit: codex ? 500 : 2000,
+          tokenLimit: codex ? 600000000 : 80000000,
           deadlineAt: config.proposalDeadline,
-          perCallTokenLimit: 40000,
-          maxOutputTokens: exploratory ? 8192 : 1536,
-          inputByteLimit: exploratory ? 64000 : 32000,
+          perCallTokenLimit: codex ? 1200000 : localLimits.perCallTokenLimit,
+          maxOutputTokens: codex ? 8192 : localLimits.maxOutputTokens,
+          inputByteLimit: codex ? 1048576 : localLimits.inputByteLimit,
+          ...(codex || config.localInference ? { executionAccountingAccepted: true } : {}),
           maxCallsPerTurn: 3,
           maxActionsPerTurn: 1,
           concurrency: 1,
