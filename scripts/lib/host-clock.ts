@@ -53,7 +53,11 @@ export function assessHostClock(input: unknown) {
       (row.after.mono - row.before.mono) / 1e6 > 50
     )
       reasons.add("CLOCK_SAMPLE_INVALID");
-    if (row.timex.tickUs !== 10000 || Math.abs(row.timex.freqPpm) > 500) reasons.add("CLOCK_DISCIPLINE_UNSTABLE");
+    // Linux disciplines frequency with both coarse microseconds/tick and fine ppm.
+    // A non-nominal tick can be compensated normally; assess their combined rate
+    // against the same 0.1% bound as the independent Windows measurements.
+    const disciplinePpm = ((row.timex.tickUs - 10000) / 10000) * 1e6 + row.timex.freqPpm;
+    if (Math.abs(disciplinePpm) > 1000 || Math.abs(row.timex.freqPpm) > 500) reasons.add("CLOCK_DISCIPLINE_UNSTABLE");
     if (i > 0) {
       const prev = rows[i - 1];
       if (row.qpc <= prev.qpc) reasons.add("CLOCK_SAMPLE_INVALID");

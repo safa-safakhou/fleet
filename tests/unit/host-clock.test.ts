@@ -29,6 +29,33 @@ it("requires a complete Windows-referenced clock window with stable rate and no 
   expect(assessHostClock(d)).toMatchObject({ passed: true, samples: 301 });
   expect(() => assertFreshHostClock(d, { qpc: d.samples[300].qpc + 10000000, frequency: 10000000 })).not.toThrow();
 });
+it.each([
+  [10001, -77.124343872],
+  [9999, 77.124343872],
+])("accepts compensated tick %i with fine correction %f when host measurements pass", (tickUs, freqPpm) => {
+  const d = control();
+  for (const s of d.samples) s.timex = { tickUs, freqPpm };
+  expect(assessHostClock(d)).toMatchObject({ passed: true, samples: 301 });
+});
+it.each([
+  [10010, 500],
+  [9990, -500],
+  [10000, 501],
+  [10000, -501],
+])("refuses excessive combined or fine clock correction %i/%f", (tickUs, freqPpm) => {
+  const d = control();
+  d.samples[100].timex = { tickUs, freqPpm };
+  expect(assessHostClock(d).reasons).toContain("CLOCK_DISCIPLINE_UNSTABLE");
+});
+it("still refuses measured drift with otherwise normal compensated discipline", () => {
+  const d = control();
+  for (const s of d.samples) {
+    s.timex = { tickUs: 10001, freqPpm: -77 };
+    s.before.mono *= 1.002;
+    s.after.mono *= 1.002;
+  }
+  expect(assessHostClock(d).reasons).toContain("CLOCK_RATE_MISMATCH");
+});
 it("refuses adjusted-clock drift even when wall time was stepped back into agreement", () => {
   const d = control();
   for (const s of d.samples) {
