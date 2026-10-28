@@ -146,6 +146,7 @@ export function tradePreflight(action: Data, facts: Data, expectedOutcome?: Data
   if (!issues.length) return;
   return {
     valid: false,
+    correctable: true,
     code: issues[0],
     guidance:
       "No command prepared. Match expectedOutcome.trade.youSend/youReceive to these computed directions. Offer creator is A; counters keep original A/B. Rates/amounts are whole resources. Correct every issue from the observed rules and maxBondWhole, or choose other useful work/read/wait. Null bonds are valid; unsigned offers earn no resources. Never replay an uncertain command.",

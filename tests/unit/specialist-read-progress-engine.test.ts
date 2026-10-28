@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, it, vi } from "vitest";
 import { FleetError, ProposalRejection } from "../../src/domain.js";
 import { AutonomousSpecialistsEngine } from "../../src/engines/autonomous-specialists/engine.js";
+import { pactActionContracts, validatePactProposal } from "../../src/games/pact/proposals.js";
 import { pactReadQuerySchema } from "../../src/games/pact/read-queries.js";
 import type { Observation } from "../../src/platform/contracts.js";
 import type { ScopedOperation, ScopedServices } from "../../src/platform/engine-context.js";
@@ -164,6 +165,60 @@ it("uses environment-provided correction without embedding domain rules in the e
   expect(f.calls()).toBe(2);
   expect(f.accept).toHaveBeenCalledTimes(1);
   expect(f.accept.mock.calls[0][0].intent.payload).toEqual({ accept: false });
+});
+it("carries a native excessive-bond rejection back through the engine before accepting corrected terms", async () => {
+  const peer = "22222222-2222-4222-8222-222222222222";
+  const facts = {
+    world: { profile: { kingdomId: "11111111-1111-4111-8111-111111111111" } },
+    diplomacy: {
+      contractRules: {
+        termsValidation: {
+          schemaVersion: "pact.supply-terms.v1",
+          maxBondFlowHours: 6,
+          valueUnitsPerWhole: { grain: "1", iron: "4", silver: "8" },
+          durationHours: [1, 6, 24, 72],
+          noticeHours: [0, 1, 6],
+          minOfferExpiryMinutes: 5,
+          maxOfferExpiryMinutes: 60,
+        },
+      },
+    },
+  };
+  const terms = {
+    aToB: { resource: "grain", wholePerHour: 5 },
+    bToA: { resource: "iron", wholePerHour: 6 },
+    aBond: null,
+    bBond: null,
+    durationHours: 6,
+    noticeHours: 1,
+  };
+  const good = { kind: "game.supply.offer", counterpartyKingdomId: peer, terms };
+  const bad = { ...good, terms: { ...terms, aBond: { resource: "grain", wholeAmount: 31 } } };
+  const decision = (payload: unknown) => ({
+    kind: "action",
+    schemaId: "pact.action.v1",
+    payload,
+    summary: "Action proposed.",
+    expectedOutcome: { trade: { youSend: terms.aToB, youReceive: terms.bToA } },
+  });
+  const f = setup([decision(bad), decision(good)]);
+  f.services.environment.schemas.actions = ["pact.action.v1"];
+  f.services.environment.actionContracts = async () => pactActionContracts(facts, ["game.supply.offer"]);
+  f.services.environment.validateProposal = async (p) =>
+    validatePactProposal(p.intent.payload, facts, p.expectedOutcome);
+  const requests: unknown[] = [],
+    decide = f.services.model.decide;
+  f.services.model.decide = async (request) => {
+    requests.push(request);
+    return decide(request);
+  };
+  await new AutonomousSpecialistsEngine().run(f.operation, f.services);
+  expect(f.calls()).toBe(2);
+  expect(JSON.stringify(requests[1])).toContain("PACT_SUPPLY_BOND_EXCEEDS_FLOW");
+  expect(JSON.stringify(requests[1])).toContain("maxBondWhole");
+  expect(f.accept).toHaveBeenCalledTimes(1);
+  expect(f.accept.mock.calls[0][0].intent.payload).toEqual(good);
+  expect(f.submit).not.toHaveBeenCalled();
 });
 it("stops unaccepted-proposal correction at the existing call limit", async () => {
   const next = {

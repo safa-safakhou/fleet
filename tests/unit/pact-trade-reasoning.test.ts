@@ -71,6 +71,7 @@ it("rejects the retained excessive-bond offer before submission and explains the
   expect(check).toMatchObject({
     valid: false,
     code: "PACT_SUPPLY_BOND_EXCEEDS_FLOW",
+    correctable: true,
     detail: {
       issues: expect.arrayContaining(["PACT_SUPPLY_BOND_EXCEEDS_FLOW", "PACT_SUPPLY_RATE_TOO_HIGH"]),
       maxBondWhole: { a: { grain: "72000" }, b: { grain: "96000" } },

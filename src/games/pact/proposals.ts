@@ -131,7 +131,7 @@ export function validatePactProposal(payload: Data, facts: Data, expectedOutcome
       ? {
           valid: false,
           code: String(denied.code),
-          correctable: ["PACT_TRADE_PERSPECTIVE_MISMATCH", "PACT_DUPLICATE_NEGOTIATION"].includes(String(denied.code)),
+          correctable: denied.correctable === true || denied.code === "PACT_DUPLICATE_NEGOTIATION",
           ...(denied.guidance ? { guidance: String(denied.guidance) } : {}),
           ...(denied.detail ? { detail: denied.detail as Data } : {}),
         }

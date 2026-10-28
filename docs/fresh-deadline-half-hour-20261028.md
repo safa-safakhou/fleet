@@ -1,5 +1,7 @@
 # Queue/deadline deployment and fresh half-hour — 28 October 2026
 
+Follow-up: the previously unattributed signing refusal and missing correction paths are explained in the [bounded investigation and probe report](bounded-feedback-followup-20261028.md). This historical run is unchanged.
+
 The owner-authorized fresh 24-kingdom run completed its 30-minute window. **The repaired queue/accounting paths held in this trial: all 184 model calls were reported, with no unknown usage, held agents, worker expiry, model-generation timeout or turn timeout. All 24 kingdoms committed actions.** This is not a clean behavioral pass: proposal rejections, output truncations and incomplete social exchanges remain.
 
 The world is paused at tick 29. All owned runtime services and the provider are stopped. All 24 finite-run cohorts are terminal `finished`, while their agents remain `ready`; they were not reopened or relabelled paused. The retained world, records and private evidence remain available.

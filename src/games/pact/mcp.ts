@@ -1,4 +1,4 @@
-import { type Data, FleetError, type GamePort, object, type Tool } from "../../domain.js";
+import { type Data, FleetError, type GamePort, object, ProposalRejection, type Tool } from "../../domain.js";
 import { RemoteRejection, readJSONResponse } from "../../http.js";
 import { isRead, validateActionTool, validateTool } from "./contracts.js";
 
@@ -104,7 +104,19 @@ export class McpGame implements GamePort {
     return this.call("pact_game_action_v2", { commandId: id, action });
   }
   async effects(command: Data) {
-    return this.call("pact_action_effects_quote_v1", { command });
+    try {
+      return await this.call("pact_action_effects_quote_v1", { command });
+    } catch (error) {
+      // This endpoint is read-only. Execution/transport failures must never be
+      // converted into permission to replace a possibly accepted command.
+      if (error instanceof RemoteRejection && ["EXPIRED", "STALE_VERSION"].includes(error.code))
+        throw new ProposalRejection(
+          error.code,
+          "The action reference expired or changed before its read-only quote. No command was prepared or submitted. Read current evidence or choose another supported action; do not repeat the stale reference.",
+          { phase: "action_effects_quote" },
+        );
+      throw error;
+    }
   }
   async submitGuarded(command: Data, guard: Data) {
     return this.call("pact_action_effects_execute_v1", { command, guard });
