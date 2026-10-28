@@ -63,6 +63,24 @@ import {
 } from "../fixtures/post-e3.js";
 import { positiveSpecialistProvider } from "../fixtures/post-e3-provider.js";
 
+// Fixed historical protocols remain unqualified when their original budgets/context cannot
+// support today's authoritative packets. Never increase those limits to manufacture acceptance.
+const historicalLimits: Record<number, { cell: number; reason: string }> = {
+  15: { cell: 2, reason: "RC1_MODEL_CAP" },
+  19: { cell: 2, reason: "RC1_MODEL_CAP" },
+  20: { cell: 0, reason: "BUDGET_EXHAUSTED" },
+  21: { cell: 0, reason: "BUDGET_EXHAUSTED" },
+  22: { cell: 2, reason: "RC1_MODEL_CAP" },
+  23: { cell: 0, reason: "RC1_MODEL_CAP" },
+  24: { cell: 0, reason: "RC1_MODEL_CAP" },
+  25: { cell: 1, reason: "SPECIALIST_CONTEXT_INCOMPLETE" },
+  26: { cell: 1, reason: "SPECIALIST_CONTEXT_INCOMPLETE" },
+  27: { cell: 1, reason: "SPECIALIST_CONTEXT_INCOMPLETE" },
+  28: { cell: 1, reason: "SPECIALIST_CONTEXT_INCOMPLETE" },
+  29: { cell: 1, reason: "SPECIALIST_CONTEXT_INCOMPLETE" },
+  30: { cell: 1, reason: "SPECIALIST_CONTEXT_INCOMPLETE" },
+};
+
 let f: Awaited<ReturnType<typeof ownedRC2Fixture>> | undefined;
 afterEach(async () => {
   await f?.close();
@@ -98,7 +116,7 @@ it.each([
   ["RC29 installed Granite nonthinking", ownedRC29Fixture, executeOwnedRC29Protocol],
   ["RC30 whole native world read tables", ownedRC30Fixture, executeOwnedRC30Protocol],
 ] as const)(
-  "%s completes both positive families and role reversals through eight native participants, actual delivery and later decisions",
+  "%s preserves its documented completed negotiation or exact historical limit without fabricated qualification",
   async (_name, create, execute) => {
     f = await create();
     const namedMeanings =
@@ -395,7 +413,7 @@ it.each([
           _name.startsWith("RC30")
         ) {
           expect(packet.readInterface.queryShape.instructions).toContain("readSchema inspects metadata only");
-          expect(packet.readInterface.queryShape.instructions).toContain("Fields need schema lookup");
+          expect(packet.readInterface.queryShape.instructions).toContain("Lookup only unknown tools");
         }
         if (
           _name.startsWith("RC25") ||
@@ -457,12 +475,23 @@ it.each([
       };
     }
     const outcomes: unknown[] = [];
+    const providerErrors: unknown[] = [];
     const currentFixture = f;
     const result = await execute(f.protocol, f.grant, {
       store: f.store,
       prepared: f.prepared,
       evidenceLevel: "fake-provider",
-      provider: fake.provider,
+      provider: {
+        ...fake.provider,
+        async decide(request) {
+          try {
+            return await fake.provider.decide(request);
+          } catch (error) {
+            providerErrors.push(error);
+            throw error;
+          }
+        },
+      },
       verifyArtifacts: async () => {},
       reviewResponse: async () => {},
       reviewOutcome: async (_cell, e) => ({
@@ -489,6 +518,39 @@ it.each([
         if (kind === "cell-outcome") outcomes.push(detail);
       },
     });
+    if (providerErrors.length) throw providerErrors[0];
+    const limit = historicalLimits[Number(/^RC(\d+) /.exec(_name)?.[1])];
+    if (limit) {
+      expect(result.productionQualified).toBe(false);
+      expect(result.status).toBe("stopped");
+      expect(result.cells).toHaveLength(4);
+      expect(result.cells[limit.cell]).toMatchObject({ status: "failed", reason: limit.reason });
+      for (const cell of result.cells.slice(0, limit.cell)) {
+        expect(cell.status).toBe("completed");
+        expect(cell.assessment).toMatchObject({
+          material: "pass",
+          history: "pass",
+          communication: "pass",
+          criticalFailures: [],
+        });
+      }
+      expect(result.cells.slice(limit.cell + 1).every((c) => c.status === "not_started")).toBe(true);
+      expect((await f.pool.query("SELECT 1 FROM compute_ledger WHERE status IN('unknown','reserved')")).rowCount).toBe(
+        0,
+      );
+      expect((await f.pool.query("SELECT 1 FROM turns WHERE state='running'")).rowCount).toBe(0);
+      expect((await f.pool.query("SELECT 1 FROM model_capacity_leases")).rowCount).toBe(0);
+      for (const p of f.prepared) {
+        expect(
+          (await f.pool.query("SELECT count(*)::int n FROM compute_ledger WHERE cohort_id=$1", [p.binding.cohortId]))
+            .rows[0].n,
+        ).toBeLessThanOrEqual(p.cell.limits.callsPerWorld);
+        for (const world of [p.world, p.control])
+          expect((await world.pool.query("SELECT status FROM world_clocks")).rows[0].status).toBe("paused");
+      }
+      if (_name.startsWith("RC30")) expect(fake.worldReads).toBe(2);
+      return;
+    }
     if (result.status !== "complete" || result.cells.some((c) => c.assessment?.status !== "pass")) {
       console.log(
         JSON.stringify({

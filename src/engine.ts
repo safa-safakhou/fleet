@@ -672,7 +672,7 @@ export class Engine {
             onDispatch: () => this.store.phase(claim, "model_dispatched"),
             signal: controller.signal,
           };
-          deadline = modelDeadline(request, claim.deadline, this.store.now);
+          deadline = modelDeadline(request, claim.deadline, this.store.now, Boolean(this.model.tracksDispatch));
           response = await this.model.decide({ ...request, signal: deadline.signal, onDispatch: deadline.onDispatch });
         } catch (error) {
           if (error instanceof FleetError && error.notDispatched) await this.store.notDispatched(reservation);

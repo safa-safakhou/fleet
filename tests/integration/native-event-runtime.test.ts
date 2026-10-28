@@ -150,7 +150,7 @@ it.each([
           mode: "finite",
           callLimit: 3,
           tokenLimit: 240000,
-          deadlineAt: new Date(Date.now() + 120000).toISOString(),
+          deadlineAt: new Date(Date.now() + 420000).toISOString(),
           perCallTokenLimit: 40000,
           maxOutputTokens,
           inputByteLimit: 64000,

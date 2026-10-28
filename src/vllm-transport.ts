@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { type Data, FleetError, object, safeCode } from "./domain.js";
 import { readJSONResponse } from "./http.js";
+import { modelAbortCode } from "./model-deadline.js";
 import { type GenerationProgress, ModelTransportError } from "./model-progress.js";
 export async function vllmCompletion(url: string, body: Data, key: string, signal: AbortSignal) {
   const started = performance.now();
@@ -21,6 +22,7 @@ export async function vllmCompletion(url: string, body: Data, key: string, signa
     wireBytes: 0,
   };
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
+  let abortRead: (() => void) | undefined;
   try {
     const response = await fetch(url, {
       method: "POST",
@@ -47,6 +49,11 @@ export async function vllmCompletion(url: string, body: Data, key: string, signa
     }
     if (!response.body) throw new FleetError("EMPTY_RESPONSE");
     reader = response.body.getReader();
+    const aborted = new Promise<never>((_, reject) => {
+      abortRead = () => reject(new FleetError(modelAbortCode(signal.reason)));
+      signal.addEventListener("abort", abortRead, { once: true });
+      if (signal.aborted) abortRead();
+    });
     const decoder = new TextDecoder("utf-8", { fatal: true });
     let pending = "",
       text = "",
@@ -133,7 +140,7 @@ export async function vllmCompletion(url: string, body: Data, key: string, signa
       }
     };
     read: for (;;) {
-      const next = await reader.read();
+      const next = await Promise.race([reader.read(), aborted]);
       if (next.done) {
         pending += decoder.decode();
         break;
@@ -152,7 +159,6 @@ export async function vllmCompletion(url: string, body: Data, key: string, signa
       if (Buffer.byteLength(pending) > 1000000) throw new FleetError("RESPONSE_TOO_LARGE");
     }
     if (pending.trim() || !done || !progress.finishReason) throw new FleetError("MODEL_STREAM_INCOMPLETE");
-    await reader.cancel().catch(() => {});
     progress.elapsedMs = performance.now() - started;
     return {
       data: { choices: [{ message: { content: text }, finish_reason: progress.finishReason }], usage: usage ?? {} },
@@ -160,9 +166,12 @@ export async function vllmCompletion(url: string, body: Data, key: string, signa
     };
   } catch (error) {
     progress.elapsedMs = performance.now() - started;
-    await reader?.cancel().catch(() => {});
     throw new ModelTransportError(safeCode(error), progress);
   } finally {
+    if (abortRead) signal.removeEventListener("abort", abortRead);
+    // A protocol-complete answer already carries authoritative usage. Socket cleanup
+    // must not delay its accounting past the turn lease. Partial streams remain unknown.
+    void reader?.cancel().catch(() => {});
     reader?.releaseLock();
   }
 }

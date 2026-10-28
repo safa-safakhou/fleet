@@ -20,7 +20,10 @@ export async function platformFixture(capacity = 2) {
     tasks = new TaskStore(f.store, bindings, 4, environments);
   const route = new RouteCapacity(f.store, () => ({ key: `fixture:${key}`, capacity })),
     key = randomUUID();
-  async function cohort(count = 2) {
+  async function cohort(
+    count = 2,
+    settings?: { model?: import("../src/domain.js").ModelSettings; concurrency?: number },
+  ) {
     const { id } = await f.store.create({
       name: "Synthetic boards",
       count,
@@ -29,8 +32,8 @@ export async function platformFixture(capacity = 2) {
       strategies: ["guardian"],
     });
     await f.store.configure(id, {
-      model: { route: "ollama", model: "fake-model" },
-      budget: { ...budget, concurrency: 4 },
+      model: settings?.model ?? { route: "ollama", model: "fake-model" },
+      budget: { ...budget, concurrency: settings?.concurrency ?? 4 },
     });
     await tasks.enroll(id, profile);
     const agents = (await f.pool.query("SELECT id FROM agents WHERE cohort_id=$1 ORDER BY ordinal", [id])).rows;
@@ -86,8 +89,9 @@ export async function platformFixture(capacity = 2) {
     run?: import("../src/platform/engine-registry.js").AgentEngine["run"],
     requirements: CapabilityRequirements = {},
     architectureRegistry?: import("../src/platform/architecture.js").ArchitectureRegistry,
+    capacityRoute = route,
   ) {
-    const admission = new ModelAdmission(f.store, tasks, model, route),
+    const admission = new ModelAdmission(f.store, tasks, model, capacityRoute),
       commands = new CommandExecutor(f.store, tasks, bindings, environments),
       supervisor = new OperationSupervisor(tasks);
     const engines = new EngineRegistry([], architectureRegistry);

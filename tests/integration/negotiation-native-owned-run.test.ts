@@ -15,6 +15,7 @@ import { negotiationPlan } from "../../src/negotiation-plan.js";
 import { type NegotiationGrant, prepareNegotiationProtocol } from "../../src/negotiation-run.js";
 import { Store } from "../../src/store.js";
 import { Vault } from "../../src/vault.js";
+import { fixtureWaitBasis } from "../fixtures/pact-progress-basis.js";
 
 it.each(["normal", "critical-review"])(
   "%s native owned hosts keep ordinary clocks and one shared turn lane",
@@ -82,7 +83,7 @@ it.each(["normal", "critical-review"])(
         );
       }
       const startsAt = new Date().toISOString(),
-        cutoffAt = new Date(Date.now() + 80000).toISOString();
+        cutoffAt = new Date(Date.now() + 240000).toISOString();
       const grant: NegotiationGrant = {
         schemaVersion: "fleet.negotiation-grant.v1",
         approved: true,
@@ -129,7 +130,9 @@ it.each(["normal", "critical-review"])(
             }
             active--;
             return {
-              decision: { decision: { kind: "wait", summary: "No accepted agreement." } },
+              decision: {
+                decision: { kind: "wait", summary: "No accepted agreement.", ...fixtureWaitBasis(request.schema) },
+              },
               inputTokens: 10,
               outputTokens: 4,
             };

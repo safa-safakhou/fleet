@@ -4,7 +4,8 @@ import { isDeepStrictEqual } from "node:util";
 import { recordCallRequest, recordCallResponse } from "../call-metrics.js";
 import { transaction } from "../db.js";
 import { FleetError, type ModelPort, type ModelSettings, safeCode } from "../domain.js";
-import { modelAbortCode, modelDeadline } from "../model-deadline.js";
+import { modelAdmissionDeadline } from "../model-bounds.js";
+import { assertModelAdmission, modelAbortCode, modelDeadline } from "../model-deadline.js";
 import { modelFailureProgress } from "../model-progress.js";
 import { recoverModelOutput } from "../model-recovery.js";
 import { Observability } from "../observability.js";
@@ -50,6 +51,7 @@ export class RouteCapacity {
     )
       throw new FleetError("INVALID_PROVIDER_CAPACITY", true);
     await this.store.active(claim);
+    assertModelAdmission(request.model, claim.deadline, this.store.now());
     let tokenUnits: number | null = null,
       resourceUnits: number | null = null;
     if (
@@ -130,11 +132,20 @@ export class RouteCapacity {
         throw new FleetError("PROVIDER_CAPACITY_MISMATCH", true);
       await db.query(
         "INSERT INTO model_capacity_leases(id,route_key,turn_id,state,expires_at,sibling_worker,token_units,resource_units) VALUES($1,$2,$3,'queued',$4,$5,$6,$7)",
-        [id, policy.key, claim.id, claim.deadline, siblingWorker, tokenUnits, resourceUnits],
+        [
+          id,
+          policy.key,
+          claim.id,
+          new Date(modelAdmissionDeadline(request.model, claim.deadline)),
+          siblingWorker,
+          tokenUnits,
+          resourceUnits,
+        ],
       );
       if (this.control.workerCapacity && !siblingWorker)
         await db.query("UPDATE turns SET worker_waiting=true WHERE id=$1", [claim.id]);
     });
+    let admitted = false;
     try {
       await observation.record(claim, "thinking", "Provider capacity queued", {
         route: request.model.route,
@@ -147,12 +158,13 @@ export class RouteCapacity {
       while (true) {
         if (request.signal.aborted) throw new FleetError(modelAbortCode(request.signal.reason), true);
         this.control.assertWaiting?.(request);
+        assertModelAdmission(request.model, claim.deadline, this.store.now());
         await this.store.active(claim);
-        const admitted = await transaction(this.store.pool, async (db) => {
+        const acquired = await transaction(this.store.pool, async (db) => {
           if (this.control.workerCapacity) await db.query("SELECT pg_advisory_xact_lock(19281462)");
           await db.query("SELECT pg_advisory_xact_lock(hashtextextended($1,19281470))", [policy.key]);
           await db.query(
-            "DELETE FROM model_capacity_leases l USING turns t WHERE l.turn_id=t.id AND l.expires_at<=$1 AND t.state<>'running'",
+            "DELETE FROM model_capacity_leases l USING turns t WHERE l.turn_id=t.id AND l.state='queued' AND l.expires_at<=$1 AND t.state<>'running'",
             [this.store.now()],
           );
           const active = (
@@ -163,10 +175,16 @@ export class RouteCapacity {
           ).rows[0];
           const next = (
             await db.query(
-              `SELECT l.id,l.sequence FROM model_capacity_leases l WHERE l.route_key=$1 AND l.state='queued'
+              `WITH eligible AS (
+                 SELECT l.* FROM model_capacity_leases l JOIN turns t ON t.id=l.turn_id
+                 JOIN agents a ON a.id=t.agent_id JOIN cohorts c ON c.id=t.cohort_id
+                 WHERE l.route_key=$1 AND l.state='queued' AND l.expires_at>$6
+                   AND t.state='running' AND a.state='ready' AND a.fence=t.fence
+                   AND c.state='running' AND c.generation=t.generation
+               ) SELECT l.id,l.sequence FROM eligible l WHERE true
                AND ($2::bigint IS NULL OR coalesce(l.token_units,$2)<=$2-$3)
                AND ($4::bigint IS NULL OR coalesce(l.resource_units,$4)<=$4-$5)
-               AND NOT EXISTS (SELECT 1 FROM model_capacity_leases older WHERE older.route_key=l.route_key AND older.state='queued' AND older.sequence<l.sequence AND older.bypasses>=4)
+               AND NOT EXISTS (SELECT 1 FROM eligible older WHERE older.sequence<l.sequence AND older.bypasses>=4)
                ORDER BY l.sequence LIMIT 1`,
               [
                 policy.key,
@@ -174,6 +192,7 @@ export class RouteCapacity {
                 active.tokens,
                 policy.resource?.capacity ?? null,
                 active.resources,
+                this.store.now(),
               ],
             )
           ).rows[0];
@@ -198,10 +217,17 @@ export class RouteCapacity {
             "UPDATE model_capacity_leases SET bypasses=least(4,bypasses+1) WHERE route_key=$1 AND state='queued' AND sequence<$2",
             [policy.key, next.sequence],
           );
-          await db.query("UPDATE model_capacity_leases SET state='active' WHERE id=$1", [id]);
+          assertModelAdmission(request.model, claim.deadline, this.store.now());
+          await db.query("UPDATE model_capacity_leases SET state='active',expires_at=$2 WHERE id=$1", [
+            id,
+            claim.deadline,
+          ]);
           return true;
         });
-        if (admitted) break;
+        if (acquired) {
+          admitted = true;
+          break;
+        }
         try {
           await delay(20, undefined, { signal: request.signal });
         } catch {
@@ -220,7 +246,16 @@ export class RouteCapacity {
         queueDelayMs: Math.max(0, this.store.now().getTime() - queuedAt),
       });
       await this.store.active(claim);
+      assertModelAdmission(request.model, claim.deadline, this.store.now());
       return await operation({ queueDelayMs: Math.max(0, this.store.now().getTime() - queuedAt) });
+    } catch (error) {
+      if (!admitted)
+        await observation.record(claim, "thinking", "Provider capacity refused", {
+          code: safeCode(error),
+          queueDelayMs: Math.max(0, this.store.now().getTime() - queuedAt),
+          notDispatched: true,
+        });
+      throw error;
     } finally {
       await this.store.pool.query("DELETE FROM model_capacity_leases WHERE id=$1", [id]);
       // A rejected queued request resumes under the execution cap before its engine handles feedback.
@@ -254,48 +289,67 @@ export class RouteCapacity {
     return model.route !== "codex-cli" && this.policy(model).capacity > 1;
   }
   wrap(model: ModelPort, current: () => Claim | undefined): ModelPort {
+    // The wrapper witnesses even an opaque invocation, conservatively treating it as dispatch.
+    // This lets the legacy timer begin after queueing without claiming the opaque provider did no work.
+    const invoke = async (request: Parameters<ModelPort["decide"]>[0]) => {
+      if (!model.tracksDispatch) {
+        await request.onDispatch?.();
+        return model.decide({ ...request, onDispatch: undefined });
+      }
+      return model.decide(request);
+    };
     return {
-      tracksDispatch: model.tracksDispatch,
+      tracksDispatch: true,
       contextWindow: (selected) => model.contextWindow?.(selected),
       decide: async (request) => {
         const claim = current();
         if (!claim) throw new FleetError("MODEL_CLAIM_REQUIRED", true);
-        return this.run(claim, request, async (timing) => {
-          await this.store.pool.query(
-            "UPDATE compute_ledger SET request_metrics=coalesce(request_metrics,'{}'::jsonb)||$2::jsonb WHERE turn_id=$1 AND status='reserved'",
-            [claim.id, timing],
-          );
-          const allocations = (
+        const queuedAt = this.store.now().getTime();
+        try {
+          return await this.run(claim, request, async (timing) => {
             await this.store.pool.query(
-              "SELECT a.allocation_id FROM architecture_allocations a JOIN compute_ledger l ON l.id=a.allocation_id WHERE a.turn_id=$1 AND l.status='reserved' ORDER BY l.created_at LIMIT 2",
-              [claim.id],
-            )
-          ).rows;
-          if (!allocations.length) return model.decide(request);
-          if (allocations.length !== 1) throw new FleetError("MODEL_ALLOCATION_SCOPE_MISMATCH", true);
-          const id = allocations[0].allocation_id;
-          await this.store.active(claim);
-          await this.store.pool.query(
-            "UPDATE architecture_allocations SET tracked=$2,dispatch_state=$3,updated_at=$4 WHERE allocation_id=$1",
-            [
-              id,
-              Boolean(model.tracksDispatch),
-              model.tracksDispatch ? "prepared" : "invoking_untracked",
-              this.store.now(),
-            ],
-          );
-          return model.decide({
-            ...request,
-            onDispatch: async () => {
-              await this.store.active(claim);
-              await request.onDispatch?.();
+              "UPDATE compute_ledger SET request_metrics=coalesce(request_metrics,'{}'::jsonb)||$2::jsonb WHERE turn_id=$1 AND status='reserved'",
+              [claim.id, timing],
+            );
+            const allocations = (
               await this.store.pool.query(
-                "UPDATE architecture_allocations SET dispatch_state='dispatched',updated_at=$2 WHERE allocation_id=$1",
-                [id, this.store.now()],
-              );
-            },
+                "SELECT a.allocation_id FROM architecture_allocations a JOIN compute_ledger l ON l.id=a.allocation_id WHERE a.turn_id=$1 AND l.status='reserved' ORDER BY l.created_at LIMIT 2",
+                [claim.id],
+              )
+            ).rows;
+            if (!allocations.length) return invoke(request);
+            if (allocations.length !== 1) throw new FleetError("MODEL_ALLOCATION_SCOPE_MISMATCH", true);
+            const id = allocations[0].allocation_id;
+            await this.store.active(claim);
+            await this.store.pool.query(
+              "UPDATE architecture_allocations SET tracked=$2,dispatch_state=$3,updated_at=$4 WHERE allocation_id=$1",
+              [
+                id,
+                Boolean(model.tracksDispatch),
+                model.tracksDispatch ? "prepared" : "invoking_untracked",
+                this.store.now(),
+              ],
+            );
+            return invoke({
+              ...request,
+              onDispatch: async () => {
+                await this.store.active(claim);
+                await request.onDispatch?.();
+                await this.store.pool.query(
+                  "UPDATE architecture_allocations SET dispatch_state='dispatched',updated_at=$2 WHERE allocation_id=$1",
+                  [id, this.store.now()],
+                );
+              },
+            });
           });
-        });
+        } catch (error) {
+          // Refused queueing is real elapsed time, even though no provider was invoked.
+          await this.store.pool.query(
+            "UPDATE compute_ledger SET request_metrics=coalesce(request_metrics,'{}'::jsonb)||jsonb_build_object('queueDelayMs',$2::bigint) WHERE turn_id=$1 AND status='reserved' AND request_metrics->>'queueDelayMs' IS NULL",
+            [claim.id, Math.max(0, this.store.now().getTime() - queuedAt)],
+          );
+          throw error;
+        }
       },
     };
   }
@@ -495,6 +549,7 @@ export class ModelAdmission {
             },
             claim.turn.deadline,
             this.store.now,
+            Boolean(this.provider.tracksDispatch),
           );
           invoked = true;
           const result = await this.provider.decide({

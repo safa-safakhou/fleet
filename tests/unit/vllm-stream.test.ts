@@ -1,6 +1,8 @@
 import { afterEach, expect, it, vi } from "vitest";
+import { FleetError } from "../../src/domain.js";
 import { HttpModel } from "../../src/model.js";
 import { parseCacheProfile } from "../../src/platform/cache-profile.js";
+import { vllmCompletion } from "../../src/vllm-transport.js";
 import { cacheProfileFixture } from "../fixtures/cache-profile.js";
 
 afterEach(() => vi.restoreAllMocks());
@@ -24,6 +26,71 @@ function stream(events: string, chunkBytes = 7) {
   );
 }
 const event = (value: unknown) => `data: ${JSON.stringify(value)}\n\n`;
+it("returns complete final usage without waiting for transport cancellation acknowledgement", async () => {
+  let release!: () => void;
+  const cleanup = new Promise<void>((r) => {
+    release = r;
+  });
+  const body = new ReadableStream<Uint8Array>({
+    start(c) {
+      c.enqueue(
+        new TextEncoder().encode(
+          event({ id: "complete-usage", choices: [{ index: 0, delta: { content: "{}" }, finish_reason: "stop" }] }) +
+            event({ id: "complete-usage", choices: [], usage: { prompt_tokens: 12, completion_tokens: 5 } }) +
+            "data: [DONE]\n\n",
+        ),
+      );
+    },
+    cancel() {
+      return cleanup;
+    },
+  });
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(body, { headers: { "content-type": "text/event-stream" } }),
+  );
+  const call = vllmCompletion("http://synthetic.invalid/v1", {}, "fake", new AbortController().signal);
+  try {
+    const result = await Promise.race([
+      call,
+      new Promise<string>((r) => setTimeout(() => r("cleanup blocked usage"), 100)),
+    ]);
+    expect(result).toMatchObject({ data: { usage: { prompt_tokens: 12, completion_tokens: 5 } } });
+  } finally {
+    release();
+    await call;
+  }
+});
+it("observes cancellation while a response body is stalled and keeps its usage unknown", async () => {
+  let streamController!: ReadableStreamDefaultController<Uint8Array>;
+  const body = new ReadableStream<Uint8Array>({
+    start(c) {
+      streamController = c;
+      c.enqueue(
+        new TextEncoder().encode(
+          event({ id: "stalled", choices: [{ index: 0, delta: { reasoning_content: "private" } }] }),
+        ),
+      );
+    },
+  });
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(body, { headers: { "content-type": "text/event-stream" } }),
+  );
+  const controller = new AbortController();
+  const call = vllmCompletion("http://synthetic.invalid/v1", {}, "fake", controller.signal).catch((e) => e);
+  await new Promise((r) => setTimeout(r, 0));
+  controller.abort(new FleetError("MODEL_DEADLINE_EXCEEDED"));
+  try {
+    const result = await Promise.race([call, new Promise<string>((r) => setTimeout(() => r("abort ignored"), 100))]);
+    expect(result).toMatchObject({ code: "MODEL_DEADLINE_EXCEEDED", notDispatched: false });
+    expect(result).not.toHaveProperty("inputTokens");
+    expect(JSON.stringify(result)).not.toContain("private");
+  } finally {
+    try {
+      streamController.close();
+    } catch {}
+    await call;
+  }
+});
 it("classifies a provider grammar rejection without leaking its message or inventing usage", async () => {
   vi.spyOn(globalThis, "fetch").mockResolvedValue(
     stream(

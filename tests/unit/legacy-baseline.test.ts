@@ -10,6 +10,11 @@ it("preserves the recorded controller except explicit context, owner, proposal a
   // any other controller drift still fails against the original source digest.
   let historical = source.toString();
   const reviewed: [string, string][] = [
+    // Authorized shared deadline repair; retain the original controller pin and all other checks.
+    [
+      "modelDeadline(request, claim.deadline, this.store.now, Boolean(this.model.tracksDispatch))",
+      "modelDeadline(request, claim.deadline, this.store.now)",
+    ],
     // Authorized exact-command retry after a definitive native non-commit; historical digest stays pinned.
     [
       '          try {\n            receipt = await game.submit(id, action);\n          } catch (error) {\n            const retry = this.adapter.retryKnownRejection?.(error);\n            if (\n              !retry ||\n              this.stopping ||\n              !Number.isSafeInteger(retry.delayMs) ||\n              retry.delayMs < 1 ||\n              retry.delayMs > 1000 ||\n              claim.deadline.getTime() - this.store.now().getTime() <= retry.delayMs + 1000\n            )\n              throw error;\n            await observation.record(claim, "deciding", "Definitive rejection awaiting one exact-command retry", {\n              code: safeCode(error),\n              commandId: id,\n              committed: false,\n              retry: 1,\n              delayMs: retry.delayMs,\n            });\n            await new Promise((resolve) => setTimeout(resolve, retry.delayMs));\n            // Retain the first known denial if the turn cannot continue. An uncertain\n            // second submission instead escapes below with the original pending identity.\n            try {\n              await this.store.active(claim);\n            } catch {\n              throw error;\n            }\n            if (this.stopping) throw error;\n            receipt = await game.submit(id, action);\n          }',

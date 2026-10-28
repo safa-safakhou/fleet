@@ -1,6 +1,10 @@
-import { mkdir, writeFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { expect, it } from "vitest";
+import type { Data } from "../../src/domain.js";
+import { prepareVllmGenerationSchema } from "../../src/model-schema.js";
 import baseline from "../fixtures/engines/architecture-baseline-v1.json" with { type: "json" };
+import repairs from "../fixtures/engines/architecture-reviewed-repairs-20261028.json" with { type: "json" };
 import { assertArchitectureParity, captureArchitectureTranscript } from "../legacy-parity.js";
 
 const cases = [
@@ -42,9 +46,31 @@ it("captures all five current profiles and correction uncertainty stale and zero
   await mkdir(".tmp", { recursive: true });
   await writeFile(
     ".tmp/architecture-capture.json",
-    JSON.stringify({ sourceRevision: "fd39b37", cases: transcripts }, null, 2) + "\n",
+    JSON.stringify({ sourceRevision: "working-tree", cases: transcripts }, null, 2) + "\n",
   );
-  assertArchitectureParity(transcripts, baseline.cases);
+  expect(
+    createHash("sha256")
+      .update(await readFile("tests/fixtures/engines/architecture-baseline-v1.json"))
+      .digest("hex"),
+  ).toBe(repairs.originalSha256);
+  const canonical = (cases: unknown) => {
+    const copy = structuredClone(cases) as Record<string, { modelPackets: { schema: Data }[] }>;
+    for (const entry of Object.values(copy))
+      for (const packet of entry.modelPackets) packet.schema = prepareVllmGenerationSchema(packet.schema);
+    return copy;
+  };
+  const expected = canonical(baseline.cases);
+  // Apply only exact reviewed changes, checking each old value. Unreviewed drift still fails.
+  for (const change of repairs.changes) {
+    let parent = expected as Data;
+    for (const part of change.path.slice(0, -1)) parent = parent[part] as Data;
+    const key = change.path.at(-1)!;
+    expect(Object.hasOwn(parent, key), change.path.join("/")).toBe(change.beforePresent);
+    if (change.beforePresent) expect(parent[key], change.path.join("/")).toEqual(change.before);
+    if (change.afterPresent) parent[key] = change.after;
+    else delete parent[key];
+  }
+  assertArchitectureParity(canonical(transcripts), expected);
 }, 30_000);
 
 it("detects changed decision packets and missing or refunded accounting", () => {

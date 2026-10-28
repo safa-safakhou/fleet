@@ -7,12 +7,14 @@ import {
 } from "../../scripts/lib/negotiation-owned-run.js";
 import { builtinArchitectures } from "../../src/app/builtins.js";
 import { connect, migrate } from "../../src/db.js";
+import { FleetError } from "../../src/domain.js";
 import { designDigest, negotiationBaselineAmendment, negotiationPlan } from "../../src/negotiation-plan.js";
 import { type NegotiationGrant, prepareNegotiationProtocol } from "../../src/negotiation-run.js";
 import { Store } from "../../src/store.js";
 import { Vault } from "../../src/vault.js";
+import { fixtureWaitBasis } from "../fixtures/pact-progress-basis.js";
 
-it.each(["normal", "dispatch-refused", "guard-aborted"] as const)(
+it.each(["reported-review-stop", "dispatch-refused", "guard-aborted", "historical-limit"] as const)(
   "%s owned execution uses native accounting without invented spend",
   async (kind) => {
     const nonce = process.env.FLEET_ARCHITECTURE_NONCE!,
@@ -20,21 +22,24 @@ it.each(["normal", "dispatch-refused", "guard-aborted"] as const)(
       pactUrl = process.env.PACT_ACCEPTANCE_DATABASE_URL!;
     if (process.env.FLEET_ARCHITECTURE_TEST !== "1") throw Error("OWNED_FIXTURE_REQUIRED");
     const sources = { fleet: "a".repeat(40), pact: "b".repeat(40) };
+    const historical = kind === "historical-limit";
+    const stage = historical ? ("E1" as const) : ("E3" as const);
     const selection = {
+      stage,
       sources,
       modelDigest: "c".repeat(64),
       policyDigest: "d".repeat(64),
-      selectedProfile: { id: "reactive-cognition", version: "1.1" },
-      baselineAmendment: designDigest(negotiationBaselineAmendment),
+      selectedProfile: { id: "reactive-cognition", version: historical ? "1.1" : "2" },
+      ...(historical ? { baselineAmendment: designDigest(negotiationBaselineAmendment) } : {}),
       settingsDigest: "e".repeat(64),
     };
     const protocol = prepareNegotiationProtocol(selection);
-    const planned = negotiationPlan("E1", {
+    const planned = negotiationPlan(stage, {
       sources,
       modelDigest: selection.modelDigest,
       policyDigest: selection.policyDigest,
       selectedProfile: selection.selectedProfile,
-      baselineAmendment: selection.baselineAmendment,
+      ...(historical ? { baselineAmendment: selection.baselineAmendment } : {}),
     })[0];
     const key = () => randomBytes(32).toString("base64"),
       secrets = () => ({ rulesKey: key(), tokenKey: key(), encryptionKey: key() });
@@ -94,7 +99,9 @@ it.each(["normal", "dispatch-refused", "guard-aborted"] as const)(
             await r.onDispatch?.();
             calls++;
             return {
-              decision: { decision: { kind: "wait", summary: "No agreement accepted; wait." } },
+              decision: {
+                decision: { kind: "wait", summary: "No agreement accepted; wait.", ...fixtureWaitBasis(r.schema) },
+              },
               inputTokens: 10,
               outputTokens: 4,
             };
@@ -105,6 +112,7 @@ it.each(["normal", "dispatch-refused", "guard-aborted"] as const)(
           expect(
             (await pool.query("SELECT status FROM compute_ledger WHERE id=$1", [result.allocationId])).rows[0].status,
           ).toBe("reported");
+          if (kind === "reported-review-stop") throw new FleetError("SYNTHETIC_REVIEW_COMPLETE", true);
         },
         reviewOutcome: async () => ({ claims: [], reviews: [] }),
       });
@@ -118,6 +126,13 @@ it.each(["normal", "dispatch-refused", "guard-aborted"] as const)(
           if (kind === "guard-aborted" && input.phase === "turn") cancellation.abort();
         },
       });
+      if (historical) {
+        await expect(operation).rejects.toThrow("CONTEXT_LIMIT");
+        expect(calls).toBe(0);
+        expect(reviews).toBe(0);
+        expect((await ports.accounting(p.binding)).allocations).toEqual([]);
+        return;
+      }
       if (kind === "guard-aborted") {
         await expect(operation).rejects.toThrow("NEGOTIATION_CUTOFF");
         expect(calls).toBe(0);
@@ -134,10 +149,9 @@ it.each(["normal", "dispatch-refused", "guard-aborted"] as const)(
         expect(rows[0].status).toBe("not_dispatched");
         return;
       }
-      const assessment = await operation;
-      expect(calls).toBe(24);
-      expect(reviews).toBe(calls);
-      expect(assessment.evidenceLevel).toBe("fake-provider");
+      await expect(operation).rejects.toThrow("SYNTHETIC_REVIEW_COMPLETE");
+      expect(calls).toBe(1);
+      expect(reviews).toBe(1);
       expect((await store.cohort(p.binding.cohortId)).state).toBe("paused");
       expect(
         (await ports.accounting(p.binding)).allocations.every(
@@ -147,7 +161,7 @@ it.each(["normal", "dispatch-refused", "guard-aborted"] as const)(
       expect(
         (await world.pool.query("SELECT committed_game_time_ms::text t FROM world_clocks WHERE product_scope='pact'"))
           .rows[0].t,
-      ).toBe(String(world.decisionStartGameTimeMs + 180 * 60000));
+      ).toBe(String(world.decisionStartGameTimeMs));
       await world.ownerSetSupplyPermission(0, false);
       expect((await ports.accounting(p.binding)).authorityValid).toBe(false);
     } finally {

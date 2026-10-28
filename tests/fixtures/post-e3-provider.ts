@@ -89,7 +89,7 @@ export function positiveSpecialistProvider(options: { worldReadProbe?: boolean }
         return { decision: { decision, ...(update ? { update } : {}) }, inputTokens: 20, outputTokens: 20 };
       };
       const wait = (summary = "No additional effect or completed delivery is claimed.") =>
-        reply({ kind: "wait", summary, ...fixtureWaitBasis(packet) });
+        reply({ kind: "wait", summary, ...fixtureWaitBasis(request.schema) });
       const read = (tool: string, args: Data) => {
         const decision = {
           kind: "read",
@@ -118,10 +118,12 @@ export function positiveSpecialistProvider(options: { worldReadProbe?: boolean }
           kind: "action",
           schemaId: "pact.action.v1",
           payload: action,
-          ...(fixtureGoalBasis(packet) || String(action.kind).startsWith("game.supply.")
+          ...(fixtureGoalBasis(request.schema) || String(action.kind).startsWith("game.supply.")
             ? {
                 expectedOutcome: {
-                  ...(fixtureGoalBasis(packet) ? { actionKind: action.kind, basis: fixtureGoalBasis(packet) } : {}),
+                  ...(fixtureGoalBasis(request.schema)
+                    ? { actionKind: action.kind, basis: fixtureGoalBasis(request.schema) }
+                    : {}),
                   ...(String(action.kind).startsWith("game.supply.")
                     ? {
                         trade: {
@@ -202,7 +204,7 @@ export function positiveSpecialistProvider(options: { worldReadProbe?: boolean }
             decision: {
               kind: "wait",
               summary: "Unproven exact routine hypothesis only; no delivery is claimed.",
-              ...fixtureWaitBasis(packet),
+              ...fixtureWaitBasis(request.schema),
             },
             proposals: [supplyRoutineCandidate(String(source.id), String((opportunity.episodeIds as string[])[0]))],
           },
@@ -321,7 +323,7 @@ export function positiveSpecialistProvider(options: { worldReadProbe?: boolean }
           {
             kind: "wait",
             summary: "Retain this exact supply goal before later guarded reuse; no consent or fulfillment is claimed.",
-            ...fixtureWaitBasis(packet),
+            ...fixtureWaitBasis(request.schema),
           },
           {
             goals: [

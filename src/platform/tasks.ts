@@ -399,7 +399,7 @@ export class TaskStore {
   async recover() {
     await transaction(this.store.pool, async (db) => {
       await db.query(
-        "DELETE FROM model_capacity_leases l USING turns t WHERE l.turn_id=t.id AND l.expires_at<=$1 AND t.state<>'running'",
+        "DELETE FROM model_capacity_leases l USING turns t WHERE l.turn_id=t.id AND l.state='queued' AND l.expires_at<=$1 AND t.state<>'running'",
         [this.store.now()],
       );
       const rows = (

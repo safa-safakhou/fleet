@@ -1,6 +1,7 @@
 import { afterEach, expect, it } from "vitest";
 import { FleetError, type ModelPort } from "../../src/domain.js";
 import { LegacyEngineBridge } from "../../src/engines/legacy/bridge.js";
+import { currentLegacyClaim } from "../../src/engines/legacy/execution.js";
 import { pactAdapter } from "../../src/games/pact/adapter.js";
 import { RouteCapacity } from "../../src/platform/admission.js";
 import { TaskStore } from "../../src/platform/tasks.js";
@@ -11,6 +12,256 @@ let cleanup: (() => Promise<void>) | undefined;
 afterEach(async () => {
   await cleanup?.();
   cleanup = undefined;
+});
+
+it("defers before reserving capacity when a complete generation no longer fits the turn", async () => {
+  const f = await platformFixture(1);
+  cleanup = () => f.pool.end();
+  await f.enqueue();
+  const claim = await f.claim();
+  f.advance(30000); // 90 seconds remain; a 90-second call still needs accounting time.
+  let invoked = false;
+  const route = new RouteCapacity(f.store, () => ({ key: "turn-headroom", capacity: 1 }));
+  await expect(
+    route.run(claim.turn, f.request(), async () => {
+      invoked = true;
+    }),
+  ).rejects.toMatchObject({
+    code: "MODEL_ADMISSION_DEFERRED",
+    notDispatched: true,
+  });
+  expect(invoked).toBe(false);
+  expect((await f.pool.query("SELECT 1 FROM compute_ledger")).rowCount).toBe(0);
+  expect((await f.pool.query("SELECT 1 FROM model_capacity_leases")).rowCount).toBe(0);
+});
+it.each([true, false])(
+  "preserves a full legacy generation after queueing with dispatch tracking %s",
+  async (tracksDispatch) => {
+    const f = await fixture();
+    cleanup = () => f.pool.end();
+    const id = await ready(f.store, 2);
+    await f.store.setState(id, "paused", true);
+    const cohort = await f.store.cohort(id);
+    const model = { route: "ollama" as const, model: "fake-model", thinking: true };
+    await f.store.configure(id, { model, budget: cohort.budget });
+    await f.store.setState(id, "running", true);
+    await f.pool.query("UPDATE agents SET next_due_at=$1", [f.now()]);
+    const first = await f.store.claim("first", 2),
+      second = await f.store.claim("second", 2);
+    if (!first || !second) throw Error("MISSING_CLAIMS");
+    const route = new RouteCapacity(f.store, () => ({ key: `legacy-dispatch-${tracksDispatch}`, capacity: 1 }));
+    const release = deferred();
+    let started = false;
+    const blocked = route.run(
+      first,
+      { model, messages: [], schema: { type: "object" }, maxOutputTokens: 2000, signal: new AbortController().signal },
+      async () => {
+        started = true;
+        await release.promise;
+      },
+    );
+    let run: Promise<unknown> | undefined;
+    try {
+      await expect.poll(() => started).toBe(true);
+      const provider: ModelPort = {
+        tracksDispatch,
+        async decide(request) {
+          await request.onDispatch?.();
+          f.advance(100000);
+          return { decision: { kind: "wait", summary: "Wait for actual changes" }, inputTokens: 50, outputTokens: 10 };
+        },
+      };
+      const engine = new LegacyEngineBridge(
+        f.store,
+        route.wrap(provider, currentLegacyClaim),
+        async () => new FakeGame(second),
+        true,
+        pactAdapter,
+      );
+      run = engine.run(second);
+      await expect
+        .poll(async () => (await f.pool.query("SELECT 1 FROM model_capacity_leases WHERE state='queued'")).rowCount)
+        .toBe(1);
+      f.advance(100000);
+      release.resolve();
+      await blocked;
+      await run;
+      expect((await f.pool.query("SELECT code FROM turns WHERE id=$1", [second.id])).rows[0].code).toBe("WAIT");
+      expect(
+        (
+          await f.pool.query(
+            "SELECT status,(request_metrics->>'queueDelayMs')::int queue,(response_metrics->>'providerExecutionMs')::int generation FROM compute_ledger WHERE turn_id=$1",
+            [second.id],
+          )
+        ).rows,
+      ).toEqual([{ status: "reported", queue: 100000, generation: 100000 }]);
+    } finally {
+      release.resolve();
+      await Promise.allSettled([blocked, run]);
+    }
+  },
+);
+it("records elapsed queue time for a refused legacy allocation without invoking inference", async () => {
+  const f = await platformFixture(1);
+  cleanup = () => f.pool.end();
+  for (const b of f.group.bindings) await f.enqueue(b);
+  const first = await f.claim(),
+    second = await f.claim(),
+    release = deferred();
+  const route = new RouteCapacity(f.store, () => ({ key: "refused-metrics", capacity: 1 }));
+  let active = false,
+    invoked = false;
+  const running = route.run(first.turn, f.request(), async () => {
+    active = true;
+    await release.promise;
+  });
+  try {
+    await expect.poll(() => active).toBe(true);
+    const allocation = await f.store.reserveCall(second.turn);
+    const model = route.wrap(
+      {
+        async decide() {
+          invoked = true;
+          return { decision: { kind: "wait" }, inputTokens: 1, outputTokens: 1 };
+        },
+      },
+      () => second.turn,
+    );
+    const refused = model.decide(f.request()).catch((e) => e);
+    await expect
+      .poll(async () => (await f.pool.query("SELECT 1 FROM model_capacity_leases WHERE state='queued'")).rowCount)
+      .toBe(1);
+    f.advance(30000);
+    expect(await refused).toMatchObject({ code: "MODEL_ADMISSION_DEFERRED", notDispatched: true });
+    expect(invoked).toBe(false);
+    expect(
+      (
+        await f.pool.query("SELECT (request_metrics->>'queueDelayMs')::int queue FROM compute_ledger WHERE id=$1", [
+          allocation,
+        ])
+      ).rows[0].queue,
+    ).toBe(30000);
+  } finally {
+    release.resolve();
+    await running;
+  }
+});
+
+it("does not let an expired four-bypass waiter block a younger fitting request", async () => {
+  const f = await platformFixture(4);
+  cleanup = () => f.pool.end();
+  for (const b of f.group.bindings) await f.enqueue(b);
+  const old = await f.claim(),
+    young = await f.claim();
+  await f.pool.query(
+    "INSERT INTO model_capacity_routes(route_key,capacity,token_capacity) VALUES('expired-barrier',4,100)",
+  );
+  await f.pool.query(
+    "INSERT INTO model_capacity_leases(id,route_key,turn_id,state,expires_at,token_units,bypasses) VALUES(gen_random_uuid(),'expired-barrier',$1,'queued',$2,60,4)",
+    [old.turn.id, new Date(f.now().getTime() - 1)],
+  );
+  const route = new RouteCapacity(
+    f.store,
+    () => ({ key: "expired-barrier", capacity: 4, tokenCapacity: 100 }),
+    async () => 30,
+  );
+  const stop = new AbortController();
+  let invoked = false;
+  const running = route
+    .run(young.turn, f.request(stop.signal), async () => {
+      invoked = true;
+    })
+    .catch((e) => {
+      if (!stop.signal.aborted) throw e;
+    });
+  try {
+    await expect.poll(() => invoked, { timeout: 1000 }).toBe(true);
+  } finally {
+    stop.abort();
+    await running;
+  }
+});
+it.each(["finished", "fenced"])(
+  "ignores a %s waiter when choosing capacity and applying the fairness barrier",
+  async (state) => {
+    const f = await platformFixture(4);
+    cleanup = () => f.pool.end();
+    for (const b of f.group.bindings) await f.enqueue(b);
+    const old = await f.claim(),
+      young = await f.claim();
+    await f.pool.query(
+      "INSERT INTO model_capacity_routes(route_key,capacity,token_capacity) VALUES('dead-owner',4,100) ON CONFLICT DO NOTHING",
+    );
+    await f.pool.query(
+      "INSERT INTO model_capacity_leases(id,route_key,turn_id,state,expires_at,token_units,bypasses) VALUES(gen_random_uuid(),'dead-owner',$1,'queued',$2,60,4)",
+      [old.turn.id, old.turn.deadline],
+    );
+    if (state === "finished") await f.store.finish(old.turn, "WAIT");
+    else await f.pool.query("UPDATE agents SET fence=fence+1 WHERE id=$1", [old.turn.agentId]);
+    const route = new RouteCapacity(
+      f.store,
+      () => ({ key: "dead-owner", capacity: 4, tokenCapacity: 100 }),
+      async () => 30,
+    );
+    const stop = new AbortController();
+    let invoked = false;
+    const run = route
+      .run(young.turn, f.request(stop.signal), async () => {
+        invoked = true;
+      })
+      .catch((e) => {
+        if (!stop.signal.aborted) throw e;
+      });
+    try {
+      await expect.poll(() => invoked, { timeout: 1000 }).toBe(true);
+    } finally {
+      stop.abort();
+      await run;
+    }
+  },
+);
+
+it("keeps active capacity across turn expiry until the original provider invocation settles", async () => {
+  const f = await platformFixture(1);
+  cleanup = () => f.pool.end();
+  for (const b of f.group.bindings) await f.enqueue(b);
+  const first = await f.claim(),
+    release = deferred();
+  const route = new RouteCapacity(f.store, () => ({ key: "expiry-settlement", capacity: 1 }));
+  let started = false,
+    secondStarted = false;
+  const firstRun = route.run(first.turn, f.request(), async () => {
+    started = true;
+    await release.promise;
+  });
+  let secondRun: Promise<unknown> | undefined;
+  const stop = new AbortController();
+  try {
+    await expect.poll(() => started).toBe(true);
+    f.advance(120001);
+    await f.store.recoverExpired();
+    await f.tasks.recover();
+    expect((await f.pool.query("SELECT 1 FROM model_capacity_leases WHERE state='active'")).rowCount).toBe(1);
+    const second = await f.claim();
+    secondRun = route
+      .run(second.turn, f.request(stop.signal), async () => {
+        secondStarted = true;
+      })
+      .catch((e) => {
+        if (!stop.signal.aborted) throw e;
+      });
+    await expect
+      .poll(async () => (await f.pool.query("SELECT 1 FROM model_capacity_leases WHERE state='queued'")).rowCount)
+      .toBe(1);
+    expect(secondStarted).toBe(false);
+    release.resolve();
+    await firstRun;
+    await expect.poll(() => secondStarted).toBe(true);
+  } finally {
+    stop.abort();
+    release.resolve();
+    await Promise.allSettled([firstRun, secondRun]);
+  }
 });
 
 it("backfills spare cache behind a large waiter without exceeding physical capacity", async () => {

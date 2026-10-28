@@ -1,13 +1,15 @@
 import { randomUUID } from "node:crypto";
 import { expect, it, vi } from "vitest";
-import type { ModelPort } from "../../src/domain.js";
+import { type ModelPort, object } from "../../src/domain.js";
 import { PactQualificationFixtures } from "../../src/games/pact/qualification.js";
+import { compileGenerationSchema } from "../../src/model-schema.js";
 import {
   prepareQualification,
   QualificationLedger,
   qualificationModelDigest,
   runQualification,
 } from "../../src/qualification-run.js";
+import { fixtureGoalBasis } from "../fixtures/pact-progress-basis.js";
 import { openQualificationFixture } from "../qualification-helpers.js";
 
 it.each([false, true])(
@@ -42,6 +44,7 @@ it.each([false, true])(
         if (calibration && recovery && !input.messages[0].content.includes("previous response"))
           return { decision: null, decisionError: "MODEL_THINKING_WITHOUT_FINAL", inputTokens: 70, outputTokens: 44 };
         const legacy = input.messages.some((m) => m.content.includes("PACT:"));
+        const basis = !calibration && !legacy ? fixtureGoalBasis(input.schema) : undefined;
         const decision = calibration
           ? { kind: "wait", summary: "Wait" }
           : legacy
@@ -57,6 +60,7 @@ it.each([false, true])(
             : {
                 kind: "action",
                 schemaId: "pact.action.v1",
+                ...(basis ? { expectedOutcome: { actionKind: "game.contact.request", basis } } : {}),
                 payload: {
                   kind: "game.contact.request",
                   recipientKingdomId: "22222222-2222-4222-8222-222222222222",
@@ -64,7 +68,7 @@ it.each([false, true])(
                 },
                 summary: "Consider contact",
               };
-        return {
+        const answer: { decision: unknown; inputTokens: number; outputTokens: number } = {
           decision: (input.schema.properties as Record<string, unknown> | undefined)?.cognition
             ? {
                 decision,
@@ -79,6 +83,30 @@ it.each([false, true])(
           inputTokens: 500,
           outputTokens: 50,
         };
+        if (!calibration) {
+          const valid = compileGenerationSchema(input.schema);
+          // Existing contacts cannot receive a second introduction; the fake follows the delivered contract.
+          if (!valid(answer.decision)) {
+            const contact = {
+              kind: "game.message.send",
+              recipientKingdomId: "22222222-2222-4222-8222-222222222222",
+              body: "Synthetic greeting to the observed contact",
+            };
+            const alternative = legacy
+              ? { kind: "action", action: contact, summary: "Consider contacting the observed peer" }
+              : {
+                  ...decision,
+                  payload: contact,
+                  ...(basis ? { expectedOutcome: { actionKind: "game.message.send", basis } } : {}),
+                };
+            answer.decision =
+              envelope || object(input.schema.properties).cognition
+                ? { ...object(answer.decision), decision: alternative }
+                : alternative;
+          }
+          expect(valid(answer.decision), JSON.stringify(valid.errors)).toBe(true);
+        }
+        return answer;
       },
     };
     try {
@@ -94,9 +122,18 @@ it.each([false, true])(
         },
         fixtures,
       });
+      const diagnostic = JSON.stringify({
+        groups: result.groups,
+        trials: (
+          await ledger.pool.query(
+            "SELECT profile,result->>'code' code,count(*)::int n FROM qualification_trials WHERE run_id=$1 GROUP BY profile,result->>'code' ORDER BY profile",
+            [p.plan.id],
+          )
+        ).rows,
+      });
       expect(result.state).toBe("Q2_done");
-      expect(result.passed).toBe(!recovery);
-      expect(result.recoveryPassed).toBe(true);
+      expect(result.passed, diagnostic).toBe(!recovery);
+      expect(result.recoveryPassed, diagnostic).toBe(true);
       expect(result.rawOutputsPassed).toBe(!recovery);
       expect(result.invalid).toBe(recovery ? 4 : 0);
       expect(result.calibrationCasesPassed).toBe(recovery ? 4 : 8);

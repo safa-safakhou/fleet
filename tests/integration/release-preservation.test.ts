@@ -70,19 +70,34 @@ it("rehearses additive migration, idempotence and old-column read compatibility 
     const tables = (
       await pool.query("SELECT tablename FROM pg_tables WHERE schemaname=current_schema() ORDER BY tablename")
     ).rows.map((r) => String(r.tablename));
-    const snapshot = async () => {
+    // Compare the original column values; additive columns are not history mutations.
+    const oldColumns = (
+      await pool.query(
+        "SELECT table_name,column_name FROM information_schema.columns WHERE table_schema=current_schema() ORDER BY table_name,ordinal_position",
+      )
+    ).rows;
+    const snapshot = async (originalColumns = true) => {
       const hashes: Record<string, string> = {};
       for (const table of tables) {
         if (!/^[a-z_]+$/.test(table)) throw Error("UNSAFE_TABLE");
-        const rows = (await pool.query(`SELECT to_jsonb(t)::text row FROM "${table}" t ORDER BY to_jsonb(t)::text`))
-          .rows;
+        const names = oldColumns.filter((r) => r.table_name === table).map((r) => String(r.column_name));
+        if (names.some((n) => !/^[a-z_][a-z0-9_]*$/.test(n))) throw Error("UNSAFE_COLUMN");
+        const selected = originalColumns ? names.map((n) => `"${n}"`).join(",") : "*";
+        const rows = (
+          await pool.query(
+            `SELECT to_jsonb(t)::text row FROM (SELECT ${selected} FROM "${table}") t ORDER BY to_jsonb(t)::text`,
+          )
+        ).rows;
         hashes[table] = createHash("sha256").update(JSON.stringify(rows)).digest("hex");
       }
       return hashes;
     };
     const before = await snapshot();
     await migrate(pool);
+    expect(await snapshot()).toEqual(before);
+    const afterFirst = await snapshot(false);
     await migrate(pool);
+    expect(await snapshot(false)).toEqual(afterFirst);
     expect(await snapshot()).toEqual(before);
     expect((await pool.query("SELECT count(*)::int n FROM decision_states")).rows[0].n).toBe(0);
     expect(

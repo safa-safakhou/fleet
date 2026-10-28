@@ -25,7 +25,7 @@ it("runs both independent model kingdoms and all four roles within one shared mo
           decision: {
             kind: "wait",
             summary: "No trade or completed delivery is claimed.",
-            ...fixtureWaitBasis(JSON.parse(request.messages[1].content)),
+            ...fixtureWaitBasis(request.schema),
           },
         },
         inputTokens: 20,
@@ -146,7 +146,7 @@ it("stops on a lost write lease after settling the reply and never reacquires it
   expect((await current.pool.query("SELECT count(*)::int n FROM platform_commands")).rows[0].n).toBe(0);
 }, 180000);
 
-it("starts only ordinary native clocks and stops a withheld dispatched reply at its exact cutoff", async () => {
+it("parks ordinary native clocks without dispatch when the cutoff lacks full generation headroom", async () => {
   f = await ownedRC1Fixture("R1-N");
   f.grant.cutoffAt = new Date(Date.now() + 2500).toISOString();
   const result = await executeOwnedRC1Protocol(f.protocol, f.grant, {
@@ -158,20 +158,14 @@ it("starts only ordinary native clocks and stops a withheld dispatched reply at 
     reviewOutcome: async () => ({ claims: [], reviews: [] }),
     persist: async () => {},
     provider: {
-      decide: async (request) =>
-        new Promise((_resolve, reject) => {
-          if (request.signal.aborted) reject(new FleetError("TRANSPORT_UNCERTAIN"));
-          else
-            request.signal.addEventListener("abort", () => reject(new FleetError("TRANSPORT_UNCERTAIN")), {
-              once: true,
-            });
-        }),
+      decide: async () => {
+        throw Error("MUST_NOT_DISPATCH");
+      },
     },
   });
   expect(result.status).toBe("stopped");
-  expect((await f.pool.query("SELECT status,tokens::int,input_tokens,output_tokens FROM compute_ledger")).rows).toEqual(
-    [{ status: "unknown", tokens: 40000, input_tokens: null, output_tokens: null }],
-  );
+  expect(result.cells[0].reason).toBe("MODEL_ADMISSION_DEFERRED");
+  expect((await f.pool.query("SELECT 1 FROM compute_ledger")).rowCount).toBe(0);
   for (const p of f.prepared)
     for (const w of [p.world, p.control])
       expect((await w.pool.query("SELECT status FROM world_clocks")).rows[0].status).toBe("paused");
@@ -251,7 +245,7 @@ it("meters native wake observations outside a claim and stops on bookkeeping err
             decision: {
               kind: "wait",
               summary: "No outcome is claimed.",
-              ...fixtureWaitBasis(JSON.parse(request.messages[1].content)),
+              ...fixtureWaitBasis(request.schema),
             },
             ...(calls === 1
               ? {

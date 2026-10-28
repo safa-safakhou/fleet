@@ -1,6 +1,7 @@
 import { type Data, type ModelPort, object } from "../../../src/domain.js";
 import { expandFactTables } from "../../../src/fact-table.js";
 import type { NegotiationCell } from "../../../src/negotiation-plan.js";
+import { fixtureGoalBasis, fixtureWaitBasis } from "../pact-progress-basis.js";
 import type { FixtureProviders } from "./driver.js";
 
 const rows = (v: unknown): Data[] => (Array.isArray(v) ? v.map(object) : []);
@@ -204,7 +205,11 @@ export function scriptedProviders(
           corrected = true;
           return {
             decision: {
-              decision: { kind: "wait", summary: "No command before continuity validation" },
+              decision: {
+                kind: "wait",
+                summary: "No command before continuity validation",
+                ...fixtureWaitBasis(request.schema),
+              },
               continuity: {
                 memories: [
                   {
@@ -232,6 +237,14 @@ export function scriptedProviders(
               }
             : undefined;
         if (continuity) learned = true;
+        if (decision.kind === "wait") decision = { ...decision, ...fixtureWaitBasis(request.schema) };
+        const basis = fixtureGoalBasis(request.schema);
+        if (decision.kind === "action" && basis)
+          decision.expectedOutcome = {
+            ...object(decision.expectedOutcome),
+            actionKind: object(decision.payload).kind,
+            basis,
+          };
         return { decision: { decision, ...(continuity ? { continuity } : {}) }, inputTokens: 40, outputTokens: 20 };
       },
     };

@@ -3,6 +3,7 @@ import { negotiationPlan } from "../../src/negotiation-plan.js";
 import { type FixtureProviders, runNegotiationFixture } from "../fixtures/negotiation/driver.js";
 import { selections } from "../fixtures/negotiation/evidence.js";
 import { scriptedProviders } from "../fixtures/negotiation/providers.js";
+import { fixtureWaitBasis } from "../fixtures/pact-progress-basis.js";
 
 it.each(["before_dispatch", "after_dispatch", "before_result", "before_state", "after_state", "cutoff"] as const)(
   "%s retains original accounting/state and never dispatches after uncertainty or cutoff",
@@ -68,7 +69,9 @@ it("critical false prose cannot turn valid silence into behavioral success", asy
     const decide = provider.decide;
     provider.decide = async (r) => ({
       ...(await decide(r)),
-      decision: { decision: { kind: "wait", summary: "The peer signed and delivered resources" } },
+      decision: {
+        decision: { kind: "wait", summary: "The peer signed and delivered resources", ...fixtureWaitBasis(r.schema) },
+      },
     });
   }
   const review = providers.review;

@@ -67,8 +67,14 @@ it("round trips eight encrypted entries through a new Store, deduplicates/evicts
   if (!agent.read_memory_cipher) throw Error("Missing checkpoint");
   expect(restarted.vault.decrypt(agent.read_memory_cipher, `read-memory:${agent.id}`)).toEqual(history);
   const claim = { ...f.claim, agent };
+  // Exercise a genuinely new schema; the current world schema is already delivered.
+  const tools = await f.game.tools();
+  f.game.tools = async () => [
+    ...tools,
+    { name: "pact_fixture_lookup_v1", inputSchema: { type: "object" }, annotations: { readOnlyHint: true } },
+  ];
   const model = new FakeModel([
-    { kind: "read", tool: "fleet_read_schema", args: { name: "pact_world_read_v1" }, summary: "New knowledge" },
+    { kind: "read", tool: "fleet_read_schema", args: { name: "pact_fixture_lookup_v1" }, summary: "New knowledge" },
     { kind: "read", tool: "pact_agent_guide_v1", args: { topic: "start" }, summary: "Fresh state" },
     { kind: "wait", summary: "Wait" },
   ]);
@@ -78,6 +84,9 @@ it("round trips eight encrypted entries through a new Store, deduplicates/evicts
   if (!saved.read_memory_cipher) throw Error("Missing checkpoint");
   const entries = restarted.vault.decrypt<Data[]>(saved.read_memory_cipher, `read-memory:${agent.id}`);
   expect(entries).toHaveLength(8);
+  expect(entries.some((e) => e.tool === "fleet_read_schema" && object(e.args).name === "pact_fixture_lookup_v1")).toBe(
+    true,
+  );
   expect(entries.some((e) => object(e.args).name === "fixture_0")).toBe(false);
   expect(entries.some((e) => e.tool === "pact_fixture_4")).toBe(false);
   expect(entries.filter((e) => e.tool === "pact_agent_guide_v1")).toHaveLength(1);
