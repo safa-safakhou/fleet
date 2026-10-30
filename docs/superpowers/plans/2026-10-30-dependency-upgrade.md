@@ -43,3 +43,42 @@ Sources: [Node releases](https://nodejs.org/dist/index.json), [TypeScript downlo
 - Run the full unit suite, checks, build and proportional PACT verification; update the verification record, review diffs and commit both repositories on master. No push/deployment is requested.
 
 Follow-up verification passed: all 1,159 Fleet unit tests, type/Biome check, production build, architecture boundary check, zero-findings npm audit and `git diff --check`. PACT revalidation passed all 419 unit tests, lint, typecheck, build and backlog consistency. Both upgrades are ready for the authorized local commits. Docker remains unavailable; no database integration or Linux process acceptance is claimed.
+
+## Docker follow-up — 30 October 2026
+
+Docker became available (Engine 29.2.1). The checks below replace the earlier local Docker-unavailable limitation. Tests used Node 26.13.0 and fresh nonce-labelled owned fixtures with `postgres:17.11-alpine` and `postgres:18.6-bookworm`. Database URLs were explicit, localhost-only and separate from retained/default ports. Linux test containers shared only their own PostgreSQL fixture's network namespace, with PostgreSQL on port 15432. Every fixture was removed after its run; no retained service, world, credential, budget or schedule was changed.
+
+| Check | PostgreSQL 17.11 | PostgreSQL 18.6 |
+| --- | --- | --- |
+| PACT integration + smoke, 75 files | 511 passed, 1 skipped | 511 passed, 1 skipped |
+| Fleet portable integration, 99 files | 706 passed | 706 passed |
+| Fleet Linux integration, 3 files | 65 passed on isolated rerun | 65 passed |
+| Fleet paired acceptance, 12 files | 67 passed, 9 failed | 67 passed, 9 failed |
+
+The Fleet integration totals are disjoint: 706 portable tests plus 65 Linux tests give 771 scoped tests covered per database version. The initial macOS invocation reported 736 passes and 35 failures across the 102 selected files; all failures were in `codex.test.ts`, `native-event-runtime.test.ts` and `native-pact-workflows.test.ts`, which were rerun in Linux rather than counted as passing or silently skipped on macOS. All 65 tests in those three files passed in the final Linux runs. A separate network-disabled Linux run passed all 35 Codex process, owned-process and architecture-boundary unit tests. The paired Linux image also completed PACT's full build using its locked dependencies.
+
+PACT's skipped test is the opt-in local-model baseline (`PACT_BASELINE_LOCAL_MODEL_URL` was deliberately unset). No real model/provider calls were made.
+
+### Fixture correction and timing observations
+
+The first PACT integration runs found one test-only failure on both versions: `negotiation-owned-restore.test.ts` referenced an absent developer-local image ID. The restore clone now uses the immutable image ID obtained from the verified owned source container, retaining the nonce checks and disabled clone network. The corrected encrypted restore test passes on both versions, and full PACT integration reruns pass.
+
+A four-worker PostgreSQL 17 PACT run produced two global migration-lock timeouts (`negotiation-lifecycle.test.ts` and `negotiation-native-clock.test.ts`). The standard owned-harness serial rerun passed all 511 tests. Production lock settings were not changed. The first PostgreSQL 17 Linux Fleet run had four `WORLD_PAUSED`/`FIXTURE_WORLD_LEASE_REQUIRED` failures late in `native-pact-workflows.test.ts`; all 65 platform tests passed on a fresh isolated rerun with unchanged code and timing settings. This timing sensitivity remains an observation, not proof that those fixtures are robust under load.
+
+### Historical negotiation results and requested exclusions
+
+At the user's request, `tests/integration/post-e3-positive.test.ts` was excluded from the scoped Fleet run (`--exclude tests/integration/post-e3-positive.test.ts`). This file contains 28 historical protocol replays and one additional frozen-context check. The initial long-running attempts were interrupted; they are not certified as passed. Existing commands, budgets, context caps and native timing semantics were preserved.
+
+The same nine paired acceptance failures occurred on both PostgreSQL versions. They remain unresolved and are not claimed to be pre-existing or caused by the upgrade. Packing-repair cases report `CONTEXT_LIMIT`; the other cases fail negotiation completion/history assertions. No frozen limits were increased to manufacture acceptance:
+
+- `tests/acceptance/negotiation-history.test.ts > C05 fulfilled delivers original history through later engine decisions`
+- `tests/acceptance/negotiation-history.test.ts > C05 default delivers original history through later engine decisions`
+- `tests/acceptance/negotiation-packing-repair.test.ts > separate @1.1 C01 fits initial, corrective and scoped-read packets through 24 native turns`
+- `tests/acceptance/negotiation-packing-repair.test.ts > separate @1.1 C02 fits initial, corrective and scoped-read packets through 24 native turns`
+- `tests/acceptance/negotiation.test.ts > two actual selected engines establish contact/dialogue, settle 60 installments each, then decide later`
+- `tests/acceptance/negotiation.test.ts > C02 default follows normal paired handlers and grounded later decisions`
+- `tests/acceptance/negotiation.test.ts > C03 default follows normal paired handlers and grounded later decisions`
+- `tests/acceptance/negotiation.test.ts > C05 fulfilled follows normal paired handlers and grounded later decisions`
+- `tests/acceptance/negotiation.test.ts > C05 default follows normal paired handlers and grounded later decisions`
+
+PACT follow-up lint, typecheck, backlog consistency and diff checks passed after the restore-fixture correction. These checks certify synthetic source integration only; no production deployment, retained-data migration, real model qualification or replay was performed.
