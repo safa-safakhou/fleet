@@ -30,7 +30,7 @@
 
 ## File responsibilities
 
-Create `src/research/qualification/{matrix,repository,policy}.ts`, `migrations/051_research_qualification.sql`, `tests/fixtures/research/config-matrix.json`, `scripts/{qualify-research,test-research-migration,test-research-faults,benchmark-research}.ts`, and `docs/research/{qualification,release,operations}.md`. Extend existing architecture boundary/offline fixture harnesses rather than calling retained routes.
+Create `src/research/qualification/{matrix,repository,policy}.ts`, `migrations/052_research_qualification.sql`, `tests/fixtures/research/config-matrix.json`, `scripts/{qualify-research,test-research-migration,test-research-faults,benchmark-research}.ts`, and `docs/research/{qualification,release,operations}.md`. Extend existing architecture boundary/offline fixture harnesses rather than calling retained routes.
 
 Qualification artifacts store exact versions/manifests/capability fingerprints, test evidence refs, status/scope and invalidation reasons. They contain no grant that activates a live cohort. Update the handbook/current-state only with actual completed source results when implementation is accepted, not predictions from this plan.
 

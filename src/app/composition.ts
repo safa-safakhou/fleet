@@ -28,6 +28,7 @@ import { TaskStore } from "../platform/tasks.js";
 import { CaptureSession } from "../research/evidence/boundaries.js";
 import { ArtifactFilesystem } from "../research/evidence/filesystem.js";
 import { RunInspection } from "../research/evidence/inspection.js";
+import { createTelemetry } from "../research/telemetry/sdk.js";
 import { RunWindow } from "../run-window.js";
 import { Store } from "../store.js";
 import { Vault } from "../vault.js";
@@ -47,6 +48,7 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
     new ArtifactFilesystem(resolve(settings.statePath, ".state/evidence"), settings.minFreeBytes),
   );
   store.observation = evidence;
+  const telemetry = settings.observabilityEndpoint ? createTelemetry(store, settings.observabilityEndpoint) : undefined;
   const runWindow = new RunWindow(settings.runWindowFile);
   const broker = new CredentialBroker(store, settings.gameBase, settings.origin, settings.liveAllowed),
     model = runWindow.model(
@@ -155,6 +157,7 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
   return {
     settings,
     evidence,
+    telemetry,
     researchInspection: new RunInspection(store, evidence.artifacts),
     legacy: new LegacyRunner(store, engine),
     maintenance: createMaintenance(store),

@@ -5,6 +5,7 @@ import { stopFailedCanaryTurn } from "./platform/canary-stop.js";
 import { enoughDisk } from "./platform/disk.js";
 import { DispatchScheduler } from "./platform/scheduling.js";
 import { WorkerPool } from "./platform/worker-pool.js";
+import { startTelemetryLoop } from "./research/telemetry/sdk.js";
 import { runtime } from "./runtime.js";
 
 const r = runtime(),
@@ -15,6 +16,7 @@ let stop = false,
   failures = 0,
   recoveryInFlight: Promise<unknown> | undefined,
   intakeInFlight: Promise<unknown> | undefined;
+const stopTelemetry = startTelemetryLoop(r.telemetry);
 const workers = new WorkerPool(r.settings.maxConcurrency, r.settings.maxConcurrency);
 const participantCancellation = new AbortController();
 const scheduler = new DispatchScheduler();
@@ -178,5 +180,6 @@ try {
   await r.host.stop();
   await Promise.allSettled([workers.drain(), recoveryInFlight, intakeInFlight]);
   await r.host.drain();
+  await stopTelemetry();
   await r.pool.end();
 }

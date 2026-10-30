@@ -1,7 +1,9 @@
+import { startTelemetryLoop } from "./research/telemetry/sdk.js";
 import { runtime } from "./runtime.js";
 import { buildServer } from "./server.js";
 
 const r = runtime();
+const stopTelemetry = startTelemetryLoop(r.telemetry);
 const server = buildServer({
   ...r,
   origin: r.settings.origin,
@@ -13,6 +15,7 @@ await server.listen({ host: process.env.FLEET_BIND ?? "127.0.0.1", port: r.setti
 console.log("Fleet console ready. No cohort starts on installation.");
 const shutdown = async () => {
   await server.close();
+  await stopTelemetry();
   await r.pool.end();
 };
 process.once("SIGTERM", shutdown);

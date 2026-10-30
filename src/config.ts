@@ -13,6 +13,7 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
   const origin = endpoint(env.FLEET_ORIGIN ?? "http://127.0.0.1:8820", true),
     gameBase = endpoint(env.FLEET_GAME_BASE_URL ?? env.PACT_BASE_URL ?? "https://pact.tinyagenttools.com", allowHttp);
   return {
+    observabilityEndpoint: env.FLEET_OBSERVABILITY_OTLP_URL,
     pactFactRequests: parsePactFactRequests(env.FLEET_PACT_FACT_REQUESTS),
     databaseUrl,
     operatorSecret,

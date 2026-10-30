@@ -190,5 +190,35 @@
     },
     "integrity": "sha512-kAU01q92leb1rMuF5fhuQKjP3MkdCxSiUT/IWo409YrQMbQdLGmM4EyH6RoSmInNSulSgKWkja+IyglnZSPYXg==",
     "source": "https://registry.npmjs.org/@opentelemetry/instrumentation-http/-/instrumentation-http-0.300.0.tgz"
+  },
+  {
+    "name": "@opentelemetry/sdk-trace",
+    "version": "3.0.0",
+    "license": "Apache-2.0",
+    "engines": {
+      "node": ">=22.15.0"
+    },
+    "integrity": "sha512-4T0DbDGdtsjNmYK5/lNalHro4fsMZ0UZ3JE+C8fcqYP25xaJC22FHg8kdJNJ21srjJY5XoT7WNFCtj88NNTl4Q==",
+    "source": "https://registry.npmjs.org/@opentelemetry/sdk-trace/-/sdk-trace-3.0.0.tgz"
+  },
+  {
+    "name": "@opentelemetry/sdk-metrics",
+    "version": "3.0.0",
+    "license": "Apache-2.0",
+    "engines": {
+      "node": ">=22.15.0"
+    },
+    "integrity": "sha512-YozyS2rIlizvUNLZwcWxH0x2FhX02/mcZwzM8hsl8yvQk+xeKmAc7vcSieWiO4oSwIB20B8eS/zwdopAd/J5zQ==",
+    "source": "https://registry.npmjs.org/@opentelemetry/sdk-metrics/-/sdk-metrics-3.0.0.tgz"
+  },
+  {
+    "name": "@opentelemetry/resources",
+    "version": "3.0.0",
+    "license": "Apache-2.0",
+    "engines": {
+      "node": ">=22.15.0"
+    },
+    "integrity": "sha512-4762KVmlDroRIt+4Ra8AnwcQqdXlkAR55jDrhzna8bzhJx1mUzvHW/Lh/OemFuY9+ouM4xaDc6CbUmoJmM6BFg==",
+    "source": "https://registry.npmjs.org/@opentelemetry/resources/-/resources-3.0.0.tgz"
   }
 ]

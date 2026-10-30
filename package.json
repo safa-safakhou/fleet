@@ -27,11 +27,19 @@
     "test:acceptance": "vitest run tests/acceptance --maxWorkers=1",
     "research:contracts:check": "tsx scripts/check-research-contracts.ts",
     "research:contracts:generate": "tsx scripts/check-research-contracts.ts --write",
-    "test:properties": "tsx scripts/test-research-properties.ts"
+    "test:properties": "tsx scripts/test-research-properties.ts",
+    "test:observability": "node --import tsx scripts/test-research-observability.ts",
+    "research:archive:verify": "node --import tsx scripts/verify-research-archive.ts"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.16.0",
     "@grpc/grpc-js": "1.14.7",
+    "@opentelemetry/api": "1.10.0",
+    "@opentelemetry/exporter-metrics-otlp-http": "0.300.0",
+    "@opentelemetry/exporter-trace-otlp-http": "0.300.0",
+    "@opentelemetry/resources": "3.0.0",
+    "@opentelemetry/sdk-metrics": "3.0.0",
+    "@opentelemetry/sdk-trace": "3.0.0",
     "ajv": "8.20.0",
     "fastify": "5.12.7",
     "pg": "8.23.1",
@@ -43,6 +51,7 @@
     "@biomejs/biome": "2.6.4",
     "@bufbuild/buf": "1.75.0",
     "@bufbuild/protoc-gen-es": "2.16.0",
+    "@playwright/test": "1.64.1",
     "@types/node": "26.6.6",
     "@types/pg": "8.23.1",
     "@types/react": "19.3.0",

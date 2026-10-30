@@ -36,7 +36,7 @@ Promptfoo lives under `evals/pact/`; DSPy lives under `workers/research/src/flee
 
 ## A1 — Implement the metric catalog and independent PACT grading
 
-**Files:** Create metric/evaluator modules above, `migrations/049_research_metric_snapshots.sql`, `tests/unit/research-metrics.test.ts`, `tests/unit/research-pact-evaluator.test.ts`, `tests/integration/research-metric-coverage.test.ts`, `docs/research/metrics.md`; adapt existing metrics/report classes through versioned entry points.
+**Files:** Create metric/evaluator modules above, `migrations/050_research_metric_snapshots.sql`, `tests/unit/research-metrics.test.ts`, `tests/unit/research-pact-evaluator.test.ts`, `tests/integration/research-metric-coverage.test.ts`, `docs/research/metrics.md`; adapt existing metrics/report classes through versioned entry points.
 
 **Consumes:** O4 `RunSnapshot`, O5 archive/evidence refs, M4 relevance labels and typed PACT effect/observation semantics.
 
@@ -50,7 +50,7 @@ Promptfoo lives under `evals/pact/`; DSPy lives under `workers/research/src/flee
 
 ## A2 — Persist experiments and compare independent units
 
-**Files:** Create experiment repository/comparison/statistics modules above, `migrations/050_research_experiments.sql`, `tests/unit/research-statistics.test.ts`, `tests/integration/research-experiments.test.ts`; modify `src/comparisons.ts`, `src/platform/reports.ts`, research API routes and `docs/comparisons.md` with current versioned behavior.
+**Files:** Create experiment repository/comparison/statistics modules above, `migrations/051_research_experiments.sql`, `tests/unit/research-statistics.test.ts`, `tests/integration/research-experiments.test.ts`; modify `src/comparisons.ts`, `src/platform/reports.ts`, research API routes and `docs/comparisons.md` with current versioned behavior.
 
 **Consumes:** C2 manifests, O4 immutable run snapshot and A1 `MetricSet`/`EvaluationResult`.
 
