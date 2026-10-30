@@ -150,24 +150,25 @@ test("a failed scope lookup cannot roll back a known native command receipt", as
 test("corrections retain their own allocation and purpose", async () => {
   const root = await mkdtemp(join(tmpdir(), "fleet-correction-capture-"));
   try {
-    await captureArchitectureTranscript(
-      { id: "reactive-basic", version: "1" },
-      {
-        scenario: "correction",
-        onStore: async (store) => {
-          store.observation = new CaptureSession(store, new ArtifactFilesystem(root));
+    for (const profileId of ["legacy-loop", "reactive-basic"])
+      await captureArchitectureTranscript(
+        { id: profileId, version: "1" },
+        {
+          scenario: "correction",
+          onStore: async (store) => {
+            store.observation = new CaptureSession(store, new ArtifactFilesystem(root));
+          },
+          afterRun: async (store, claim) => {
+            const scope = await scopeForTurn(store, claim.id),
+              page = await new EvidenceRepository(store).page(scope, {}),
+              calls = page.events.filter((e) => e.kind === "model.request");
+            expect(calls.length).toBeGreaterThan(1);
+            expect(new Set(calls.map((e) => e.attributes.allocationId)).size).toBe(calls.length);
+            expect(calls[1].attributes.purpose).toBe("correction");
+            expect((await new CoverageService(store).reconcile(scope.runId)).missing).toEqual([]);
+          },
         },
-        afterRun: async (store, claim) => {
-          const scope = await scopeForTurn(store, claim.id),
-            page = await new EvidenceRepository(store).page(scope, {}),
-            calls = page.events.filter((e) => e.kind === "model.request");
-          expect(calls.length).toBeGreaterThan(1);
-          expect(new Set(calls.map((e) => e.attributes.allocationId)).size).toBe(calls.length);
-          expect(calls[1].attributes.purpose).toBe("correction");
-          expect((await new CoverageService(store).reconcile(scope.runId)).missing).toEqual([]);
-        },
-      },
-    );
+      );
   } finally {
     await rm(root, { recursive: true, force: true });
   }

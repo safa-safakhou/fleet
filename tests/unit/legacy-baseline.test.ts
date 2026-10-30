@@ -12,7 +12,7 @@ it("preserves the recorded controller except explicit context, owner, proposal a
   const reviewed: [string, string][] = [
     // Authorized O3 capture port; reverse only this wrapper, retain the original historical digest.
     [
-      "          const prepared = { ...request, signal: deadline.signal, onDispatch: deadline.onDispatch };\n          response = this.store.observation\n            ? await this.store.observation.model(claim, prepared, this.model, reservation)\n            : await this.model.decide(prepared);",
+      '          const prepared = { ...request, signal: deadline.signal, onDispatch: deadline.onDispatch };\n          response = this.store.observation\n            ? await this.store.observation.model(\n                claim,\n                prepared,\n                this.model,\n                reservation,\n                decisionFeedback.length ? "correction" : "decision",\n              )\n            : await this.model.decide(prepared);',
       "          response = await this.model.decide({ ...request, signal: deadline.signal, onDispatch: deadline.onDispatch });",
     ],
     // Authorized shared deadline repair; retain the original controller pin and all other checks.
