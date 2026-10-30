@@ -1,0 +1,23 @@
+syntax = "proto3";
+package fleet.v1;
+message RunScope {
+ string run_id=1; string agent_id=2; string binding_id=3; string turn_id=4; string task_id=5;
+ string operation_id=6; uint64 operation_epoch=7; optional string participant_id=8; string manifest_digest=9;
+}
+message OperationKey { string operation_id=1; uint64 operation_epoch=2; string logical_step_id=3; }
+message ArtifactRef { string id=1; string content_type=2; uint64 bytes=3; uint64 chunks=4; string ciphertext_digest=5; string privacy_class=6; string retention_class=7; }
+message ResultRef { string id=1; string kind=2; }
+message Usage { optional uint64 input_tokens=1; optional uint64 output_tokens=2; }
+message BrokerResult {
+ enum Status { STATUS_UNSPECIFIED=0; completed=1; not_dispatched=2; pending=3; unknown=4; }
+ Status status=1; optional string allocation_id=2; optional string command_id=3;
+ Usage usage=4; repeated ArtifactRef artifacts=5; ResultRef result_ref=6;
+}
+message Coverage {
+ enum Status { STATUS_UNSPECIFIED=0; complete=1; partial=2; unavailable=3; withheld=4; expired=5; }
+ Status status=1; uint64 expected=2; uint64 recorded=3; repeated string reasons=4;
+}
+message CheckpointRef { string id=1; uint64 version=2; }
+message StepRef { string logical_step_id=1; uint64 operation_epoch=2; ResultRef result_ref=3; }
+message WorkerCheckpoint { string worker_version=1; uint64 expected_previous_version=2; repeated StepRef steps=3; repeated string source_refs=4; ArtifactRef state=5; }
+enum ContractLimit { CONTRACT_LIMIT_UNSPECIFIED=0; EVENT_PAGE_DEFAULT=200; EVENT_PAGE_MAX=500; ARTIFACT_CHUNK_MAX_BYTES=1048576; PRIVATE_RETENTION_DAYS=30; }

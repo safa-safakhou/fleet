@@ -1,0 +1,10 @@
+syntax = "proto3";
+package fleet.v1;
+import "fleet/v1/common.proto";
+message EvidenceEvent {
+ string schema_version=1; string id=2; RunScope scope=3; string stream_id=4; uint64 sequence=5;
+ string kind=6; repeated string parent_ids=7; string occurred_at=8; string recorded_at=9;
+ optional string process_id=10; optional uint64 monotonic_ns=11; optional string game_clock_id=12;
+ optional string game_time=13; map<string,string> attributes=14; repeated ArtifactRef artifacts=15; Coverage coverage=16;
+}
+message EventRef { string id=1; string stream_id=2; uint64 sequence=3; }

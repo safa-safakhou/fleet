@@ -161,6 +161,18 @@ export function childFixtureEnvironment(
   for (const name of ["PATH", "HOME", "TMPDIR", "LANG", "CI", "NO_COLOR", "FORCE_COLOR", "FLEET_OFFLINE_SCHEMAS"]) {
     if (parent[name] !== undefined) env[name] = parent[name];
   }
+  for (const [name, pattern] of Object.entries({
+    FLEET_PROPERTY_RUNS: /^(200|2000)$/,
+    FLEET_PROPERTY_SEED: /^-?\d{1,10}$/,
+    FLEET_PROPERTY_PATH: /^\d+(?::\d+)*$/,
+    FLEET_PROPERTY_TARGET: /^(ledger|protection|canonical|all)$/,
+  })) {
+    const value = parent[name];
+    if (value !== undefined) {
+      if (!pattern.test(value)) throw Error("INVALID_PROPERTY_REPLAY");
+      env[name] = value;
+    }
+  }
   return {
     ...env,
     FLEET_TEST_DATABASE_URL: fixture.fleetUrl,

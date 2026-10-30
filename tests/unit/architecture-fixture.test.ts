@@ -110,3 +110,20 @@ it("refuses cleanup when a container no longer carries its ownership label", asy
   await expect(createOwnedFixture(runtime)).rejects.toThrow("OWNED_FIXTURE_REQUIRED");
   expect(stopped).toEqual([]);
 });
+it("preserves bounded property replay settings without forwarding arbitrary environment", () => {
+  const env = childFixtureEnvironment(
+    { fleetUrl: "owned-fleet", pactUrl: "owned-pact", nonce: "a".repeat(64) },
+    {
+      FLEET_PROPERTY_RUNS: "2000",
+      FLEET_PROPERTY_SEED: "20261030",
+      FLEET_PROPERTY_PATH: "0:1",
+      FLEET_PROPERTY_TARGET: "ledger",
+      OPENAI_API_KEY: "synthetic-secret",
+    },
+  );
+  expect(env.FLEET_PROPERTY_RUNS).toBe("2000");
+  expect(env.FLEET_PROPERTY_SEED).toBe("20261030");
+  expect(env.FLEET_PROPERTY_PATH).toBe("0:1");
+  expect(env.FLEET_PROPERTY_TARGET).toBe("ledger");
+  expect(env.OPENAI_API_KEY).toBeUndefined();
+});

@@ -88,6 +88,9 @@ export async function scanArchitectureGraph(root) {
         ["pg", "node:child_process", "node:fs", "node:fs/promises"].includes(specifier) ||
         (target &&
           (/^(src\/(store|db|vault|model|codex|engine)\.ts|src\/(app|games|environments)\/)/.test(target) ||
+            (target.startsWith("src/research/") &&
+              target !== "src/research/contracts.ts" &&
+              !target.startsWith("src/research/generated/")) ||
             (/^src\/platform\//.test(target) &&
               !/^src\/platform\/(contracts|architecture|architecture-schema|engine-context)\.ts$/.test(target)) ||
             target === "src/modules/evidence/journal.ts"))
@@ -97,6 +100,13 @@ export async function scanArchitectureGraph(root) {
       code = "PLATFORM_ENGINE_DEPENDENCY";
     else if (from.startsWith("src/platform/") && target?.startsWith("src/app/"))
       code = "PLATFORM_COMPOSITION_DEPENDENCY";
+    else if (
+      from.startsWith("web/") &&
+      target?.startsWith("src/research/") &&
+      target !== "src/research/contracts.ts" &&
+      !target.startsWith("src/research/generated/")
+    )
+      code = "UI_RESEARCH_IMPLEMENTATION";
     else if ((from.startsWith("web/") || from === "src/cli.ts" || from === "src/cli-client.ts") && other)
       code = "UI_ENGINE_DEPENDENCY";
     else if (from.startsWith("src/modules/") && other) code = "MODULE_ENGINE_DEPENDENCY";

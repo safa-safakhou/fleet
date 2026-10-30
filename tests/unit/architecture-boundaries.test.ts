@@ -144,3 +144,21 @@ it("rejects unresolved dynamic loading in protected implementation layers", asyn
     await rm(root, { recursive: true, force: true });
   }
 });
+it("blocks engines and browser code from research kernel capabilities while permitting wire contracts", async () => {
+  const root = await fixture({
+    "src/engines/a/engine.ts":
+      'import {StepJournal} from "../../research/broker/steps.js"; import type {RunScope} from "../../research/contracts.js";',
+    "web/view.ts": 'import {ManifestRepository} from "../src/research/manifests/repository.js";',
+    "src/research/broker/steps.ts": "export class StepJournal {}",
+    "src/research/contracts.ts": "export type RunScope=unknown;",
+    "src/research/manifests/repository.ts": "export class ManifestRepository {}",
+  });
+  try {
+    expect(await scanArchitectureGraph(root)).toEqual([
+      "ENGINE_CONCRETE_DEPENDENCY:src/engines/a/engine.ts->src/research/broker/steps.ts",
+      "UI_RESEARCH_IMPLEMENTATION:web/view.ts->src/research/manifests/repository.ts",
+    ]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

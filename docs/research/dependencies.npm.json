@@ -1,0 +1,194 @@
+[
+  {
+    "name": "xstate",
+    "version": "5.33.3",
+    "license": "MIT",
+    "engines": null,
+    "integrity": "sha512-AnDRjS/GyKHmbA1PyhVCYBqYsA7EGe3KGgeD0ht3NFsXzoz7leX/HQDFX9QlHFJ/ltLHPsgChJYwPzRvB/0b4g==",
+    "source": "https://registry.npmjs.org/xstate/-/xstate-5.33.3.tgz"
+  },
+  {
+    "name": "@temporalio/client",
+    "version": "1.25.0",
+    "license": "MIT",
+    "engines": {
+      "node": ">= 20.3.0"
+    },
+    "integrity": "sha512-IbWlxzQiQg2fuIum+d2PkQWOGPVPyeN294sKdBCylKxVsGc1IoixXjWjEZ0dxVuYNFZq+16Vn9Fh2UNVDfXePA==",
+    "source": "https://registry.npmjs.org/@temporalio/client/-/client-1.25.0.tgz"
+  },
+  {
+    "name": "@temporalio/worker",
+    "version": "1.25.0",
+    "license": "MIT",
+    "engines": {
+      "node": ">= 20.3.0"
+    },
+    "integrity": "sha512-I4b/OwhDb/UhyoHLJDCnuKqROSlT95xHACRxOsg0UjH6qgcYCusch+9mLol1IN7ml2cNkSbnm+5hvzpVuywP3Q==",
+    "source": "https://registry.npmjs.org/@temporalio/worker/-/worker-1.25.0.tgz"
+  },
+  {
+    "name": "@temporalio/workflow",
+    "version": "1.25.0",
+    "license": "MIT",
+    "engines": {
+      "node": ">= 20.3.0"
+    },
+    "integrity": "sha512-2Z5BvOtsfOHL3Dy+4cewXEHDu9NeseEn4FeaaitNwn704POgEfshz0zxyZB8ofxbna2P0wsC5l3rnYHkOvtX9A==",
+    "source": "https://registry.npmjs.org/@temporalio/workflow/-/workflow-1.25.0.tgz"
+  },
+  {
+    "name": "@temporalio/activity",
+    "version": "1.25.0",
+    "license": "MIT",
+    "engines": {
+      "node": ">= 20.3.0"
+    },
+    "integrity": "sha512-IBz6/pqfwlZpZcw2KBFSQa5iu7B9gH6/RUCI/VCqywP9gfj0KVs6rGVAQj1/48oY63eIU5WcAllWdbaRDWY1+A==",
+    "source": "https://registry.npmjs.org/@temporalio/activity/-/activity-1.25.0.tgz"
+  },
+  {
+    "name": "@temporalio/testing",
+    "version": "1.25.0",
+    "license": "MIT",
+    "engines": {
+      "node": ">= 20.3.0"
+    },
+    "integrity": "sha512-q3bwaWorJsnwskI1fuGcYRxjC22mNUIVWG75lDO0vLZ3eDFp8Um/i9333oUcNMsOpQe7skjt5/1UU0JZZTKISw==",
+    "source": "https://registry.npmjs.org/@temporalio/testing/-/testing-1.25.0.tgz"
+  },
+  {
+    "name": "@grpc/grpc-js",
+    "version": "1.14.7",
+    "license": "Apache-2.0",
+    "engines": {
+      "node": ">=12.10.0"
+    },
+    "integrity": "sha512-W4W/fcBMGRVtG6dW2c7cw2mnpS3hvbBd+oQXjh2iYFTZDk1JJmcNqkM5KSaPubQpamlUUurrlb7G1s9NJeERmQ==",
+    "source": "https://registry.npmjs.org/@grpc/grpc-js/-/grpc-js-1.14.7.tgz"
+  },
+  {
+    "name": "@bufbuild/protobuf",
+    "version": "2.16.0",
+    "license": "(Apache-2.0 AND BSD-3-Clause)",
+    "engines": null,
+    "integrity": "sha512-FWa0sPlqYGJgpTs6OxBRcL/AW4JT0OIO+W1ajerluoTVh8CV0B7XM1qsNCRgnkSCkRCgOICKHRQlY17jrsm0+Q==",
+    "source": "https://registry.npmjs.org/@bufbuild/protobuf/-/protobuf-2.16.0.tgz"
+  },
+  {
+    "name": "@bufbuild/protoc-gen-es",
+    "version": "2.16.0",
+    "license": "Apache-2.0",
+    "engines": {
+      "node": ">=22"
+    },
+    "integrity": "sha512-LbPrEaGd7bOxKbJHllTR5439+PZjqd6fM7xyDZkDVtZ+Efzr7TMdMqShG9Qkf/nYVyiNS/SK5r9JhRaBTFkfZw==",
+    "source": "https://registry.npmjs.org/@bufbuild/protoc-gen-es/-/protoc-gen-es-2.16.0.tgz"
+  },
+  {
+    "name": "@bufbuild/buf",
+    "version": "1.75.0",
+    "license": "Apache-2.0",
+    "engines": {
+      "node": ">=12"
+    },
+    "integrity": "sha512-uMuBCULLDax9/3d5Lo9mea38vuPDv4mrRVE4XfSq3qPcD5UUxlg0RJ9hm84lYCzI3A3lIvLeChxrw9c1RUiD2w==",
+    "source": "https://registry.npmjs.org/@bufbuild/buf/-/buf-1.75.0.tgz"
+  },
+  {
+    "name": "fast-check",
+    "version": "4.10.2",
+    "license": "MIT",
+    "engines": {
+      "node": ">=12.17.0"
+    },
+    "integrity": "sha512-iK2f+YrcmoeGqk6fA0ea2bptcu/itMIm4NfEozq6N25+aG6h7s5HZbB/k1aV7b5w5sFLMCbbtRUsTVR+BgC3xw==",
+    "source": "https://registry.npmjs.org/fast-check/-/fast-check-4.10.2.tgz"
+  },
+  {
+    "name": "promptfoo",
+    "version": "0.125.1",
+    "license": "MIT",
+    "engines": {
+      "node": ">=22.22.0"
+    },
+    "integrity": "sha512-nogBhixdp69icwkg1EI0syZ4zAmAjJyWeLcqxAkTldbHi0qirOslwHvkUQhQmg65lQLrIKyMOMLXlBlSc6LRrg==",
+    "source": "https://registry.npmjs.org/promptfoo/-/promptfoo-0.125.1.tgz"
+  },
+  {
+    "name": "@playwright/test",
+    "version": "1.64.1",
+    "license": "Apache-2.0",
+    "engines": {
+      "node": ">=20"
+    },
+    "integrity": "sha512-IaYGml/nSOiZWROfPtuIL7neuu9qDOZ3TNvNljUIrhDMxiGTgPjzj/g9p9RxpS2tSepPDRY+UwAaEeiKtUvIAg==",
+    "source": "https://registry.npmjs.org/@playwright/test/-/test-1.64.1.tgz"
+  },
+  {
+    "name": "echarts",
+    "version": "6.1.0",
+    "license": "Apache-2.0",
+    "engines": null,
+    "integrity": "sha512-q0yaFPggC9FUdsWH4blavRWFmxdrIodbkoKNAjJudAI6CA9gNPxHtV2RcZNEepZVlk4yvBYkOkbk6HIVpIyHZA==",
+    "source": "https://registry.npmjs.org/echarts/-/echarts-6.1.0.tgz"
+  },
+  {
+    "name": "@dagrejs/dagre",
+    "version": "3.1.3",
+    "license": "MIT",
+    "engines": null,
+    "integrity": "sha512-X4aUTwOReZvthaZWOVHqlJ52/ZdhZFEM4+Lh/uR4XooUSLE6p71bcy7MPGzYnNUcNh+nj+i/qJQpCMIdQnSmrg==",
+    "source": "https://registry.npmjs.org/@dagrejs/dagre/-/dagre-3.1.3.tgz"
+  },
+  {
+    "name": "@opentelemetry/api",
+    "version": "1.10.0",
+    "license": "Apache-2.0",
+    "engines": {
+      "node": ">=8.0.0"
+    },
+    "integrity": "sha512-lMkyes8iHrG+mk6WH7X70MdCLI2RS0FwNBY1PyQ8UemaijE2m5mv5A0Niy3HtbYTFrgkUEQjFMXmSAk2hQDuPQ==",
+    "source": "https://registry.npmjs.org/@opentelemetry/api/-/api-1.10.0.tgz"
+  },
+  {
+    "name": "@opentelemetry/sdk-node",
+    "version": "0.300.0",
+    "license": "Apache-2.0",
+    "engines": {
+      "node": ">=22.15.0"
+    },
+    "integrity": "sha512-yRaNP91ilq0m5fBCXSo7ZTR1NDd/GPu02uq0Rur2kMw7VheHwkV8i68oYt4/vM+eofRFKYCGS5B2QrgcZS/rmw==",
+    "source": "https://registry.npmjs.org/@opentelemetry/sdk-node/-/sdk-node-0.300.0.tgz"
+  },
+  {
+    "name": "@opentelemetry/exporter-trace-otlp-http",
+    "version": "0.300.0",
+    "license": "Apache-2.0",
+    "engines": {
+      "node": ">=22.15.0"
+    },
+    "integrity": "sha512-Dwdagba93cdhROlFGbkU4yK4hvd3l0k7WV9nvTWIoN6KwxFP+HCvy9EkgIpyfN11fVdIWxY3XqOwWOq83OPfcA==",
+    "source": "https://registry.npmjs.org/@opentelemetry/exporter-trace-otlp-http/-/exporter-trace-otlp-http-0.300.0.tgz"
+  },
+  {
+    "name": "@opentelemetry/exporter-metrics-otlp-http",
+    "version": "0.300.0",
+    "license": "Apache-2.0",
+    "engines": {
+      "node": ">=22.15.0"
+    },
+    "integrity": "sha512-y8KYKyM69l9PG4Ax9DKlKH5jaVJCJo9hXOpT6v0/PDX+uC302AhHVitEz8M600ljqLGdPYodnyn+wbYIYXPh6g==",
+    "source": "https://registry.npmjs.org/@opentelemetry/exporter-metrics-otlp-http/-/exporter-metrics-otlp-http-0.300.0.tgz"
+  },
+  {
+    "name": "@opentelemetry/instrumentation-http",
+    "version": "0.300.0",
+    "license": "Apache-2.0",
+    "engines": {
+      "node": ">=22.15.0"
+    },
+    "integrity": "sha512-kAU01q92leb1rMuF5fhuQKjP3MkdCxSiUT/IWo409YrQMbQdLGmM4EyH6RoSmInNSulSgKWkja+IyglnZSPYXg==",
+    "source": "https://registry.npmjs.org/@opentelemetry/instrumentation-http/-/instrumentation-http-0.300.0.tgz"
+  }
+]

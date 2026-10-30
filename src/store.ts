@@ -750,14 +750,14 @@ export class Store {
       [id, worker, code, this.now()],
     );
   }
-  private async check(c: Pool | PoolClient, claim: Claim) {
+  private async check(c: Pool | PoolClient, claim: Pick<Claim, "id" | "fence" | "generation" | "worker">) {
     const r = await c.query(
       "SELECT 1 FROM turns t JOIN agents a ON a.id=t.agent_id JOIN cohorts c ON c.id=t.cohort_id WHERE t.id=$1 AND t.state='running' AND t.fence=$2 AND a.fence=$2 AND c.generation=$3 AND c.state='running' AND a.state='ready' AND t.worker=$4 AND t.deadline_at>$5",
       [claim.id, claim.fence, claim.generation, claim.worker, this.now()],
     );
     if (!r.rowCount) throw new FleetError("CLAIM_FENCED");
   }
-  async active(claim: Claim, client: Pool | PoolClient = this.pool) {
+  async active(claim: Pick<Claim, "id" | "fence" | "generation" | "worker">, client: Pool | PoolClient = this.pool) {
     await this.check(client, claim);
   }
   async rememberReads(claim: Claim, reads: unknown[]) {

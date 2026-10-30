@@ -1,0 +1,8 @@
+{
+  "purpose": "Deliberately invalid implementation detected by the independent oracle; not a production incident",
+  "seed": 20261030,
+  "reservation": "40000",
+  "mutatedRemainingReservation": "1",
+  "status": "unknown",
+  "expectedViolation": "RESERVATION_REFUND"
+}

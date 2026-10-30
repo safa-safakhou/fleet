@@ -23,6 +23,8 @@ import { ProfileConsole } from "./platform/profile-console.js";
 import { PlatformReports } from "./platform/reports.js";
 import type { TaskStore } from "./platform/tasks.js";
 import { recoveryHint } from "./recovery.js";
+import type { ResearchCapabilityResolver } from "./research/manifests/capabilities.js";
+import { registerManifestRoutes } from "./research/manifests/routes.js";
 import type { Store } from "./store.js";
 
 const hash = (s: string) => createHash("sha256").update(s).digest("hex");
@@ -38,6 +40,7 @@ export function buildServer(options: {
   engines?: EngineRegistry;
   environments?: EnvironmentRegistry;
   architectures?: ArchitectureRegistry;
+  researchCapability?: ResearchCapabilityResolver;
   providerConfigured?: (model: import("./domain.js").ModelSettings) => boolean;
 }) {
   if (options.operatorSecret.length < 32) throw new FleetError("OPERATOR_SECRET_REQUIRED");
@@ -81,6 +84,7 @@ export function buildServer(options: {
     )
       return reply.code(403).send({ error: { code: "CSRF_REQUIRED" } });
   });
+  registerManifestRoutes(app, options.researchCapability);
   app.post("/api/login", async (request, reply) => {
     if (request.headers.origin !== options.origin) return reply.code(403).send({ error: { code: "ORIGIN_REQUIRED" } });
     const now = store.now().getTime(),

@@ -1,0 +1,7 @@
+{
+  "version": "v0.8.7",
+  "commit": "f37c13f68b57d2c3472b2214fbcff699d6d34876",
+  "source": "https://api.github.com/repos/pgvector/pgvector/tarball/v0.8.7",
+  "sha256": "b028949dce65a39818cf2bccd64c0a2abc68262a2079f598b161de9c82c9510e",
+  "runtimeQualification": "M2 owns PostgreSQL 17 extension integration; not installed in C1"
+}

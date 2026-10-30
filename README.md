@@ -2,6 +2,12 @@
 
 For the current milestone and task-specific reading, see [current state](docs/current-state.md) and [agent instructions](AGENTS.md).
 
+The [agent engineering tooling proposal](docs/proposals/agent-engineering-tooling-20261030.md) records the six tools selected for the plan list, the testing-first sequence, and language-independent research candidates for memory, context, retrieval, and agent construction. It is planning only.
+
+The [target architecture study](docs/proposals/fleet-target-architecture-20261030.md) proposes Fleet's broader cross-game research platform: configurable scripted, learned, deliberative, helper, and hybrid agents, with explicit environment contracts, evidence, validation, and replaceable implementations. It describes an end state, not an implemented platform or a migration schedule.
+
+The [PACT research engine migration plan](docs/superpowers/plans/2026-10-30-pact-research-engine.md) narrows the next proposed release to PACT: selected tooling, complete authorized observation, causal visualizations, memory/context lineage, metrics and independent comparisons. It includes scoped Python workers and Temporal recovery; cross-game support is deferred. The [C1–C4 foundation](docs/research/contracts-foundation-20261030.md) is now verified at source/offline scope; the remaining packages are planned. No research runtime or service cutover is deployed.
+
 An independent server controller and private console for scheduled game agents. Scheduling, budgets, model execution, memory and command recovery use an injected game adapter. PACT is the first supported integration; additional games need their own authenticated adapter and acceptance tests. Fleet has its own database, processes, credentials and repository and never connects to a game's database.
 
 Start with the [PACT and Fleet project handbook](docs/project/README.md) for the product, technical architecture, design decisions, full development/report journey, findings and presentation notes. The [19 October state](docs/project/current-state.md) separates implemented source, synthetic provider qualification, installed artifacts and remaining live/quality gates. Multiple engine packages now coexist; the legacy source snapshot is retained with explicitly documented operational repairs. Current source publication does not deploy or enable an installation.

@@ -45,6 +45,6 @@ Use scoped rg/file reads; graph tools are optional when useful. Search relevant 
 Use package.json and the relevant runbook for checks proportional to the change. Documentation-only edits need link/content checks and git diff --check, not the application suite.
 For code, run affected tests plus applicable check/build/boundary/audit checks. Integration tests use fresh isolated fleet_test fixtures and fake providers, never retained databases/default live routes.
 Where available, test:architecture provides owned paired fixtures. Linux is required for Codex process fixtures; do not claim a skipped platform suite passed.
-Commit verified changes when requested. Report actual checks, remaining blockers and source versus live acceptance; rerun/broaden checks when changes or failures justify it.
+Commit verified changes incrementally as work proceeds; the owner has made this a standing instruction. Report actual checks, remaining blockers and source versus live acceptance; rerun/broaden checks when changes or failures justify it.
 
 Keep this file under 5 KB. Update current-state.md in place; keep detailed reports/plans as on-demand references. The [original instruction snapshot](docs/reference/agent-instructions-before-20261021.txt) is historical reference, not current authorization.

@@ -34,6 +34,9 @@ export interface TaskClaim {
   fence: number;
   revision: number;
 }
+export type TaskAuthority = Pick<TaskClaim, "taskId" | "bindingId" | "profile" | "fence"> & {
+  turn: Pick<Claim, "id" | "agentId" | "cohortId" | "generation" | "fence" | "worker">;
+};
 export class TaskStore {
   constructor(
     readonly store: Store,
@@ -361,7 +364,7 @@ export class TaskStore {
       };
     });
   }
-  async check(claim: TaskClaim, db?: PoolClient, deadlines = true) {
+  async check(claim: TaskAuthority, db?: PoolClient, deadlines = true) {
     const client = db ?? this.store.pool;
     const row = (
       await client.query(

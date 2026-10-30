@@ -1,0 +1,5 @@
+version: v2
+plugins:
+  - local: protoc-gen-es
+    out: src/research/generated
+    opt: [target=ts, import_extension=js]

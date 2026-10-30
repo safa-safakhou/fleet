@@ -24,9 +24,14 @@
     "demo": "tsx scripts/demo.ts",
     "check:boundaries": "node scripts/check-boundaries.mjs",
     "eval:offline": "vitest run tests/unit/evaluation.test.ts tests/unit/qualification.test.ts",
-    "test:acceptance": "vitest run tests/acceptance --maxWorkers=1"
+    "test:acceptance": "vitest run tests/acceptance --maxWorkers=1",
+    "research:contracts:check": "tsx scripts/check-research-contracts.ts",
+    "research:contracts:generate": "tsx scripts/check-research-contracts.ts --write",
+    "test:properties": "tsx scripts/test-research-properties.ts"
   },
   "dependencies": {
+    "@bufbuild/protobuf": "2.16.0",
+    "@grpc/grpc-js": "1.14.7",
     "ajv": "8.20.0",
     "fastify": "5.12.7",
     "pg": "8.23.1",
@@ -36,11 +41,14 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.6.4",
+    "@bufbuild/buf": "1.75.0",
+    "@bufbuild/protoc-gen-es": "2.16.0",
     "@types/node": "26.6.6",
     "@types/pg": "8.23.1",
     "@types/react": "19.3.0",
     "@types/react-dom": "19.3.0",
     "@vitejs/plugin-react": "6.1.2",
+    "fast-check": "4.10.2",
     "tsx": "4.23.15",
     "typescript": "7.0.2",
     "vite": "8.3.5",
@@ -49,5 +57,8 @@
   "packageManager": "npm@12.2.1",
   "allowScripts": {
     "esbuild@0.28.2": true
+  },
+  "overrides": {
+    "basic-ftp": "6.2.4"
   }
 }

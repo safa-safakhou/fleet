@@ -1,0 +1,489 @@
+// Generated from schemas/run-manifest.v1.schema.json; do not edit.
+export default {
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "fleet.run/v1",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "schemaVersion": {
+      "const": "fleet.run/v1"
+    },
+    "profile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "id",
+        "version"
+      ]
+    },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "source": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "build": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "dependencies": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        }
+      },
+      "required": [
+        "source",
+        "build",
+        "dependencies"
+      ]
+    },
+    "environment": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "pact"
+        },
+        "bindingId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "worldIncarnation": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "apiVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "observationVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "effectsVersion": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "kind",
+        "bindingId",
+        "worldIncarnation",
+        "apiVersion",
+        "observationVersion",
+        "effectsVersion"
+      ]
+    },
+    "components": {
+      "type": "object",
+      "minProperties": 1,
+      "additionalProperties": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+      }
+    },
+    "roles": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 100,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 2000
+          },
+          "authority": {
+            "enum": [
+              "actor",
+              "advisory"
+            ]
+          }
+        },
+        "required": [
+          "id",
+          "authority"
+        ]
+      }
+    },
+    "model": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "route": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "model": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "maxOutputTokens": {
+              "type": "integer",
+              "minimum": 1,
+              "maximum": 2147483647
+            },
+            "temperature": {
+              "type": "number",
+              "minimum": 0,
+              "maximum": 2
+            },
+            "topP": {
+              "type": "number",
+              "exclusiveMinimum": 0,
+              "maximum": 1
+            }
+          },
+          "required": [
+            "maxOutputTokens"
+          ]
+        }
+      },
+      "required": [
+        "route",
+        "model",
+        "parameters"
+      ]
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "maxBytes": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "maxTokens": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "maxObservationAgeMs": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        },
+        "compression": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "policy",
+        "maxBytes",
+        "maxTokens",
+        "maxObservationAgeMs",
+        "compression"
+      ]
+    },
+    "retrieval": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "strategy": {
+          "enum": [
+            "baseline-v1",
+            "fts-v1",
+            "vector-exact-v1",
+            "rrf-v1"
+          ]
+        },
+        "language": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "topK": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "strategy",
+        "language",
+        "topK"
+      ]
+    },
+    "memory": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "namespace": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "indexPolicy": {
+          "enum": [
+            "disabled",
+            "consented"
+          ]
+        },
+        "indexConsentRef": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "embedding": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "revision": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 2000
+            },
+            "digest": {
+              "type": "string",
+              "pattern": "^[a-f0-9]{64}$"
+            },
+            "dimension": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 65536
+            },
+            "normalization": {
+              "enum": [
+                "l2",
+                "none"
+              ]
+            }
+          },
+          "required": [
+            "revision",
+            "digest",
+            "dimension",
+            "normalization"
+          ]
+        }
+      },
+      "required": [
+        "namespace",
+        "indexPolicy"
+      ]
+    },
+    "tools": {
+      "type": "array",
+      "uniqueItems": true,
+      "maxItems": 100,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2000
+      }
+    },
+    "clock": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "observationId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "deadlineId": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "deadlineValue": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "observationId",
+        "deadlineId",
+        "deadlineValue"
+      ]
+    },
+    "limits": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "calls": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 20
+        },
+        "tokens": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 20
+        },
+        "concurrency": {
+          "type": "integer",
+          "minimum": 1,
+          "maximum": 2147483647
+        }
+      },
+      "required": [
+        "calls",
+        "tokens",
+        "concurrency"
+      ]
+    },
+    "evidence": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "required": {
+          "type": "boolean"
+        },
+        "retentionDays": {
+          "const": 30
+        },
+        "maxArtifactBytes": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)$",
+          "maxLength": 20
+        }
+      },
+      "required": [
+        "required",
+        "retentionDays",
+        "maxArtifactBytes"
+      ]
+    },
+    "protections": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "identity": {
+          "type": "boolean"
+        },
+        "permission": {
+          "type": "boolean"
+        },
+        "lease": {
+          "type": "boolean"
+        },
+        "privacy": {
+          "type": "boolean"
+        },
+        "budget": {
+          "type": "boolean"
+        },
+        "fencing": {
+          "type": "boolean"
+        },
+        "journal": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "identity",
+        "permission",
+        "lease",
+        "privacy",
+        "budget",
+        "fencing",
+        "journal"
+      ]
+    },
+    "checkpoint": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "version": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "version"
+      ]
+    },
+    "evaluation": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "evaluator": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "dataset": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        },
+        "split": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 2000
+        }
+      },
+      "required": [
+        "evaluator",
+        "dataset",
+        "split"
+      ]
+    },
+    "seed": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 2000
+    },
+    "expectedCapabilityDigest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    }
+  },
+  "required": [
+    "schemaVersion",
+    "profile",
+    "build",
+    "environment",
+    "components",
+    "roles",
+    "model",
+    "context",
+    "retrieval",
+    "memory",
+    "tools",
+    "clock",
+    "limits",
+    "evidence",
+    "protections",
+    "checkpoint",
+    "evaluation",
+    "seed"
+  ]
+} as const;
