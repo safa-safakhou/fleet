@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file fleet/v1/evidence.proto.
  */
 export const file_fleet_v1_evidence: GenFile = /*@__PURE__*/
-  fileDesc("ChdmbGVldC92MS9ldmlkZW5jZS5wcm90bxIIZmxlZXQudjEirwQKDUV2aWRlbmNlRXZlbnQSFgoOc2NoZW1hX3ZlcnNpb24YASABKAkSCgoCaWQYAiABKAkSIQoFc2NvcGUYAyABKAsyEi5mbGVldC52MS5SdW5TY29wZRIRCglzdHJlYW1faWQYBCABKAkSEAoIc2VxdWVuY2UYBSABKAQSDAoEa2luZBgGIAEoCRISCgpwYXJlbnRfaWRzGAcgAygJEhMKC29jY3VycmVkX2F0GAggASgJEhMKC3JlY29yZGVkX2F0GAkgASgJEhcKCnByb2Nlc3NfaWQYCiABKAlIAIgBARIZCgxtb25vdG9uaWNfbnMYCyABKARIAYgBARIaCg1nYW1lX2Nsb2NrX2lkGAwgASgJSAKIAQESFgoJZ2FtZV90aW1lGA0gASgJSAOIAQESOwoKYXR0cmlidXRlcxgOIAMoCzInLmZsZWV0LnYxLkV2aWRlbmNlRXZlbnQuQXR0cmlidXRlc0VudHJ5EigKCWFydGlmYWN0cxgPIAMoCzIVLmZsZWV0LnYxLkFydGlmYWN0UmVmEiQKCGNvdmVyYWdlGBAgASgLMhIuZmxlZXQudjEuQ292ZXJhZ2UaMQoPQXR0cmlidXRlc0VudHJ5EgsKA2tleRgBIAEoCRINCgV2YWx1ZRgCIAEoCToCOAFCDQoLX3Byb2Nlc3NfaWRCDwoNX21vbm90b25pY19uc0IQCg5fZ2FtZV9jbG9ja19pZEIMCgpfZ2FtZV90aW1lIjsKCEV2ZW50UmVmEgoKAmlkGAEgASgJEhEKCXN0cmVhbV9pZBgCIAEoCRIQCghzZXF1ZW5jZRgDIAEoBGIGcHJvdG8z", [file_fleet_v1_common]);
+  fileDesc("ChdmbGVldC92MS9ldmlkZW5jZS5wcm90bxIIZmxlZXQudjEi6gQKDUV2aWRlbmNlRXZlbnQSFgoOc2NoZW1hX3ZlcnNpb24YASABKAkSCgoCaWQYAiABKAkSIQoFc2NvcGUYAyABKAsyEi5mbGVldC52MS5SdW5TY29wZRIRCglzdHJlYW1faWQYBCABKAkSEAoIc2VxdWVuY2UYBSABKAQSDAoEa2luZBgGIAEoCRISCgpwYXJlbnRfaWRzGAcgAygJEhMKC29jY3VycmVkX2F0GAggASgJEhMKC3JlY29yZGVkX2F0GAkgASgJEhcKCnByb2Nlc3NfaWQYCiABKAlIAIgBARIZCgxtb25vdG9uaWNfbnMYCyABKARIAYgBARIaCg1nYW1lX2Nsb2NrX2lkGAwgASgJSAKIAQESFgoJZ2FtZV90aW1lGA0gASgJSAOIAQESOwoKYXR0cmlidXRlcxgOIAMoCzInLmZsZWV0LnYxLkV2aWRlbmNlRXZlbnQuQXR0cmlidXRlc0VudHJ5EigKCWFydGlmYWN0cxgPIAMoCzIVLmZsZWV0LnYxLkFydGlmYWN0UmVmEiQKCGNvdmVyYWdlGBAgASgLMhIuZmxlZXQudjEuQ292ZXJhZ2USDwoHb3JkaW5hbBgRIAEoBBIYCgtkdXJhdGlvbl9ucxgSIAEoBEgEiAEBGjEKD0F0dHJpYnV0ZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBQg0KC19wcm9jZXNzX2lkQg8KDV9tb25vdG9uaWNfbnNCEAoOX2dhbWVfY2xvY2tfaWRCDAoKX2dhbWVfdGltZUIOCgxfZHVyYXRpb25fbnMiOwoIRXZlbnRSZWYSCgoCaWQYASABKAkSEQoJc3RyZWFtX2lkGAIgASgJEhAKCHNlcXVlbmNlGAMgASgEIrEBCg5FdmVudFBhZ2VRdWVyeRINCgVsaW1pdBgBIAEoDRISCgVhZnRlchgCIAEoBEgAiAEBEhwKD21heGltdW1fb3JkaW5hbBgDIAEoBEgBiAEBEhEKBGtpbmQYBCABKAlIAogBARIWCglzdHJlYW1faWQYBSABKAlIA4gBAUIICgZfYWZ0ZXJCEgoQX21heGltdW1fb3JkaW5hbEIHCgVfa2luZEIMCgpfc3RyZWFtX2lkIpYBCglFdmVudFBhZ2USJwoGZXZlbnRzGAEgAygLMhcuZmxlZXQudjEuRXZpZGVuY2VFdmVudBINCgV0b3RhbBgCIAEoBBIQCghoYXNfbW9yZRgDIAEoCBIXCgpuZXh0X2FmdGVyGAQgASgESACIAQESFwoPbWF4aW11bV9vcmRpbmFsGAUgASgEQg0KC19uZXh0X2FmdGVyYgZwcm90bzM", [file_fleet_v1_common]);
 
 /**
  * @generated from message fleet.v1.EvidenceEvent
@@ -97,6 +97,16 @@ export type EvidenceEvent = Message<"fleet.v1.EvidenceEvent"> & {
    * @generated from field: fleet.v1.Coverage coverage = 16;
    */
   coverage?: Coverage | undefined;
+
+  /**
+   * @generated from field: uint64 ordinal = 17;
+   */
+  ordinal: bigint;
+
+  /**
+   * @generated from field: optional uint64 duration_ns = 18;
+   */
+  durationNs?: bigint | undefined;
 };
 
 /**
@@ -132,3 +142,77 @@ export type EventRef = Message<"fleet.v1.EventRef"> & {
  */
 export const EventRefSchema: GenMessage<EventRef> = /*@__PURE__*/
   messageDesc(file_fleet_v1_evidence, 1);
+
+/**
+ * @generated from message fleet.v1.EventPageQuery
+ */
+export type EventPageQuery = Message<"fleet.v1.EventPageQuery"> & {
+  /**
+   * @generated from field: uint32 limit = 1;
+   */
+  limit: number;
+
+  /**
+   * @generated from field: optional uint64 after = 2;
+   */
+  after?: bigint | undefined;
+
+  /**
+   * @generated from field: optional uint64 maximum_ordinal = 3;
+   */
+  maximumOrdinal?: bigint | undefined;
+
+  /**
+   * @generated from field: optional string kind = 4;
+   */
+  kind?: string | undefined;
+
+  /**
+   * @generated from field: optional string stream_id = 5;
+   */
+  streamId?: string | undefined;
+};
+
+/**
+ * Describes the message fleet.v1.EventPageQuery.
+ * Use `create(EventPageQuerySchema)` to create a new message.
+ */
+export const EventPageQuerySchema: GenMessage<EventPageQuery> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_evidence, 2);
+
+/**
+ * @generated from message fleet.v1.EventPage
+ */
+export type EventPage = Message<"fleet.v1.EventPage"> & {
+  /**
+   * @generated from field: repeated fleet.v1.EvidenceEvent events = 1;
+   */
+  events: EvidenceEvent[];
+
+  /**
+   * @generated from field: uint64 total = 2;
+   */
+  total: bigint;
+
+  /**
+   * @generated from field: bool has_more = 3;
+   */
+  hasMore: boolean;
+
+  /**
+   * @generated from field: optional uint64 next_after = 4;
+   */
+  nextAfter?: bigint | undefined;
+
+  /**
+   * @generated from field: uint64 maximum_ordinal = 5;
+   */
+  maximumOrdinal: bigint;
+};
+
+/**
+ * Describes the message fleet.v1.EventPage.
+ * Use `create(EventPageSchema)` to create a new message.
+ */
+export const EventPageSchema: GenMessage<EventPage> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_evidence, 3);

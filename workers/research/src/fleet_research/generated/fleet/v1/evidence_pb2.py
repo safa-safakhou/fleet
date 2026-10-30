@@ -25,7 +25,7 @@ _sym_db = _symbol_database.Default()
 from fleet_research.generated.fleet.v1 import common_pb2 as fleet_dot_v1_dot_common__pb2
 
 
-DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17\x66leet/v1/evidence.proto\x12\x08\x66leet.v1\x1a\x15\x66leet/v1/common.proto\"\xaf\x04\n\rEvidenceEvent\x12\x16\n\x0eschema_version\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\t\x12!\n\x05scope\x18\x03 \x01(\x0b\x32\x12.fleet.v1.RunScope\x12\x11\n\tstream_id\x18\x04 \x01(\t\x12\x10\n\x08sequence\x18\x05 \x01(\x04\x12\x0c\n\x04kind\x18\x06 \x01(\t\x12\x12\n\nparent_ids\x18\x07 \x03(\t\x12\x13\n\x0boccurred_at\x18\x08 \x01(\t\x12\x13\n\x0brecorded_at\x18\t \x01(\t\x12\x17\n\nprocess_id\x18\n \x01(\tH\x00\x88\x01\x01\x12\x19\n\x0cmonotonic_ns\x18\x0b \x01(\x04H\x01\x88\x01\x01\x12\x1a\n\rgame_clock_id\x18\x0c \x01(\tH\x02\x88\x01\x01\x12\x16\n\tgame_time\x18\r \x01(\tH\x03\x88\x01\x01\x12;\n\nattributes\x18\x0e \x03(\x0b\x32\'.fleet.v1.EvidenceEvent.AttributesEntry\x12(\n\tartifacts\x18\x0f \x03(\x0b\x32\x15.fleet.v1.ArtifactRef\x12$\n\x08\x63overage\x18\x10 \x01(\x0b\x32\x12.fleet.v1.Coverage\x1a\x31\n\x0f\x41ttributesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42\r\n\x0b_process_idB\x0f\n\r_monotonic_nsB\x10\n\x0e_game_clock_idB\x0c\n\n_game_time\";\n\x08\x45ventRef\x12\n\n\x02id\x18\x01 \x01(\t\x12\x11\n\tstream_id\x18\x02 \x01(\t\x12\x10\n\x08sequence\x18\x03 \x01(\x04\x62\x06proto3')
+DESCRIPTOR = _descriptor_pool.Default().AddSerializedFile(b'\n\x17\x66leet/v1/evidence.proto\x12\x08\x66leet.v1\x1a\x15\x66leet/v1/common.proto\"\xea\x04\n\rEvidenceEvent\x12\x16\n\x0eschema_version\x18\x01 \x01(\t\x12\n\n\x02id\x18\x02 \x01(\t\x12!\n\x05scope\x18\x03 \x01(\x0b\x32\x12.fleet.v1.RunScope\x12\x11\n\tstream_id\x18\x04 \x01(\t\x12\x10\n\x08sequence\x18\x05 \x01(\x04\x12\x0c\n\x04kind\x18\x06 \x01(\t\x12\x12\n\nparent_ids\x18\x07 \x03(\t\x12\x13\n\x0boccurred_at\x18\x08 \x01(\t\x12\x13\n\x0brecorded_at\x18\t \x01(\t\x12\x17\n\nprocess_id\x18\n \x01(\tH\x00\x88\x01\x01\x12\x19\n\x0cmonotonic_ns\x18\x0b \x01(\x04H\x01\x88\x01\x01\x12\x1a\n\rgame_clock_id\x18\x0c \x01(\tH\x02\x88\x01\x01\x12\x16\n\tgame_time\x18\r \x01(\tH\x03\x88\x01\x01\x12;\n\nattributes\x18\x0e \x03(\x0b\x32\'.fleet.v1.EvidenceEvent.AttributesEntry\x12(\n\tartifacts\x18\x0f \x03(\x0b\x32\x15.fleet.v1.ArtifactRef\x12$\n\x08\x63overage\x18\x10 \x01(\x0b\x32\x12.fleet.v1.Coverage\x12\x0f\n\x07ordinal\x18\x11 \x01(\x04\x12\x18\n\x0b\x64uration_ns\x18\x12 \x01(\x04H\x04\x88\x01\x01\x1a\x31\n\x0f\x41ttributesEntry\x12\x0b\n\x03key\x18\x01 \x01(\t\x12\r\n\x05value\x18\x02 \x01(\t:\x02\x38\x01\x42\r\n\x0b_process_idB\x0f\n\r_monotonic_nsB\x10\n\x0e_game_clock_idB\x0c\n\n_game_timeB\x0e\n\x0c_duration_ns\";\n\x08\x45ventRef\x12\n\n\x02id\x18\x01 \x01(\t\x12\x11\n\tstream_id\x18\x02 \x01(\t\x12\x10\n\x08sequence\x18\x03 \x01(\x04\"\xb1\x01\n\x0e\x45ventPageQuery\x12\r\n\x05limit\x18\x01 \x01(\r\x12\x12\n\x05\x61\x66ter\x18\x02 \x01(\x04H\x00\x88\x01\x01\x12\x1c\n\x0fmaximum_ordinal\x18\x03 \x01(\x04H\x01\x88\x01\x01\x12\x11\n\x04kind\x18\x04 \x01(\tH\x02\x88\x01\x01\x12\x16\n\tstream_id\x18\x05 \x01(\tH\x03\x88\x01\x01\x42\x08\n\x06_afterB\x12\n\x10_maximum_ordinalB\x07\n\x05_kindB\x0c\n\n_stream_id\"\x96\x01\n\tEventPage\x12\'\n\x06\x65vents\x18\x01 \x03(\x0b\x32\x17.fleet.v1.EvidenceEvent\x12\r\n\x05total\x18\x02 \x01(\x04\x12\x10\n\x08has_more\x18\x03 \x01(\x08\x12\x17\n\nnext_after\x18\x04 \x01(\x04H\x00\x88\x01\x01\x12\x17\n\x0fmaximum_ordinal\x18\x05 \x01(\x04\x42\r\n\x0b_next_afterb\x06proto3')
 
 _globals = globals()
 _builder.BuildMessageAndEnumDescriptors(DESCRIPTOR, _globals)
@@ -35,9 +35,13 @@ if not _descriptor._USE_C_DESCRIPTORS:
   _globals['_EVIDENCEEVENT_ATTRIBUTESENTRY']._loaded_options = None
   _globals['_EVIDENCEEVENT_ATTRIBUTESENTRY']._serialized_options = b'8\001'
   _globals['_EVIDENCEEVENT']._serialized_start=61
-  _globals['_EVIDENCEEVENT']._serialized_end=620
-  _globals['_EVIDENCEEVENT_ATTRIBUTESENTRY']._serialized_start=507
-  _globals['_EVIDENCEEVENT_ATTRIBUTESENTRY']._serialized_end=556
-  _globals['_EVENTREF']._serialized_start=622
-  _globals['_EVENTREF']._serialized_end=681
+  _globals['_EVIDENCEEVENT']._serialized_end=679
+  _globals['_EVIDENCEEVENT_ATTRIBUTESENTRY']._serialized_start=550
+  _globals['_EVIDENCEEVENT_ATTRIBUTESENTRY']._serialized_end=599
+  _globals['_EVENTREF']._serialized_start=681
+  _globals['_EVENTREF']._serialized_end=740
+  _globals['_EVENTPAGEQUERY']._serialized_start=743
+  _globals['_EVENTPAGEQUERY']._serialized_end=920
+  _globals['_EVENTPAGE']._serialized_start=923
+  _globals['_EVENTPAGE']._serialized_end=1073
 # @@protoc_insertion_point(module_scope)

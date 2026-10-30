@@ -111,9 +111,9 @@ export function canonical(value: unknown): string {
   throw Error("NON_JSON_VALUE");
 }
 export const digest = (value: unknown) => createHash("sha256").update(canonical(value)).digest("hex");
+export type { EventRef, EvidenceEvent } from "./evidence/types.js";
 export type { CheckpointRef, WorkerCheckpoint } from "./generated/fleet/v1/common_pb.js";
 export { ContractLimit } from "./generated/fleet/v1/common_pb.js";
-export type { EventRef, EvidenceEvent } from "./generated/fleet/v1/evidence_pb.js";
 export type { DecisionProposal, GameQuery, ModelRequest } from "./generated/fleet/v1/worker_pb.js";
 export type {
   CapabilityFingerprint,
