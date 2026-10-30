@@ -61,6 +61,20 @@ export class CoverageService {
     ];
     if (run.capture_failed) reasons.push("CAPTURE_FAILED");
     if (missing.length) reasons.push("MISSING_REQUIRED_EVIDENCE");
+    const artifacts = (
+      await this.store.pool.query(
+        "SELECT expected_bytes::text,bytes::text,status FROM research_artifacts WHERE run_id=$1",
+        [runId],
+      )
+    ).rows;
+    let expectedBytes = 0n,
+      recordedBytes = 0n;
+    for (const artifact of artifacts) {
+      if (artifact.expected_bytes === null) reasons.push("BYTE_EXPECTATION_UNAVAILABLE");
+      else expectedBytes += BigInt(artifact.expected_bytes);
+      if (artifact.status === "complete") recordedBytes += BigInt(artifact.bytes);
+      else reasons.push(`ARTIFACT_${artifact.status.toUpperCase()}`);
+    }
     const status = !run.observation_consent
       ? "withheld"
       : expired
