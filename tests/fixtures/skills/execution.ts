@@ -220,6 +220,7 @@ export async function executionFixture(
   return {
     ...f,
     native,
+    claim,
     refreshClaim: async () => {
       await f.tasks.recover();
       f.advance(16 * 60000);

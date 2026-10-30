@@ -225,6 +225,7 @@ export interface ModelPort {
     maxOutputTokens: number;
     signal: AbortSignal;
     onDispatch?: () => Promise<void>;
+    onEvidence?: (event: { kind: "prepared" | "packet" | "unavailable"; body: unknown }) => Promise<void>;
     decisionEvidence?: import("./platform/evidence-decision.js").DecisionEvidence;
   }): Promise<{
     decision: unknown;

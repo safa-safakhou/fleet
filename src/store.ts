@@ -76,6 +76,7 @@ export interface Claim {
 }
 
 export class Store {
+  observation?: import("./platform/observation-port.js").ObservationPort;
   constructor(
     readonly pool: Pool,
     readonly vault: Vault,
@@ -310,6 +311,7 @@ export class Store {
       }
       await this.audit(c, id, "observation.consent", { enabled });
     });
+    await this.observation?.expire();
   }
   async guidance(id: string, mode: "strategy" | "account_autonomy", note: string) {
     if (!["strategy", "account_autonomy"].includes(mode) || note.trim().length < 20 || note.length > 1000)
@@ -603,6 +605,7 @@ export class Store {
         phase,
         this.now(),
       ]);
+      await this.observation?.detail(claim, "thinking", "Execution phase", { phase }, c);
     });
   }
   async notDispatched(id: string) {
@@ -847,8 +850,10 @@ export class Store {
   async recordUsage(id: string, input: number | null, output: number | null) {
     for (const n of [input, output])
       if (n !== null && (!Number.isSafeInteger(n) || n < 0)) throw new FleetError("INVALID_USAGE");
+    let originalStatus: string | undefined;
     await transaction(this.pool, async (c) => {
       const row = (await c.query("SELECT * FROM compute_ledger WHERE id=$1 FOR UPDATE", [id])).rows[0];
+      originalStatus = row?.status;
       if (row?.status === "unknown" && input !== null && output !== null)
         await c.query(
           "INSERT INTO usage_observations(allocation_id,input_tokens,output_tokens,observed_at) VALUES($1,$2,$3,$4) ON CONFLICT DO NOTHING",
@@ -881,6 +886,15 @@ export class Store {
         );
       }
     });
+    if (originalStatus)
+      await this.observation
+        ?.usage(
+          id,
+          originalStatus === "unknown" ? "late" : input === null || output === null ? "unknown" : "reported",
+          input,
+          output,
+        )
+        .catch(() => {});
   }
   async pending(claim: Claim, id: string, action: Data, tracked = false, client?: PoolClient) {
     const write = async (c: PoolClient) => {

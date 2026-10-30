@@ -673,7 +673,10 @@ export class Engine {
             signal: controller.signal,
           };
           deadline = modelDeadline(request, claim.deadline, this.store.now, Boolean(this.model.tracksDispatch));
-          response = await this.model.decide({ ...request, signal: deadline.signal, onDispatch: deadline.onDispatch });
+          const prepared = { ...request, signal: deadline.signal, onDispatch: deadline.onDispatch };
+          response = this.store.observation
+            ? await this.store.observation.model(claim, prepared, this.model, reservation)
+            : await this.model.decide(prepared);
         } catch (error) {
           if (error instanceof FleetError && error.notDispatched) await this.store.notDispatched(reservation);
           await observation.recordDebug(claim, "thinking", "Model execution failed", {

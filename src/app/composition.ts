@@ -1,3 +1,4 @@
+import { resolve } from "node:path";
 import { CodexModel } from "../codex.js";
 import { Cognition } from "../cognition.js";
 import type { config } from "../config.js";
@@ -24,6 +25,8 @@ import { CommandExecutor } from "../platform/execution.js";
 import { providerCapacity } from "../platform/provider-policy.js";
 import { OperationSupervisor, PlatformHost } from "../platform/supervisor.js";
 import { TaskStore } from "../platform/tasks.js";
+import { CaptureSession } from "../research/evidence/boundaries.js";
+import { ArtifactFilesystem } from "../research/evidence/filesystem.js";
 import { RunWindow } from "../run-window.js";
 import { Store } from "../store.js";
 import { Vault } from "../vault.js";
@@ -38,6 +41,11 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
     }),
     pool = connect(settings.databaseUrl),
     store = new Store(pool, new Vault(settings.vaultKey), undefined, architectures);
+  const evidence = new CaptureSession(
+    store,
+    new ArtifactFilesystem(resolve(settings.statePath, ".state/evidence"), settings.minFreeBytes),
+  );
+  store.observation = evidence;
   const runWindow = new RunWindow(settings.runWindowFile);
   const broker = new CredentialBroker(store, settings.gameBase, settings.origin, settings.liveAllowed),
     model = runWindow.model(
@@ -47,7 +55,7 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
       ),
     ),
     owner = new SyntheticOwner(store, broker);
-  const game = async (id: string) => runWindow.game(await broker.game(id));
+  const game = async (id: string) => evidence.game(id, runWindow.game(await broker.game(id)));
   const communications = new Communications(store);
   const bindings = new Bindings(store, settings.environment);
   const environments = new EnvironmentRegistry(
@@ -145,6 +153,7 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
   );
   return {
     settings,
+    evidence,
     legacy: new LegacyRunner(store, engine),
     maintenance: createMaintenance(store),
     providerConfigured: (model: import("../domain.js").ModelSettings) =>

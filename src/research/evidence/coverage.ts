@@ -1,30 +1,33 @@
+import type { PoolClient } from "pg";
 import { FleetError } from "../../domain.js";
 import type { Store } from "../../store.js";
 import type { CompletenessManifest, EvidenceEvent } from "./types.js";
 export class CoverageService {
   constructor(readonly store: Store) {}
-  async reconcile(runId: string, maximumOrdinal?: string): Promise<CompletenessManifest> {
+  async reconcile(
+    runId: string,
+    maximumOrdinal?: string,
+    db: Pick<PoolClient, "query"> = this.store.pool,
+  ): Promise<CompletenessManifest> {
     const run = (
-      await this.store.pool.query(
+      await db.query(
         "SELECT r.*,c.observation_consent FROM research_runs r JOIN cohorts c ON c.id=r.cohort_id WHERE run_id=$1",
         [runId],
       )
     ).rows[0];
     if (!run) throw new FleetError("EVIDENCE_RUN_NOT_FOUND", true);
     const events = (
-      await this.store.pool.query("SELECT event FROM research_events WHERE run_id=$1 AND ordinal<=$2::bigint", [
+      await db.query("SELECT event FROM research_events WHERE run_id=$1 AND ordinal<=$2::bigint", [
         runId,
         maximumOrdinal ?? run.next_ordinal,
       ])
     ).rows.map((r) => r.event as EvidenceEvent);
     const turns = (
-      await this.store.pool.query("SELECT DISTINCT turn_id FROM research_evidence_scopes WHERE run_id=$1", [runId])
+      await db.query("SELECT DISTINCT turn_id FROM research_evidence_scopes WHERE run_id=$1", [runId])
     ).rows.map((r) => r.turn_id);
-    const calls = (
-      await this.store.pool.query("SELECT id,status FROM compute_ledger WHERE turn_id=ANY($1::uuid[])", [turns])
-    ).rows;
+    const calls = (await db.query("SELECT id,status FROM compute_ledger WHERE turn_id=ANY($1::uuid[])", [turns])).rows;
     const commands = (
-      await this.store.pool.query(
+      await db.query(
         "SELECT command_id,state FROM platform_commands WHERE turn_id=ANY($1::uuid[]) UNION SELECT command_id,'confirmed' state FROM command_resolutions WHERE turn_id=ANY($1::uuid[]) AND command_id NOT IN (SELECT command_id FROM platform_commands)",
         [turns],
       )
@@ -62,9 +65,9 @@ export class CoverageService {
     if (run.capture_failed) reasons.push("CAPTURE_FAILED");
     if (missing.length) reasons.push("MISSING_REQUIRED_EVIDENCE");
     const artifacts = (
-      await this.store.pool.query(
-        "SELECT expected_bytes::text,bytes::text,status FROM research_artifacts WHERE run_id=$1",
-        [runId],
+      await db.query(
+        "SELECT expected_bytes::text,bytes::text,status FROM research_artifacts a WHERE run_id=$1 AND EXISTS (SELECT 1 FROM research_events e, jsonb_array_elements(e.event->'artifacts') ref WHERE e.run_id=a.run_id AND e.ordinal<=$2::bigint AND ref->>'id'=a.id::text)",
+        [runId, maximumOrdinal ?? run.next_ordinal],
       )
     ).rows;
     let expectedBytes = 0n,
@@ -90,7 +93,11 @@ export class CoverageService {
       recorded,
       missing,
       eventCount: events.length,
-      byteCoverage: { expected: "0", recorded: "0", status: status === "complete" ? "complete" : status },
+      byteCoverage: {
+        expected: String(expectedBytes),
+        recorded: String(recordedBytes),
+        status: status === "complete" ? "complete" : status,
+      },
       reasons,
     };
   }

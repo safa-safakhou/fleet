@@ -128,10 +128,20 @@ export class HttpModel implements ModelPort {
             json_schema: { name: "fleet_decision", strict: false, schema: generationSchema },
           },
         };
-    await input.onDispatch?.();
+    if (input.model.provider !== "vllm") {
+      await input.onEvidence?.({ kind: "prepared", body });
+      await input.onDispatch?.();
+    }
     const response =
       input.model.provider === "vllm"
-        ? await vllmCompletion(`${base}/chat/completions`, body, this.apiKey ?? "", input.signal)
+        ? await vllmCompletion(
+            `${base}/chat/completions`,
+            body,
+            this.apiKey ?? "",
+            input.signal,
+            input.onEvidence,
+            input.onDispatch,
+          )
         : await jsonRequest(
             `${base}${ollama ? "/api/chat" : "/chat/completions"}`,
             {
@@ -145,6 +155,7 @@ export class HttpModel implements ModelPort {
             input.signal,
           );
     const { data } = response;
+    if (input.model.provider !== "vllm") await input.onEvidence?.({ kind: "packet", body: data });
     const choices = Array.isArray(data.choices) ? data.choices : [];
     const message = ollama ? object(data.message) : object(object(choices[0]).message);
     const usage = object(data.usage),

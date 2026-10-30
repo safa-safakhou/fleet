@@ -49,7 +49,11 @@ function normalize(value: unknown, claim: Claim): ArchitectureTranscript {
 
 export async function captureArchitectureTranscript(
   ref: EngineProfileRef,
-  capture: { scenario: string },
+  capture: {
+    scenario: string;
+    onStore?: (store: Store) => Promise<void>;
+    afterRun?: (store: Store, claim: Claim) => Promise<void>;
+  },
 ): Promise<ArchitectureTranscript> {
   if (
     ref.version !== "1" ||
@@ -128,8 +132,10 @@ export async function captureArchitectureTranscript(
       const value = await store.claim("architecture-parity");
       if (!value) throw Error("NO_CAPTURE_CLAIM");
       claim = value;
+      await capture.onStore?.(store);
       game = new FakeGame(claim);
-      await new LegacyEngineBridge(store, model, async () => game as FakeGame, true, pactAdapter).run(claim);
+      const port = store.observation ? store.observation.game(claim.agentId, game) : game;
+      await new LegacyEngineBridge(store, model, async () => port, true, pactAdapter).run(claim);
     } else {
       const f = await platformFixture();
       store = f.store;
@@ -184,6 +190,7 @@ export async function captureArchitectureTranscript(
       );
       const task = await f.claim();
       claim = task.turn;
+      await capture.onStore?.(store);
       const host = f.host(model);
       if (ref.id === "reactive-basic") host.engines.register(new ReactiveEngine());
       else {
@@ -251,6 +258,7 @@ export async function captureArchitectureTranscript(
         [claim.id],
       )
     ).rows;
+    await capture.afterRun?.(store, claim);
     return normalize(
       {
         profile: ref,

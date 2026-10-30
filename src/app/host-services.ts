@@ -517,7 +517,9 @@ export async function createScopedServices(
       definition,
       session: _session,
     });
-  return services;
+  const observed = store.observation ? store.observation.scoped(owned.turn, services) : services;
+  scopes.set(observed, { operation: op, context });
+  return observed;
 }
 
 export function compatibilityRuntime(

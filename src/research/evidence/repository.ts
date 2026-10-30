@@ -9,6 +9,13 @@ export async function scopeForTurn(
   turnId: string,
   db: Pick<PoolClient, "query"> = store.pool,
 ): Promise<RunScope> {
+  const retained = (
+    await db.query(
+      "SELECT scope FROM research_evidence_scopes WHERE run_id=$1::text AND turn_id=$1::uuid ORDER BY epoch LIMIT 1",
+      [turnId],
+    )
+  ).rows[0];
+  if (retained) return ScopeSchema.parse(retained.scope);
   const row = (
     await db.query(
       `SELECT t.id,t.agent_id,t.fence,tc.task_id,tc.fence task_fence,p.binding_id,p.participant_id

@@ -552,11 +552,10 @@ export class ModelAdmission {
             Boolean(this.provider.tracksDispatch),
           );
           invoked = true;
-          const result = await this.provider.decide({
-            ...request,
-            signal: deadline.signal,
-            onDispatch: deadline.onDispatch,
-          });
+          const prepared = { ...request, signal: deadline.signal, onDispatch: deadline.onDispatch };
+          const result = this.store.observation
+            ? await this.store.observation.model(turn, prepared, this.provider, allocation)
+            : await this.provider.decide(prepared);
           const elapsedMs = Math.max(0, this.store.now().getTime() - modelStartedAt);
           await this.store.recordUsage(allocation, result.inputTokens, result.outputTokens);
           await recordCallResponse(this.store, allocation, result, elapsedMs, "provider");

@@ -170,11 +170,11 @@ export class ArtifactStore {
       retentionClass: "30d",
     };
   }
-  async materialize(limit = 100): Promise<number> {
+  async materialize(limit = 100, runId?: string): Promise<number> {
     const rows = (
       await this.store.pool.query(
-        "SELECT * FROM research_artifacts WHERE inline_cipher IS NOT NULL AND status='complete' ORDER BY created_at,id LIMIT $1",
-        [limit],
+        "SELECT * FROM research_artifacts WHERE inline_cipher IS NOT NULL AND status='complete' AND ($2::text IS NULL OR run_id=$2) ORDER BY created_at,id LIMIT $1",
+        [limit, runId ?? null],
       )
     ).rows as ArtifactRecord[];
     let count = 0;

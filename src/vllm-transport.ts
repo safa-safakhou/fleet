@@ -3,7 +3,14 @@ import { type Data, FleetError, object, safeCode } from "./domain.js";
 import { readJSONResponse } from "./http.js";
 import { modelAbortCode } from "./model-deadline.js";
 import { type GenerationProgress, ModelTransportError } from "./model-progress.js";
-export async function vllmCompletion(url: string, body: Data, key: string, signal: AbortSignal) {
+export async function vllmCompletion(
+  url: string,
+  body: Data,
+  key: string,
+  signal: AbortSignal,
+  onEvidence?: (event: { kind: "prepared" | "packet" | "unavailable"; body: unknown }) => Promise<void>,
+  onDispatch?: () => Promise<void>,
+) {
   const started = performance.now();
   // SSE repeats protocol metadata for each token. Bound transport overhead separately
   // from decoded content so a valid larger output allowance can actually be used.
@@ -21,9 +28,14 @@ export async function vllmCompletion(url: string, body: Data, key: string, signa
     reasoningChars: 0,
     wireBytes: 0,
   };
+  let dispatched = false;
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   let abortRead: (() => void) | undefined;
   try {
+    const prepared = { ...body, request_id: progress.requestId, stream: true, stream_options: { include_usage: true } };
+    await onEvidence?.({ kind: "prepared", body: prepared });
+    await onDispatch?.();
+    dispatched = true;
     const response = await fetch(url, {
       method: "POST",
       redirect: "error",
@@ -33,17 +45,16 @@ export async function vllmCompletion(url: string, body: Data, key: string, signa
         authorization: `Bearer ${key}`,
         "x-request-id": progress.requestId,
       },
-      body: JSON.stringify({
-        ...body,
-        request_id: progress.requestId,
-        stream: true,
-        stream_options: { include_usage: true },
-      }),
+      body: JSON.stringify(prepared),
     });
     // Some compatible test/deployment endpoints return a complete JSON response.
     // It still needs final provider usage; never retry via another protocol.
     if (!response.ok || !response.headers.get("content-type")?.includes("text/event-stream")) {
       const { data } = await readJSONResponse(response);
+      await onEvidence?.({
+        kind: response.ok ? "packet" : "unavailable",
+        body: response.ok ? data : { code: "PROVIDER_ERROR_PAYLOAD_WITHHELD" },
+      });
       progress.elapsedMs = performance.now() - started;
       return { data, execution: progress };
     }
@@ -65,7 +76,7 @@ export async function vllmCompletion(url: string, body: Data, key: string, signa
     let insideString = false,
       escaped = false,
       whitespaceRun = 0;
-    const frame = (raw: string) => {
+    const frame = async (raw: string) => {
       if (Buffer.byteLength(raw) > 1000000) throw new FleetError("RESPONSE_TOO_LARGE");
       const lines = raw
         .split(/\r?\n/)
@@ -79,6 +90,11 @@ export async function vllmCompletion(url: string, body: Data, key: string, signa
         return;
       }
       const chunk = object(JSON.parse(value));
+      await onEvidence?.(
+        chunk.error
+          ? { kind: "unavailable", body: { code: "PROVIDER_ERROR_PAYLOAD_WITHHELD" } }
+          : { kind: "packet", body: chunk },
+      );
       if (typeof chunk.id === "string") {
         if (chunk.id.length > 200 || (serverId && serverId !== chunk.id)) throw new FleetError("MODEL_STREAM_INVALID");
         serverId = chunk.id;
@@ -152,7 +168,7 @@ export async function vllmCompletion(url: string, body: Data, key: string, signa
       for (;;) {
         const match = /\r?\n\r?\n/.exec(pending);
         if (!match) break;
-        frame(pending.slice(0, match.index));
+        await frame(pending.slice(0, match.index));
         pending = pending.slice(match.index + match[0].length);
         if (done) break read;
       }
@@ -165,6 +181,7 @@ export async function vllmCompletion(url: string, body: Data, key: string, signa
       execution: progress,
     };
   } catch (error) {
+    if (!dispatched && error instanceof FleetError && error.notDispatched) throw error;
     progress.elapsedMs = performance.now() - started;
     throw new ModelTransportError(safeCode(error), progress);
   } finally {

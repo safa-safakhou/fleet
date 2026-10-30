@@ -2,6 +2,14 @@ import { MaintenanceRegistry } from "../platform/maintenance.js";
 import type { Store } from "../store.js";
 export function createMaintenance(store: Store) {
   const registry = new MaintenanceRegistry();
+  registry.register({
+    id: "research-private-artifacts",
+    run: async (_limit, signal) => {
+      if (signal.aborted || !store.observation) return 0;
+      await store.observation.expire();
+      return 1;
+    },
+  });
   for (const [table, column, time] of [
     ["specialist_deliveries", "detail_cipher", "received_at"],
     ["specialist_outbox", "payload_cipher", "created_at"],

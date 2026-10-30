@@ -78,8 +78,13 @@ export class Observability {
     detail: Data = {},
     client?: PoolClient,
     detailLimit = 8192,
+    captured = false,
   ): Promise<void> {
-    if (!client) return transaction(this.store.pool, (c) => this.record(claim, stage, label, detail, c, detailLimit));
+    if (!client) {
+      await this.store.observation?.detail(claim, stage, label, detail);
+      return transaction(this.store.pool, (c) => this.record(claim, stage, label, detail, c, detailLimit, true));
+    }
+    if (!captured) await this.store.observation?.detail(claim, stage, label, detail, client);
     const db = client ?? this.store.pool,
       id = randomUUID();
     const consent = (await db.query("SELECT observation_consent FROM cohorts WHERE id=$1 FOR SHARE", [claim.cohortId]))

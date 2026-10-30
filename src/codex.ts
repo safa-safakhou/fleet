@@ -25,6 +25,7 @@ async function execute(
   includeStderr = false,
   onDispatch?: () => Promise<void>,
   hardLimitMs = 95000,
+  onOutput?: (stdout: string) => Promise<void>,
 ) {
   if (signal.aborted) throw new FleetError("CODEX_CANCELLED");
   return new Promise<string>((resolve, reject) => {
@@ -90,15 +91,22 @@ async function execute(
     child.stderr.on("data", (chunk: Buffer) => consume(chunk, false));
     child.stdin.on("error", () => stop("CODEX_PROCESS_FAILED"));
     child.on("error", () => stop("CODEX_PROCESS_FAILED"));
-    child.once("close", (code) => {
+    child.once("close", async (code) => {
       signal.removeEventListener("abort", abort);
       // Kill remaining descendants even when the CLI exits first.
       kill("SIGKILL");
       if (timer) clearTimeout(timer);
+      const stdout = Buffer.concat(chunks).toString("utf8");
+      // Recording cannot erase completed usage or change process settlement.
+      try {
+        await onOutput?.(stdout);
+      } catch {
+        /* The capture hook marks its own gap. */
+      }
       if (code === 124 || code === 137) reject(new FleetError("CODEX_TIMEOUT", !acquired));
       else if (!acquired && code === 75) reject(new FleetError("CODEX_BUSY", true));
       else if (failure || code !== 0) reject(new FleetError(failure ?? "CODEX_PROCESS_FAILED", !acquired));
-      else resolve(Buffer.concat(chunks).toString("utf8"));
+      else resolve(stdout);
     });
     const marker = child.stdio[3];
     marker?.once("data", () => {
@@ -239,6 +247,16 @@ export class CodexModel implements ModelPort {
         requestedOutputTokens: input.maxOutputTokens,
         outputNotice: "This is a desired answer length, not a CLI token cap.",
       });
+      await input.onEvidence?.({
+        kind: "prepared",
+        body: {
+          protocol: "codex-cli",
+          prompt,
+          outputSchema,
+          args: args.map((arg) => (arg === schema ? "<schema-file>" : arg === result ? "<result-file>" : arg)),
+          availability: "stdout is buffered until process close; provider internals are unavailable",
+        },
+      });
       const events = await execute(
         executable,
         args,
@@ -252,6 +270,22 @@ export class CodexModel implements ModelPort {
           dispatched = true;
         },
         this.hardLimitMs,
+        async (stdout) => {
+          for (const line of stdout.split("\n").filter((v) => v.trim())) {
+            let packet: Record<string, unknown>;
+            try {
+              packet = object(JSON.parse(line));
+            } catch {
+              await input.onEvidence?.({ kind: "unavailable", body: { code: "CODEX_INVALID_PACKET" } });
+              continue;
+            }
+            await input.onEvidence?.(
+              packet.type === "error" || packet.type === "turn.failed"
+                ? { kind: "unavailable", body: { code: "CODEX_ERROR_PAYLOAD_WITHHELD" } }
+                : { kind: "packet", body: packet },
+            );
+          }
+        },
       );
       let inputTokens: number | null = null,
         outputTokens: number | null = null,
