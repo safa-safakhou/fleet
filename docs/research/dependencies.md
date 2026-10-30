@@ -1,6 +1,6 @@
 # PACT research dependency baseline — 30 October 2026
 
-C1 establishes reproducible sources, versions, licenses and resolution constraints. It does not certify every future backend or model. Only the foundation dependencies are installed into Fleet: Protobuf runtime, gRPC, local generators and fast-check. The Python protocol package uses Pydantic, gRPC and Protobuf; agent, embedding and optimization extras are locked but not installed or invoked here.
+C1 establishes reproducible sources, versions, licenses and resolution constraints. It does not certify every future backend or model. The foundation installed Protobuf runtime, gRPC, local generators and fast-check. O6 additionally installs the pinned OTel API, explicit trace/meter/resource SDKs and HTTP exporters, plus Playwright for synthetic browser verification. The Python protocol package uses Pydantic, gRPC and Protobuf; agent, embedding and optimization extras are locked but not installed or invoked here.
 
 ## Evidence and ownership
 
@@ -9,10 +9,10 @@ C1 establishes reproducible sources, versions, licenses and resolution constrain
 | [npm versions](dependencies.npm.json) | Exact direct versions, registry integrity, declared Node requirements and licenses for the planned JS tools. |
 | [prospective npm lock](dependencies.npm.lock.json) | A separate metadata-only resolution of those tools under Node 26/npm 12 with engine checks; not Fleet's installed dependency graph. Root `package-lock.json` owns actual installed packages. |
 | [Python artifacts](dependencies.python.json) | Exact direct package versions/licenses and published wheel/source hashes. `workers/research/uv.lock` owns the complete resolved optional graph. |
-| [service image candidates](dependencies.images.json) | Immutable registry digests and advertised platforms. These images were not deployed or operationally qualified. |
+| [service image candidates](dependencies.images.json) | Immutable registry digests and advertised platforms. O6 exercised the four observation images only in owned synthetic fixtures; live deployment/qualification is not claimed. |
 | [pgvector source](dependencies.pgvector.json) | Exact extension source revision/archive digest; PostgreSQL integration belongs to M2. |
 
-Actual qualification here: Node 26.13.0, npm 12.2.1, Python 3.12.13 on macOS arm64; real binary interchange and Python validation; PostgreSQL fixtures in newly owned Docker containers. Python 3.12 is an isolated worker environment, with no change to existing Laya helpers or installed service runtimes. The shell's Homebrew Node is broken; verification uses a task-local Node 26 binary. Future Linux/native Temporal dependencies and service images need their owning task's runtime tests. Registry engine/architecture metadata is not ABI or operational acceptance.
+Actual qualification here: Node 26.13.0, npm 12.2.1, Python 3.12.13 on macOS arm64; real binary interchange and Python validation; PostgreSQL fixtures in newly owned Docker containers. Python 3.12 is an isolated worker environment, with no change to existing Laya helpers or installed service runtimes. The shell's Homebrew Node is broken; verification uses a task-local Node 26 binary. Future Linux/native Temporal dependencies and remaining service images need their owning task's runtime tests. [O6 backend verification](observation-20261031.md) records the observation images' actual fixture acceptance. Registry engine/architecture metadata is not ABI or operational acceptance.
 
 The prospective Promptfoo dependency graph initially reported five high-severity audit entries, all arising from `basic-ftp <=6.2.0`. Pinning `basic-ftp` to **6.2.4** resolves those entries without downgrading Promptfoo. The root override records that constraint for later integration; root and prospective npm audits then report zero advisories. This is a snapshot of registry audit evidence, not a guarantee of future vulnerability status.
 

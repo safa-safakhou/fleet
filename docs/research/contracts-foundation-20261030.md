@@ -1,5 +1,7 @@
 # PACT research foundation — C1–C4
 
+**Repository update — 31 October 2026:** this foundation was committed as `f6d7cf4` under the owner’s subsequent standing commit instruction. [O1–O6 completion](observation-20261031.md) records the later source work and current verification. The acceptance record below describes the foundation checkpoint.
+
 Source/offline implementation of [contracts package C1–C4](../superpowers/plans/2026-10-30-pact-research-01-contracts.md). This adds contracts and guarded persistence; it does not activate research agents or install the later observability/runtime services.
 
 ## Delivered behavior
@@ -42,4 +44,4 @@ Final measured verification on macOS arm64:
 - Python: **six tests passed**, including Hypothesis counter/coverage properties; the TS suite additionally exercises actual Python binary interchange and partial usage. Python lint, locked dependency check and wheel build passed.
 - Type/style check, production build and compiled manifest-module load, architecture boundaries, Protobuf lint, generated drift check and root npm audit passed. Whole-repository style output retains **173 warnings / 60 informational diagnostics**; no error was suppressed to pass the gate. Root/prospective npm audit: zero advisories after the pinned patch.
 
-Changes remain uncommitted on master; prior planning edits are preserved. No model inference, real game activity, retained-database access, deployment, recovery review, commit or push occurred. Later service runtime tests, Linux process checks and real-provider/behavior qualification remain separate gates.
+At this foundation checkpoint, changes were uncommitted on master and prior planning edits were preserved. The repository update above records subsequent commits. No model inference, real game activity, retained-database access, deployment, recovery review, commit or push occurred. Later service runtime tests, Linux process checks and real-provider/behavior qualification remain separate gates.

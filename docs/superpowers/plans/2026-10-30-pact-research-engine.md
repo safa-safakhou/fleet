@@ -60,7 +60,7 @@ Existing code is the baseline, not an instruction to rewrite each file wholesale
 
 New modules live by responsibility: `src/research/{manifests,broker,evidence,telemetry,orchestration,memory,context,metrics,experiments,evaluation}/`; `workers/research/` owns the Python package; `contracts/fleet/v1/` owns the process wire; `web/research/` owns the studio. Each subplan lists exact files to create and the current files to adapt. Do not make `src/server.ts`, `composition.ts` or the existing engine monoliths the home of new business logic.
 
-**Implementation status — 30 October 2026:** C1–C4 are complete at source/offline scope; [actual verification and remaining gates](../../research/contracts-foundation-20261030.md). O1–Q4 remain unimplemented.
+**Implementation status — 31 October 2026:** C1–C4 are complete at source/offline scope; [actual verification and remaining gates](../../research/contracts-foundation-20261030.md). O1–O6 are also complete at source/offline scope; [observation verification and release boundaries](../../research/observation-20261031.md). R1–Q4 remain planned.
 
 ## Work packages and dependencies
 

@@ -1,6 +1,8 @@
 # PACT Evidence and Observability Implementation Plan
 
-> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans`, inline without delegation. Checkboxes are future implementation under a covering assignment.
+> **For agentic workers:** REQUIRED SUB-SKILL: Use `superpowers:executing-plans`, inline without delegation. Execution was inline under the owner’s O1–O6 assignment.
+
+**Status — 31 October 2026:** O1–O6 complete at source/offline scope; [actual checks, commits and release boundaries](../../research/observation-20261031.md). Database commands used the owned-fixture harness instead of unguarded integration execution.
 
 **Goal:** Capture and inspect all retained, authorized Fleet-owned interactions, including large payloads, parallel sequences and explicit gaps.
 
@@ -41,11 +43,11 @@ Adapt `src/observability.ts`, `src/call-metrics.ts`, `src/app/host-services.ts`,
 
 **Produces:** `EvidenceRecorder.append(scope: RunScope, input: EvidenceEventInput, tx?: PoolClient): Promise<EventRef>`; `EvidenceRepository.page(scope, query: EventPageQuery): Promise<EventPage>`; `CoverageService.reconcile(runId: string): Promise<CompletenessManifest>`. `EvidenceEventInput` is the event minus assigned ID/sequence; page/manifest types are added to the C1 wire source and regenerated.
 
-- [ ] Write `keeps_stream_order_and_cross_stream_causes`: concurrent streams with skewed UTC, late arrival, multiple parents, duplicate producer key and a rolled-back append. Assert increasing committed per-stream sequence, stable event IDs, two causal links and no chronology inferred from UTC alone. A missing expected dispatch produces `partial`, not `complete`.
-- [ ] Run `npx vitest run tests/unit/research-evidence.test.ts tests/integration/research-event-journal.test.ts`; expect RED.
-- [ ] Implement immutable event rows, transactionally allocated stream counters, producer deduplication, schema validation and allowlisted metadata. Store process-local monotonic duration separately from UTC and typed PACT clocks; sequence decimal strings survive JSON. Append within the same SQL transaction as owned ledger/command intent where possible.
-- [ ] Run the same tests; expect PASS, including duplicate same-input acceptance, conflicting-input rejection and no foreign-scope read.
-- [ ] Review/checkpoint O1; publish a versioned event-kind inventory for all eight spec families in `docs/research/event-catalog.md`.
+- [x] Write `keeps_stream_order_and_cross_stream_causes`: concurrent streams with skewed UTC, late arrival, multiple parents, duplicate producer key and a rolled-back append. Assert increasing committed per-stream sequence, stable event IDs, two causal links and no chronology inferred from UTC alone. A missing expected dispatch produces `partial`, not `complete`.
+- [x] Run `npx vitest run tests/unit/research-evidence.test.ts tests/integration/research-event-journal.test.ts`; expect RED.
+- [x] Implement immutable event rows, transactionally allocated stream counters, producer deduplication, schema validation and allowlisted metadata. Store process-local monotonic duration separately from UTC and typed PACT clocks; sequence decimal strings survive JSON. Append within the same SQL transaction as owned ledger/command intent where possible.
+- [x] Run the same tests; expect PASS, including duplicate same-input acceptance, conflicting-input rejection and no foreign-scope read.
+- [x] Review/checkpoint O1; publish a versioned event-kind inventory for all eight spec families in `docs/research/event-catalog.md`.
 
 ## O2 — Store complete encrypted chunked artifacts and delete them correctly
 
@@ -55,11 +57,11 @@ Adapt `src/observability.ts`, `src/call-metrics.ts`, `src/app/host-services.ts`,
 
 **Produces:** `ArtifactStore.put(scope: RunScope, body: AsyncIterable<Uint8Array>, policy: ArtifactPolicy): Promise<ArtifactRef>`; `.read(scope, ref): AsyncIterable<Uint8Array>`; `.expire(now: Date): Promise<RetentionReport>`. `ArtifactPolicy` carries content/privacy class, byte quota, consent version and expiry; no framework receives storage keys.
 
-- [ ] Write `round_trips_large_body_and_refuses_stale_consent`: exact 2 MiB+17 byte body reconstructs byte-for-byte; chunks never exceed 1 MiB; changing ciphertext/order/AAD is rejected; interrupted temporary write never becomes complete. Revoke consent between chunks and expire an index/artifact; assert no decrypted bytes leak and tombstone says withheld/expired.
-- [ ] Run `npx vitest run tests/unit/research-artifacts.test.ts tests/integration/research-retention.test.ts`; expect RED.
-- [ ] Implement protected root/path traversal refusal, authenticated encryption with scope/artifact/chunk AAD, atomic chunk publication, byte-count/ciphertext-digest manifest and orphan sweep. Enforce finite run/disk quotas before dispatch and during streams; retain explicit partial manifests on interrupted capture. Retention propagates deletion to registered projections/caches and does not delete required command/usage recovery records.
-- [ ] Run the same tests, including full disk, truncated stream, crash before/after manifest commit and repeat expiry; expect PASS with no secret/body in logs.
-- [ ] Review/checkpoint O2 and document backup/key/retention behavior without recording actual keys.
+- [x] Write `round_trips_large_body_and_refuses_stale_consent`: exact 2 MiB+17 byte body reconstructs byte-for-byte; chunks never exceed 1 MiB; changing ciphertext/order/AAD is rejected; interrupted temporary write never becomes complete. Revoke consent between chunks and expire an index/artifact; assert no decrypted bytes leak and tombstone says withheld/expired.
+- [x] Run `npx vitest run tests/unit/research-artifacts.test.ts tests/integration/research-retention.test.ts`; expect RED.
+- [x] Implement protected root/path traversal refusal, authenticated encryption with scope/artifact/chunk AAD, atomic chunk publication, byte-count/ciphertext-digest manifest and orphan sweep. Enforce finite run/disk quotas before dispatch and during streams; retain explicit partial manifests on interrupted capture. Retention propagates deletion to registered projections/caches and does not delete required command/usage recovery records.
+- [x] Run the same tests, including full disk, truncated stream, crash before/after manifest commit and repeat expiry; expect PASS with no secret/body in logs.
+- [x] Review/checkpoint O2 and document backup/key/retention behavior without recording actual keys.
 
 ## O3 — Instrument every actual input/output and dispatch boundary
 
@@ -69,11 +71,11 @@ Adapt `src/observability.ts`, `src/call-metrics.ts`, `src/app/host-services.ts`,
 
 **Produces:** `ObservedPorts.wrapModel(port: ModelPort): ModelPort` and `.wrapGame(port: GamePort): GamePort`; typed hooks for queue, memory/context, participant/skill and checkpoint events. Wrap once at the final prepared request boundary, not once per caller layer; operation IDs correlate all hooks.
 
-- [ ] Write `all_owned_paths_reconcile` over legacy loop/cognition, reactive/continuity, independent specialists, skill execution and a fake Python broker client. Assert the exact final prepared messages/schema/settings and read/action/receipt payloads are captured; helpers and corrections have distinct purpose-labeled allocations; observed calls equal actual fake dispatches. A fixture-only bypass must fail coverage.
-- [ ] Run `npx vitest run tests/integration/research-all-path-capture.test.ts tests/integration/architecture-parity.test.ts tests/integration/observability.test.ts`; expect new capture assertions RED.
-- [ ] Implement non-mutating wrappers/hooks. Capture provider-exposed chunks in delivered order; terminal errors include known availability, partial output and safe error codes, not arbitrary stderr. Persist required input/intent before dispatch. On post-dispatch recording failure, settle known usage/receipts, mark a gap and fence further work if bounded capture is exhausted. Preserve existing byte-identical legacy messages and no extra reads.
-- [ ] Run the same tests with oversized content, unsupported provider fields, evidence backend down before/after dispatch, privacy redaction and late usage. Expect PASS; no model/game calls merely to enrich observation, no invented backend timing/reasoning.
-- [ ] Review/checkpoint O3 and ensure every capture-matrix row links a test and a coverage denominator.
+- [x] Write `all_owned_paths_reconcile` over legacy loop/cognition, reactive/continuity, independent specialists, skill execution and a fake Python broker client. Assert the exact final prepared messages/schema/settings and read/action/receipt payloads are captured; helpers and corrections have distinct purpose-labeled allocations; observed calls equal actual fake dispatches. A fixture-only bypass must fail coverage.
+- [x] Run `npx vitest run tests/integration/research-all-path-capture.test.ts tests/integration/architecture-parity.test.ts tests/integration/observability.test.ts`; expect new capture assertions RED.
+- [x] Implement non-mutating wrappers/hooks. Capture provider-exposed chunks in delivered order; terminal errors include known availability, partial output and safe error codes, not arbitrary stderr. Persist required input/intent before dispatch. On post-dispatch recording failure, settle known usage/receipts, mark a gap and fence further work if bounded capture is exhausted. Preserve existing byte-identical legacy messages and no extra reads.
+- [x] Run the same tests with oversized content, unsupported provider fields, evidence backend down before/after dispatch, privacy redaction and late usage. Expect PASS; no model/game calls merely to enrich observation, no invented backend timing/reasoning.
+- [x] Review/checkpoint O3 and ensure every capture-matrix row links a test and a coverage denominator.
 
 ## O4 — Expose complete authorized investigation APIs
 
@@ -83,11 +85,11 @@ Adapt `src/observability.ts`, `src/call-metrics.ts`, `src/app/host-services.ts`,
 
 **Produces:** `RunInspection.snapshot(runId, principal): Promise<RunSnapshot>`; `.events(runId, principal, query): Promise<EventPage>`; `.artifact(runId, principal, artifactId): AsyncIterable<Uint8Array>`. Register `/api/research/runs/:runId`, `/events`, `/artifacts/:artifactId`, `/lineage`, `/coverage`. Separate paginated bounded drilldowns from complete SQL aggregates.
 
-- [ ] Write `paginates_snapshot_without_loss`: 1,205 events over multiple streams, equal timestamps, new events after snapshot and a revoked owner. Assert no duplicate/missing retained IDs across pages, maximum 500, truthful hasMore/total, stable snapshot, exact artifact access policy and expired historical fields labeled unavailable.
-- [ ] Run `npx vitest run tests/integration/research-inspection.test.ts`; expect RED.
-- [ ] Implement authorization at request and chunk delivery, stable snapshot/cursors, filters that preserve original IDs/order and lineage endpoints with explicit omitted totals. Keep old run routes functional; historical legacy records remain legacy and incomplete where appropriate. List routes return metadata, never accidentally decrypt every body.
-- [ ] Run the same test with cursor tampering, foreign actor IDs, concurrent append and revocation; expect PASS and no default live endpoints contacted.
-- [ ] Review/checkpoint O4 and record the route/response schema in `docs/research/api.md`.
+- [x] Write `paginates_snapshot_without_loss`: 1,205 events over multiple streams, equal timestamps, new events after snapshot and a revoked owner. Assert no duplicate/missing retained IDs across pages, maximum 500, truthful hasMore/total, stable snapshot, exact artifact access policy and expired historical fields labeled unavailable.
+- [x] Run `npx vitest run tests/integration/research-inspection.test.ts`; expect RED.
+- [x] Implement authorization at request and chunk delivery, stable snapshot/cursors, filters that preserve original IDs/order and lineage endpoints with explicit omitted totals. Keep old run routes functional; historical legacy records remain legacy and incomplete where appropriate. List routes return metadata, never accidentally decrypt every body.
+- [x] Run the same test with cursor tampering, foreign actor IDs, concurrent append and revocation; expect PASS and no default live endpoints contacted.
+- [x] Review/checkpoint O4 and record the route/response schema in `docs/research/api.md`.
 
 ## O5 — Export exhaustive archives and verify completeness
 
@@ -97,11 +99,11 @@ Adapt `src/observability.ts`, `src/call-metrics.ts`, `src/app/host-services.ts`,
 
 **Produces:** `RunArchive.export(snapshot, principal): AsyncIterable<Uint8Array>`; `verifyArchive(path: string): Promise<ArchiveVerification>`. Versioned archive includes sealed manifest, paginated events, causal refs, allowed artifacts, coverage, evaluator/metric definitions and hash manifest. Default export is encrypted; verifier reports unavailable key separately from structural corruption.
 
-- [ ] Write `exports_every_retained_page`: 1,205 events and a 16 MiB artifact, then verify counts/bytes/digests and preserved source IDs. Assert missing chunk, foreign ref and duplicate event are detected. Expired or withheld payload yields a valid archive with an explicit gap, not a false complete archive.
-- [ ] Run `npx vitest run tests/integration/research-export.test.ts`; expect RED.
-- [ ] Implement streaming/backpressure/cancellation, private destination handling and key separation. Never buffer the whole archive or export just the UI's fetched rows. Register export cache/retention cleanup; no decrypted export without an explicit request.
-- [ ] Run the same test with mid-export revocation, disk failure, stale snapshot and interruption/resume policy; expect PASS with no partial archive presented as complete.
-- [ ] Review/checkpoint O5 and publish a synthetic portable archive fixture and its verification command.
+- [x] Write `exports_every_retained_page`: 1,205 events and a 16 MiB artifact, then verify counts/bytes/digests and preserved source IDs. Assert missing chunk, foreign ref and duplicate event are detected. Expired or withheld payload yields a valid archive with an explicit gap, not a false complete archive.
+- [x] Run `npx vitest run tests/integration/research-export.test.ts`; expect RED.
+- [x] Implement streaming/backpressure/cancellation, private destination handling and key separation. Never buffer the whole archive or export just the UI's fetched rows. Register export cache/retention cleanup; no decrypted export without an explicit request.
+- [x] Run the same test with mid-export revocation, disk failure, stale snapshot and interruption/resume policy; expect PASS with no partial archive presented as complete.
+- [x] Review/checkpoint O5 and publish a synthetic portable archive fixture and its verification command.
 
 ## O6 — Project safe telemetry and provision the observability stack
 
@@ -111,8 +113,8 @@ Adapt `src/observability.ts`, `src/call-metrics.ts`, `src/app/host-services.ts`,
 
 **Produces:** `TelemetryProjection.publish(event: EvidenceEvent): Promise<void>`; cross-process trace links; bounded operational counters/histograms; versioned Grafana dashboards for queues, service latency, resource pressure, record coverage and exporter health. No audit payloads in external attributes.
 
-- [ ] Write `propagates_safe_links_during_exporter_outage`: parent/link IDs cross a fake Python RPC, metric labels remain bounded, prompt/peer/key sentinel strings never appear in exported telemetry, no duplicate span from double wrapping. Dropped export increments a loss counter while journal completeness remains inspectable.
-- [ ] Run `npx vitest run tests/unit/research-telemetry.test.ts tests/integration/research-telemetry.test.ts`; expect RED.
-- [ ] Implement explicit SDK instrumentation and schema allowlists; disable SQL parameter/text and model-body auto-capture. Qualified owned-run spans use no sampling; unknown provider internals remain unavailable. Pin and provision backend images with separate volumes/roles, loopback ports, finite retention and self-observation. OTel retries export only, never execution.
-- [ ] Run the same tests and `npm run test:observability` against newly created owned backend fixtures; expect PASS with an actual synthetic trace/metric query through Collector→Tempo/Prometheus, rendered dashboard query success, outage/restart recovery and no production route contact.
-- [ ] Review/checkpoint O6; record service versions and measured loss/lag. Deliver API and completeness fixtures to packages 05/06.
+- [x] Write `propagates_safe_links_during_exporter_outage`: parent/link IDs cross a fake Python RPC, metric labels remain bounded, prompt/peer/key sentinel strings never appear in exported telemetry, no duplicate span from double wrapping. Dropped export increments a loss counter while journal completeness remains inspectable.
+- [x] Run `npx vitest run tests/unit/research-telemetry.test.ts tests/integration/research-telemetry.test.ts`; expect RED.
+- [x] Implement explicit SDK instrumentation and schema allowlists; disable SQL parameter/text and model-body auto-capture. Qualified owned-run spans use no sampling; unknown provider internals remain unavailable. Pin and provision backend images with separate volumes/roles, loopback ports, finite retention and self-observation. OTel retries export only, never execution.
+- [x] Run the same tests and `npm run test:observability` against newly created owned backend fixtures; expect PASS with an actual synthetic trace/metric query through Collector→Tempo/Prometheus, rendered dashboard query success, outage/restart recovery and no production route contact.
+- [x] Review/checkpoint O6; record service versions and measured loss/lag. Deliver API and completeness fixtures to packages 05/06.
