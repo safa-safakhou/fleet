@@ -28,13 +28,16 @@ export function architectureImports(root) {
           return;
         }
         const symbol = project.checker.getSymbolAtLocation(node),
-          path = symbol?.declarations[0]?.path;
+          path = symbol?.declarations[0]?.path,
+          // Node handles use canonical (case-folded) paths on macOS. Resolve
+          // the original source name before comparing repository-relative paths.
+          targetFile = path ? (project.program.getSourceFile(String(path))?.fileName ?? String(path)) : null;
         const fallback = text.startsWith(".") ? resolve(dirname(file), text).replace(/\.js$/, ".ts") : null;
         edges.push({
           from: relative(root, file).replaceAll("\\", "/"),
           specifier: text,
-          target: path
-            ? relative(root, String(path)).replaceAll("\\", "/")
+          target: targetFile
+            ? relative(root, targetFile).replaceAll("\\", "/")
             : fallback
               ? relative(root, fallback).replaceAll("\\", "/")
               : null,

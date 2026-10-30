@@ -1,6 +1,6 @@
 # Fleet agent instructions
 
-Fleet is an independent Node 24/TypeScript/Fastify/React/PostgreSQL 17 agent controller.
+Fleet is an independent Node 26/TypeScript/Fastify/React/PostgreSQL 17 agent controller.
 Work inline; do not delegate unless the user explicitly requests it.
 
 ## Main workspace

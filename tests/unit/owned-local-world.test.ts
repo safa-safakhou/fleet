@@ -49,29 +49,33 @@ it("waits through an empty-command exit transition only for the already-verified
     expect(mayWaitForOwnedExit(saved, current, saved.root)).toBe(false);
   expect(mayWaitForOwnedExit(saved, exiting, "/foreign")).toBe(false);
 });
-it("concurrent park requests signal the exact owned process only once", async () => {
-  const root = await mkdtemp(resolve(tmpdir(), "fleet-owned-stop-"));
-  const c = { ...fixture(), root };
-  await mkdir(resolve(root, "logs"));
-  const received = resolve(root, "signals");
-  const ready = resolve(root, "ready");
-  try {
-    await startOwnedProcess(c, "test-process", "fleet", [
-      "-e",
-      `const fs=require('node:fs');process.on('SIGTERM',()=>{fs.appendFileSync(${JSON.stringify(received)},'stop\\n');setTimeout(()=>process.exit(0),100)});fs.writeFileSync(${JSON.stringify(ready)},'ready');setInterval(()=>{},1000)`,
-    ]);
-    for (let i = 0; i < 100; i++) {
-      if (await readFile(ready, "utf8").catch(() => "")) break;
-      await new Promise((done) => setTimeout(done, 10));
+// Process ownership uses Linux /proc, as do the Codex process fixtures.
+it.skipIf(process.platform !== "linux")(
+  "concurrent park requests signal the exact owned process only once",
+  async () => {
+    const root = await mkdtemp(resolve(tmpdir(), "fleet-owned-stop-"));
+    const c = { ...fixture(), root };
+    await mkdir(resolve(root, "logs"));
+    const received = resolve(root, "signals");
+    const ready = resolve(root, "ready");
+    try {
+      await startOwnedProcess(c, "test-process", "fleet", [
+        "-e",
+        `const fs=require('node:fs');process.on('SIGTERM',()=>{fs.appendFileSync(${JSON.stringify(received)},'stop\\n');setTimeout(()=>process.exit(0),100)});fs.writeFileSync(${JSON.stringify(ready)},'ready');setInterval(()=>{},1000)`,
+      ]);
+      for (let i = 0; i < 100; i++) {
+        if (await readFile(ready, "utf8").catch(() => "")) break;
+        await new Promise((done) => setTimeout(done, 10));
+      }
+      expect(await readFile(ready, "utf8")).toBe("ready");
+      await Promise.all([stopOwnedProcess(c, "test-process"), stopOwnedProcess(c, "test-process")]);
+      expect(await readFile(received, "utf8")).toBe("stop\n");
+    } finally {
+      await stopOwnedProcess(c, "test-process", true);
+      await rm(root, { recursive: true, force: true });
     }
-    expect(await readFile(ready, "utf8")).toBe("ready");
-    await Promise.all([stopOwnedProcess(c, "test-process"), stopOwnedProcess(c, "test-process")]);
-    expect(await readFile(received, "utf8")).toBe("stop\n");
-  } finally {
-    await stopOwnedProcess(c, "test-process", true);
-    await rm(root, { recursive: true, force: true });
-  }
-});
+  },
+);
 function fixture(): OwnedWorldConfig {
   const id = "fresh-canary-20261025-12345678",
     root = `/tmp/${id}`;

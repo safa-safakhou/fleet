@@ -68,7 +68,7 @@ See [detailed run debugging](docs/run-debugging-20261016.md) for the Runs browse
 
 ## Local development and isolated tests
 
-Requires Node 24, Docker and npm. The Codex process fixtures require Linux; macOS skips that unit suite, and full acceptance runs it in the Linux build image. Commands run from this repository:
+Requires Node 26.13.0, Docker and npm 12.2.1. The Codex process fixtures require Linux; macOS skips that unit suite, and full acceptance runs it in the Linux build image. Commands run from this repository:
 
 ```sh
 npm ci
@@ -119,3 +119,5 @@ Phase2 source implementation: [event intake and reactive-basic@1](docs/reactive-
 Phase3 source architecture: [grounded continuity profile and PACT adapter](docs/continuity-engine-20261017.md), alongside preserved compatibility/basic engines. Activation and new runs remain explicit.
 
 Phase4 source architecture: [focused workers and shared coordinator](docs/specialist-coordinator-20261017.md), with a fake-only independent-submit comparison and explicit environment/provider gates.
+
+Dependency and runtime upgrade details, compatibility pins, and verification limits: [30 October upgrade record](docs/superpowers/plans/2026-10-30-dependency-upgrade.md).

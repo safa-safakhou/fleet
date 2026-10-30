@@ -52,6 +52,19 @@ it("rejects engine concrete capabilities and platform or UI implementation impor
     await rm(root, { recursive: true, force: true });
   }
 });
+it("preserves source-file casing when resolving mixed-case engine aliases", async () => {
+  const root = await fixture({
+    "src/engines/Alpha/engine.ts": 'export {value} from "@engine/Beta/engine.js";',
+    "src/engines/Beta/engine.ts": "export const value=1;",
+  });
+  try {
+    expect(await scanArchitectureGraph(root)).toEqual([
+      "SIBLING_ENGINE:src/engines/Alpha/engine.ts->src/engines/Beta/engine.ts",
+    ]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
 it("permits only public ports own internals and explicit versioned mechanisms", async () => {
   const root = await fixture({
     "src/engines/a/engine.ts":
