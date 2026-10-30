@@ -34,7 +34,7 @@ Create `src/research/memory/{schema,repository,index-policy,retrieval,fusion,emb
 
 ## M1 — Expose typed memory and explicit searchable-index policy
 
-**Files:** Create `schema.ts`, `repository.ts`, `index-policy.ts`, `migrations/047_research_memory.sql`, `tests/unit/research-memory.test.ts`, `tests/integration/research-memory-scope.test.ts`; modify existing state adapters and O2 retention registrations.
+**Files:** Create `schema.ts`, `repository.ts`, `index-policy.ts`, `migrations/048_research_memory.sql`, `tests/unit/research-memory.test.ts`, `tests/integration/research-memory-scope.test.ts`; modify existing state adapters and O2 retention registrations.
 
 **Consumes:** C1 scope/source refs, O1 event lineage/O2 artifacts, existing cognition/participant/skill public records.
 

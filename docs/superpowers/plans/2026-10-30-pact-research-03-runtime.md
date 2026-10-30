@@ -36,7 +36,7 @@ Python lives in `workers/research/src/fleet_research/{worker,agent,broker_model,
 
 ## R1 — Own new task lifecycles through Temporal
 
-**Files:** Create orchestration modules above, `migrations/046_temporal_task_ownership.sql`, `tests/integration/research-temporal.test.ts`, `tests/fixtures/research/temporal-history.json`; modify `src/platform/tasks.ts`, `src/platform/supervisor.ts`, `src/app/composition.ts` and the existing worker admission selection.
+**Files:** Create orchestration modules above, `migrations/047_temporal_task_ownership.sql`, `tests/integration/research-temporal.test.ts`, `tests/fixtures/research/temporal-history.json`; modify `src/platform/tasks.ts`, `src/platform/supervisor.ts`, `src/app/composition.ts` and the existing worker admission selection.
 
 **Consumes:** C2 manifest digest, C3 step identity, O1 events and existing task/wake/claim services.
 

@@ -31,3 +31,7 @@ Missing historical prompts, expired events, disabled-consent details, provider a
 ## Runtime scope
 
 No migration is needed. Existing accounts, histories, models, budgets, schedule anchors, unknown allocations, pending commands and all running/terminal populations are unchanged. No deployment, push, experiment, reconnection, unknown-usage review or replay was performed. Rich capture begins only after this source is separately installed in the intended Fleet runtime.
+
+## Research evidence extension (2026-10-30)
+
+The bounded legacy debug report retains its original semantics. For complete retained evidence, use the authenticated [research API](research/api.md): freeze a snapshot, follow every opaque event cursor, and fetch scoped artifacts explicitly. Coverage reconciles native allocations/commands and distinguishes partial, withheld, expired and unavailable evidence. Ingestion order is not a causal total order.
