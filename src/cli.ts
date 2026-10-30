@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 import { CliError, HttpLaunchClient, type LaunchClient, SessionFile } from "./cli-client.js";
 import { LaunchSpecSchema, LaunchStartRequest } from "./platform/launch-contracts.js";
+import { readExportKey, verifyArchive } from "./research/evidence/export.js";
 
 type IO = {
   out(text: string): void;
@@ -16,6 +17,24 @@ const usage =
   "Usage: fleet architectures list | launch check --file FILE | launch draft --file FILE [--request-id UUID] | launch start --draft UUID --expected-digest SHA256 [--request-id UUID] | login | logout";
 export async function runCli(argv: string[], io: IO, client: LaunchClient): Promise<number> {
   try {
+    if (argv.slice(0, 3).join(" ") === "research archive verify") {
+      const flags: Record<string, string> = {};
+      for (let i = 3; i < argv.length; i += 2) {
+        if (
+          !["--file", "--key-file"].includes(argv[i]) ||
+          flags[argv[i]] ||
+          !argv[i + 1] ||
+          argv[i + 1].startsWith("--")
+        )
+          throw new CliError("INVALID_ARGUMENTS", 2);
+        flags[argv[i]] = argv[i + 1];
+      }
+      if (!flags["--file"]) throw new CliError("FILE_REQUIRED", 2);
+      const key = flags["--key-file"] ? await readExportKey(flags["--key-file"]) : undefined;
+      const result = await verifyArchive(flags["--file"], key);
+      io.out(JSON.stringify(result));
+      return result.status === "verified" ? 0 : result.status === "key_required" ? 3 : 2;
+    }
     if (argv.length === 1 && ["login", "logout"].includes(argv[0])) {
       if (argv[0] === "login") await client.login(await io.secret());
       else await client.logout();

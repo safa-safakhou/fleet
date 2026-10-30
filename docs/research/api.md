@@ -9,3 +9,5 @@ These routes use the existing authenticated operator session, CSRF protection on
 - `GET …/artifacts/:artifactId?snapshotId=UUID` streams an exact referenced artifact after scope, consent version, session and retention checks. Private bytes are never returned in list metadata. Revocation stops subsequent chunks; a reenabled consent does not reopen old snapshots.
 
 Snapshot reads reject expiry, foreign sessions, altered cursors, changed filters and foreign artifacts. New events never change an existing snapshot. Missing historical runs return `EVIDENCE_RUN_NOT_FOUND`; legacy reports remain available through their existing routes. Expired snapshots report `EVIDENCE_SNAPSHOT_EXPIRED` instead of inventing retained bodies. Cancellation closes the stream; no automatic gameplay retry occurs.
+
+`GET …/export?snapshotId=UUID` streams a recipient-key encrypted exhaustive archive; `x-fleet-export-key` is required, separate from runtime keys. See [archive format and offline verification](archive.md). Delivery reauthorizes throughout; there is no export cache to outlive consent.

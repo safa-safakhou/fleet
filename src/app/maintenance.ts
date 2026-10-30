@@ -3,6 +3,17 @@ import type { Store } from "../store.js";
 export function createMaintenance(store: Store) {
   const registry = new MaintenanceRegistry();
   registry.register({
+    id: "research-snapshots",
+    run: async (limit, signal) => {
+      if (signal.aborted) return 0;
+      const result = await store.pool.query(
+        "DELETE FROM research_snapshots WHERE id IN (SELECT s.id FROM research_snapshots s JOIN research_runs r ON r.run_id=s.run_id JOIN cohorts c ON c.id=r.cohort_id WHERE s.expires_at<=$1 OR NOT c.observation_consent OR s.consent_version<>c.observation_consent_version ORDER BY s.created_at LIMIT $2)",
+        [store.now(), limit],
+      );
+      return result.rowCount ?? 0;
+    },
+  });
+  registry.register({
     id: "research-private-artifacts",
     run: async (_limit, signal) => {
       if (signal.aborted || !store.observation) return 0;

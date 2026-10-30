@@ -2,6 +2,7 @@ import { Readable } from "node:stream";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { FleetError, object } from "../../domain.js";
+import { RunArchive } from "./export.js";
 import type { ResearchPrincipal, RunInspection } from "./inspection.js";
 import { EventKinds } from "./types.js";
 /** Only register behind the existing operator-session/CSRF/no-store hooks. */
@@ -23,6 +24,18 @@ export function registerEvidenceRoutes(app: FastifyInstance, inspection?: RunIns
       streamId: z.string().max(120).optional(),
     })
     .strict();
+  app.get("/api/research/runs/:runId/export", async (r, reply) => {
+    const { snapshotId } = z.object({ snapshotId: z.uuid() }).strict().parse(r.query);
+    const raw = r.headers["x-fleet-export-key"];
+    if (typeof raw !== "string" || !/^[a-f0-9]{64}$/.test(raw)) throw new FleetError("EXPORT_KEY_REQUIRED", true);
+    const p = principal(r),
+      snap = await use().retained(run(r), p, snapshotId),
+      archive = new RunArchive(use(), Buffer.from(raw, "hex"));
+    reply
+      .type("application/vnd.fleet.encrypted-archive")
+      .header("content-disposition", `attachment; filename="${snap.id}.fleet"`);
+    return reply.send(Readable.from(archive.export(snap, p)));
+  });
   app.get("/api/research/runs/:runId", async (r) => use().snapshot(run(r), principal(r)));
   app.get("/api/research/runs/:runId/events", async (r) => use().events(run(r), principal(r), query.parse(r.query)));
   app.get("/api/research/runs/:runId/coverage", async (r) => {
