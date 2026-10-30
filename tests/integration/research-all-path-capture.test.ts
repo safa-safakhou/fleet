@@ -116,3 +116,59 @@ test("skill dispatch and fake worker use the same native accounting and evidence
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("a failed scope lookup cannot roll back a known native command receipt", async () => {
+  const f = await researchFixture(),
+    root = await mkdtemp(join(tmpdir(), "fleet-receipt-capture-"));
+  try {
+    const capture = new CaptureSession(f.store, new ArtifactFilesystem(root)),
+      scope = await scopeForTurn(f.store, f.claim.turn.id),
+      command = "88888888-8888-4888-8888-888888888888";
+    await capture.recorder.append(scope, { kind: "run.started", producerKey: "receipt-start", streamId: "run" });
+    await f.store.pending(f.claim.turn, command, { kind: "synthetic" });
+    const original = capture.scope.bind(capture);
+    capture.scope = async (_claim, db) => {
+      await db?.query("SELECT nonexistent_capture_field FROM research_runs");
+      throw Error("capture scope unavailable");
+    };
+    f.store.observation = capture;
+    await f.store.receipt(f.claim.turn, { commandId: command, code: "COMMITTED" });
+    expect(
+      (await f.pool.query("SELECT command_id FROM command_resolutions WHERE command_id=$1", [command])).rowCount,
+    ).toBe(1);
+    expect(
+      (await f.pool.query("SELECT pending_command FROM turns WHERE id=$1", [scope.turnId])).rows[0].pending_command,
+    ).toBeNull();
+    capture.scope = original;
+    await expect(capture.preflight(scope)).rejects.toThrow("EVIDENCE_UNAVAILABLE");
+  } finally {
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("corrections retain their own allocation and purpose", async () => {
+  const root = await mkdtemp(join(tmpdir(), "fleet-correction-capture-"));
+  try {
+    await captureArchitectureTranscript(
+      { id: "reactive-basic", version: "1" },
+      {
+        scenario: "correction",
+        onStore: async (store) => {
+          store.observation = new CaptureSession(store, new ArtifactFilesystem(root));
+        },
+        afterRun: async (store, claim) => {
+          const scope = await scopeForTurn(store, claim.id),
+            page = await new EvidenceRepository(store).page(scope, {}),
+            calls = page.events.filter((e) => e.kind === "model.request");
+          expect(calls.length).toBeGreaterThan(1);
+          expect(new Set(calls.map((e) => e.attributes.allocationId)).size).toBe(calls.length);
+          expect(calls[1].attributes.purpose).toBe("correction");
+          expect((await new CoverageService(store).reconcile(scope.runId)).missing).toEqual([]);
+        },
+      },
+    );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

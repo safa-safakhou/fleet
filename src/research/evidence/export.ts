@@ -153,6 +153,7 @@ async function* lines(path: string) {
 }
 export type ArchiveVerification = {
   status: "verified" | "key_required" | "invalid";
+  coverageStatus?: string;
   events?: number;
   artifacts?: number;
   gaps?: number;
@@ -313,7 +314,14 @@ export async function verifyArchive(path: string, key?: Uint8Array): Promise<Arc
     if (!archiveId || !index) throw error();
     if (!cipher) return { status: "key_required", code: "EXPORT_KEY_REQUIRED" };
     if (!ended || pending.length) throw error();
-    return { status: "verified", events, artifacts, gaps, bytes: String(totalBytes) };
+    return {
+      status: "verified",
+      events,
+      artifacts,
+      gaps,
+      bytes: String(totalBytes),
+      coverageStatus: snapshot?.coverage.status,
+    };
   } catch {
     return { status: "invalid", code: "ARCHIVE_INVALID" };
   }

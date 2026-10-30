@@ -32,13 +32,11 @@ test("SSE delivers provider packets in order and refuses failed required capture
       { choices: [{ index: 0, delta: { content: "{}" }, finish_reason: "stop" }] },
       { choices: [], usage: { prompt_tokens: 3, completion_tokens: 4 } },
     ];
-  const fetch = vi
-    .spyOn(globalThis, "fetch")
-    .mockResolvedValue(
-      new Response(data.map((v) => `data: ${JSON.stringify(v)}\n\n`).join("") + "data: [DONE]\n\n", {
-        headers: { "content-type": "text/event-stream" },
-      }),
-    );
+  const fetch = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    new Response(data.map((v) => `data: ${JSON.stringify(v)}\n\n`).join("") + "data: [DONE]\n\n", {
+      headers: { "content-type": "text/event-stream" },
+    }),
+  );
   await vllmCompletion("http://fixture.invalid", {}, "key", new AbortController().signal, async (e) => {
     packets.push(e);
   });

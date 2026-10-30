@@ -94,13 +94,13 @@ export class RunInspection {
             ?.manifest ?? null;
       const allocations = (
         await db.query(
-          `SELECT id,status,COALESCE(request_metrics->>'purpose','unavailable') purpose,input_tokens::text "inputTokens",output_tokens::text "outputTokens" FROM compute_ledger WHERE turn_id=ANY($1::uuid[]) ORDER BY id`,
-          [turns],
+          `SELECT id,status,COALESCE((SELECT e.event->'attributes'->>'purpose' FROM research_events e WHERE e.run_id=$2 AND e.event->'attributes'->>'allocationId'=compute_ledger.id::text AND e.event->'attributes' ? 'purpose' ORDER BY e.ordinal LIMIT 1),request_metrics->>'purpose','unavailable') purpose,input_tokens::text "inputTokens",output_tokens::text "outputTokens" FROM compute_ledger WHERE turn_id=ANY($1::uuid[]) ORDER BY id`,
+          [turns, runId],
         )
       ).rows;
       const commands = (
         await db.query(
-          "SELECT command_id id,state status FROM platform_commands WHERE turn_id=ANY($1::uuid[]) UNION SELECT command_id id,'confirmed' status FROM command_resolutions WHERE turn_id=ANY($1::uuid[]) AND command_id NOT IN (SELECT command_id FROM platform_commands)",
+          "SELECT command_id id,state status FROM platform_commands WHERE turn_id=ANY($1::uuid[]) UNION SELECT command_id id,'confirmed' status FROM command_resolutions WHERE turn_id=ANY($1::uuid[]) AND command_id NOT IN (SELECT command_id FROM platform_commands) UNION SELECT pending_command id,'pending' status FROM turns WHERE id=ANY($1::uuid[]) AND pending_command IS NOT NULL AND pending_command NOT IN (SELECT command_id FROM platform_commands) AND pending_command NOT IN (SELECT command_id FROM command_resolutions)",
           [turns],
         )
       ).rows;

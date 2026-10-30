@@ -433,7 +433,7 @@ export class ModelAdmission {
     const floor = stage?.kind === "worker" ? (stage.retryReserveCalls ?? 1) : 0;
     return recoverModelOutput(request, {
       inputByteLimit: cohort.budget?.inputByteLimit ?? 0,
-      attempt: (input, attempt) => this.decideOnce(claim, input, stage, attempt > 1 ? floor : 0),
+      attempt: (input, attempt) => this.decideOnce(claim, input, stage, attempt > 1 ? floor : 0, attempt > 1),
       canRetry: async () => (await this.remainingCalls(claim)) > floor,
       onRetry: async (detail) => {
         await new Observability(this.store).recordDebug(claim.turn, "thinking", "Model output retry", {
@@ -459,7 +459,7 @@ export class ModelAdmission {
     const outcome = await runDecisionFeedback(request, {
       ...policy,
       inputByteLimit: cohort.budget?.inputByteLimit ?? 0,
-      attempt: (input, n) => this.decideOnce(claim, input, stage, n > 1 ? floor : 0),
+      attempt: (input, n) => this.decideOnce(claim, input, stage, n > 1 ? floor : 0, n > 1),
       canRetry: async () => (await this.remainingCalls(claim)) > floor,
     });
     await new Observability(this.store).recordDebug(claim.turn, "thinking", "Bounded proposal feedback", {
@@ -473,6 +473,7 @@ export class ModelAdmission {
     request: Parameters<ModelPort["decide"]>[0],
     stage?: ModelStage,
     reserveCalls = 0,
+    correction = false,
   ): Promise<ModelResult> {
     await this.tasks.check(claim);
     const cohort = await this.store.cohort(claim.turn.cohortId);
@@ -554,7 +555,13 @@ export class ModelAdmission {
           invoked = true;
           const prepared = { ...request, signal: deadline.signal, onDispatch: deadline.onDispatch };
           const result = this.store.observation
-            ? await this.store.observation.model(turn, prepared, this.provider, allocation)
+            ? await this.store.observation.model(
+                turn,
+                prepared,
+                this.provider,
+                allocation,
+                correction ? "correction" : stage?.kind === "worker" ? "helper" : "decision",
+              )
             : await this.provider.decide(prepared);
           const elapsedMs = Math.max(0, this.store.now().getTime() - modelStartedAt);
           await this.store.recordUsage(allocation, result.inputTokens, result.outputTokens);

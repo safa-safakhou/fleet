@@ -9,6 +9,7 @@ export interface ObservationPort {
     input: Parameters<ModelPort["decide"]>[0],
     port: ModelPort,
     allocationId?: string,
+    purpose?: "decision" | "helper" | "correction",
   ): ReturnType<ModelPort["decide"]>;
   game(agentId: string, port: GamePort): GamePort;
   usage(allocationId: string, status: string, input: number | null, output: number | null): Promise<void>;

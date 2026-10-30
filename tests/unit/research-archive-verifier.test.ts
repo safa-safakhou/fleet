@@ -76,7 +76,9 @@ test("offline verifier rejects logical duplicate events, foreign refs and missin
   }
 });
 test("offline CLI verifies portable fixture without contacting any runtime", async () => {
-  expect((await verifyArchive("tests/fixtures/research/portable-v1.fleet",syntheticArchiveKey)).status).toBe("verified");
+  expect((await verifyArchive("tests/fixtures/research/portable-v1.fleet", syntheticArchiveKey)).status).toBe(
+    "verified",
+  );
   const root = await mkdtemp(join(tmpdir(), "fleet-offline-"));
   try {
     const path = join(root, "test.fleet"),

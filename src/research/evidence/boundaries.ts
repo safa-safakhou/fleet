@@ -150,25 +150,42 @@ export class CaptureSession implements ObservationPort {
     }
   }
   async detail(claim: ObservationClaim, stage: string, label: string, detail: Data, db?: PoolClient) {
-    const scope = await this.scope(claim, db);
-    let kind: EvidenceEventInput["kind"] = "observation.record";
-    const attributes: NonNullable<EvidenceEventInput["attributes"]> = {};
-    if (["observing", "ready", "thinking", "deciding", "reading", "acting", "result", "finished"].includes(stage))
-      attributes.stage = stage as NonNullable<typeof attributes.stage>;
-    if (typeof detail.commandId === "string" && uuid.test(detail.commandId)) attributes.commandId = detail.commandId;
-    if (label === "Submitting game action") kind = "command.prepared";
-    else if (attributes.commandId && /receipt|result|confirmed/i.test(label)) kind = "command.result";
-    // Provider-bound wrappers own model units; compatibility debug stays a separate record.
-    await this.emit(scope, kind, { label, detail }, attributes, { db });
+    // A failed evidence lookup cannot abort settlement of a known native effect.
+    if (db) await db.query("SAVEPOINT research_detail_scope");
+    try {
+      const scope = await this.scope(claim, db);
+      let kind: EvidenceEventInput["kind"] = "observation.record";
+      const attributes: NonNullable<EvidenceEventInput["attributes"]> = {};
+      if (["observing", "ready", "thinking", "deciding", "reading", "acting", "result", "finished"].includes(stage))
+        attributes.stage = stage as NonNullable<typeof attributes.stage>;
+      if (typeof detail.commandId === "string" && uuid.test(detail.commandId)) attributes.commandId = detail.commandId;
+      if (label === "Submitting game action") kind = "command.prepared";
+      else if (attributes.commandId && /receipt|result|confirmed/i.test(label)) kind = "command.result";
+      // Provider-bound wrappers own model units; compatibility debug stays a separate record.
+      await this.emit(scope, kind, { label, detail }, attributes, { db });
+
+      if (db) await db.query("RELEASE SAVEPOINT research_detail_scope");
+    } catch {
+      if (db) await db.query("ROLLBACK TO SAVEPOINT research_detail_scope");
+      const runId = this.active.getStore()?.runId ?? claim.id;
+      this.failed.add(runId);
+      try {
+        await (db ?? this.store.pool).query("UPDATE research_runs SET capture_failed=true WHERE run_id=$1", [runId]);
+      } catch {
+        if (db) await db.query("ROLLBACK TO SAVEPOINT research_detail_scope");
+      }
+      if (db) await db.query("RELEASE SAVEPOINT research_detail_scope");
+    }
   }
   async model(
     claim: ObservationClaim,
     input: Parameters<ModelPort["decide"]>[0],
     port: ModelPort,
     allocationId?: string,
+    purpose?: "decision" | "helper" | "correction",
   ) {
     const scope = await this.scope(claim);
-    return new ObservedPorts(this, async () => scope, allocationId).wrapModel(port).decide(input);
+    return new ObservedPorts(this, async () => scope, allocationId, purpose).wrapModel(port).decide(input);
   }
   game(agentId: string, port: GamePort) {
     let previous: RunScope | undefined;
@@ -302,6 +319,7 @@ export class ObservedPorts {
     private capture: CaptureSession,
     private resolve: (method?: string, args?: unknown[]) => Promise<RunScope | undefined>,
     private allocationId?: string,
+    private purpose: "decision" | "helper" | "correction" = "decision",
   ) {}
   wrapModel(port: ModelPort): ModelPort {
     if ((port as ModelPort & { [wrappedModel]?: boolean })[wrappedModel]) return port;
@@ -323,7 +341,21 @@ export class ObservedPorts {
               [scope.turnId],
             )
           ).rows[0]?.id;
-        const attrs = allocationId ? { allocationId } : {};
+        const metadata = allocationId
+          ? (
+              await self.capture.store.pool.query("SELECT request_metrics FROM compute_ledger WHERE id=$1", [
+                allocationId,
+              ])
+            ).rows[0]?.request_metrics
+          : undefined;
+        const purpose = metadata?.decisionFeedbackCode ? ("correction" as const) : self.purpose;
+        const queue = metadata?.queueDelayMs;
+        const attrs = {
+          ...(allocationId ? { allocationId } : {}),
+          purpose,
+          ...(Number.isSafeInteger(queue) && queue >= 0 ? { queueDelayMs: String(queue) } : {}),
+        };
+        await self.capture.emit(scope, "queue.leave", undefined, attrs);
         const request = await self.capture.emit(
           scope,
           "model.request",
@@ -348,6 +380,7 @@ export class ObservedPorts {
           }
         };
         let packet = 0;
+        const started = performance.now();
         try {
           if (!port.tracksDispatch) await mark();
           const result = await port.decide({
@@ -373,7 +406,13 @@ export class ObservedPorts {
               await input.onEvidence?.(event);
             },
           });
-          await self.capture.emit(scope, "model.response", result, attrs, { parents: request ? [request.id] : [] });
+          await self.capture.emit(
+            scope,
+            "model.response",
+            result,
+            { ...attrs, durationMs: String(Math.max(0, Math.round(performance.now() - started))) },
+            { parents: request ? [request.id] : [] },
+          );
           return result;
         } catch (error) {
           await self.capture.emit(scope, "model.failed", { code: safeCode(error), dispatched }, attrs, {

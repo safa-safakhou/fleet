@@ -112,8 +112,14 @@ test("research routes use operator authentication and never decrypt list bodies"
     expect(result.statusCode).toBe(200);
     expect(result.headers["cache-control"]).toBe("no-store");
     const snap = result.json();
-    expect((await app.inject({method:"GET",url:`${url}/export?snapshotId=${snap.id}`,headers:{cookie}})).statusCode).toBe(409);
-    const exported=await app.inject({method:"GET",url:`${url}/export?snapshotId=${snap.id}`,headers:{cookie,"x-fleet-export-key":"07".repeat(32)}});
+    expect(
+      (await app.inject({ method: "GET", url: `${url}/export?snapshotId=${snap.id}`, headers: { cookie } })).statusCode,
+    ).toBe(409);
+    const exported = await app.inject({
+      method: "GET",
+      url: `${url}/export?snapshotId=${snap.id}`,
+      headers: { cookie, "x-fleet-export-key": "07".repeat(32) },
+    });
     expect(exported.statusCode).toBe(200);
     expect(exported.headers["content-type"]).toContain("application/vnd.fleet.encrypted-archive");
     expect(exported.body).not.toContain(scope.agentId);

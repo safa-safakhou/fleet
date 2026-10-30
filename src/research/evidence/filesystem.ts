@@ -49,7 +49,7 @@ export class ArtifactFilesystem implements ArtifactFiles {
     if (stats.bavail * stats.bsize < body.length + this.minFreeBytes) throw new FleetError("ARTIFACT_DISK_FULL", true);
     const final = this.path(id, index),
       temp = resolve(dir, `.write-${randomUUID()}`);
-    let handle;
+    let handle: Awaited<ReturnType<typeof open>> | undefined;
     try {
       handle = await open(
         temp,

@@ -3,6 +3,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, expect, test } from "vitest";
 import { ArtifactStore, bytes } from "../../src/research/evidence/artifacts.js";
+import { CoverageService } from "../../src/research/evidence/coverage.js";
 import { ArtifactFilesystem } from "../../src/research/evidence/filesystem.js";
 import { EvidenceRecorder } from "../../src/research/evidence/recorder.js";
 import { scopeForTurn } from "../../src/research/evidence/repository.js";
@@ -51,6 +52,14 @@ test("round_trips_large_body_and_refuses_stale_consent", async () => {
     body = Buffer.alloc(2 * 1024 * 1024 + 17, 7);
   const ref = await artifacts.put(scope, bytes(body), { ...policy, expectedBytes: body.length });
   expect(ref.chunks).toBe("3");
+  expect((await new CoverageService(f.store).reconcile(scope.runId)).missing).toContainEqual({
+    kind: "artifact.unlinked",
+    sourceId: ref.id,
+  });
+  expect((await new CoverageService(f.store).reconcile(scope.runId)).byteCoverage).toMatchObject({
+    expected: String(body.length),
+    recorded: String(body.length),
+  });
   expect(await collect(artifacts.read(scope, ref))).toEqual(body);
   const chunk = await readFile(join(root, ref.id, "0.chunk"));
   expect(chunk.includes(body.subarray(0, 100))).toBe(false);
@@ -60,6 +69,7 @@ test("round_trips_large_body_and_refuses_stale_consent", async () => {
   await expect(collect(artifacts.read(scope, ref))).rejects.toThrow("ARTIFACT_WITHHELD");
   await f.pool.query("UPDATE cohorts SET observation_consent=true WHERE id=$1", [f.group.id]);
   await expect(artifacts.put(scope, bytes(body), policy)).rejects.toThrow("ARTIFACT_WITHHELD");
+  expect((await new CoverageService(f.store).reconcile(scope.runId)).reasons).toContain("ARTIFACT_WITHHELD");
   await artifacts.expire(f.now());
   expect((await f.pool.query("SELECT status FROM research_artifacts WHERE id=$1", [ref.id])).rows[0].status).toBe(
     "withheld",

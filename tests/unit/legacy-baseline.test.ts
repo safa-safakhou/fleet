@@ -10,6 +10,11 @@ it("preserves the recorded controller except explicit context, owner, proposal a
   // any other controller drift still fails against the original source digest.
   let historical = source.toString();
   const reviewed: [string, string][] = [
+    // Authorized O3 capture port; reverse only this wrapper, retain the original historical digest.
+    [
+      "          const prepared = { ...request, signal: deadline.signal, onDispatch: deadline.onDispatch };\n          response = this.store.observation\n            ? await this.store.observation.model(claim, prepared, this.model, reservation)\n            : await this.model.decide(prepared);",
+      "          response = await this.model.decide({ ...request, signal: deadline.signal, onDispatch: deadline.onDispatch });",
+    ],
     // Authorized shared deadline repair; retain the original controller pin and all other checks.
     [
       "modelDeadline(request, claim.deadline, this.store.now, Boolean(this.model.tracksDispatch))",

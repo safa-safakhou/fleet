@@ -50,3 +50,56 @@ test("keeps_stream_order_and_cross_stream_causes with rollback and producer dedu
   await f.store.recordUsage(allocation, 1, 1);
   expect((await new CoverageService(f.store).reconcile(scope.runId)).status).toBe("partial");
 });
+
+test("pending legacy command remains in the coverage denominator before a receipt exists", async () => {
+  const f = await researchFixture();
+  close = () => f.pool.end();
+  const scope = await scopeForTurn(f.store, f.claim.turn.id),
+    command = "99999999-9999-4999-8999-999999999999";
+  await new EvidenceRecorder(f.store).append(scope, {
+    kind: "run.started",
+    producerKey: "pending-start",
+    streamId: "run",
+  });
+  await f.pool.query("UPDATE turns SET pending_command=$2,pending_action='{}'::jsonb WHERE id=$1", [
+    scope.turnId,
+    command,
+  ]);
+  expect((await new CoverageService(f.store).reconcile(scope.runId)).missing).toContainEqual({
+    kind: "command.prepared",
+    sourceId: command,
+  });
+});
+
+test("parallel producers commit contiguous independent stream sequences", async () => {
+  const f = await researchFixture();
+  close = () => f.pool.end();
+  const scope = await scopeForTurn(f.store, f.claim.turn.id),
+    recorder = new EvidenceRecorder(f.store);
+  await Promise.all(
+    Array.from({ length: 30 }, (_, i) =>
+      recorder.append(scope, {
+        kind: "observation.record",
+        producerKey: `parallel-${i}`,
+        streamId: `parallel-${i % 3}`,
+        occurredAt: `2026-10-30T00:00:${String(29 - i).padStart(2, "0")}.000Z`,
+      }),
+    ),
+  );
+  const page = await new EvidenceRepository(f.store).page(scope, {});
+  expect(page.total).toBe(30);
+  for (let i = 0; i < 3; i++)
+    expect(page.events.filter((e) => e.streamId === `parallel-${i}`).map((e) => e.sequence)).toEqual(
+      Array.from({ length: 10 }, (_, n) => String(n + 1)),
+    );
+  await recorder.append(scope, {
+    kind: "observation.record",
+    streamId: "late",
+    producerKey: "missing-parent",
+    parentIds: ["77777777-7777-4777-8777-777777777777"],
+  });
+  expect((await new CoverageService(f.store).reconcile(scope.runId)).missing).toContainEqual({
+    kind: "causal.parent",
+    sourceId: "77777777-7777-4777-8777-777777777777",
+  });
+});

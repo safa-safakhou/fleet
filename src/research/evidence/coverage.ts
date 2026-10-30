@@ -1,7 +1,7 @@
 import type { PoolClient } from "pg";
 import { FleetError } from "../../domain.js";
 import type { Store } from "../../store.js";
-import type { CompletenessManifest, EvidenceEvent } from "./types.js";
+import type { CompletenessManifest } from "./types.js";
 export class CoverageService {
   constructor(readonly store: Store) {}
   async reconcile(
@@ -11,24 +11,29 @@ export class CoverageService {
   ): Promise<CompletenessManifest> {
     const run = (
       await db.query(
-        "SELECT r.*,c.observation_consent FROM research_runs r JOIN cohorts c ON c.id=r.cohort_id WHERE run_id=$1",
+        "SELECT r.*,c.observation_consent,c.observation_consent_version::text consent_version FROM research_runs r JOIN cohorts c ON c.id=r.cohort_id WHERE run_id=$1",
         [runId],
       )
     ).rows[0];
     if (!run) throw new FleetError("EVIDENCE_RUN_NOT_FOUND", true);
+    const bound = [runId, maximumOrdinal ?? run.next_ordinal];
+    const eventCount = (
+      await db.query("SELECT count(*)::int n FROM research_events WHERE run_id=$1 AND ordinal<=$2::bigint", bound)
+    ).rows[0].n;
+    // Fetch only native join keys; full-history counts/reasons/parent reconciliation stay in SQL.
     const events = (
-      await db.query("SELECT event FROM research_events WHERE run_id=$1 AND ordinal<=$2::bigint", [
-        runId,
-        maximumOrdinal ?? run.next_ordinal,
-      ])
-    ).rows.map((r) => r.event as EvidenceEvent);
+      await db.query(
+        "SELECT event->>'kind' kind,event->'attributes' attributes FROM research_events WHERE run_id=$1 AND ordinal<=$2::bigint AND (event->'attributes' ? 'allocationId' OR event->'attributes' ? 'commandId')",
+        bound,
+      )
+    ).rows as { kind: string; attributes: Record<string, string> }[];
     const turns = (
       await db.query("SELECT DISTINCT turn_id FROM research_evidence_scopes WHERE run_id=$1", [runId])
     ).rows.map((r) => r.turn_id);
     const calls = (await db.query("SELECT id,status FROM compute_ledger WHERE turn_id=ANY($1::uuid[])", [turns])).rows;
     const commands = (
       await db.query(
-        "SELECT command_id,state FROM platform_commands WHERE turn_id=ANY($1::uuid[]) UNION SELECT command_id,'confirmed' state FROM command_resolutions WHERE turn_id=ANY($1::uuid[]) AND command_id NOT IN (SELECT command_id FROM platform_commands)",
+        "SELECT command_id,state FROM platform_commands WHERE turn_id=ANY($1::uuid[]) UNION SELECT command_id,'confirmed' state FROM command_resolutions WHERE turn_id=ANY($1::uuid[]) AND command_id NOT IN (SELECT command_id FROM platform_commands) UNION SELECT pending_command command_id,'pending' state FROM turns WHERE id=ANY($1::uuid[]) AND pending_command IS NOT NULL AND pending_command NOT IN (SELECT command_id FROM platform_commands) AND pending_command NOT IN (SELECT command_id FROM command_resolutions)",
         [turns],
       )
     ).rows;
@@ -52,30 +57,37 @@ export class CoverageService {
       if (command.state !== "prepared")
         require("command.result", command.command_id, "commandId", ["command.result", "command.receipt"]);
     }
-    const ids = new Set(events.map((e) => e.id));
-    for (const event of events)
-      for (const parent of event.parentIds)
-        if (!ids.has(parent)) missing.push({ kind: "causal.parent", sourceId: parent });
+    const parents = (
+      await db.query(
+        `SELECT DISTINCT p.value id FROM research_events e CROSS JOIN LATERAL jsonb_array_elements_text(e.event->'parentIds') p(value) LEFT JOIN research_events parent ON parent.id=p.value::uuid AND parent.run_id=e.run_id AND parent.ordinal<=$2::bigint WHERE e.run_id=$1 AND e.ordinal<=$2::bigint AND parent.id IS NULL`,
+        bound,
+      )
+    ).rows;
+    for (const parent of parents) missing.push({ kind: "causal.parent", sourceId: parent.id });
     const expired = new Date(run.expires_at) <= this.store.now();
-    const reasons = [
-      ...new Set(
-        events.flatMap((e) => (e.coverage.status === "complete" ? [] : [...e.coverage.reasons, e.coverage.status])),
-      ),
-    ];
+    const reasons = (
+      await db.query(
+        `WITH gaps AS (SELECT event->'coverage' c FROM research_events WHERE run_id=$1 AND ordinal<=$2::bigint AND event->'coverage'->>'status'<>'complete') SELECT DISTINCT jsonb_array_elements_text(c->'reasons') reason FROM gaps UNION SELECT DISTINCT c->>'status' reason FROM gaps`,
+        bound,
+      )
+    ).rows.map((r) => r.reason as string);
     if (run.capture_failed) reasons.push("CAPTURE_FAILED");
     if (missing.length) reasons.push("MISSING_REQUIRED_EVIDENCE");
     const artifacts = (
       await db.query(
-        "SELECT expected_bytes::text,bytes::text,status FROM research_artifacts a WHERE run_id=$1 AND EXISTS (SELECT 1 FROM research_events e, jsonb_array_elements(e.event->'artifacts') ref WHERE e.run_id=a.run_id AND e.ordinal<=$2::bigint AND ref->>'id'=a.id::text)",
-        [runId, maximumOrdinal ?? run.next_ordinal],
+        "SELECT a.id,a.expected_bytes::text,a.bytes::text,a.status,a.consent_version::text,EXISTS(SELECT 1 FROM research_events e,jsonb_array_elements(e.event->'artifacts') ref WHERE e.run_id=a.run_id AND e.ordinal<=$2::bigint AND ref->>'id'=a.id::text) linked FROM research_artifacts a WHERE a.run_id=$1",
+        bound,
       )
     ).rows;
     let expectedBytes = 0n,
       recordedBytes = 0n;
     for (const artifact of artifacts) {
+      if (!artifact.linked) missing.push({ kind: "artifact.unlinked", sourceId: artifact.id });
+      if (artifact.status !== "complete") missing.push({ kind: `artifact.${artifact.status}`, sourceId: artifact.id });
       if (artifact.expected_bytes === null) reasons.push("BYTE_EXPECTATION_UNAVAILABLE");
       else expectedBytes += BigInt(artifact.expected_bytes);
-      if (artifact.status === "complete") recordedBytes += BigInt(artifact.bytes);
+      if (artifact.consent_version !== run.consent_version) reasons.push("ARTIFACT_WITHHELD");
+      else if (artifact.status === "complete") recordedBytes += BigInt(artifact.bytes);
       else reasons.push(`ARTIFACT_${artifact.status.toUpperCase()}`);
     }
     const status = !run.observation_consent
@@ -92,7 +104,7 @@ export class CoverageService {
       expected,
       recorded,
       missing,
-      eventCount: events.length,
+      eventCount,
       byteCoverage: {
         expected: String(expectedBytes),
         recorded: String(recordedBytes),
