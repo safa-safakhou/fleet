@@ -1,1 +1,1 @@
-"""Scoped Fleet research protocols. No provider credentials or live entry point."""
+"""Scoped Fleet research worker. All external effects belong to the Fleet broker."""

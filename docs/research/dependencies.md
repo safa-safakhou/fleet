@@ -20,6 +20,6 @@ Direct JS licenses are MIT, Apache-2.0 and BSD combinations. Python direct licen
 
 ## Reproduction
 
-Use the pinned Node/npm versions and `npm ci`. Run `uv sync --project workers/research --locked --group dev` with its pinned Python; this installs no optional model/optimization extra. `npm run research:contracts:generate` uses the local pinned ES plugin and locked Python protoc. `npm run research:contracts:check` regenerates in a temporary directory and rejects drift. `buf lint` uses the locally pinned binary. The Python `fleet-research-worker --protocol-info` command is offline inspection only; it cannot start agent execution.
+Use the pinned Node/npm versions and `npm ci`. Run `uv sync --project workers/research --locked --group dev` with its pinned Python; this installs the broker-only Pydantic AI worker, without optional embedding/optimization extras. `npm run research:contracts:generate` uses the local pinned ES plugin and locked Python protoc. `npm run research:contracts:check` regenerates in a temporary directory and rejects drift. `buf lint` uses the locally pinned binary. The Python `fleet-research-worker --protocol-info` command is offline inspection only. Executing an operation additionally requires a scoped private-stdin control packet and an authenticated broker socket.
 
 No real-provider credential, game integration credential, deployment or grant is part of these records. A later task must recheck advisories and run its component tests before enabling the pinned candidate.

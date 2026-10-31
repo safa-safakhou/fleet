@@ -19,6 +19,7 @@ import { legacyUndispatchedPhase } from "./engines/legacy/execution.js";
 import { modelTurnBound } from "./model-bounds.js";
 import { Observability } from "./observability.js";
 import { ArchitectureRegistry } from "./platform/architecture.js";
+import { effectHooks } from "./platform/effect-context.js";
 import type { Vault } from "./vault.js";
 import { canClaimWorker } from "./worker-admission.js";
 
@@ -843,6 +844,7 @@ export class Store {
           "INSERT INTO architecture_allocations(allocation_id,turn_id,updated_at) SELECT $1,turn_id,$3 FROM architecture_operations WHERE turn_id=$2",
           [id, claim.id, now],
         );
+      await effectHooks()?.allocation?.(id, c);
       await c.query("UPDATE turns SET calls=calls+1 WHERE id=$1", [claim.id]);
       return id;
     });
@@ -899,6 +901,7 @@ export class Store {
   async pending(claim: Claim, id: string, action: Data, tracked = false, client?: PoolClient) {
     const write = async (c: PoolClient) => {
       await this.check(c, claim);
+      await effectHooks()?.command?.(id, c);
       await c.query("UPDATE turns SET pending_command=$2,pending_action=$3 WHERE id=$1", [claim.id, id, action]);
       if (tracked)
         await c.query("UPDATE recovery_operations SET phase='command_prepared',updated_at=$2 WHERE turn_id=$1", [

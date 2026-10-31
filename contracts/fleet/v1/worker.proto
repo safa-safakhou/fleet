@@ -9,7 +9,31 @@ message DecisionProposal {
  Kind kind=1; string payload_json=2; repeated string source_refs=3; string preconditions_json=4;
 }
 message BrokerRequest { uint32 protocol_version=1; RunScope scope=2; OperationKey key=3;
- oneof request { ModelRequest model=4; GameQuery game=5; DecisionProposal proposal=6; }
+ oneof request { ModelRequest model=4; GameQuery game=5; DecisionProposal proposal=6; ScopedPortRequest scoped_port=7; }
 }
 message BrokerEnvelope { uint32 protocol_version=1; uint64 counter=2; RunScope scope=3; BrokerResult result=4; Coverage coverage=5; }
-service ResearchBrokerService { rpc Execute(BrokerRequest) returns (BrokerEnvelope); }
+service ResearchBrokerService {
+ rpc Execute(BrokerRequest) returns (BrokerEnvelope);
+ rpc Lookup(LookupRequest) returns (BrokerEnvelope);
+ rpc SaveCheckpoint(CheckpointRequest) returns (CheckpointRef);
+ rpc LoadCheckpoint(ScopedRequest) returns (CheckpointReply);
+ rpc ListSteps(ScopedRequest) returns (StepMapReply);
+ rpc ReadArtifact(ArtifactReadRequest) returns (stream ArtifactChunk);
+}
+message WorkerInput {
+ uint32 protocol_version=1; RunScope scope=2; string worker_version=3; string policy_version=4; string role_id=5;
+ string observation_json=6; string instructions=7; uint32 max_steps=8; string deadline_utc=9;
+ repeated StepRef steps=10; string checkpoint_json=11; bool blocked=12;
+}
+message WorkerResult {
+ uint32 protocol_version=1; string worker_version=2; string status=3;
+ ResultRef proposal_ref=4; CheckpointRef checkpoint_ref=5; repeated string source_refs=6;
+}
+message CheckpointRequest { RunScope scope=1; uint64 expected_version=2; string state_json=3; }
+message ScopedRequest { RunScope scope=1; }
+message CheckpointReply { CheckpointRef ref=1; string state_json=2; }
+message StepMapReply { repeated StepRef steps=1; bool blocked=2; }
+message ArtifactReadRequest { RunScope scope=1; string artifact_id=2; }
+message ArtifactChunk { uint32 index=1; bytes body=2; }
+message LookupRequest { RunScope scope=1; OperationKey key=2; }
+message ScopedPortRequest { string port=1; string arguments_json=2; }

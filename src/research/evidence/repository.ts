@@ -59,9 +59,20 @@ export class EvidenceRepository {
       if (!claim) throw new FleetError("EVIDENCE_SCOPE_MISMATCH", true);
     } else if (canonical(await scopeForTurn(this.store, scope.turnId, db)) !== canonical(scope))
       throw new FleetError("EVIDENCE_SCOPE_MISMATCH", true);
+    const sealed = operation
+      ? (await db.query("SELECT manifest FROM research_manifests WHERE digest=$1", [scope.manifestDigest])).rows[0]
+          ?.manifest
+      : undefined;
+    const quota = sealed?.evidence?.maxArtifactBytes
+      ? String(
+          BigInt(sealed.evidence.maxArtifactBytes) > 1073741824n
+            ? 1073741824n
+            : BigInt(sealed.evidence.maxArtifactBytes),
+        )
+      : null;
     const now = this.store.now();
     await db.query(
-      "INSERT INTO research_runs(run_id,agent_id,cohort_id,binding_id,manifest_digest,provenance,created_at,expires_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8) ON CONFLICT(run_id) DO NOTHING",
+      "INSERT INTO research_runs(run_id,agent_id,cohort_id,binding_id,manifest_digest,provenance,created_at,expires_at,artifact_quota_bytes) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9) ON CONFLICT(run_id) DO NOTHING",
       [
         scope.runId,
         scope.agentId,
@@ -71,6 +82,7 @@ export class EvidenceRepository {
         provenance,
         now,
         new Date(now.getTime() + 30 * 86400000),
+        quota,
       ],
     );
     const run = (await db.query("SELECT * FROM research_runs WHERE run_id=$1 FOR UPDATE", [scope.runId])).rows[0];

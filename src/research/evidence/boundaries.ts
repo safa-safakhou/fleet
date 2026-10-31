@@ -66,7 +66,7 @@ export class CaptureSession implements ObservationPort {
       }
       const consent = (
         await (db ?? this.store.pool).query(
-          "SELECT c.observation_consent,c.observation_consent_version::text version FROM research_runs r JOIN cohorts c ON c.id=r.cohort_id WHERE run_id=$1",
+          "SELECT c.observation_consent,c.observation_consent_version::text version,r.artifact_quota_bytes::text quota FROM research_runs r JOIN cohorts c ON c.id=r.cohort_id WHERE run_id=$1",
           [scope.runId],
         )
       ).rows[0];
@@ -76,16 +76,17 @@ export class CaptureSession implements ObservationPort {
           ? { status: "partial", expected: "1", recorded: "0", reasons: ["PROVIDER_FIELD_UNAVAILABLE"] }
           : { status: "complete", expected: "1", recorded: "1", reasons: [] };
       if (body !== undefined && consent.observation_consent) {
-        const raw = encoded(body),
-          policy = {
-            contentType: "application/json",
-            privacyClass: "private" as const,
-            retentionClass: "30d" as const,
-            maxBytes: 32 * 1024 * 1024,
-            runQuotaBytes: 1024 * 1024 * 1024,
-            expectedBytes: raw.length,
-            consentVersion: consent.version,
-          };
+        const raw = encoded(body);
+        if (raw.length > 32 * 1024 * 1024) throw new FleetError("ARTIFACT_QUOTA", true);
+        const policy = {
+          contentType: "application/json",
+          privacyClass: "private" as const,
+          retentionClass: "30d" as const,
+          maxBytes: raw.length,
+          runQuotaBytes: Number(consent.quota ?? 1073741824),
+          expectedBytes: raw.length,
+          consentVersion: consent.version,
+        };
         artifacts.push(
           db
             ? await this.artifacts.putWithin(scope, raw, policy, db)

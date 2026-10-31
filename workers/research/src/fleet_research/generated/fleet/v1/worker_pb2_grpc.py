@@ -3,6 +3,7 @@
 import grpc
 import warnings
 
+from fleet_research.generated.fleet.v1 import common_pb2 as fleet_dot_v1_dot_common__pb2
 from fleet_research.generated.fleet.v1 import worker_pb2 as fleet_dot_v1_dot_worker__pb2
 
 GRPC_GENERATED_VERSION = '1.78.0'
@@ -39,12 +40,67 @@ class ResearchBrokerServiceStub(object):
                 request_serializer=fleet_dot_v1_dot_worker__pb2.BrokerRequest.SerializeToString,
                 response_deserializer=fleet_dot_v1_dot_worker__pb2.BrokerEnvelope.FromString,
                 _registered_method=True)
+        self.Lookup = channel.unary_unary(
+                '/fleet.v1.ResearchBrokerService/Lookup',
+                request_serializer=fleet_dot_v1_dot_worker__pb2.LookupRequest.SerializeToString,
+                response_deserializer=fleet_dot_v1_dot_worker__pb2.BrokerEnvelope.FromString,
+                _registered_method=True)
+        self.SaveCheckpoint = channel.unary_unary(
+                '/fleet.v1.ResearchBrokerService/SaveCheckpoint',
+                request_serializer=fleet_dot_v1_dot_worker__pb2.CheckpointRequest.SerializeToString,
+                response_deserializer=fleet_dot_v1_dot_common__pb2.CheckpointRef.FromString,
+                _registered_method=True)
+        self.LoadCheckpoint = channel.unary_unary(
+                '/fleet.v1.ResearchBrokerService/LoadCheckpoint',
+                request_serializer=fleet_dot_v1_dot_worker__pb2.ScopedRequest.SerializeToString,
+                response_deserializer=fleet_dot_v1_dot_worker__pb2.CheckpointReply.FromString,
+                _registered_method=True)
+        self.ListSteps = channel.unary_unary(
+                '/fleet.v1.ResearchBrokerService/ListSteps',
+                request_serializer=fleet_dot_v1_dot_worker__pb2.ScopedRequest.SerializeToString,
+                response_deserializer=fleet_dot_v1_dot_worker__pb2.StepMapReply.FromString,
+                _registered_method=True)
+        self.ReadArtifact = channel.unary_stream(
+                '/fleet.v1.ResearchBrokerService/ReadArtifact',
+                request_serializer=fleet_dot_v1_dot_worker__pb2.ArtifactReadRequest.SerializeToString,
+                response_deserializer=fleet_dot_v1_dot_worker__pb2.ArtifactChunk.FromString,
+                _registered_method=True)
 
 
 class ResearchBrokerServiceServicer(object):
     """Missing associated documentation comment in .proto file."""
 
     def Execute(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def Lookup(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def SaveCheckpoint(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def LoadCheckpoint(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ListSteps(self, request, context):
+        """Missing associated documentation comment in .proto file."""
+        context.set_code(grpc.StatusCode.UNIMPLEMENTED)
+        context.set_details('Method not implemented!')
+        raise NotImplementedError('Method not implemented!')
+
+    def ReadArtifact(self, request, context):
         """Missing associated documentation comment in .proto file."""
         context.set_code(grpc.StatusCode.UNIMPLEMENTED)
         context.set_details('Method not implemented!')
@@ -57,6 +113,31 @@ def add_ResearchBrokerServiceServicer_to_server(servicer, server):
                     servicer.Execute,
                     request_deserializer=fleet_dot_v1_dot_worker__pb2.BrokerRequest.FromString,
                     response_serializer=fleet_dot_v1_dot_worker__pb2.BrokerEnvelope.SerializeToString,
+            ),
+            'Lookup': grpc.unary_unary_rpc_method_handler(
+                    servicer.Lookup,
+                    request_deserializer=fleet_dot_v1_dot_worker__pb2.LookupRequest.FromString,
+                    response_serializer=fleet_dot_v1_dot_worker__pb2.BrokerEnvelope.SerializeToString,
+            ),
+            'SaveCheckpoint': grpc.unary_unary_rpc_method_handler(
+                    servicer.SaveCheckpoint,
+                    request_deserializer=fleet_dot_v1_dot_worker__pb2.CheckpointRequest.FromString,
+                    response_serializer=fleet_dot_v1_dot_common__pb2.CheckpointRef.SerializeToString,
+            ),
+            'LoadCheckpoint': grpc.unary_unary_rpc_method_handler(
+                    servicer.LoadCheckpoint,
+                    request_deserializer=fleet_dot_v1_dot_worker__pb2.ScopedRequest.FromString,
+                    response_serializer=fleet_dot_v1_dot_worker__pb2.CheckpointReply.SerializeToString,
+            ),
+            'ListSteps': grpc.unary_unary_rpc_method_handler(
+                    servicer.ListSteps,
+                    request_deserializer=fleet_dot_v1_dot_worker__pb2.ScopedRequest.FromString,
+                    response_serializer=fleet_dot_v1_dot_worker__pb2.StepMapReply.SerializeToString,
+            ),
+            'ReadArtifact': grpc.unary_stream_rpc_method_handler(
+                    servicer.ReadArtifact,
+                    request_deserializer=fleet_dot_v1_dot_worker__pb2.ArtifactReadRequest.FromString,
+                    response_serializer=fleet_dot_v1_dot_worker__pb2.ArtifactChunk.SerializeToString,
             ),
     }
     generic_handler = grpc.method_handlers_generic_handler(
@@ -86,6 +167,141 @@ class ResearchBrokerService(object):
             '/fleet.v1.ResearchBrokerService/Execute',
             fleet_dot_v1_dot_worker__pb2.BrokerRequest.SerializeToString,
             fleet_dot_v1_dot_worker__pb2.BrokerEnvelope.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def Lookup(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/fleet.v1.ResearchBrokerService/Lookup',
+            fleet_dot_v1_dot_worker__pb2.LookupRequest.SerializeToString,
+            fleet_dot_v1_dot_worker__pb2.BrokerEnvelope.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def SaveCheckpoint(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/fleet.v1.ResearchBrokerService/SaveCheckpoint',
+            fleet_dot_v1_dot_worker__pb2.CheckpointRequest.SerializeToString,
+            fleet_dot_v1_dot_common__pb2.CheckpointRef.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def LoadCheckpoint(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/fleet.v1.ResearchBrokerService/LoadCheckpoint',
+            fleet_dot_v1_dot_worker__pb2.ScopedRequest.SerializeToString,
+            fleet_dot_v1_dot_worker__pb2.CheckpointReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ListSteps(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_unary(
+            request,
+            target,
+            '/fleet.v1.ResearchBrokerService/ListSteps',
+            fleet_dot_v1_dot_worker__pb2.ScopedRequest.SerializeToString,
+            fleet_dot_v1_dot_worker__pb2.StepMapReply.FromString,
+            options,
+            channel_credentials,
+            insecure,
+            call_credentials,
+            compression,
+            wait_for_ready,
+            timeout,
+            metadata,
+            _registered_method=True)
+
+    @staticmethod
+    def ReadArtifact(request,
+            target,
+            options=(),
+            channel_credentials=None,
+            call_credentials=None,
+            insecure=False,
+            compression=None,
+            wait_for_ready=None,
+            timeout=None,
+            metadata=None):
+        return grpc.experimental.unary_stream(
+            request,
+            target,
+            '/fleet.v1.ResearchBrokerService/ReadArtifact',
+            fleet_dot_v1_dot_worker__pb2.ArtifactReadRequest.SerializeToString,
+            fleet_dot_v1_dot_worker__pb2.ArtifactChunk.FromString,
             options,
             channel_credentials,
             insecure,

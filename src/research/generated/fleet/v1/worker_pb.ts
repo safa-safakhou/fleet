@@ -4,7 +4,7 @@
 
 import type { GenEnum, GenFile, GenMessage, GenService } from "@bufbuild/protobuf/codegenv2";
 import { enumDesc, fileDesc, messageDesc, serviceDesc } from "@bufbuild/protobuf/codegenv2";
-import type { BrokerResult, Coverage, OperationKey, RunScope } from "./common_pb.js";
+import type { BrokerResult, CheckpointRef, CheckpointRefSchema, Coverage, OperationKey, ResultRef, RunScope, StepRef } from "./common_pb.js";
 import { file_fleet_v1_common } from "./common_pb.js";
 import type { Message } from "@bufbuild/protobuf";
 
@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file fleet/v1/worker.proto.
  */
 export const file_fleet_v1_worker: GenFile = /*@__PURE__*/
-  fileDesc("ChVmbGVldC92MS93b3JrZXIucHJvdG8SCGZsZWV0LnYxIi0KDE1vZGVsTWVzc2FnZRIMCgRyb2xlGAEgASgJEg8KB2NvbnRlbnQYAiABKAkieQoMTW9kZWxSZXF1ZXN0EigKCG1lc3NhZ2VzGAEgAygLMhYuZmxlZXQudjEuTW9kZWxNZXNzYWdlEhMKC3NjaGVtYV9qc29uGAIgASgJEhkKEW1heF9vdXRwdXRfdG9rZW5zGAMgASgNEg8KB3B1cnBvc2UYBCABKAkiMQoJR2FtZVF1ZXJ5EgwKBHRvb2wYASABKAkSFgoOYXJndW1lbnRzX2pzb24YAiABKAki1AEKEERlY2lzaW9uUHJvcG9zYWwSLQoEa2luZBgBIAEoDjIfLmZsZWV0LnYxLkRlY2lzaW9uUHJvcG9zYWwuS2luZBIUCgxwYXlsb2FkX2pzb24YAiABKAkSEwoLc291cmNlX3JlZnMYAyADKAkSGgoScHJlY29uZGl0aW9uc19qc29uGAQgASgJIkoKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEggKBHJlYWQQARIKCgZhY3Rpb24QAhIICgR3YWl0EAMSDAoIYWR2aXNvcnkQBCL6AQoNQnJva2VyUmVxdWVzdBIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEiEKBXNjb3BlGAIgASgLMhIuZmxlZXQudjEuUnVuU2NvcGUSIwoDa2V5GAMgASgLMhYuZmxlZXQudjEuT3BlcmF0aW9uS2V5EicKBW1vZGVsGAQgASgLMhYuZmxlZXQudjEuTW9kZWxSZXF1ZXN0SAASIwoEZ2FtZRgFIAEoCzITLmZsZWV0LnYxLkdhbWVRdWVyeUgAEi4KCHByb3Bvc2FsGAYgASgLMhouZmxlZXQudjEuRGVjaXNpb25Qcm9wb3NhbEgAQgkKB3JlcXVlc3QirAEKDkJyb2tlckVudmVsb3BlEhgKEHByb3RvY29sX3ZlcnNpb24YASABKA0SDwoHY291bnRlchgCIAEoBBIhCgVzY29wZRgDIAEoCzISLmZsZWV0LnYxLlJ1blNjb3BlEiYKBnJlc3VsdBgEIAEoCzIWLmZsZWV0LnYxLkJyb2tlclJlc3VsdBIkCghjb3ZlcmFnZRgFIAEoCzISLmZsZWV0LnYxLkNvdmVyYWdlMlUKFVJlc2VhcmNoQnJva2VyU2VydmljZRI8CgdFeGVjdXRlEhcuZmxlZXQudjEuQnJva2VyUmVxdWVzdBoYLmZsZWV0LnYxLkJyb2tlckVudmVsb3BlYgZwcm90bzM", [file_fleet_v1_common]);
+  fileDesc("ChVmbGVldC92MS93b3JrZXIucHJvdG8SCGZsZWV0LnYxIi0KDE1vZGVsTWVzc2FnZRIMCgRyb2xlGAEgASgJEg8KB2NvbnRlbnQYAiABKAkieQoMTW9kZWxSZXF1ZXN0EigKCG1lc3NhZ2VzGAEgAygLMhYuZmxlZXQudjEuTW9kZWxNZXNzYWdlEhMKC3NjaGVtYV9qc29uGAIgASgJEhkKEW1heF9vdXRwdXRfdG9rZW5zGAMgASgNEg8KB3B1cnBvc2UYBCABKAkiMQoJR2FtZVF1ZXJ5EgwKBHRvb2wYASABKAkSFgoOYXJndW1lbnRzX2pzb24YAiABKAki1AEKEERlY2lzaW9uUHJvcG9zYWwSLQoEa2luZBgBIAEoDjIfLmZsZWV0LnYxLkRlY2lzaW9uUHJvcG9zYWwuS2luZBIUCgxwYXlsb2FkX2pzb24YAiABKAkSEwoLc291cmNlX3JlZnMYAyADKAkSGgoScHJlY29uZGl0aW9uc19qc29uGAQgASgJIkoKBEtpbmQSFAoQS0lORF9VTlNQRUNJRklFRBAAEggKBHJlYWQQARIKCgZhY3Rpb24QAhIICgR3YWl0EAMSDAoIYWR2aXNvcnkQBCKuAgoNQnJva2VyUmVxdWVzdBIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEiEKBXNjb3BlGAIgASgLMhIuZmxlZXQudjEuUnVuU2NvcGUSIwoDa2V5GAMgASgLMhYuZmxlZXQudjEuT3BlcmF0aW9uS2V5EicKBW1vZGVsGAQgASgLMhYuZmxlZXQudjEuTW9kZWxSZXF1ZXN0SAASIwoEZ2FtZRgFIAEoCzITLmZsZWV0LnYxLkdhbWVRdWVyeUgAEi4KCHByb3Bvc2FsGAYgASgLMhouZmxlZXQudjEuRGVjaXNpb25Qcm9wb3NhbEgAEjIKC3Njb3BlZF9wb3J0GAcgASgLMhsuZmxlZXQudjEuU2NvcGVkUG9ydFJlcXVlc3RIAEIJCgdyZXF1ZXN0IqwBCg5Ccm9rZXJFbnZlbG9wZRIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEg8KB2NvdW50ZXIYAiABKAQSIQoFc2NvcGUYAyABKAsyEi5mbGVldC52MS5SdW5TY29wZRImCgZyZXN1bHQYBCABKAsyFi5mbGVldC52MS5Ccm9rZXJSZXN1bHQSJAoIY292ZXJhZ2UYBSABKAsyEi5mbGVldC52MS5Db3ZlcmFnZSKwAgoLV29ya2VySW5wdXQSGAoQcHJvdG9jb2xfdmVyc2lvbhgBIAEoDRIhCgVzY29wZRgCIAEoCzISLmZsZWV0LnYxLlJ1blNjb3BlEhYKDndvcmtlcl92ZXJzaW9uGAMgASgJEhYKDnBvbGljeV92ZXJzaW9uGAQgASgJEg8KB3JvbGVfaWQYBSABKAkSGAoQb2JzZXJ2YXRpb25fanNvbhgGIAEoCRIUCgxpbnN0cnVjdGlvbnMYByABKAkSEQoJbWF4X3N0ZXBzGAggASgNEhQKDGRlYWRsaW5lX3V0YxgJIAEoCRIgCgVzdGVwcxgKIAMoCzIRLmZsZWV0LnYxLlN0ZXBSZWYSFwoPY2hlY2twb2ludF9qc29uGAsgASgJEg8KB2Jsb2NrZWQYDCABKAgiwQEKDFdvcmtlclJlc3VsdBIYChBwcm90b2NvbF92ZXJzaW9uGAEgASgNEhYKDndvcmtlcl92ZXJzaW9uGAIgASgJEg4KBnN0YXR1cxgDIAEoCRIpCgxwcm9wb3NhbF9yZWYYBCABKAsyEy5mbGVldC52MS5SZXN1bHRSZWYSLwoOY2hlY2twb2ludF9yZWYYBSABKAsyFy5mbGVldC52MS5DaGVja3BvaW50UmVmEhMKC3NvdXJjZV9yZWZzGAYgAygJImQKEUNoZWNrcG9pbnRSZXF1ZXN0EiEKBXNjb3BlGAEgASgLMhIuZmxlZXQudjEuUnVuU2NvcGUSGAoQZXhwZWN0ZWRfdmVyc2lvbhgCIAEoBBISCgpzdGF0ZV9qc29uGAMgASgJIjIKDVNjb3BlZFJlcXVlc3QSIQoFc2NvcGUYASABKAsyEi5mbGVldC52MS5SdW5TY29wZSJLCg9DaGVja3BvaW50UmVwbHkSJAoDcmVmGAEgASgLMhcuZmxlZXQudjEuQ2hlY2twb2ludFJlZhISCgpzdGF0ZV9qc29uGAIgASgJIkEKDFN0ZXBNYXBSZXBseRIgCgVzdGVwcxgBIAMoCzIRLmZsZWV0LnYxLlN0ZXBSZWYSDwoHYmxvY2tlZBgCIAEoCCJNChNBcnRpZmFjdFJlYWRSZXF1ZXN0EiEKBXNjb3BlGAEgASgLMhIuZmxlZXQudjEuUnVuU2NvcGUSEwoLYXJ0aWZhY3RfaWQYAiABKAkiLAoNQXJ0aWZhY3RDaHVuaxINCgVpbmRleBgBIAEoDRIMCgRib2R5GAIgASgMIlcKDUxvb2t1cFJlcXVlc3QSIQoFc2NvcGUYASABKAsyEi5mbGVldC52MS5SdW5TY29wZRIjCgNrZXkYAiABKAsyFi5mbGVldC52MS5PcGVyYXRpb25LZXkiOQoRU2NvcGVkUG9ydFJlcXVlc3QSDAoEcG9ydBgBIAEoCRIWCg5hcmd1bWVudHNfanNvbhgCIAEoCTKoAwoVUmVzZWFyY2hCcm9rZXJTZXJ2aWNlEjwKB0V4ZWN1dGUSFy5mbGVldC52MS5Ccm9rZXJSZXF1ZXN0GhguZmxlZXQudjEuQnJva2VyRW52ZWxvcGUSOwoGTG9va3VwEhcuZmxlZXQudjEuTG9va3VwUmVxdWVzdBoYLmZsZWV0LnYxLkJyb2tlckVudmVsb3BlEkYKDlNhdmVDaGVja3BvaW50EhsuZmxlZXQudjEuQ2hlY2twb2ludFJlcXVlc3QaFy5mbGVldC52MS5DaGVja3BvaW50UmVmEkQKDkxvYWRDaGVja3BvaW50EhcuZmxlZXQudjEuU2NvcGVkUmVxdWVzdBoZLmZsZWV0LnYxLkNoZWNrcG9pbnRSZXBseRI8CglMaXN0U3RlcHMSFy5mbGVldC52MS5TY29wZWRSZXF1ZXN0GhYuZmxlZXQudjEuU3RlcE1hcFJlcGx5EkgKDFJlYWRBcnRpZmFjdBIdLmZsZWV0LnYxLkFydGlmYWN0UmVhZFJlcXVlc3QaFy5mbGVldC52MS5BcnRpZmFjdENodW5rMAFiBnByb3RvMw", [file_fleet_v1_common]);
 
 /**
  * @generated from message fleet.v1.ModelMessage
@@ -198,6 +198,12 @@ export type BrokerRequest = Message<"fleet.v1.BrokerRequest"> & {
      */
     value: DecisionProposal;
     case: "proposal";
+  } | {
+    /**
+     * @generated from field: fleet.v1.ScopedPortRequest scoped_port = 7;
+     */
+    value: ScopedPortRequest;
+    case: "scopedPort";
   } | { case: undefined; value?: undefined };
 };
 
@@ -246,6 +252,296 @@ export const BrokerEnvelopeSchema: GenMessage<BrokerEnvelope> = /*@__PURE__*/
   messageDesc(file_fleet_v1_worker, 5);
 
 /**
+ * @generated from message fleet.v1.WorkerInput
+ */
+export type WorkerInput = Message<"fleet.v1.WorkerInput"> & {
+  /**
+   * @generated from field: uint32 protocol_version = 1;
+   */
+  protocolVersion: number;
+
+  /**
+   * @generated from field: fleet.v1.RunScope scope = 2;
+   */
+  scope?: RunScope | undefined;
+
+  /**
+   * @generated from field: string worker_version = 3;
+   */
+  workerVersion: string;
+
+  /**
+   * @generated from field: string policy_version = 4;
+   */
+  policyVersion: string;
+
+  /**
+   * @generated from field: string role_id = 5;
+   */
+  roleId: string;
+
+  /**
+   * @generated from field: string observation_json = 6;
+   */
+  observationJson: string;
+
+  /**
+   * @generated from field: string instructions = 7;
+   */
+  instructions: string;
+
+  /**
+   * @generated from field: uint32 max_steps = 8;
+   */
+  maxSteps: number;
+
+  /**
+   * @generated from field: string deadline_utc = 9;
+   */
+  deadlineUtc: string;
+
+  /**
+   * @generated from field: repeated fleet.v1.StepRef steps = 10;
+   */
+  steps: StepRef[];
+
+  /**
+   * @generated from field: string checkpoint_json = 11;
+   */
+  checkpointJson: string;
+
+  /**
+   * @generated from field: bool blocked = 12;
+   */
+  blocked: boolean;
+};
+
+/**
+ * Describes the message fleet.v1.WorkerInput.
+ * Use `create(WorkerInputSchema)` to create a new message.
+ */
+export const WorkerInputSchema: GenMessage<WorkerInput> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_worker, 6);
+
+/**
+ * @generated from message fleet.v1.WorkerResult
+ */
+export type WorkerResult = Message<"fleet.v1.WorkerResult"> & {
+  /**
+   * @generated from field: uint32 protocol_version = 1;
+   */
+  protocolVersion: number;
+
+  /**
+   * @generated from field: string worker_version = 2;
+   */
+  workerVersion: string;
+
+  /**
+   * @generated from field: string status = 3;
+   */
+  status: string;
+
+  /**
+   * @generated from field: fleet.v1.ResultRef proposal_ref = 4;
+   */
+  proposalRef?: ResultRef | undefined;
+
+  /**
+   * @generated from field: fleet.v1.CheckpointRef checkpoint_ref = 5;
+   */
+  checkpointRef?: CheckpointRef | undefined;
+
+  /**
+   * @generated from field: repeated string source_refs = 6;
+   */
+  sourceRefs: string[];
+};
+
+/**
+ * Describes the message fleet.v1.WorkerResult.
+ * Use `create(WorkerResultSchema)` to create a new message.
+ */
+export const WorkerResultSchema: GenMessage<WorkerResult> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_worker, 7);
+
+/**
+ * @generated from message fleet.v1.CheckpointRequest
+ */
+export type CheckpointRequest = Message<"fleet.v1.CheckpointRequest"> & {
+  /**
+   * @generated from field: fleet.v1.RunScope scope = 1;
+   */
+  scope?: RunScope | undefined;
+
+  /**
+   * @generated from field: uint64 expected_version = 2;
+   */
+  expectedVersion: bigint;
+
+  /**
+   * @generated from field: string state_json = 3;
+   */
+  stateJson: string;
+};
+
+/**
+ * Describes the message fleet.v1.CheckpointRequest.
+ * Use `create(CheckpointRequestSchema)` to create a new message.
+ */
+export const CheckpointRequestSchema: GenMessage<CheckpointRequest> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_worker, 8);
+
+/**
+ * @generated from message fleet.v1.ScopedRequest
+ */
+export type ScopedRequest = Message<"fleet.v1.ScopedRequest"> & {
+  /**
+   * @generated from field: fleet.v1.RunScope scope = 1;
+   */
+  scope?: RunScope | undefined;
+};
+
+/**
+ * Describes the message fleet.v1.ScopedRequest.
+ * Use `create(ScopedRequestSchema)` to create a new message.
+ */
+export const ScopedRequestSchema: GenMessage<ScopedRequest> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_worker, 9);
+
+/**
+ * @generated from message fleet.v1.CheckpointReply
+ */
+export type CheckpointReply = Message<"fleet.v1.CheckpointReply"> & {
+  /**
+   * @generated from field: fleet.v1.CheckpointRef ref = 1;
+   */
+  ref?: CheckpointRef | undefined;
+
+  /**
+   * @generated from field: string state_json = 2;
+   */
+  stateJson: string;
+};
+
+/**
+ * Describes the message fleet.v1.CheckpointReply.
+ * Use `create(CheckpointReplySchema)` to create a new message.
+ */
+export const CheckpointReplySchema: GenMessage<CheckpointReply> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_worker, 10);
+
+/**
+ * @generated from message fleet.v1.StepMapReply
+ */
+export type StepMapReply = Message<"fleet.v1.StepMapReply"> & {
+  /**
+   * @generated from field: repeated fleet.v1.StepRef steps = 1;
+   */
+  steps: StepRef[];
+
+  /**
+   * @generated from field: bool blocked = 2;
+   */
+  blocked: boolean;
+};
+
+/**
+ * Describes the message fleet.v1.StepMapReply.
+ * Use `create(StepMapReplySchema)` to create a new message.
+ */
+export const StepMapReplySchema: GenMessage<StepMapReply> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_worker, 11);
+
+/**
+ * @generated from message fleet.v1.ArtifactReadRequest
+ */
+export type ArtifactReadRequest = Message<"fleet.v1.ArtifactReadRequest"> & {
+  /**
+   * @generated from field: fleet.v1.RunScope scope = 1;
+   */
+  scope?: RunScope | undefined;
+
+  /**
+   * @generated from field: string artifact_id = 2;
+   */
+  artifactId: string;
+};
+
+/**
+ * Describes the message fleet.v1.ArtifactReadRequest.
+ * Use `create(ArtifactReadRequestSchema)` to create a new message.
+ */
+export const ArtifactReadRequestSchema: GenMessage<ArtifactReadRequest> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_worker, 12);
+
+/**
+ * @generated from message fleet.v1.ArtifactChunk
+ */
+export type ArtifactChunk = Message<"fleet.v1.ArtifactChunk"> & {
+  /**
+   * @generated from field: uint32 index = 1;
+   */
+  index: number;
+
+  /**
+   * @generated from field: bytes body = 2;
+   */
+  body: Uint8Array;
+};
+
+/**
+ * Describes the message fleet.v1.ArtifactChunk.
+ * Use `create(ArtifactChunkSchema)` to create a new message.
+ */
+export const ArtifactChunkSchema: GenMessage<ArtifactChunk> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_worker, 13);
+
+/**
+ * @generated from message fleet.v1.LookupRequest
+ */
+export type LookupRequest = Message<"fleet.v1.LookupRequest"> & {
+  /**
+   * @generated from field: fleet.v1.RunScope scope = 1;
+   */
+  scope?: RunScope | undefined;
+
+  /**
+   * @generated from field: fleet.v1.OperationKey key = 2;
+   */
+  key?: OperationKey | undefined;
+};
+
+/**
+ * Describes the message fleet.v1.LookupRequest.
+ * Use `create(LookupRequestSchema)` to create a new message.
+ */
+export const LookupRequestSchema: GenMessage<LookupRequest> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_worker, 14);
+
+/**
+ * @generated from message fleet.v1.ScopedPortRequest
+ */
+export type ScopedPortRequest = Message<"fleet.v1.ScopedPortRequest"> & {
+  /**
+   * @generated from field: string port = 1;
+   */
+  port: string;
+
+  /**
+   * @generated from field: string arguments_json = 2;
+   */
+  argumentsJson: string;
+};
+
+/**
+ * Describes the message fleet.v1.ScopedPortRequest.
+ * Use `create(ScopedPortRequestSchema)` to create a new message.
+ */
+export const ScopedPortRequestSchema: GenMessage<ScopedPortRequest> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_worker, 15);
+
+/**
  * @generated from service fleet.v1.ResearchBrokerService
  */
 export const ResearchBrokerService: GenService<{
@@ -256,6 +552,46 @@ export const ResearchBrokerService: GenService<{
     methodKind: "unary";
     input: typeof BrokerRequestSchema;
     output: typeof BrokerEnvelopeSchema;
+  },
+  /**
+   * @generated from rpc fleet.v1.ResearchBrokerService.Lookup
+   */
+  lookup: {
+    methodKind: "unary";
+    input: typeof LookupRequestSchema;
+    output: typeof BrokerEnvelopeSchema;
+  },
+  /**
+   * @generated from rpc fleet.v1.ResearchBrokerService.SaveCheckpoint
+   */
+  saveCheckpoint: {
+    methodKind: "unary";
+    input: typeof CheckpointRequestSchema;
+    output: typeof CheckpointRefSchema;
+  },
+  /**
+   * @generated from rpc fleet.v1.ResearchBrokerService.LoadCheckpoint
+   */
+  loadCheckpoint: {
+    methodKind: "unary";
+    input: typeof ScopedRequestSchema;
+    output: typeof CheckpointReplySchema;
+  },
+  /**
+   * @generated from rpc fleet.v1.ResearchBrokerService.ListSteps
+   */
+  listSteps: {
+    methodKind: "unary";
+    input: typeof ScopedRequestSchema;
+    output: typeof StepMapReplySchema;
+  },
+  /**
+   * @generated from rpc fleet.v1.ResearchBrokerService.ReadArtifact
+   */
+  readArtifact: {
+    methodKind: "server_streaming";
+    input: typeof ArtifactReadRequestSchema;
+    output: typeof ArtifactChunkSchema;
   },
 }> = /*@__PURE__*/
   serviceDesc(file_fleet_v1_worker, 0);

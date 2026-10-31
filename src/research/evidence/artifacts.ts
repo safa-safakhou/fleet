@@ -67,14 +67,10 @@ export class ArtifactStore {
     ).rows[0];
     if (!row?.observation_consent || row.v !== String(consentVersion)) throw new FleetError("ARTIFACT_WITHHELD", true);
   }
-  async policy(
-    scope: RunScope,
-    maxBytes = 32 * 1024 * 1024,
-    runQuotaBytes = 1024 * 1024 * 1024,
-  ): Promise<ArtifactPolicy> {
+  async policy(scope: RunScope, maxBytes = 32 * 1024 * 1024, runQuotaBytes?: number): Promise<ArtifactPolicy> {
     const row = (
       await this.store.pool.query(
-        "SELECT c.observation_consent_version::text v FROM research_runs r JOIN cohorts c ON c.id=r.cohort_id WHERE run_id=$1",
+        "SELECT c.observation_consent_version::text v,r.artifact_quota_bytes::text quota FROM research_runs r JOIN cohorts c ON c.id=r.cohort_id WHERE run_id=$1",
         [scope.runId],
       )
     ).rows[0];
@@ -84,7 +80,7 @@ export class ArtifactStore {
       privacyClass: "private",
       retentionClass: "30d",
       maxBytes,
-      runQuotaBytes,
+      runQuotaBytes: runQuotaBytes ?? Number(row.quota ?? 1073741824),
       consentVersion: row.v,
     };
   }

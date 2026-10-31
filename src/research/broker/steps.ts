@@ -88,13 +88,14 @@ export class StepJournal {
     if (!row || canonical(row.scope) !== canonical(scope)) fail("OPERATION_SCOPE_MISMATCH");
     await this.tasks.check(row.authority as TaskAuthority, db);
   }
-  async assertCurrent(scope: RunScope): Promise<void> {
-    return transaction(this.store.pool, (db) => this.current(db, scope));
+  async assertCurrent(scope: RunScope, client?: PoolClient): Promise<void> {
+    return client ? this.current(client, scope) : transaction(this.store.pool, (db) => this.current(db, scope));
   }
   async begin(
     scope: RunScope,
     key: OperationKey,
     payloadDigest: string,
+    kind?: "model" | "read" | "proposal" | "port",
   ): Promise<{ disposition: "new" | "existing"; result: BrokerResult }> {
     KeySchema.parse(key);
     if (key.operationId !== scope.operationId || !/^[a-f0-9]{64}$/.test(payloadDigest)) fail("STEP_INPUT_CONFLICT");
@@ -123,11 +124,35 @@ export class StepJournal {
         fail("OPERATION_UNRESOLVED");
       const result: BrokerResult = { status: "pending", usage: null };
       await db.query(
-        "INSERT INTO research_steps(operation_id,logical_step_id,original_epoch,payload_digest,result) VALUES($1,$2,$3,$4,$5)",
-        [key.operationId, key.logicalStepId, key.operationEpoch, payloadDigest, result],
+        "INSERT INTO research_steps(operation_id,logical_step_id,original_epoch,payload_digest,result,kind) VALUES($1,$2,$3,$4,$5,$6)",
+        [key.operationId, key.logicalStepId, key.operationEpoch, payloadDigest, result, kind ?? null],
       );
       return { disposition: "new", result };
     });
+  }
+  async attach(
+    scope: RunScope,
+    key: OperationKey,
+    identity: { allocationId?: string; commandId?: string },
+    db: PoolClient,
+  ) {
+    const row = (
+      await db.query(
+        "SELECT original_epoch,result FROM research_steps WHERE operation_id=$1 AND logical_step_id=$2 FOR UPDATE",
+        [key.operationId, key.logicalStepId],
+      )
+    ).rows[0];
+    if (!row || key.operationId !== scope.operationId || row.original_epoch !== key.operationEpoch)
+      fail("STEP_NOT_FOUND");
+    const old = ResultSchema.parse(row.result);
+    if (old.status !== "pending") fail("STEP_RESULT_CONFLICT");
+    for (const field of ["allocationId", "commandId"] as const)
+      if (old[field] && old[field] !== identity[field]) fail("STEP_RESULT_CONFLICT");
+    await db.query("UPDATE research_steps SET result=$3 WHERE operation_id=$1 AND logical_step_id=$2", [
+      key.operationId,
+      key.logicalStepId,
+      { ...old, ...identity },
+    ]);
   }
   async lookup(scope: RunScope, key: OperationKey): Promise<BrokerResult> {
     KeySchema.parse(key);
@@ -145,13 +170,13 @@ export class StepJournal {
     });
   }
   /** Called only by trusted receipt/provider settlement, including late original results. Never by workers. */
-  async complete(scope: RunScope, key: OperationKey, result: BrokerResult): Promise<void> {
+  async complete(scope: RunScope, key: OperationKey, result: BrokerResult, client?: PoolClient): Promise<void> {
     ScopeSchema.parse(scope);
     KeySchema.parse(key);
     ResultSchema.parse(result);
     if (scope.operationId !== key.operationId) fail("OPERATION_SCOPE_MISMATCH");
     if (result.status === "pending") fail("STEP_RESULT_CONFLICT");
-    await transaction(this.store.pool, async (db) => {
+    const write = async (db: PoolClient) => {
       const op = (
         await db.query("SELECT scope FROM research_operations WHERE operation_id=$1 FOR UPDATE", [key.operationId])
       ).rows[0];
@@ -180,6 +205,8 @@ export class StepJournal {
         key.logicalStepId,
         result,
       ]);
-    });
+    };
+    if (client) await write(client);
+    else await transaction(this.store.pool, write);
   }
 }
