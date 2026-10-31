@@ -19,7 +19,9 @@ test("qualification records resist edited labels, immutable persistence and chan
     expect((await repo.reassess(id, e)).status).toBe("qualified");
     const changed = structuredClone(e);
     changed.capability.model.tools = false;
-    expect((await repo.reassess(id, changed)).status).toBe("blocked");
+    const invalidated = await repo.reassess(id, changed);
+    expect(invalidated.status).toBe("blocked");
+    await expect(repo.record(invalidated)).resolves.toMatch(/^[a-f0-9]{64}$/);
     await expect(
       f.pool.query("UPDATE research_qualifications SET scope='provider' WHERE id=$1", [id]),
     ).rejects.toThrow();

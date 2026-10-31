@@ -98,6 +98,16 @@ export function assertAssessedDecision(value: QualificationDecision) {
 /** Trusted evidence ingestion, never a capability or an execution grant. Reassess against current inputs on every use. */
 export class QualificationPolicy {
   constructor(private now: () => Date = () => new Date()) {}
+  invalidate(decision: QualificationDecision, reason: "EVIDENCE_CHANGED"): QualificationDecision {
+    assertAssessedDecision(decision);
+    const blocked: QualificationDecision = {
+      ...decision,
+      status: "blocked",
+      reasons: [...new Set([...decision.reasons, reason])].sort(),
+    };
+    assessed.set(blocked, digest(blocked));
+    return blocked;
+  }
   assess(manifestDigest: string, evidence: QualificationEvidence): QualificationDecision {
     const reasons: string[] = [];
     const fail = (code: string) => reasons.push(code);

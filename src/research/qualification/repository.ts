@@ -37,7 +37,7 @@ export class QualificationRepository {
     if (!stored || digest(stored) !== id) throw Error("QUALIFICATION_UNAVAILABLE");
     const current = this.policy.assess(stored.manifestDigest, evidence);
     if (current.scope !== stored.scope || current.evidenceDigest !== stored.evidenceDigest)
-      return { ...current, status: "blocked", reasons: [...current.reasons, "EVIDENCE_CHANGED"] };
+      return this.policy.invalidate(current, "EVIDENCE_CHANGED");
     return current;
   }
 }
