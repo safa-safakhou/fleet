@@ -62,6 +62,7 @@ export const ArchitectureManifestSchema = z
       .min(1)
       .max(2),
     observationOwner: z.enum(["host", "engine"]),
+    schedulerOwner: z.enum(["platform", "temporal"]).optional(),
     modules: z.array(moduleRef).max(20),
     stateCodecs: z.array(moduleRef).max(20),
     skillModes: z

@@ -23,7 +23,7 @@ service ResearchBrokerService {
 message WorkerInput {
  uint32 protocol_version=1; RunScope scope=2; string worker_version=3; string policy_version=4; string role_id=5;
  string observation_json=6; string instructions=7; uint32 max_steps=8; string deadline_utc=9;
- repeated StepRef steps=10; string checkpoint_json=11; bool blocked=12;
+ repeated StepRef steps=10; string checkpoint_json=11; bool blocked=12; uint32 max_output_tokens=13;
 }
 message WorkerResult {
  uint32 protocol_version=1; string worker_version=2; string status=3;

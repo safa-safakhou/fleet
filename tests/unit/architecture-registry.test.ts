@@ -67,6 +67,9 @@ it("preserves all five existing requirements and exact unsupported versions with
       "reactive-cognition",
       "specialist-coordinator",
       "autonomous-specialists",
+      "pact-research-advisory",
+      "pact-research-deliberative",
+      "pact-research-scripted",
     ].sort(),
   );
   expect(

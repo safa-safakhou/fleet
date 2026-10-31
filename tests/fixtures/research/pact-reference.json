@@ -1,0 +1,32 @@
+{
+  "version": "pact-reference-corpus@1",
+  "observation": {
+    "schemaId": "pact.observation.v1",
+    "revision": "r1",
+    "observedAt": "2026-10-31T10:00:00.000Z",
+    "environmentTime": { "clockId": "pact.game-time-ms", "value": "1000" },
+    "sourceRefs": ["fixture:stock"],
+    "payload": { "world": { "paused": false } },
+    "coverage": { "authorizedView": true }
+  },
+  "replies": [
+    {
+      "decision": {
+        "kind": "read",
+        "payload": { "tool": "look", "arguments": {} },
+        "sourceRefs": ["fixture:stock"],
+        "preconditions": {}
+      },
+      "usage": { "inputTokens": "7", "outputTokens": "8" }
+    },
+    {
+      "decision": {
+        "kind": "advisory",
+        "payload": { "text": "Only supplied PACT evidence was used" },
+        "sourceRefs": ["fixture:stock"],
+        "preconditions": {}
+      },
+      "usage": { "inputTokens": "9", "outputTokens": "2" }
+    }
+  ]
+}

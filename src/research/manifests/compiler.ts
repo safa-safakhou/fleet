@@ -2,6 +2,7 @@ import { Ajv } from "ajv";
 import { FleetError } from "../../domain.js";
 import { canonical, digest } from "../contracts.js";
 import schema from "../generated/run-manifest-schema.js";
+import { recipeManifestIssues } from "../recipes/pact-reference.js";
 export interface RunManifestInput {
   schemaVersion: "fleet.run/v1";
   profile: { id: string; version: string };
@@ -69,7 +70,7 @@ export function isManifestInput(input: unknown): input is RunManifestInput {
 }
 export function validateCompatibility(input: RunManifestInput, capability: CapabilityFingerprint): ValidationIssue[] {
   if (!validate(input)) return [{ code: "INVALID_MANIFEST", path: validate.errors?.[0]?.instancePath ?? "" }];
-  const errors: ValidationIssue[] = [];
+  const errors: ValidationIssue[] = [...recipeManifestIssues(input)];
   const fail = (code: string, path: string) => errors.push({ code, path });
   for (const [name, ref] of Object.entries(input.components))
     if (!Object.hasOwn(capability.components, name) || !capability.components[name].includes(ref))

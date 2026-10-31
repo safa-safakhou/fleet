@@ -334,6 +334,7 @@ export class TaskStore {
           `SELECT t.*,a.id actor_agent_id FROM platform_tasks t JOIN environment_bindings b ON b.id=t.binding_id JOIN agents a ON a.id=b.agent_id JOIN cohorts c ON c.id=t.cohort_id JOIN cohort_engine_profiles p ON p.cohort_id=c.id LEFT JOIN platform_cohort_admission admission ON admission.cohort_id=c.id LEFT JOIN specialist_participant_admission participant ON participant.instance_id=t.architecture_instance_id AND participant.binding_id=t.binding_id AND participant.specialist_id=t.participant_id
     WHERE t.scheduler_owner=$6 AND ($6='platform' OR (t.research_manifest_digest=$7 AND EXISTS(SELECT 1 FROM research_task_executions e WHERE e.task_id=t.id AND e.delivery_id=$8 AND e.turn_id IS NULL AND e.phase='prepared'))) AND t.state='ready' AND t.due_at<=$1 AND b.state='active' AND c.state='running' AND a.state='ready' AND a.credential_state='ready' AND c.model IS NOT NULL AND c.budget IS NOT NULL
     AND b.environment_id=$2 AND b.environment_version=$3 AND b.instance_id=$4 AND ($5::uuid IS NULL OR t.id=$5)
+    AND NOT EXISTS(SELECT 1 FROM jsonb_array_elements($9::jsonb) required WHERE required->>0=t.profile_id AND required->>1=t.profile_version)
     AND NOT EXISTS(SELECT 1 FROM turns x WHERE x.agent_id=a.id AND (x.state IN('running','pending','needs_owner') OR x.pending_command IS NOT NULL))
     AND NOT EXISTS(SELECT 1 FROM agent_blockers x WHERE x.agent_id=a.id) AND NOT EXISTS(SELECT 1 FROM maintenance_holds h WHERE h.cohort_id=c.id AND h.released_at IS NULL)
     AND (SELECT count(*) FROM turns x WHERE x.cohort_id=c.id AND x.state='running')<(c.budget->>'concurrency')::int
@@ -347,6 +348,14 @@ export class TaskStore {
             reference ? "temporal" : "platform",
             reference?.manifestDigest ?? null,
             reference?.deliveryId ?? null,
+            JSON.stringify(
+              reference
+                ? []
+                : this.store.architectures
+                    .list()
+                    .filter((m) => m.schedulerOwner === "temporal")
+                    .map((m) => [m.ref.id, m.ref.version]),
+            ),
           ],
         )
       ).rows[0];

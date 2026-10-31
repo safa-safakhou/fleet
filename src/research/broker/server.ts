@@ -11,34 +11,26 @@ import { type BrokerResult, canonical, digest, type OperationKey, type RunScope 
 import type { CaptureSession } from "../evidence/boundaries.js";
 import { ManifestRepository } from "../manifests/repository.js";
 import { type CheckpointState, WorkerCheckpoints } from "./checkpoints.js";
+import { validateBrokerAction } from "./game.js";
+import {
+  type DecisionProposal,
+  GameQuerySchema,
+  ModelRequestSchema,
+  ProposalSchema,
+  type ResearchModelRequest,
+} from "./model.js";
 import { type WorkerSession, WorkerSessions } from "./session.js";
 import { StepJournal } from "./steps.js";
 
+export {
+  type DecisionProposal,
+  GameQuerySchema,
+  ModelRequestSchema,
+  ProposalSchema,
+  type ResearchModelRequest,
+} from "./model.js";
+
 const JsonObject = z.record(z.string(), z.unknown());
-export const ModelRequestSchema = z
-  .object({
-    messages: z
-      .array(
-        z.object({ role: z.enum(["system", "user", "assistant", "tool"]), content: z.string().max(1048576) }).strict(),
-      )
-      .min(1)
-      .max(500),
-    schema: JsonObject,
-    maxOutputTokens: z.number().int().min(1).max(16384),
-    purpose: z.enum(["decision", "helper", "correction"]),
-  })
-  .strict();
-export type ResearchModelRequest = z.infer<typeof ModelRequestSchema>;
-export const GameQuerySchema = z.object({ tool: z.string().min(1).max(200), arguments: JsonObject }).strict();
-export const ProposalSchema = z
-  .object({
-    kind: z.enum(["read", "action", "wait", "advisory"]),
-    payload: JsonObject,
-    sourceRefs: z.array(z.string().min(1).max(2000)).max(1000),
-    preconditions: JsonObject,
-  })
-  .strict();
-export type DecisionProposal = z.infer<typeof ProposalSchema>;
 export function commandFor(key: OperationKey) {
   const value = createHash("sha256")
     .update(`fleet-research-command/v1:${key.operationId}:${key.logicalStepId}`)
@@ -157,6 +149,11 @@ export class ResearchBroker {
     const ctx = await this.sessions.assert(session, scope),
       proposal = ProposalSchema.parse(raw);
     if (proposal.kind === "action" && ctx.authority !== "actor") throw new FleetError("AUTHORITY_DENIED", true);
+    if (
+      proposal.sourceRefs.length &&
+      (!ctx.ports.observation || proposal.sourceRefs.some((ref) => !ctx.ports.observation!.sourceRefs.includes(ref)))
+    )
+      throw new FleetError("SOURCE_REF_REQUIRED", true);
     return this.step(session, scope, key, "proposal", proposal, async (mark) => {
       if (proposal.kind === "read") throw new FleetError("READ_PORT_REQUIRED", true);
       if (proposal.kind !== "action")
@@ -165,6 +162,8 @@ export class ResearchBroker {
         manifest = await new ManifestRepository(this.store.pool).load(scope.manifestDigest);
       if (
         !observation ||
+        !Number.isFinite(Date.parse(observation.observedAt)) ||
+        this.store.now().getTime() < Date.parse(observation.observedAt) ||
         this.store.now().getTime() - Date.parse(observation.observedAt) > manifest.context.maxObservationAgeMs
       )
         throw new FleetError("OBSERVATION_STALE", true);
@@ -186,13 +185,30 @@ export class ResearchBroker {
           .strict()
           .parse(proposal.payload),
         commandId = commandFor(key);
+      const admitted = await validateBrokerAction(
+        ctx.ports.services,
+        observation,
+        scope.taskId,
+        { ...intent, bindingId: scope.bindingId, commandId, expectedVersion: observation.revision },
+        proposal,
+      ).then(
+        async (intent) => {
+          await this.capture.emit(scope, "validation.result", { valid: true }, { outcome: "ok" }, { required: true });
+          return intent;
+        },
+        async (error) => {
+          await this.capture.emit(
+            scope,
+            "validation.result",
+            { valid: false, code: safeCode(error) },
+            { code: safeCode(error), outcome: "not_dispatched" },
+            { required: true },
+          );
+          throw error;
+        },
+      );
       mark();
-      const result = await ctx.ports.services.actions.submit({
-        ...intent,
-        bindingId: scope.bindingId,
-        commandId,
-        expectedVersion: observation.revision,
-      });
+      const result = await ctx.ports.services.actions.submit(admitted);
       const status = ["confirmed", "rejected"].includes(result.status)
         ? "completed"
         : result.status === "pending"
@@ -350,11 +366,12 @@ export class ResearchBroker {
     result: BrokerResult,
     value: unknown,
   ): Promise<BrokerResult> {
-    const body = Buffer.from(JSON.stringify(value)),
-      manifest = await new ManifestRepository(this.store.pool).load(scope.manifestDigest),
+    const body = Buffer.from(JSON.stringify(value));
+    if (body.length > 4 * 1024 * 1024) throw new FleetError("ARTIFACT_QUOTA", true);
+    const manifest = await new ManifestRepository(this.store.pool).load(scope.manifestDigest),
       policy = await this.capture.artifacts.policy(
         scope,
-        4 * 1024 * 1024,
+        body.length,
         Number(
           BigInt(manifest.evidence.maxArtifactBytes) > 1073741824n
             ? 1073741824n
@@ -370,6 +387,13 @@ export class ResearchBroker {
         db,
       );
       if (final.status !== "pending") await this.journal.complete(scope, key, final, db);
+      else {
+        const saved = await db.query(
+          "UPDATE research_steps SET result=$4 WHERE operation_id=$1 AND logical_step_id=$2 AND original_epoch=$3 AND result->>'status'='pending' RETURNING operation_id",
+          [key.operationId, key.logicalStepId, key.operationEpoch, final],
+        );
+        if (!saved.rowCount) throw new FleetError("STEP_RESULT_CONFLICT", true);
+      }
       return final;
     });
   }

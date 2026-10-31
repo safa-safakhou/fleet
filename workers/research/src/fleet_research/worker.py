@@ -29,7 +29,7 @@ async def run_operation(broker, input):
     limit = input["maxSteps"]
     if not isinstance(limit, int) or not 1 <= limit <= 100:
         raise ValueError("INVALID_STEP_LIMIT")
-    agent = make_agent(broker, input["instructions"])
+    agent = make_agent(broker, input["instructions"], input.get("maxOutputTokens", 100))
     result = await agent.run(
         json.dumps(input["observation"], separators=(",", ":")),
         usage_limits=UsageLimits(request_limit=limit, tool_calls_limit=limit),

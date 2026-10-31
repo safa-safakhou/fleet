@@ -4,7 +4,7 @@ import { dirname, isAbsolute } from "node:path";
 import { type DescMessage, fromBinary, fromJson, toBinary, toJson } from "@bufbuild/protobuf";
 import * as grpc from "@grpc/grpc-js";
 import { FleetError, safeCode } from "../../domain.js";
-import { KeySchema, ScopeSchema } from "../contracts.js";
+import { type BrokerResult, KeySchema, ScopeSchema } from "../contracts.js";
 import { ResearchBrokerService } from "../generated/fleet/v1/worker_pb.js";
 import type { ResearchBroker } from "./server.js";
 
@@ -70,7 +70,7 @@ export async function serveBroker(broker: ResearchBroker, socket: string) {
       const { session, scope } = await context(call),
         key = KeySchema.parse(call.request.key),
         req = call.request;
-      let result;
+      let result: BrokerResult;
       if (req.model)
         result = await broker.requestModel(session, scope, key, {
           messages: req.model.messages,

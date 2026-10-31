@@ -1,7 +1,7 @@
 import type { ResearchBroker } from "../broker/server.js";
 import type { WorkerSession } from "../broker/session.js";
 import { canonical, type RunScope } from "../contracts.js";
-import { POLICY_VERSION, type PolicyCheckpoint, type PolicyInput, StatechartPolicy } from "../workers/statechart.js";
+import { POLICY_VERSION, type PolicyInput, StatechartPolicy } from "../workers/statechart.js";
 /** Persistence/evidence adapter, deliberately outside the pure policy. Submission remains a broker port. */
 export async function checkpointScriptedPolicy(
   broker: ResearchBroker,
@@ -10,7 +10,7 @@ export async function checkpointScriptedPolicy(
   input: PolicyInput,
   workerVersion: string,
   expectedVersion: string,
-  checkpoint?: PolicyCheckpoint,
+  checkpoint?: unknown,
 ) {
   const result = new StatechartPolicy().step(input, checkpoint);
   const loaded = checkpoint ? await broker.loadCheckpoint(session, scope) : null;

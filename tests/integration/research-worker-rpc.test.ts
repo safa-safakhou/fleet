@@ -83,7 +83,10 @@ test.each(["native", "python"])("broker_is_the_only_effect_path (%s)", async (mo
         model: h.admission,
         commands: h.commands,
       });
-      const auth = await broker.open(scope, services, "actor", ctx.signal),
+      const auth = await broker.open(scope, services, "actor", ctx.signal, {
+          ...ctx.observation,
+          sourceRefs: ["fixture:source"],
+        }),
         session = await broker.authenticate(auth.token),
         key = { operationId: scope.operationId, operationEpoch: scope.operationEpoch, logicalStepId: "model:1" };
       const request = {

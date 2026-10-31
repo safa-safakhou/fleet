@@ -2,7 +2,7 @@ import { createMachine, initialTransition, transition } from "xstate";
 import { z } from "zod";
 import { FleetError } from "../../domain.js";
 import type { Observation } from "../../platform/contracts.js";
-import { type DecisionProposal, ProposalSchema } from "../broker/server.js";
+import { type DecisionProposal, ProposalSchema } from "../broker/model.js";
 import { Decimal, digest } from "../contracts.js";
 export const POLICY_VERSION = "pact-scripted@1";
 export type PolicyInput = {
@@ -61,7 +61,7 @@ export class StatechartPolicy {
       age > input.maxObservationAgeMs
     )
       throw new FleetError("OBSERVATION_STALE", true);
-    const identity = digest(input);
+    const identity = digest({ ...input, candidate: input.candidate ?? null });
     if (checkpoint) {
       const cp = CheckpointSchema.safeParse(checkpoint);
       if (!cp.success || cp.data.proposalId !== digest(cp.data.proposal))

@@ -14,13 +14,13 @@ class DecisionProposal(BaseModel):
     preconditions: dict[str, Any]
 
 
-def make_agent(broker, instructions=""):
+def make_agent(broker, instructions="", max_output_tokens=100):
     agent = Agent(
         BrokerModel(broker),
         output_type=NativeOutput(DecisionProposal),
         instructions=instructions,
         retries={"tools": 0, "output": 0},
-        model_settings={"max_tokens": 100},
+        model_settings={"max_tokens": max_output_tokens},
     )
 
     @agent.tool_plain(retries=0)

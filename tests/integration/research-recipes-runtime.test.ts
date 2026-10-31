@@ -1,0 +1,152 @@
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join, resolve } from "node:path";
+import { expect, test } from "vitest";
+import { builtinArchitectures } from "../../src/app/builtins.js";
+import { createScopedServices, scopedOperationFor } from "../../src/app/host-services.js";
+import { ResearchBroker } from "../../src/research/broker/server.js";
+import { StepJournal } from "../../src/research/broker/steps.js";
+import { CaptureSession } from "../../src/research/evidence/boundaries.js";
+import { ArtifactFilesystem } from "../../src/research/evidence/filesystem.js";
+import { compileManifest } from "../../src/research/manifests/compiler.js";
+import { ManifestRepository } from "../../src/research/manifests/repository.js";
+import { TemporalTaskOwner } from "../../src/research/orchestration/outbox.js";
+import { recipeDefaults } from "../../src/research/recipes/pact-reference.js";
+import { runPactRecipe } from "../../src/research/recipes/runtime.js";
+import { assertOwnedFixture } from "../architecture-fixture.js";
+import { capability, manifestInput } from "../fixtures/research/manifest.js";
+import corpus from "../fixtures/research/pact-reference.json" with { type: "json" };
+import { platformFixture } from "../platform-helpers.js";
+
+test.each([
+  ["pact-research-advisory", "typescript-reference@1"],
+  ["pact-research-deliberative", "python-pydantic@1"],
+  ["pact-research-scripted", "typescript-reference@1"],
+])("explicitly enrolled recipe executes %s with %s", async (id, worker) => {
+  await assertOwnedFixture(process.env.FLEET_TEST_DATABASE_URL ?? "", process.env.FLEET_ARCHITECTURE_NONCE ?? "");
+  const f = await platformFixture(),
+    root = await mkdtemp(join(tmpdir(), "frt-"));
+  try {
+    f.advance(Date.now() - f.now().getTime());
+    await f.pool.query("UPDATE cohorts SET budget=budget||$2::jsonb WHERE id=$1", [
+      f.group.id,
+      JSON.stringify({ deadlineAt: new Date(Date.now() + 3600000).toISOString() }),
+    ]);
+    await f.store.setState(f.group.id, "paused", false);
+    await f.store.consent(f.group.id, true);
+    const profile = { id, version: "1" },
+      config = { ...recipeDefaults(id), worker },
+      definition = builtinArchitectures().resolve(profile);
+    await f.tasks.enroll(f.group.id, profile);
+    await f.pool.query("UPDATE cohort_engine_profiles SET architecture_config=$2 WHERE cohort_id=$1", [
+      f.group.id,
+      config,
+    ]);
+    const task = await f.enqueue(),
+      input = manifestInput();
+    input.profile = profile;
+    input.environment.bindingId = task.bindingId;
+    input.components = { worker, policy: config.policy };
+    input.roles = [{ id: "main", authority: id === "pact-research-advisory" ? "advisory" : "actor" }];
+    input.clock = { observationId: "pact.game-time-ms", deadlineId: "pact.game-time-ms", deadlineValue: "1000000" };
+    input.context.policy = config.contextPolicy;
+    input.memory.namespace = config.memoryNamespace;
+    input.model = { route: "ollama", model: "fake-model", parameters: { maxOutputTokens: 100 } };
+    input.limits = { calls: "3", tokens: "1000000", concurrency: 1 };
+    const m = compileManifest(input, {
+      ...capability,
+      components: { worker: [worker], policy: [config.policy] },
+      environment: { ...capability.environment, clockId: "pact.game-time-ms" },
+      model: { ...capability.model, route: "ollama", model: "fake-model" },
+    });
+    await new ManifestRepository(f.pool).save(m.manifest);
+    const capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    f.store.observation = capture;
+    const broker = new ResearchBroker(f.store, f.tasks, capture);
+    let calls = 0;
+    let failure: unknown;
+    const h = f.host({
+      decide: async () => {
+        calls++;
+        return { decision: corpus.replies[1].decision, inputTokens: 7, outputTokens: 8 };
+      },
+    });
+    const owner = new TemporalTaskOwner(f.store, f.tasks, { send: async () => {} }, async (claim) => {
+      const scope = await new StepJournal(f.store, f.tasks).open(
+          claim,
+          `task:${claim.taskId}`,
+          `task:${claim.taskId}`,
+          m.digest,
+        ),
+        observation = { ...corpus.observation, observedAt: f.now().toISOString() };
+      const context = {
+        claim,
+        binding: await f.bindings.get(claim.bindingId),
+        task: await f.tasks.get(claim.taskId),
+        observation,
+        model: h.admission,
+        commands: h.commands,
+        observe: async () => observation,
+        eventRefs: ["fixture:stock"],
+        signal: new AbortController().signal,
+        schemas: { observations: ["pact.observation.v1"], actions: ["pact.action.v1"] },
+        capabilities: {
+          ...f.board.adapter.capabilities,
+          coordination: true,
+          nativeIdempotency: true,
+          outcomeLookup: true,
+        },
+        instructions: "Synthetic PACT only",
+        catalog: async () => [],
+      };
+      const services = await createScopedServices(claim, definition, undefined, {
+        context,
+        store: f.store,
+        tasks: f.tasks,
+        bindings: f.bindings,
+        model: h.admission,
+        commands: h.commands,
+      });
+      try {
+        await capture.withScope(scope, () =>
+          runPactRecipe(id, broker, scope, services, scopedOperationFor(services), {
+            mode: "native-development",
+            executable: resolve("workers/research/.venv/bin/python"),
+          }),
+        );
+        await capture.withScope(scope, () =>
+          runPactRecipe(id, broker, scope, services, scopedOperationFor(services), {
+            mode: "native-development",
+            executable: resolve("workers/research/.venv/bin/python"),
+          }),
+        );
+      } catch (error) {
+        failure = error;
+        throw error;
+      } finally {
+        await f.store.finish(claim.turn, "WAIT");
+      }
+    });
+    await f.store.setState(f.group.id, "running", true);
+    expect(await f.tasks.claim("ordinary-before-enrollment", f.now(), task.id)).toBeNull();
+    expect((await f.pool.query("SELECT count(*)::int n FROM turns")).rows[0].n).toBe(0);
+    await f.store.setState(f.group.id, "paused", false);
+    await owner.enroll(task.id, m.digest);
+    await f.store.setState(f.group.id, "running", true);
+    const ref = await owner.reference(
+      (await f.pool.query("SELECT id FROM research_task_outbox WHERE kind='wake'")).rows[0].id,
+    );
+    await owner.execute(ref);
+    expect(failure).toBeUndefined();
+    expect((await owner.inspect(ref)).phase).toBe("completed");
+    expect((await f.pool.query("SELECT count(*)::int n FROM research_worker_checkpoints")).rows[0].n).toBe(1);
+    expect(calls).toBe(id === "pact-research-scripted" ? 0 : 1);
+    expect(f.board.executions).toBe(0);
+    expect((await f.pool.query("SELECT capture_failed FROM research_runs")).rows.every((r) => !r.capture_failed)).toBe(
+      true,
+    );
+  } finally {
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
+  }
+});

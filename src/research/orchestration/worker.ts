@@ -18,7 +18,10 @@ export async function startTaskRuntime(options: {
   stop?: (taskId: string) => Promise<void>;
 }) {
   const transport = await TemporalClient.connect(options.address, options.namespace),
-    connection = await NativeConnection.connect({ address: options.address });
+    connection = await NativeConnection.connect({ address: options.address }).catch(async (error) => {
+      await transport.connection.close();
+      throw error;
+    });
   const owner = new TemporalTaskOwner(
     options.store,
     options.tasks,
@@ -44,6 +47,10 @@ export async function startTaskRuntime(options: {
       useWorkerVersioning: true,
       defaultVersioningBehavior: "PINNED",
     },
+  }).catch(async (error) => {
+    await connection.close();
+    await transport.connection.close();
+    throw error;
   });
   const running = worker.run();
   void running.catch(() => {});

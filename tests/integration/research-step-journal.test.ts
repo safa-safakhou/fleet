@@ -127,3 +127,23 @@ test("original confirmed command receipt resolves uncertainty without resubmissi
   await journal.complete(scope, key, { status: "completed", commandId: "original", usage: null });
   expect(await journal.lookup(scope, key)).toEqual({ status: "completed", commandId: "original", usage: null });
 });
+
+test("reported original allocation settles its journal after an explicit epoch replacement", async () => {
+  const { f, claim, journal, scope, key } = await setup();
+  await journal.begin(scope, key, digest({ late: true }));
+  const allocation = await f.store.reserveCall(claim.turn);
+  await f.store.recordUsage(allocation, 7, 8);
+  await journal.complete(scope, key, { status: "unknown", allocationId: allocation, usage: null });
+  f.advance(121000);
+  await f.store.recoverExpired();
+  await f.tasks.recover();
+  const replacement = await f.claim(),
+    resumed = await journal.open(replacement, scope.runId, scope.operationId, scope.manifestDigest);
+  await journal.complete(resumed, key, {
+    status: "completed",
+    allocationId: allocation,
+    usage: { inputTokens: "7", outputTokens: "8" },
+  });
+  expect(await journal.lookup(resumed, key)).toMatchObject({ status: "completed", allocationId: allocation });
+  expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger")).rows[0].n).toBe(1);
+});

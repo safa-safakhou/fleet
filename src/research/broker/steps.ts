@@ -196,8 +196,8 @@ export class StepJournal {
         if (!/^[a-f0-9-]{36}$/.test(previous.allocationId)) fail("STEP_RESULT_CONFLICT");
         const native = (
           await db.query(
-            "SELECT status,input_tokens::text,output_tokens::text FROM compute_ledger WHERE id=$1 AND turn_id=$2",
-            [previous.allocationId, scope.turnId],
+            "SELECT l.status,l.input_tokens::text,l.output_tokens::text FROM compute_ledger l JOIN platform_task_claims c ON c.turn_id=l.turn_id WHERE l.id=$1 AND c.task_id=$2 AND c.fence::text=$3",
+            [previous.allocationId, scope.taskId, key.operationEpoch],
           )
         ).rows[0];
         if (

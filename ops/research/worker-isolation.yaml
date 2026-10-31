@@ -1,7 +1,7 @@
 # Mandatory worker envelope; the trusted broker owns IPC directory 0700/socket0600.
 # UID must match the trusted broker's dedicated worker UID. Mount only that socket directory.
 worker:
-  user: '10001:10001'
+  user: "10001:10001"
   network_mode: none
   read_only: true
   cap_drop: [ALL]
@@ -9,7 +9,7 @@ worker:
   pids_limit: 64
   mem_limit: 512m
   cpus: 1
-  tmpfs: ['/tmp:rw,noexec,nosuid,size=32m,uid=10001,gid=10001']
-  ipc_mount: '/dedicated/owned/session:/ipc:ro'
+  tmpfs: ["/tmp:rw,noexec,nosuid,size=32m,uid=10001,gid=10001"]
+  ipc_mount: "/dedicated/owned/session:/ipc:ro"
   credentials: private-stdin-scoped-broker-session-only
   image: required-sha256-digest

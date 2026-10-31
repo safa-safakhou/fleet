@@ -25,10 +25,13 @@ import { CommandExecutor } from "../platform/execution.js";
 import { providerCapacity } from "../platform/provider-policy.js";
 import { OperationSupervisor, PlatformHost } from "../platform/supervisor.js";
 import { TaskStore } from "../platform/tasks.js";
+import { ResearchBroker } from "../research/broker/server.js";
 import { StepJournal } from "../research/broker/steps.js";
 import { CaptureSession } from "../research/evidence/boundaries.js";
 import { ArtifactFilesystem } from "../research/evidence/filesystem.js";
 import { RunInspection } from "../research/evidence/inspection.js";
+import { recipeIds } from "../research/recipes/pact-reference.js";
+import { runPactRecipe } from "../research/recipes/runtime.js";
 import { createTelemetry } from "../research/telemetry/sdk.js";
 import { RunWindow } from "../run-window.js";
 import { Store } from "../store.js";
@@ -39,6 +42,29 @@ import { createMaintenance } from "./maintenance.js";
 import { ParticipantWork } from "./participant-work.js";
 export function composeRuntime(settings: ReturnType<typeof config>) {
   const architectures = builtinArchitectures({
+      ...Object.fromEntries(
+        recipeIds.map((id) => [
+          `${id}@1`,
+          (services: import("../platform/engine-context.js").ScopedServices) => ({
+            route: () => [],
+            run: async (operation: import("../platform/engine-context.js").ScopedOperation) => {
+              const selected = settings.researchRuntime;
+              if (!selected) throw new FleetError("RESEARCH_RUNTIME_DISABLED", true);
+              if (operation !== scopedOperationFor(services)) throw new FleetError("OPERATION_SCOPE_MISMATCH", true);
+              const context = compatibilityContextFor(services),
+                scope = await new StepJournal(store, tasks).open(
+                  context.claim,
+                  `task:${context.claim.taskId}`,
+                  `task:${context.claim.taskId}`,
+                  selected.manifestDigest,
+                );
+              await evidence.withScope(scope, () =>
+                runPactRecipe(id, researchBroker, scope, services, operation, settings.researchWorker),
+              );
+            },
+          }),
+        ]),
+      ),
       "legacy-loop@1": (services) => legacyRuntime("legacy-loop", services),
       "legacy-cognition@1": (services) => legacyRuntime("legacy-cognition", services),
     }),
@@ -121,6 +147,9 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
   const admission = new ModelAdmission(store, tasks, model, capacity),
     commands = new CommandExecutor(store, tasks, bindings, environments),
     supervisor = new OperationSupervisor(tasks);
+  const researchBroker = new ResearchBroker(store, tasks, evidence, async () => {
+    if (!settings.liveAllowed || !runWindow.isOpen()) throw new FleetError("RESEARCH_ADMISSION_CLOSED", true);
+  });
   const continuity = new ContinuityModule(tasks, bindings, cognition);
   const specialistContinuity = new ContinuityModule(tasks, bindings, cognition, {
     id: "specialist-coordinator",

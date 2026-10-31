@@ -26,9 +26,9 @@ it("escapes all peer/skill prose and keeps admission distinct from outcome evide
   expect(html).toContain("receipts");
   expect(html).toContain("originals");
 });
-it("exposes six families with skills only on the new exact autonomous profile and defaults to advice", () => {
+it("exposes nine families with skills only on the new exact autonomous profile and defaults to advice", () => {
   const list = builtinArchitectures().list();
-  expect(new Set(list.map((x) => x.ref.id)).size).toBe(6);
+  expect(new Set(list.map((x) => x.ref.id)).size).toBe(9);
   const own = list.find((x) => x.ref.id === "autonomous-specialists")!;
   expect(own.defaults).toMatchObject({ learning: true, skillMode: "advisory" });
   expect(own.skillModes).toContain("guarded");

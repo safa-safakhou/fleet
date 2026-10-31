@@ -102,6 +102,20 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
         .max(86400)
         .parse(env.FLEET_OLLAMA_KEEP_ALIVE_SECONDS ?? 0),
     },
+    researchWorker: env.FLEET_RESEARCH_PYTHON_IMAGE
+      ? {
+          mode: "container" as const,
+          image: z
+            .string()
+            .regex(/^sha256:[a-f0-9]{64}$/)
+            .parse(env.FLEET_RESEARCH_PYTHON_IMAGE),
+        }
+      : env.FLEET_RESEARCH_PYTHON_EXECUTABLE
+        ? {
+            mode: "native-development" as const,
+            executable: z.string().min(1).parse(env.FLEET_RESEARCH_PYTHON_EXECUTABLE),
+          }
+        : undefined,
     statePath: env.FLEET_STATE_PATH ?? ".",
     minFreeBytes: z.coerce
       .number()

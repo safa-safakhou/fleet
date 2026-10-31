@@ -44,6 +44,7 @@ test("persists and restores proposal-only policy with private transition evidenc
     await capture.recorder.append(scope, { kind: "task.received", streamId: "policy", producerKey: "scope" });
     const first = await checkpointScriptedPolicy(broker, session, scope, policyInput, "fixture@1", "0");
     const loaded = await broker.loadCheckpoint(session, scope);
+    if (!loaded) throw new Error("CHECKPOINT_MISSING");
     const second = await checkpointScriptedPolicy(
       broker,
       session,

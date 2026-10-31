@@ -18,6 +18,8 @@ export async function runPythonWorker(
   const input = toJson(WorkerInputSchema, wireInput);
   if (executor.mode === "container" && platform() !== "linux")
     throw new FleetError("WORKER_ISOLATION_HOST_UNSUPPORTED", true);
+  if (executor.mode === "container" && process.getuid?.() !== 10001)
+    throw new FleetError("WORKER_SOCKET_OWNER_MISMATCH", true);
   if (executor.mode === "container" && !/^sha256:[a-f0-9]{64}$/.test(executor.image))
     throw new FleetError("WORKER_IMAGE_DIGEST_REQUIRED", true);
   const deadline = Date.parse(wireInput.deadlineUtc);

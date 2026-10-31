@@ -33,6 +33,7 @@ async def execute(control):
                     "instructions": value["instructions"],
                     "observation": json.loads(value["observationJson"]),
                     "maxSteps": value["maxSteps"],
+                    "maxOutputTokens": value.get("maxOutputTokens", 100),
                 },
             )
         return ParseDict(

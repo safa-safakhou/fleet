@@ -7,6 +7,8 @@ import { legacyManifest, prepareLegacyModel, validateLegacy } from "../engines/l
 import { definition as reactive } from "../engines/reactive/engine.js";
 import { definition as specialists } from "../engines/specialists/coordinator.js";
 import { type ArchitectureDefinition, ArchitectureRegistry } from "../platform/architecture.js";
+import { pactReferenceDefinitions } from "../research/recipes/pact-reference.js";
+import { guardSpecialistRuntime } from "../research/recipes/specialist-bridge.js";
 export function builtinArchitectures(
   factories: Record<string, ArchitectureDefinition["create"]> = {},
   additional: ArchitectureDefinition[] = [],
@@ -28,6 +30,7 @@ export function builtinArchitectures(
     packingRepair,
     specialists,
     autonomous,
+    ...pactReferenceDefinitions(),
     ...additional,
   ];
   return new ArchitectureRegistry(
@@ -36,7 +39,10 @@ export function builtinArchitectures(
       create: (services) => {
         const factory = factories[`${d.manifest.ref.id}@${d.manifest.ref.version}`] ?? d.create;
         if (!factory) throw new FleetError("ARCHITECTURE_COMPOSITION_REQUIRED");
-        return factory(services);
+        const runtime = factory(services);
+        return ["specialist-coordinator", "autonomous-specialists"].includes(d.manifest.ref.id)
+          ? guardSpecialistRuntime(d.manifest.ref, runtime)
+          : runtime;
       },
     })),
   );

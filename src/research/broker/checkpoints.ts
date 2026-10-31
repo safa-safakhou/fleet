@@ -38,7 +38,7 @@ export class WorkerCheckpoints {
       body = Buffer.from(JSON.stringify(value));
     if (body.length > 4 * 1024 * 1024) throw new FleetError("CHECKPOINT_TOO_LARGE", true);
     await this.journal.assertCurrent(scope);
-    const policy = await this.capture.artifacts.policy(scope, 4 * 1024 * 1024);
+    const policy = await this.capture.artifacts.policy(scope, body.length);
     return transaction(this.store.pool, async (db) => {
       await this.journal.assertCurrent(scope, db);
       for (const step of value.steps) {
@@ -104,6 +104,10 @@ export class WorkerCheckpoints {
     if (!row) return null;
     const chunks = [];
     for await (const part of this.capture.artifacts.read(row.scope, row.state_ref)) chunks.push(Buffer.from(part));
-    return { id: row.id, version: row.version, ...JSON.parse(Buffer.concat(chunks).toString("utf8")) };
+    return {
+      id: row.id as string,
+      version: row.version as string,
+      ...CheckpointStateSchema.parse(JSON.parse(Buffer.concat(chunks).toString("utf8"))),
+    };
   }
 }

@@ -1,8 +1,14 @@
 import { randomUUID } from "node:crypto";
+import { mkdtemp, rm } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
 import { afterEach, expect, test } from "vitest";
 import { withEffectHooks } from "../../src/platform/effect-context.js";
+import { WorkerCheckpoints } from "../../src/research/broker/checkpoints.js";
 import { StepJournal } from "../../src/research/broker/steps.js";
 import { digest } from "../../src/research/contracts.js";
+import { CaptureSession } from "../../src/research/evidence/boundaries.js";
+import { ArtifactFilesystem } from "../../src/research/evidence/filesystem.js";
 import { compileManifest } from "../../src/research/manifests/compiler.js";
 import { ManifestRepository } from "../../src/research/manifests/repository.js";
 import { TemporalTaskOwner } from "../../src/research/orchestration/outbox.js";
@@ -27,7 +33,14 @@ afterEach(async () => {
 async function setup(run?: (claim: any) => Promise<void>) {
   await assertOwnedFixture(process.env.FLEET_TEST_DATABASE_URL ?? "", process.env.FLEET_ARCHITECTURE_NONCE ?? "");
   const f = await platformFixture();
-  close = () => f.pool.end();
+  const root = await mkdtemp(join(tmpdir(), "frr-")),
+    capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+  f.store.observation = capture;
+  await f.store.consent(f.group.id, true);
+  close = async () => {
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
+  };
   const task = await f.enqueue();
   await f.store.setState(f.group.id, "paused", false);
   const input = manifestInput();
@@ -41,7 +54,7 @@ async function setup(run?: (claim: any) => Promise<void>) {
   const ref = await owner.reference(
     (await f.pool.query("SELECT id FROM research_task_outbox WHERE kind='wake'")).rows[0].id,
   );
-  return { ...f, task, owner, ref, manifest: m.digest };
+  return { ...f, capture, task, owner, ref, manifest: m.digest };
 }
 test("cancel before dispatch is durable, idempotent and needs no worker", async () => {
   const f = await setup();
@@ -155,6 +168,7 @@ test("stop during provider call settles the original known late usage and blocks
     const journal = new StepJournal(f.store, f.tasks);
     scope = await journal.open(c, "late-run", "late-op", f.manifest);
     key = { operationId: scope.operationId, operationEpoch: scope.operationEpoch, logicalStepId: "model:1" };
+    await f.capture.recorder.append(scope, { kind: "task.received", streamId: "fixture", producerKey: "scope" });
     await journal.begin(scope, key, digest({ late: true }), "model");
     const { withEffectHooks } = await import("../../src/platform/effect-context.js");
     const h = f.host({
@@ -181,11 +195,16 @@ test("stop during provider call settles the original known late usage and blocks
   });
   const executing = f.owner.execute(f.ref);
   await started.promise;
+  await f.enqueue(f.group.bindings[1], "unrelated", "source:unrelated");
+  const unrelated = await f.claim();
   await f.owner.requestStop(f.task.id);
   const r = new RuntimeReconciler(f.store, f.tasks, f.owner);
   expect(await r.inspect(f.task.id)).toMatchObject({ stop: { requested: true, fenced: true, acknowledged: false } });
+  await expect(f.tasks.check(unrelated)).resolves.toBeUndefined();
   reply.resolve();
   await executing;
+  await expect(f.tasks.check(unrelated)).resolves.toBeUndefined();
+  await f.store.finish(unrelated.turn, "WAIT");
   expect(
     (
       await f.pool.query("SELECT status,input_tokens::text,output_tokens::text FROM compute_ledger WHERE id=$1", [
@@ -201,6 +220,12 @@ test("stop during provider call settles the original known late usage and blocks
     stop: { acknowledged: true },
     unknownUsage: [],
   });
+  const scopes = (
+    await f.pool.query(
+      "SELECT DISTINCT event->'scope'->>'runId' run FROM research_events WHERE event->>'kind'='usage.settled'",
+    )
+  ).rows;
+  expect(scopes).toEqual([{ run: "late-run" }]);
   expect(calls).toBe(1);
   expect(f.board.executions).toBe(0);
 });
