@@ -100,20 +100,23 @@ export function createMaintenance(store: Store) {
         return result.rowCount ?? 0;
       },
     });
-  for (const [id, column, clear] of [
-    ["read-memory", "read_memory_updated_at", "read_memory_cipher=NULL,read_memory_updated_at=NULL"],
-    ["decision-feedback", "decision_feedback_at", "decision_feedback_cipher=NULL,decision_feedback_at=NULL"],
-  ])
-    registry.register({
-      id,
-      run: async (limit, signal) => {
-        if (signal.aborted) return 0;
-        const result = await store.pool.query(
-          `UPDATE agents SET ${clear} WHERE ctid IN(SELECT ctid FROM agents WHERE ${column}<$1 ORDER BY ${column} LIMIT $2)`,
-          [new Date(store.now().getTime() - 30 * 86400000), limit],
-        );
-        return result.rowCount ?? 0;
-      },
-    });
+  // Both fields share one bounded agent scan, preserving fresh sibling content.
+  registry.register({
+    id: "agent-private-content",
+    run: async (limit, signal) => {
+      if (signal.aborted) return 0;
+      const result = await store.pool.query(
+        `UPDATE agents SET
+ read_memory_cipher=CASE WHEN read_memory_updated_at<$1 THEN NULL ELSE read_memory_cipher END,
+ read_memory_updated_at=CASE WHEN read_memory_updated_at<$1 THEN NULL ELSE read_memory_updated_at END,
+ decision_feedback_cipher=CASE WHEN decision_feedback_at<$1 THEN NULL ELSE decision_feedback_cipher END,
+ decision_feedback_at=CASE WHEN decision_feedback_at<$1 THEN NULL ELSE decision_feedback_at END
+ WHERE ctid IN(SELECT ctid FROM agents WHERE read_memory_updated_at<$1 OR decision_feedback_at<$1
+ ORDER BY LEAST(read_memory_updated_at,decision_feedback_at),id LIMIT $2)`,
+        [new Date(store.now().getTime() - 30 * 86400000), limit],
+      );
+      return result.rowCount ?? 0;
+    },
+  });
   return registry;
 }
