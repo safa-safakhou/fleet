@@ -9,7 +9,7 @@ message DecisionProposal {
  Kind kind=1; string payload_json=2; repeated string source_refs=3; string preconditions_json=4;
 }
 message BrokerRequest { uint32 protocol_version=1; RunScope scope=2; OperationKey key=3;
- oneof request { ModelRequest model=4; GameQuery game=5; DecisionProposal proposal=6; ScopedPortRequest scoped_port=7; }
+ oneof request { ModelRequest model=4; GameQuery game=5; DecisionProposal proposal=6; ScopedPortRequest scoped_port=7; EmbeddingRequest embedding=8; }
 }
 message BrokerEnvelope { uint32 protocol_version=1; uint64 counter=2; RunScope scope=3; BrokerResult result=4; Coverage coverage=5; }
 service ResearchBrokerService {
@@ -37,3 +37,5 @@ message ArtifactReadRequest { RunScope scope=1; string artifact_id=2; }
 message ArtifactChunk { uint32 index=1; bytes body=2; }
 message LookupRequest { RunScope scope=1; OperationKey key=2; }
 message ScopedPortRequest { string port=1; string arguments_json=2; }
+// Native compute resolves identity from the sealed manifest, never from worker input.
+message EmbeddingRequest { string mode=1; string text=2; string memory_id=3; uint64 source_version=4; }

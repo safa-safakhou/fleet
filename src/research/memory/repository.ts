@@ -38,7 +38,11 @@ export class MemoryRepository {
       const m = await new ManifestRepository(this.store.pool).load(a.scope.manifestDigest);
       if (namespaceFor(a.scope, m) !== c.namespace || String(a.consent_version) !== c.consentVersion)
         throw new FleetError("MEMORY_SOURCE_UNAVAILABLE", true);
-      if (!Number.isFinite(Date.parse(input.observedAt)) || Date.parse(input.observedAt) > this.store.now().getTime())
+      if (
+        !Number.isFinite(Date.parse(input.observedAt)) ||
+        Date.parse(input.observedAt) > this.store.now().getTime() ||
+        Date.parse(input.observedAt) + 30 * 86400000 <= this.store.now().getTime()
+      )
         throw new FleetError("MEMORY_SOURCE_TIME_INVALID", true);
       await db.query("INSERT INTO research_memory_sources VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING", [
         input.artifactId,
@@ -71,7 +75,7 @@ export class MemoryRepository {
     if (!c.consent) throw new FleetError("MEMORY_SOURCE_UNAVAILABLE", true);
     const sources = (
       await db.query(
-        "SELECT s.* FROM research_memory_sources s JOIN research_artifacts a ON a.id=s.artifact_id WHERE s.artifact_id=ANY($1::uuid[]) AND s.namespace=$2 AND s.expires_at>$3 AND a.status='complete' AND NOT a.purged AND s.consent_version=$4",
+        "SELECT s.* FROM research_memory_sources s JOIN research_artifacts a ON a.id=s.artifact_id WHERE s.artifact_id=ANY($1::uuid[]) AND s.namespace=$2 AND s.expires_at>$3 AND a.status='complete' AND NOT a.purged AND a.expires_at>$3 AND s.consent_version=$4",
         [value.sourceRefs, c.namespace, this.store.now(), c.consentVersion],
       )
     ).rows;
@@ -164,7 +168,10 @@ export class MemoryRepository {
     return transaction(this.store.pool, async (db) => {
       const c = await this.indexPolicy.context(scope, db);
       const ids = (
-        await db.query("SELECT id FROM research_memories WHERE namespace=$1 ORDER BY id LIMIT 501", [c.namespace])
+        await db.query("SELECT id FROM research_memories WHERE namespace=$1 AND expires_at>$2 ORDER BY id LIMIT 501", [
+          c.namespace,
+          this.store.now(),
+        ])
       ).rows.map((r) => r.id as string);
       if (ids.length > 500) throw new FleetError("MEMORY_QUERY_LIMIT", true);
       return this.get(scope, ids, db);
@@ -187,6 +194,10 @@ export class MemoryRepository {
     });
   }
   async expire() {
+    await this.store.pool.query(
+      "UPDATE research_embedding_jobs SET status='expired',input_digest=NULL,result_cipher=NULL,memory_id=NULL,source_version=NULL WHERE expires_at<=$1 AND status<>'expired'",
+      [this.store.now()],
+    );
     const result = await this.store.pool.query("DELETE FROM research_memories WHERE expires_at<=$1 RETURNING id", [
       this.store.now(),
     ]);

@@ -405,7 +405,7 @@ export class ArtifactStore {
   async expire(now: Date): Promise<RetentionReport> {
     const rows = (
       await this.store.pool.query(
-        "SELECT a.*,c.observation_consent,c.observation_consent_version::text v FROM research_artifacts a JOIN research_runs r ON r.run_id=a.run_id JOIN cohorts c ON c.id=r.cohort_id WHERE NOT a.purged AND (a.expires_at<=$1 OR NOT c.observation_consent OR c.observation_consent_version<>a.consent_version)",
+        "SELECT a.*,c.observation_consent,c.observation_consent_version::text v FROM research_artifacts a JOIN research_runs r ON r.run_id=a.run_id JOIN cohorts c ON c.id=r.cohort_id WHERE NOT a.purged AND (a.status IN('expired','withheld') OR a.expires_at<=$1 OR NOT c.observation_consent OR c.observation_consent_version<>a.consent_version)",
         [now],
       )
     ).rows;

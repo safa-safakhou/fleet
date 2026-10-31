@@ -90,7 +90,24 @@ export async function serveBroker(broker: ResearchBroker, socket: string) {
           sourceRefs: req.proposal.sourceRefs,
           preconditions: JSON.parse(req.proposal.preconditionsJson),
         });
-      else if (req.scopedPort)
+      else if (req.embedding) {
+        const embedding = req.embedding;
+        if (embedding.mode !== "query" && embedding.mode !== "document")
+          throw new FleetError("EMBEDDING_MODE_INVALID", true);
+        if (
+          (embedding.mode === "query" && (embedding.memoryId || embedding.sourceVersion !== "0")) ||
+          (embedding.mode === "document" && embedding.text)
+        )
+          throw new FleetError("EMBEDDING_INPUT_CONFLICT", true);
+        result = await broker.embed(
+          session,
+          scope,
+          key,
+          embedding.mode === "query"
+            ? { mode: "query", text: embedding.text }
+            : { mode: "document", memoryId: embedding.memoryId, version: embedding.sourceVersion },
+        );
+      } else if (req.scopedPort)
         result = await broker.scopedPort(
           session,
           scope,

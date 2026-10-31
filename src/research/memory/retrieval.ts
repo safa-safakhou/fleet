@@ -34,7 +34,7 @@ export type RetrievalResult = {
   durationMs: number;
   eventId?: string;
 };
-export function validateVector(vector: number[], identity: EmbeddingIdentity) {
+export function validateVector(vector: number[], identity: EmbeddingIdentity, expectedVersion?: string) {
   if (vector.length !== identity.dimension) throw new FleetError("EMBEDDING_INCOMPATIBLE", true);
   const norm = Math.hypot(...vector);
   if (
@@ -54,7 +54,13 @@ export class RetrievalService {
     )
       throw new FleetError("RETRIEVAL_STRATEGY_UNAVAILABLE", true);
   }
-  async indexVector(scope: RunScope, id: string, vector: number[], identity: EmbeddingIdentity) {
+  async indexVector(
+    scope: RunScope,
+    id: string,
+    vector: number[],
+    identity: EmbeddingIdentity,
+    expectedVersion?: string,
+  ) {
     await this.vectorAvailable();
     await this.memory.indexPolicy.restricted(
       scope,
@@ -66,9 +72,10 @@ export class RetrievalService {
         validateVector(vector, identity);
         const row = (await db.query("SELECT version FROM research_memory_projections WHERE memory_id=$1", [id]))
           .rows[0];
-        if (!row) throw new FleetError("MEMORY_SOURCE_UNAVAILABLE", true);
+        if (!row || (expectedVersion && String(row.version) !== expectedVersion))
+          throw new FleetError("MEMORY_SOURCE_UNAVAILABLE", true);
         await db.query("RESET ROLE");
-        await db.query(
+        const updated = await db.query(
           "UPDATE research_memory_projections SET embedding=$2::vector,embedding_revision=$3,embedding_digest=$4,dimension=$5,normalization=$6 WHERE memory_id=$1 AND version=$7",
           [
             id,
@@ -80,6 +87,7 @@ export class RetrievalService {
             row.version,
           ],
         );
+        if (!updated.rowCount) throw new FleetError("MEMORY_SOURCE_UNAVAILABLE", true);
       },
     );
   }

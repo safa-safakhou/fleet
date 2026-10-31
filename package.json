@@ -29,7 +29,8 @@
     "research:contracts:generate": "tsx scripts/check-research-contracts.ts --write",
     "test:properties": "tsx scripts/test-research-properties.ts",
     "test:observability": "node --import tsx scripts/test-research-observability.ts",
-    "research:archive:verify": "node --import tsx scripts/verify-research-archive.ts"
+    "research:archive:verify": "node --import tsx scripts/verify-research-archive.ts",
+    "eval:retrieval": "tsx scripts/evaluate-research-retrieval.ts"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.16.0",

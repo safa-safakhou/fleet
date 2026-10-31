@@ -11,6 +11,7 @@ import { preparePactContext } from "../context/pact.js";
 import { type BrokerResult, canonical, digest, type OperationKey, type RunScope } from "../contracts.js";
 import type { CaptureSession } from "../evidence/boundaries.js";
 import { ManifestRepository } from "../manifests/repository.js";
+import { type EmbeddingCompute, type EmbeddingInput, EmbeddingPort } from "../memory/embedding-client.js";
 import { MemoryRepository } from "../memory/repository.js";
 import { type CheckpointState, WorkerCheckpoints } from "./checkpoints.js";
 import { validateBrokerAction } from "./game.js";
@@ -48,10 +49,30 @@ export class ResearchBroker {
     readonly tasks: TaskStore,
     readonly capture: CaptureSession,
     private admission: () => Promise<void> = async () => {},
+    private readonly embeddingCompute?: EmbeddingCompute,
   ) {
     this.journal = new StepJournal(store, tasks);
     this.sessions = new WorkerSessions(store, this.journal);
     this.checkpoints = new WorkerCheckpoints(store, this.journal, capture);
+  }
+  private memory() {
+    return new MemoryRepository(this.store, this.journal, this.capture);
+  }
+  private embeddings() {
+    return new EmbeddingPort(this.memory(), this.embeddingCompute);
+  }
+  async embed(
+    session: WorkerSession,
+    scope: RunScope,
+    key: OperationKey,
+    input: { mode: "query"; text: string } | { mode: "document"; memoryId: string; version: string },
+  ) {
+    await this.sessions.assert(session, scope);
+    return this.step(session, scope, key, "port", { embedding: input }, async (mark) => {
+      mark();
+      const result = await this.embeddings().embed(scope, { ...input, key: key.logicalStepId } as EmbeddingInput);
+      return this.record(scope, key, { status: "completed", usage: null }, result, key.logicalStepId);
+    });
   }
   async open(
     scope: RunScope,
@@ -127,6 +148,15 @@ export class ResearchBroker {
               ctx.ports.services,
               ctx.ports.observation,
               request,
+              manifest.memory.embedding && ["vector-exact-v1", "rrf-v1"].includes(manifest.retrieval.strategy)
+                ? (
+                    await this.embeddings().embed(scope, {
+                      key: `context:${key.logicalStepId}`,
+                      mode: "query",
+                      text: contextQuery(request),
+                    })
+                  ).vectors[0]
+                : undefined,
             )
           : undefined;
       mark();
@@ -384,6 +414,7 @@ export class ResearchBroker {
     key: OperationKey,
     result: BrokerResult,
     value: unknown,
+    embeddingKey?: string,
   ): Promise<BrokerResult> {
     const body = Buffer.from(JSON.stringify(value));
     if (body.length > 4 * 1024 * 1024) throw new FleetError("ARTIFACT_QUOTA", true);
@@ -398,8 +429,26 @@ export class ResearchBroker {
         ),
       );
     return transaction(this.store.pool, async (db) => {
+      if (embeddingKey) {
+        await this.memory().indexPolicy.assertAllowed(scope, manifest.memory.indexConsentRef ?? "", db);
+        if (
+          !(
+            await db.query(
+              "SELECT 1 FROM research_embedding_jobs WHERE operation_id=$1 AND logical_key=$2 AND status='completed' AND expires_at>$3 FOR SHARE",
+              [scope.operationId, embeddingKey, this.store.now()],
+            )
+          ).rowCount
+        )
+          throw new FleetError("MEMORY_SOURCE_UNAVAILABLE", true);
+      }
       const ref = await this.capture.artifacts.putWithin(scope, body, { ...policy, expectedBytes: body.length }, db),
         final = { ...result, resultRef: { id: ref.id, kind: "broker.result/v1" }, artifacts: [ref] };
+      if (embeddingKey)
+        await db.query("INSERT INTO research_embedding_job_artifacts VALUES($1,$2,$3)", [
+          scope.operationId,
+          embeddingKey,
+          ref.id,
+        ]);
       await this.capture.recorder.append(
         scope,
         { kind: "observation.record", streamId: "broker", producerKey: `result:${digest(key)}`, artifacts: [ref] },
@@ -416,4 +465,12 @@ export class ResearchBroker {
       return final;
     });
   }
+}
+
+function contextQuery(request: ResearchModelRequest) {
+  return (
+    Array.from(request.messages.filter((m) => m.role === "user").at(-1)?.content ?? " ")
+      .slice(0, 2048)
+      .join("") || " "
+  );
 }

@@ -250,6 +250,12 @@ export class CaptureSession implements ObservationPort {
   }
   async expire() {
     await this.artifacts.expire(this.store.now());
+    await this.store.pool.query(
+      "UPDATE research_embedding_jobs SET status='expired',input_digest=NULL,result_cipher=NULL,memory_id=NULL,source_version=NULL WHERE expires_at<=$1 AND status<>'expired'",
+      [this.store.now()],
+    );
+    await this.store.pool.query("DELETE FROM research_memories WHERE expires_at<=$1", [this.store.now()]);
+    await this.store.pool.query("DELETE FROM research_memory_sources WHERE expires_at<=$1", [this.store.now()]);
   }
   scoped<T extends object>(claim: ObservationClaim, services: T): T {
     const wrap = (obj: object, prefix: string): object =>

@@ -4,29 +4,60 @@
     "schemaId": "pact.observation.v1",
     "revision": "r1",
     "observedAt": "2026-10-31T10:00:00.000Z",
-    "environmentTime": { "clockId": "pact.game-time-ms", "value": "1000" },
+    "environmentTime": {
+      "clockId": "pact.game-time-ms",
+      "value": "1000"
+    },
     "sourceRefs": ["fixture:stock"],
-    "payload": { "world": { "paused": false } },
-    "coverage": { "authorizedView": true }
+    "payload": {
+      "world": {
+        "paused": false
+      }
+    },
+    "coverage": {
+      "authorizedView": true
+    }
   },
   "replies": [
     {
       "decision": {
         "kind": "read",
-        "payload": { "tool": "look", "arguments": {} },
+        "payload": {
+          "tool": "look",
+          "arguments": {}
+        },
         "sourceRefs": ["fixture:stock"],
         "preconditions": {}
       },
-      "usage": { "inputTokens": "7", "outputTokens": "8" }
+      "usage": {
+        "inputTokens": "7",
+        "outputTokens": "8"
+      }
     },
     {
       "decision": {
         "kind": "advisory",
-        "payload": { "text": "Only supplied PACT evidence was used" },
+        "payload": {
+          "text": "Only supplied PACT evidence was used"
+        },
         "sourceRefs": ["fixture:stock"],
         "preconditions": {}
       },
-      "usage": { "inputTokens": "9", "outputTokens": "2" }
+      "usage": {
+        "inputTokens": "9",
+        "outputTokens": "2"
+      }
     }
-  ]
+  ],
+  "retrievalEvaluation": {
+    "schemaVersion": "fleet.synthetic-retrieval-config/v1",
+    "strategy": "rrf-v1",
+    "language": "en",
+    "embedding": {
+      "revision": "synthetic-3d@1",
+      "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "dimension": 3,
+      "normalization": "l2"
+    }
+  }
 }

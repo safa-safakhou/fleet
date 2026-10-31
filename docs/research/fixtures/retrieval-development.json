@@ -1,0 +1,61 @@
+{
+  "schemaVersion": "fleet.retrieval-evaluation/v1",
+  "datasetId": "synthetic-development@1",
+  "datasetDigest": "6ed0664849395ea69c7523f2276a265d640eec15d921f743af084852302df26a",
+  "manifestDigest": "f55b694d50b98b8245b3ec94f38d0707141a2adc9c439994e3c892352b8cb418",
+  "split": "development",
+  "strategy": "rrf-v1",
+  "indexVersion": "memory-index@1",
+  "embedding": {
+    "revision": "synthetic-3d@1",
+    "digest": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "dimension": 3,
+    "normalization": "l2"
+  },
+  "compute": "fake-vectors",
+  "postgresVersion": "17.11 (Debian 17.11-1.pgdg12+2)",
+  "vectorVersion": "0.8.7",
+  "metrics": {
+    "precisionAtK": 0.75,
+    "recallAtK": 1,
+    "mrr": 1,
+    "ndcgAtK": 1,
+    "meanDurationMs": 18.228562499999953
+  },
+  "coverage": "complete",
+  "results": [
+    {
+      "queryId": "wood",
+      "selected": ["farm", "forest"],
+      "precisionAtK": 1,
+      "recallAtK": 1,
+      "mrr": 1,
+      "ndcgAtK": 1,
+      "durationMs": 21.029250000000047,
+      "coverage": {
+        "status": "complete",
+        "expected": 3,
+        "recorded": 3
+      }
+    },
+    {
+      "queryId": "stone",
+      "selected": ["castle", "forest"],
+      "precisionAtK": 0.5,
+      "recallAtK": 1,
+      "mrr": 1,
+      "ndcgAtK": 1,
+      "durationMs": 15.427874999999858,
+      "coverage": {
+        "status": "complete",
+        "expected": 3,
+        "recorded": 3
+      }
+    }
+  ],
+  "realArtifact": {
+    "status": "skipped",
+    "reason": "No separately authorized pinned weights provisioned"
+  },
+  "qualification": "synthetic development corpus only; no multilingual or model-quality qualification"
+}

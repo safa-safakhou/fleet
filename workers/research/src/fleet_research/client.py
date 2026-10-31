@@ -1,9 +1,13 @@
 """Authenticated Unix gRPC client. No credentials for native providers or stores."""
 
 import json
+
 import grpc
-from google.protobuf.json_format import ParseDict, MessageToDict
-from .generated.fleet.v1 import worker_pb2 as w, worker_pb2_grpc as rpc, common_pb2 as c
+from google.protobuf.json_format import MessageToDict, ParseDict
+
+from .generated.fleet.v1 import common_pb2 as c
+from .generated.fleet.v1 import worker_pb2 as w
+from .generated.fleet.v1 import worker_pb2_grpc as rpc
 
 
 class BrokerClient:
@@ -80,6 +84,20 @@ class BrokerClient:
                     schema_json=json.dumps(request["schema"]),
                     max_output_tokens=request["maxOutputTokens"],
                     purpose=request["purpose"],
+                )
+            },
+        )
+        return value
+
+    async def embed(self, *, mode, text="", memory_id="", source_version=0):
+        value, _ = await self.execute(
+            "port",
+            {
+                "embedding": w.EmbeddingRequest(
+                    mode=mode,
+                    text=text,
+                    memory_id=memory_id,
+                    source_version=source_version,
                 )
             },
         )
