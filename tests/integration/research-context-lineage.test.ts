@@ -32,7 +32,8 @@ test("dispatched messages and lineage are identical and downstream mutation refu
       now: f.now().toISOString(),
     });
     let dispatched = 0,
-      mutate = false;
+      mutate = false,
+      hugeSchema = false;
     const provider = {
       tracksDispatch: true,
       decide: async (input: any) => {
@@ -40,7 +41,7 @@ test("dispatched messages and lineage are identical and downstream mutation refu
           kind: "prepared",
           body: {
             messages: mutate ? [...input.messages, { role: "system", content: "hidden addition" }] : input.messages,
-            format: input.schema,
+            format: hugeSchema ? { ...input.schema, description: "x".repeat(10000) } : input.schema,
           },
         });
         await input.onDispatch?.();
@@ -71,6 +72,14 @@ test("dispatched messages and lineage are identical and downstream mutation refu
         f.capture.withInputContext(packet, () => f.capture.model(f.claim.turn, request, provider)),
       ),
     ).rejects.toThrow("CONTEXT_INPUT_MISMATCH");
+    expect(dispatched).toBe(1);
+    mutate = false;
+    hugeSchema = true;
+    await expect(
+      f.capture.withScope(f.scope, () =>
+        f.capture.withInputContext(packet, () => f.capture.model(f.claim.turn, request, provider)),
+      ),
+    ).rejects.toThrow("CONTEXT_CAPACITY_REQUIRED");
     expect(dispatched).toBe(1);
   } finally {
     await f.close();

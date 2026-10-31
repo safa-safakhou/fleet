@@ -228,7 +228,7 @@ export class RetrievalService {
       "memory.read",
       { query: q, ...result },
       {},
-      { required: true },
+      { required: true, sourceRefs: records.flatMap((r) => r.sourceRefs) },
     );
     if (event) result.eventId = event.id;
     return result;

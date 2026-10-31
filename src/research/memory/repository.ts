@@ -6,6 +6,7 @@ import type { Store } from "../../store.js";
 import type { StepJournal } from "../broker/steps.js";
 import type { RunScope } from "../contracts.js";
 import type { CaptureSession } from "../evidence/boundaries.js";
+import { inheritSources } from "../evidence/derivations.js";
 import { ManifestRepository } from "../manifests/repository.js";
 import { IndexPolicy } from "./index-policy.js";
 import {
@@ -44,6 +45,10 @@ export class MemoryRepository {
         Date.parse(input.observedAt) + 30 * 86400000 <= this.store.now().getTime()
       )
         throw new FleetError("MEMORY_SOURCE_TIME_INVALID", true);
+      await db.query("UPDATE research_artifacts SET expires_at=LEAST(expires_at,$2) WHERE id=$1", [
+        input.artifactId,
+        new Date(Date.parse(input.observedAt) + 30 * 86400000),
+      ]);
       await db.query("INSERT INTO research_memory_sources VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING", [
         input.artifactId,
         c.namespace,
@@ -75,7 +80,7 @@ export class MemoryRepository {
     if (!c.consent) throw new FleetError("MEMORY_SOURCE_UNAVAILABLE", true);
     const sources = (
       await db.query(
-        "SELECT s.* FROM research_memory_sources s JOIN research_artifacts a ON a.id=s.artifact_id WHERE s.artifact_id=ANY($1::uuid[]) AND s.namespace=$2 AND s.expires_at>$3 AND a.status='complete' AND NOT a.purged AND a.expires_at>$3 AND s.consent_version=$4",
+        "SELECT s.*,LEAST(s.expires_at,a.expires_at) expires_at FROM research_memory_sources s JOIN research_artifacts a ON a.id=s.artifact_id WHERE s.artifact_id=ANY($1::uuid[]) AND s.namespace=$2 AND s.expires_at>$3 AND a.status='complete' AND NOT a.purged AND a.expires_at>$3 AND s.consent_version=$4",
         [value.sourceRefs, c.namespace, this.store.now(), c.consentVersion],
       )
     ).rows;
@@ -113,6 +118,7 @@ export class MemoryRepository {
     const body = Buffer.from(JSON.stringify({ id, version, ...value })),
       policy = await this.captureSession.artifacts.policy(scope, body.length),
       ref = await this.captureSession.artifacts.putWithin(scope, body, policy, db);
+    await inheritSources(this.store, scope, ref.id, value.sourceRefs, db);
     await this.captureSession.recorder.append(
       scope,
       { kind: "memory.write", streamId: "memory", producerKey: `memory:${id}:${version}`, artifacts: [ref] },
@@ -150,7 +156,7 @@ export class MemoryRepository {
     if (!c.consent) return [];
     const rows = (
       await client.query(
-        "SELECT m.*,v.value_cipher FROM research_memories m JOIN research_memory_versions v ON v.memory_id=m.id AND v.version=m.version WHERE m.namespace=$1 AND m.id=ANY($2::uuid[]) AND m.expires_at>$3 AND NOT EXISTS(SELECT 1 FROM research_memory_links l JOIN research_memory_sources s ON s.artifact_id=l.artifact_id JOIN research_artifacts a ON a.id=s.artifact_id WHERE l.memory_id=m.id AND l.version=m.version AND (a.expires_at<=$3 OR s.expires_at<=$3 OR s.consent_version<>$4 OR a.status<>'complete' OR a.purged)) ORDER BY m.id",
+        "SELECT m.*,v.value_cipher,LEAST(m.expires_at,(SELECT min(LEAST(s.expires_at,a.expires_at)) FROM research_memory_links l JOIN research_memory_sources s ON s.artifact_id=l.artifact_id JOIN research_artifacts a ON a.id=s.artifact_id WHERE l.memory_id=m.id AND l.version=m.version)) effective_expires_at FROM research_memories m JOIN research_memory_versions v ON v.memory_id=m.id AND v.version=m.version WHERE m.namespace=$1 AND m.id=ANY($2::uuid[]) AND m.expires_at>$3 AND NOT EXISTS(SELECT 1 FROM research_memory_links l JOIN research_memory_sources s ON s.artifact_id=l.artifact_id JOIN research_artifacts a ON a.id=s.artifact_id WHERE l.memory_id=m.id AND l.version=m.version AND (a.expires_at<=$3 OR s.expires_at<=$3 OR s.consent_version<>$4 OR a.status<>'complete' OR a.purged)) ORDER BY m.id",
         [c.namespace, ids, this.store.now(), c.consentVersion],
       )
     ).rows;
@@ -161,7 +167,7 @@ export class MemoryRepository {
       id: r.id,
       version: String(r.version),
       namespace: c.namespace,
-      expiresAt: new Date(r.expires_at).toISOString(),
+      expiresAt: new Date(r.effective_expires_at).toISOString(),
     }));
   }
   async all(scope: RunScope) {

@@ -5,6 +5,8 @@ import { FleetError } from "../../domain.js";
 import type { Store } from "../../store.js";
 import { canonical, Decimal, type RunScope } from "../contracts.js";
 import type { CaptureSession } from "../evidence/boundaries.js";
+import { inheritSources } from "../evidence/derivations.js";
+import { ManifestRepository } from "../manifests/repository.js";
 import type { StepJournal } from "./steps.js";
 export const CheckpointStateSchema = z
   .object({
@@ -39,6 +41,7 @@ export class WorkerCheckpoints {
     if (body.length > 4 * 1024 * 1024) throw new FleetError("CHECKPOINT_TOO_LARGE", true);
     await this.journal.assertCurrent(scope);
     const policy = await this.capture.artifacts.policy(scope, body.length);
+    const manifest = await new ManifestRepository(this.store.pool).load(scope.manifestDigest);
     return transaction(this.store.pool, async (db) => {
       await this.journal.assertCurrent(scope, db);
       for (const step of value.steps) {
@@ -71,6 +74,14 @@ export class WorkerCheckpoints {
         id = randomUUID(),
         version = String(BigInt(old) + 1n),
         metadata = { workerVersion: value.workerVersion, policyVersion: value.policyVersion };
+      if (manifest.context.policy === "source-complete@1")
+        await inheritSources(
+          this.store,
+          scope,
+          ref.id,
+          value.steps.flatMap((step) => (step.resultRef ? [step.resultRef.id] : [])),
+          db,
+        );
       await db.query(
         "INSERT INTO research_worker_checkpoints(id,operation_id,version,scope,worker_version,policy_version,metadata,state_ref,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9)",
         [

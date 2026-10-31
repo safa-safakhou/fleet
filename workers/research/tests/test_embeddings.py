@@ -1,5 +1,7 @@
 import hashlib
 import json
+import os
+from pathlib import Path
 
 import pytest
 from fleet_research.embeddings import LocalEmbeddings, artifact_digest
@@ -103,8 +105,21 @@ def test_digest_includes_preprocessing_and_dimension(tmp_path):
         LocalEmbeddings(tmp_path, manifest, factory=factory)
 
 
-@pytest.mark.skip(
-    reason="Real weights require a separate explicit artifact assignment; none provisioned for M1–M4"
+@pytest.mark.skipif(
+    not os.environ.get("FLEET_RESEARCH_EMBEDDING_ASSIGNMENT"),
+    reason="Real weights require a separate explicit artifact assignment; none provisioned for M1–M4",
 )
 def test_optional_real_artifact():
-    """Tracked separately from fake-vector protocol/privacy tests; not relevance qualification."""
+    assignment = json.loads(
+        Path(os.environ["FLEET_RESEARCH_EMBEDDING_ASSIGNMENT"]).read_text()
+    )
+    assert assignment["schemaVersion"] == "fleet.embedding-test-assignment/v1"
+    assert assignment["purpose"] == "offline-embedding-smoke"
+    manifest = json.loads(Path(assignment["manifestPath"]).read_text())
+    assert manifest["identity"] == assignment["expectedIdentity"]
+    result = LocalEmbeddings(assignment["modelDirectory"], manifest).embed(
+        ["synthetic wood"], "query"
+    )
+    assert result["identity"] == assignment["expectedIdentity"]
+    assert len(result["vectors"]) == 1
+    assert len(result["vectors"][0]) == manifest["identity"]["dimension"]

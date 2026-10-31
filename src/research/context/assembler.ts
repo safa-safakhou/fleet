@@ -161,7 +161,11 @@ export class ContextAssembler {
         "context.prepared",
         packet,
         { bytes: String(packet.accounting.totalBytes) },
-        { required: true, parents: input.retrieval ? [input.retrieval.eventId] : [] },
+        {
+          required: true,
+          parents: input.retrieval ? [input.retrieval.eventId] : [],
+          sourceRefs: rendered.spans.flatMap((s) => s.sourceRefs),
+        },
       );
       if (!event) throw new FleetError("EVIDENCE_UNAVAILABLE", true);
       const artifact = (

@@ -1,6 +1,7 @@
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
+import { transaction } from "../../db.js";
 import { type Data, FleetError, type GamePort, type ModelPort, object, safeCode } from "../../domain.js";
 import type { ObservationClaim, ObservationPort } from "../../platform/observation-port.js";
 import type { Store } from "../../store.js";
@@ -8,6 +9,7 @@ import type { ContextPacket } from "../context/assembler.js";
 import { account } from "../context/token-accounting.js";
 import { digest, type RunScope } from "../contracts.js";
 import { ArtifactStore, bytes } from "./artifacts.js";
+import { inheritSources } from "./derivations.js";
 import type { ArtifactFiles } from "./filesystem.js";
 import { EvidenceRecorder } from "./recorder.js";
 import { EvidenceRepository, scopeForTurn } from "./repository.js";
@@ -65,10 +67,22 @@ export class CaptureSession implements ObservationPort {
     kind: EvidenceEventInput["kind"],
     body: unknown,
     attributes: EvidenceEventInput["attributes"] = {},
-    options: { required?: boolean; db?: PoolClient; parents?: string[]; stream?: string; producerKey?: string } = {},
+    options: {
+      required?: boolean;
+      db?: PoolClient;
+      parents?: string[];
+      stream?: string;
+      producerKey?: string;
+      sourceRefs?: string[];
+    } = {},
   ): Promise<EventRef | undefined> {
-    const repo = new EvidenceRepository(this.store),
-      db = options.db;
+    const repo = new EvidenceRepository(this.store);
+    let db = options.db;
+    const context = this.inputContext.getStore();
+    const sourceRefs = [
+      ...(options.sourceRefs ?? []),
+      ...(context?.lineage.artifact ? [context.lineage.artifact.id] : []),
+    ];
     const write = async () => {
       if (db) await repo.bind(scope, db);
       else {
@@ -106,6 +120,7 @@ export class CaptureSession implements ObservationPort {
         coverage = { status: "withheld", expected: "1", recorded: "0", reasons: ["CONSENT_WITHHELD"] };
         if (options.required && this.active.getStore()) throw new FleetError("EVIDENCE_UNAVAILABLE", true);
       }
+      for (const ref of artifacts) await inheritSources(this.store, scope, ref.id, sourceRefs, db);
       return this.recorder.append(
         scope,
         {
@@ -139,6 +154,12 @@ export class CaptureSession implements ObservationPort {
       }
     }
     try {
+      // Private copies and source links commit together; a rejected source leaves no orphan body.
+      if (sourceRefs.length)
+        return await transaction(this.store.pool, async (client) => {
+          db = client;
+          return write();
+        });
       return await write();
     } catch {
       await this.gap(scope);

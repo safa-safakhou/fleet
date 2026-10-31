@@ -10,6 +10,7 @@ import type { Store } from "../../store.js";
 import { preparePactContext } from "../context/pact.js";
 import { type BrokerResult, canonical, digest, type OperationKey, type RunScope } from "../contracts.js";
 import type { CaptureSession } from "../evidence/boundaries.js";
+import { inheritSources } from "../evidence/derivations.js";
 import { ManifestRepository } from "../manifests/repository.js";
 import { type EmbeddingCompute, type EmbeddingInput, EmbeddingPort } from "../memory/embedding-client.js";
 import { MemoryRepository } from "../memory/repository.js";
@@ -179,7 +180,14 @@ export class ResearchBroker {
         inputTokens: value.inputTokens === null ? null : String(value.inputTokens),
         outputTokens: value.outputTokens === null ? null : String(value.outputTokens),
       };
-      return this.record(scope, key, { status, allocationId: row.result.allocationId, usage }, { ...value, usage });
+      return this.record(
+        scope,
+        key,
+        { status, allocationId: row.result.allocationId, usage },
+        { ...value, usage },
+        undefined,
+        packet?.lineage.artifact ? [packet.lineage.artifact.id] : [],
+      );
     });
   }
   async readGame(session: WorkerSession, scope: RunScope, key: OperationKey, raw: z.infer<typeof GameQuerySchema>) {
@@ -415,6 +423,7 @@ export class ResearchBroker {
     result: BrokerResult,
     value: unknown,
     embeddingKey?: string,
+    sourceRefs: string[] = [],
   ): Promise<BrokerResult> {
     const body = Buffer.from(JSON.stringify(value));
     if (body.length > 4 * 1024 * 1024) throw new FleetError("ARTIFACT_QUOTA", true);
@@ -443,6 +452,7 @@ export class ResearchBroker {
       }
       const ref = await this.capture.artifacts.putWithin(scope, body, { ...policy, expectedBytes: body.length }, db),
         final = { ...result, resultRef: { id: ref.id, kind: "broker.result/v1" }, artifacts: [ref] };
+      await inheritSources(this.store, scope, ref.id, sourceRefs, db);
       if (embeddingKey)
         await db.query("INSERT INTO research_embedding_job_artifacts VALUES($1,$2,$3)", [
           scope.operationId,

@@ -91,3 +91,29 @@ test("impossible capacity and expired mandatory facts refuse before inference", 
   );
   await expect(assembler.build(scope, { ...input, maxTokens: 100 })).rejects.toThrow("CONTEXT_CAPACITY_REQUIRED");
 });
+
+test("contradictory inferences retain separate provenance and partial retrieval stays explicit", async () => {
+  const beliefs: ContextSource[] = [
+    { ...sources[4], id: "belief-a", text: "I infer stock is 200", sourceRefs: ["inference:a"] },
+    { ...sources[4], id: "belief-b", text: "I infer stock is 50", sourceRefs: ["inference:b"] },
+  ];
+  const all = [sources[0], { ...sources[1], text: "Observed stock is 100" }, ...beliefs];
+  const assembler = new ContextAssembler({ resolve: async (_scope, id) => all.find((s) => s.id === id) });
+  const retrieval = {
+    eventId: "00000000-0000-4000-8000-000000000001",
+    coverage: { status: "partial" as const, expected: 3, recorded: 2 },
+  };
+  const packet = await assembler.build(scope, {
+    ...input,
+    refs: all.map((s) => ({ id: s.id, mandatory: !s.id.startsWith("belief-") })),
+    retrieval,
+  });
+  expect(packet.lineage.retrieval).toEqual(retrieval);
+  expect(packet.lineage.spans.filter((s) => s.sourceClass === "inference").map((s) => s.sourceRefs)).toEqual([
+    ["inference:a"],
+    ["inference:b"],
+  ]);
+  expect(packet.lineage.spans.find((s) => s.id === "facts")!.sourceClass).toBe("observation");
+  expect(packet.messages.map((m) => m.content).join("\n")).toContain("Observed stock is 100");
+  expect(packet.lineage.omitted).toEqual([]);
+});
