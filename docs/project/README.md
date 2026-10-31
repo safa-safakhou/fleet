@@ -6,6 +6,8 @@ PACT is a persistent kingdom game with consequential choices. Fleet is an indepe
 
 The platform has progressed further than demonstrated intelligence. We have multiple engines, durable tasks, scoped evidence, budgets, receipts and recoverability. We have not demonstrated reliable long-term memory use, sound strategic decisions, or an architecture that improves survival and relationships in live play.
 
+**31 October research update:** the [PACT research qualification record](../research/acceptance-20261031.md) covers the new tooling, studio, preservation and disabled package. Final Linux/performance qualification is blocked; no installed runtime or provider/behavior acceptance follows from source completion. The historical handbook checkpoint below remains dated.
+
 ## Latest negotiation preparation
 
 Latest21 October [autonomous-specialist source acceptance](../autonomous-specialists-source-acceptance-20261020.md) completes all26 source tasks with1960 passing checks and one intentional real-model skip. Launch, persistent specialists, guarded PACT effects and bounded learned skills are implemented offline. Real negotiation/skill quality, E1 operational packaging and production qualification remain open; no retained-world access or activation occurred.

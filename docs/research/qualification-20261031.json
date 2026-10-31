@@ -1,0 +1,133 @@
+{
+  "schemaVersion": "fleet.qualification-status/v1",
+  "date": "2026-10-31",
+  "status": "blocked",
+  "activationAuthorized": false,
+  "scope": "source/offline; owned synthetic fixtures only",
+  "qualificationDecision": {
+    "schemaVersion": "fleet.qualification/v1",
+    "manifestDigest": "1811a03af60a9ab3a52d4887c0776f5c8a28a1afcf48dd81803e528815ae69e7",
+    "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+    "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+    "evidenceDigest": "b28795bcf997bed925329d640a65867474b95ffef0fed8c6fd2a610108d6c74e",
+    "scope": "fixture",
+    "status": "blocked",
+    "reasons": [
+      "GATE_REQUIRED:accounting",
+      "GATE_REQUIRED:faults",
+      "GATE_REQUIRED:invariants",
+      "GATE_REQUIRED:metrics",
+      "GATE_REQUIRED:ownership",
+      "GATE_REQUIRED:package",
+      "GATE_REQUIRED:performance",
+      "GATE_REQUIRED:preservation",
+      "GATE_REQUIRED:privacy",
+      "GATE_REQUIRED:wire",
+      "INCOMPLETE_DATA"
+    ],
+    "issuedAt": "2026-10-31T21:28:47.703Z",
+    "expiresAt": "2026-11-01T21:28:47.703Z",
+    "activationAuthorized": false
+  },
+  "sourceDigest": "cf7e07ebd095cef7e1e631992a19629014f525f855bf6e3bcdf02aece151d876",
+  "buildAvailability": "unavailable-marker",
+  "actualLinuxVersions": null,
+  "matrixCases": 20,
+  "mandatoryRiskTriples": 4,
+  "preservation": {
+    "legacyTables": 77,
+    "rows": 30,
+    "beforeDigest": "86965acd41256ccfae08ba88fead7df764d6218d4fecaed3ed6f54a99e32f90a",
+    "afterDigest": "86965acd41256ccfae08ba88fead7df764d6218d4fecaed3ed6f54a99e32f90a",
+    "restoredLegacyDigest": "86965acd41256ccfae08ba88fead7df764d6218d4fecaed3ed6f54a99e32f90a",
+    "fullDigest": "8854c428a73ea7077fa21163ec3c2ea1bd8dc3c3b01c6bd85b544dffb07bdbd3",
+    "restoredFullDigest": "8854c428a73ea7077fa21163ec3c2ea1bd8dc3c3b01c6bd85b544dffb07bdbd3",
+    "unknown": {
+      "count": 1,
+      "tokens": "40000"
+    },
+    "archive": {
+      "status": "verified",
+      "events": 2,
+      "artifacts": 1,
+      "gaps": 0,
+      "bytes": "74",
+      "coverageStatus": "complete"
+    }
+  },
+  "nativeWalkthrough": {
+    "calls": 1,
+    "commands": 1,
+    "events": 17,
+    "artifacts": 13,
+    "archive": {
+      "status": "verified",
+      "events": 17,
+      "artifacts": 13,
+      "gaps": 0,
+      "bytes": "11427",
+      "coverageStatus": "complete"
+    }
+  },
+  "performance": {
+    "recordingBenchmark": null,
+    "linuxPackage": null,
+    "macOSBrowser": [
+      {
+        "browser": "156.0.8078.4",
+        "runner": "darwin",
+        "viewport": "narrow",
+        "eventPopulation": 100000,
+        "interactionMs": 54.10000002384186,
+        "pageApiP95Ms": 1.4946249999993597,
+        "samples": 20
+      },
+      {
+        "browser": "156.0.8078.4",
+        "runner": "darwin",
+        "viewport": "wide",
+        "eventPopulation": 100000,
+        "interactionMs": 42.699999928474426,
+        "pageApiP95Ms": 2.146958000000268,
+        "samples": 20
+      }
+    ]
+  },
+  "blockers": [
+    "Insufficient free build space; ENOSPC encountered during image construction.",
+    "Docker daemon subsequently returned storage input/output errors. No restart/reset/prune was performed.",
+    "Linux package, native process requalification and recording benchmark must be rerun after storage health is restored.",
+    "Compose CLI is unavailable; the disabled Compose recipe has formatting checks only.",
+    "Installation, real provider and behavior acceptance remain separately ungranted."
+  ],
+  "limits": [
+    "Gate records are trusted internal evidence and convey no execution authority.",
+    "The latest conservative bundle leaves unavailable native gates blocked; earlier successful fixture results are recorded separately in the dated report.",
+    "The17-event walkthrough is a synthetic kernel board-effect fixture with independent PACT-shaped evaluation; real PACT handlers have a separate paired fixture suite.",
+    "No inference, retained-world read/indexing/enrollment, deployment or push. Existing service health is not recertified after the Docker storage fault."
+  ],
+  "verification": {
+    "finalRootUnits": {
+      "passed": 1246,
+      "skipped": 23
+    },
+    "python": {
+      "passed": 21,
+      "skipped": 4
+    },
+    "macOSBrowser": {
+      "passed": 26
+    },
+    "finalPureProperties": {
+      "tests": 5,
+      "historiesPerProperty": 2000,
+      "seed": 20261030
+    },
+    "earlierOwnedFaultTests": 32,
+    "earlierNativeAndPairedPactTests": 24,
+    "earlierQualificationPreservationFaultTests": 3,
+    "nativePackageAndMaintenanceTests": 3,
+    "contractsTypesBuildBoundariesStyleAudit": "passed",
+    "npmAuditVulnerabilities": 0
+  }
+}
