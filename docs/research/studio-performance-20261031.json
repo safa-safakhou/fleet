@@ -1,0 +1,68 @@
+{
+  "schemaVersion": "fleet.studio-performance/v1",
+  "date": "2026-10-31",
+  "node": "26.13.0",
+  "playwright": "1.64.1",
+  "browserImage": "mcr.microsoft.com/playwright@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea",
+  "linuxNodeBinarySha256": "66f4a883c880ef336276e7730c01cbae2b92fb8e6a51f7371f920599cac824b7",
+  "linuxResources": {
+    "cpus": 2,
+    "memoryBytes": 2147483648,
+    "pids": 256,
+    "readOnlyRoot": true,
+    "privateHostFilesMounted": false
+  },
+  "topology": "Linux Node/Chromium container via Docker Desktop bridge to owned Node26 Fastify/Vite synthetic fixture on darwin; no database/provider/game routes",
+  "eventPopulation": 100000,
+  "artifactBytes": 16777216,
+  "initialEventPage": 200,
+  "graphViewportNodes": 24,
+  "expandedNodeCache": 100,
+  "artifactChunkBytes": 1048576,
+  "textViewportCharacters": 65536,
+  "budgets": {
+    "interactionMs": 2000,
+    "pageApiP95Ms": 500
+  },
+  "linux": [
+    {
+      "browser": "156.0.8078.4",
+      "runner": "linux",
+      "viewport": "wide",
+      "eventPopulation": 100000,
+      "interactionMs": 85.20000000298023,
+      "pageApiP95Ms": 7.7371839999996155,
+      "samples": 20
+    },
+    {
+      "browser": "156.0.8078.4",
+      "runner": "linux",
+      "viewport": "narrow",
+      "eventPopulation": 100000,
+      "interactionMs": 82.5,
+      "pageApiP95Ms": 6.310421999998653,
+      "samples": 20
+    }
+  ],
+  "darwin": [
+    {
+      "browser": "156.0.8078.4",
+      "runner": "darwin",
+      "viewport": "wide",
+      "eventPopulation": 100000,
+      "interactionMs": 45.5,
+      "pageApiP95Ms": 2.3589169999995647,
+      "samples": 20
+    },
+    {
+      "browser": "156.0.8078.4",
+      "runner": "darwin",
+      "viewport": "narrow",
+      "eventPopulation": 100000,
+      "interactionMs": 45.299999952316284,
+      "pageApiP95Ms": 1.3838750000004438,
+      "samples": 20
+    }
+  ],
+  "acceptance": "Synthetic UI scope only; no native PostgreSQL large-run or deployed-runtime latency certification"
+}

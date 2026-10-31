@@ -41,11 +41,11 @@ Adapt `web/main.tsx`, `web/runs.tsx`, `web/metrics.tsx`, `web/comparisons.tsx`, 
 
 **Produces:** `ResearchWorkspace({ runId })`, `RunTimeline({ snapshotId, selectedEventId, filters, onSelect })`, `CausalGraph({ snapshotId, selectedEventId, onSelect })`; deep link `#research/run/<runId>?event=<eventId>`. Overview surfaces actual state, blocked/unknown work, evidence completeness and manifest/profile identity.
 
-- [ ] Write `parallel_lanes_preserve_sequence`: skewed clocks, parent fan-in, late arrival, missing event, censored wait and same-time events. Assert stream order, explicit causal edges, distinct queue/provider/action spans and "gap" labels for unmeasured intervals. 1,205 events paginate; 100,000-event fixture never renders/requests all events initially.
-- [ ] Run `npx vitest run tests/unit/research-timeline.test.tsx` and `npx playwright test --config playwright.research.config.ts tests/browser/research/timeline.spec.ts`; expect RED.
-- [ ] Implement viewport-bounded lanes/graph, cursor loading, expand-on-demand parents, zoom/filter/search and stable selection/deep links. Use deterministic DAG layout; missing parent remains visible as unavailable. Add table/keyboard selection, loading/error/expired states and consent-aware cancellation/cache clearing. Keep existing run URLs functional with links into the research view.
-- [ ] Run both tests at 1440px and 390px viewport, keyboard-only navigation, revoked session and fixture performance mode. Expect PASS and recorded synthetic screenshots; verify the reference latency budgets separately from flaky CI wall-clock assertions.
-- [ ] Review/checkpoint U1; no run/start action is reachable merely by following an inspection link.
+- [x] Write `parallel_lanes_preserve_sequence`: skewed clocks, parent fan-in, late arrival, missing event, censored wait and same-time events. Assert stream order, explicit causal edges, distinct queue/provider/action spans and "gap" labels for unmeasured intervals. 1,205 events paginate; 100,000-event fixture never renders/requests all events initially.
+- [x] Run `npx vitest run tests/unit/research-timeline.test.tsx` and `npx playwright test --config playwright.research.config.ts tests/browser/research/timeline.spec.ts`; expect RED.
+- [x] Implement viewport-bounded lanes/graph, cursor loading, expand-on-demand parents, zoom/filter/search and stable selection/deep links. Use deterministic DAG layout; missing parent remains visible as unavailable. Add table/keyboard selection, loading/error/expired states and consent-aware cancellation/cache clearing. Keep existing run URLs functional with links into the research view.
+- [x] Run both tests at 1440px and 390px viewport, keyboard-only navigation, revoked session and fixture performance mode. Expect PASS and recorded synthetic screenshots; verify the reference latency budgets separately from flaky CI wall-clock assertions.
+- [x] Review/checkpoint U1; no run/start action is reachable merely by following an inspection link.
 
 ## U2 — Build context, memory, statechart and skill lineage inspectors
 
@@ -55,11 +55,11 @@ Adapt `web/main.tsx`, `web/runs.tsx`, `web/metrics.tsx`, `web/comparisons.tsx`, 
 
 **Produces:** `ContextInspector({ runId, eventId })`, `LineageInspector({ runId, sourceId })`, `ManifestInspector({ manifestDigest })`; source→memory/transform→context→decision/skill/statechart navigation with exact version and coverage display. Manifest inspection shows resolved settings, capability/qualification scope and differences from draft inputs; editing stays in R5's existing draft flow.
 
-- [ ] Write `final_input_is_auditable`: a context contains selected/omitted/expired sources, a contradictory peer belief and a transformed excerpt; assert displayed messages/schema match the final captured artifact byte content and all omissions are visible. Statechart shows real recorded transitions; skill adoption does not imply skill success. Revoked source click must not show cached body.
-- [ ] Run `npx vitest run tests/unit/research-context-view.test.tsx` and `npx playwright test --config playwright.research.config.ts tests/browser/research/lineage.spec.ts`; expect RED.
-- [ ] Implement source/span highlight, packet/schema/model-parameter tabs, diff of source/checkpoint revisions, mandatory-source coverage and virtualized large-text inspection. Label observed fact/peer claim/inference/plan/admission distinctly. Default collapsed payloads fetch only on authorized selection; never render peer text as executable HTML/Markdown with active links/scripts.
-- [ ] Run both tests with a 16 MiB artifact, malicious peer HTML, partial body, keyboard graph-to-table navigation and expired content; expect PASS without freezing the page or disclosing foreign state.
-- [ ] Review/checkpoint U2 with a reproducible synthetic "why did this action happen?" walkthrough.
+- [x] Write `final_input_is_auditable`: a context contains selected/omitted/expired sources, a contradictory peer belief and a transformed excerpt; assert displayed messages/schema match the final captured artifact byte content and all omissions are visible. Statechart shows real recorded transitions; skill adoption does not imply skill success. Revoked source click must not show cached body.
+- [x] Run `npx vitest run tests/unit/research-context-view.test.tsx` and `npx playwright test --config playwright.research.config.ts tests/browser/research/lineage.spec.ts`; expect RED.
+- [x] Implement source/span highlight, packet/schema/model-parameter tabs, diff of source/checkpoint revisions, mandatory-source coverage and virtualized large-text inspection. Label observed fact/peer claim/inference/plan/admission distinctly. Default collapsed payloads fetch only on authorized selection; never render peer text as executable HTML/Markdown with active links/scripts.
+- [x] Run both tests with a 16 MiB artifact, malicious peer HTML, partial body, keyboard graph-to-table navigation and expired content; expect PASS without freezing the page or disclosing foreign state.
+- [x] Review/checkpoint U2 with a reproducible synthetic "why did this action happen?" walkthrough.
 
 ## U3 — Build resource charts and PACT outcome timelines
 
@@ -69,11 +69,11 @@ Adapt `web/main.tsx`, `web/runs.tsx`, `web/metrics.tsx`, `web/comparisons.tsx`, 
 
 **Produces:** `ResourceDashboard({ snapshotId })` and `PactOutcomeTimeline({ snapshotId })`; charts for queue/service/latency distribution, concurrency, reservations/known/unknown usage, context/output limits, deadlines, storage/export health, and supported PACT objectives/communication outcomes.
 
-- [ ] Write `activity_is_not_effectiveness`: action then WAIT, admitted construction with no completion observation, contact accepted but no message, output cap, queue deferral, unknown tokens and late usage. Assert separate task/attempt/call/action populations, null markers, known/reserved/unknown series and no "completed" label without evidence. Communication graph distinguishes sent/delivered/replied/agreed edges.
-- [ ] Run `npx vitest run tests/unit/research-resource-view.test.tsx` and `npx playwright test --config playwright.research.config.ts tests/browser/research/resources.spec.ts`; expect RED.
-- [ ] Implement linked time/filter windows with declared clock/units, distribution sample counts, coverage badges and event drilldowns. Reuse metric definitions for tooltips/tables. Distinguish current operational state from historical time-window aggregates; never make up monetary prices or call latency from an event gap.
-- [ ] Run both tests including more than 200 calls, incomplete history and narrow/color-blind/keyboard views; expect PASS with aggregates matching A1 and no claim that communication volume measures intelligence.
-- [ ] Review/checkpoint U3 with synthetic screenshots of uncertainty and delayed completion, not just successful runs.
+- [x] Write `activity_is_not_effectiveness`: action then WAIT, admitted construction with no completion observation, contact accepted but no message, output cap, queue deferral, unknown tokens and late usage. Assert separate task/attempt/call/action populations, null markers, known/reserved/unknown series and no "completed" label without evidence. Communication graph distinguishes sent/delivered/replied/agreed edges.
+- [x] Run `npx vitest run tests/unit/research-resource-view.test.tsx` and `npx playwright test --config playwright.research.config.ts tests/browser/research/resources.spec.ts`; expect RED.
+- [x] Implement linked time/filter windows with declared clock/units, distribution sample counts, coverage badges and event drilldowns. Reuse metric definitions for tooltips/tables. Distinguish current operational state from historical time-window aggregates; never make up monetary prices or call latency from an event gap.
+- [x] Run both tests including more than 200 calls, incomplete history and narrow/color-blind/keyboard views; expect PASS with aggregates matching A1 and no claim that communication volume measures intelligence.
+- [x] Review/checkpoint U3 with synthetic screenshots of uncertainty and delayed completion, not just successful runs.
 
 ## U4 — Build comparison workspace and authorized exports
 
@@ -83,8 +83,12 @@ Adapt `web/main.tsx`, `web/runs.tsx`, `web/metrics.tsx`, `web/comparisons.tsx`, 
 
 **Produces:** `ResearchComparison({ experimentSnapshotId })`; condition/dataset/budget diff, distributions and effect intervals, outcome-versus-cost/latency Pareto plot, independent-unit/missingness table, metric-level source drilldown and explicit full archive export. Chart SVG/PNG and table CSV/JSON exports are separately requested decrypted outputs under the export policy, never a substitute for the complete encrypted archive.
 
-- [ ] Write `comparison_refuses_false_certainty`: shared-world sample with two clusters, unknown-cost candidate, mismatched horizon and changed evaluator. Assert descriptive/insufficient-unit labels, no fabricated interval/winner, unsuitable ranking disabled and all exclusions visible. Missing runs remain listed. Exported data includes metric/version/window/denominator/coverage/snapshot IDs and neutralizes CSV formula injection.
-- [ ] Run `npx vitest run tests/unit/research-comparison-view.test.tsx` and `npx playwright test --config playwright.research.config.ts tests/browser/research/comparison.spec.ts`; expect RED.
-- [ ] Implement accessible linked plots/tables with predeclared primary metric/effect margin and caveats from A2. Add explicit user-triggered authorized exports, no public sharing links or private analytics. Full archive export streams all pages through O5; chart export states its filters/coverage. Preserve draft comparison behavior and never start a run on compare/view/export.
-- [ ] Run both tests, `npm run test:research-ui` and `npm run build`; expect PASS with inspected synthetic screenshots for every mandatory design view, keyboard/table equivalents and no external or gameplay requests.
-- [ ] Review/checkpoint U4. The studio is accepted only after the causal failure investigation and comparison walkthroughs work end to end.
+- [x] Write `comparison_refuses_false_certainty`: shared-world sample with two clusters, unknown-cost candidate, mismatched horizon and changed evaluator. Assert descriptive/insufficient-unit labels, no fabricated interval/winner, unsuitable ranking disabled and all exclusions visible. Missing runs remain listed. Exported data includes metric/version/window/denominator/coverage/snapshot IDs and neutralizes CSV formula injection.
+- [x] Run `npx vitest run tests/unit/research-comparison-view.test.tsx` and `npx playwright test --config playwright.research.config.ts tests/browser/research/comparison.spec.ts`; expect RED.
+- [x] Implement accessible linked plots/tables with predeclared primary metric/effect margin and caveats from A2. Add explicit user-triggered authorized exports, no public sharing links or private analytics. Full archive export streams all pages through O5; chart export states its filters/coverage. Preserve draft comparison behavior and never start a run on compare/view/export.
+- [x] Run both tests, `npm run test:research-ui` and `npm run build`; expect PASS with inspected synthetic screenshots for every mandatory design view, keyboard/table equivalents and no external or gameplay requests.
+- [x] Review/checkpoint U4. The studio is accepted only after the causal failure investigation and comparison walkthroughs work end to end.
+
+## Completion — 31 October 2026
+
+U1–U4 source/offline implementation is complete inline on master. [Delivered interfaces, commits, checks, Linux performance and acceptance limits](../../research/studio-20261031.md). Browser checks use owned synthetic read models; native databases are fresh isolated fixtures. Inspection/export never launches runs or evaluations. Q qualification and operational installation are not resumed by these checkmarks.
