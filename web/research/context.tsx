@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import type { ResearchAPI } from "./api.js";
+import { scheduleExpiry } from "./expiry.js";
 import { LineageInspector } from "./lineage.js";
 import { ResearchTable } from "./table.js";
 import type { ArtifactChunk, ContextLineage, EvidenceEvent } from "./types.js";
@@ -99,27 +100,19 @@ export function ContextInspector({
   };
   useEffect(() => {
     if (!chunk?.expiresAt) return;
-    const timer = setTimeout(
-      () => {
-        epoch.current++;
-        setChunk(null);
-        setPrevious(null);
-        setError("Private source expired.");
-      },
-      Math.max(0, Date.parse(chunk.expiresAt) - Date.now()),
-    );
-    return () => clearTimeout(timer);
+    return scheduleExpiry(chunk.expiresAt, () => {
+      epoch.current++;
+      setChunk(null);
+      setPrevious(null);
+      setError("Private source expired.");
+    });
   }, [chunk]);
   useEffect(() => {
     if (!previous) return;
-    const timer = setTimeout(
-      () => {
-        setPrevious(null);
-        setDiff(false);
-      },
-      Math.max(0, Date.parse(previous.expiresAt) - Date.now()),
-    );
-    return () => clearTimeout(timer);
+    return scheduleExpiry(previous.expiresAt, () => {
+      setPrevious(null);
+      setDiff(false);
+    });
   }, [previous]);
   const bytes = chunk ? Uint8Array.from(atob(chunk.body), (c) => c.charCodeAt(0)) : null,
     text = bytes ? new TextDecoder().decode(bytes) : "";
