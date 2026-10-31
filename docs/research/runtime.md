@@ -39,3 +39,11 @@ Python3.12/Pydantic AI2.63.0 uses a custom `Model.request` with native JSON-sche
 Synthetic validation: real Python→Protobuf/gRPC→native admission and one allocation per call; direct raw socket/filesystem/privilege probes inside the production Docker envelope. The build used the pinned Python base and hash-locked base dependencies. Runtime image ID for this source checkpoint: `sha256:ebd785cc50c406848afbb9c38d722faa50de798888d2384e9066be454c5ea21d`. Later source changes require a new build and digest. macOS native UDS validation and Linux container isolation are separate fixtures; a deployed broker/container IPC installation is not certified by them.
 
 Migration049 owns worker sessions/checkpoints. Still-unimplemented memory/evaluation/qualification plans now reserve050–053, avoiding migration-number collisions.
+
+## Pure PACT policy (R3)
+
+`StatechartPolicy.step` uses XState5.33.3 pure transitions with explicit inputs. Its closed machine has no actors, invokes, entry/exit actions, network, wall clock or implicit randomness. Actor candidates require delivered source refs; the policy binds the exact PACT revision and game-time preconditions. Paused/expired clocks select a wait, mismatched clocks and stale/future facts fail, and advisory roles cannot select an action.
+
+A checkpoint seals policy version, input digest, consumed event, proposal digest and state. Restoring the same input returns the same proposal. A changed input cannot reuse a terminal checkpoint. The persistence adapter checks the stored checkpoint and uses its original encrypted artifact for idempotent `policy.transition` evidence; restoration can repair a missing event without invoking an action or allocating a model call. U2 can render the trace `{from:'ready',to:'selected',eventRef:'fixture:construction:1'}` from that artifact. Submission and receipt handling remain separate kernel boundaries.
+
+The pure transition API is documented by [Stately](https://stately.ai/docs/transitions).
