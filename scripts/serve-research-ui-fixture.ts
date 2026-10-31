@@ -1,3 +1,6 @@
+import { randomUUID } from "node:crypto";
+import { mkdir, writeFile } from "node:fs/promises";
+import { resolve } from "node:path";
 import { Readable } from "node:stream";
 import { EventKinds } from "../src/research/evidence/types.js";
 import { compareExperiment } from "../src/research/experiments/comparison.js";
@@ -11,6 +14,7 @@ import { createServer } from "vite";
 const app = Fastify({ logger: false }),
   vite = await createServer({
     configFile: false,
+    envDir: false,
     optimizeDeps: {
       noDiscovery: true,
       include: [
@@ -29,6 +33,10 @@ const app = Fastify({ logger: false }),
     server: {
       middlewareMode: true,
       allowedHosts: ["host.docker.internal", "127.0.0.1", "localhost"],
+      fs: {
+        allow: [resolve("web"), resolve("node_modules"), resolve("config/research/metrics.v1.json")],
+        deny: ["**/.env*", "**/.state/**", "**/.superpowers/**", "**/.git/**"],
+      },
       watch: { ignored: ["**/.superpowers/**", "**/.state/**", "**/test-results/**"] },
     },
     appType: "custom",
@@ -113,7 +121,11 @@ export function fixtureEvent(i: number) {
     coverage: { status: "complete", expected: "1", recorded: "1", reasons: [] },
   };
 }
-app.get("/health", () => ({ fixture: true }));
+const proofRoot = resolve(".superpowers/sdd/2026-10-30-pact-research-06-studio");
+await mkdir(proofRoot, { recursive: true, mode: 0o700 });
+const privateCanary = resolve(proofRoot, `fixture-private-${randomUUID()}.txt`);
+await writeFile(privateCanary, "SYNTHETIC_PRIVATE_FS_SENTINEL", { mode: 0o600 });
+app.get("/health", () => ({ fixture: true, privateCanaryURL: `/@fs${privateCanary}` }));
 app.post("/__fixture/revoke", () => {
   revoked = true;
   return { ok: true };

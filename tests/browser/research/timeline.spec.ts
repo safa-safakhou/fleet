@@ -107,3 +107,9 @@ test("expanding an outside-page parent adds it and its loaded child to the graph
     page.getByRole("button", { name: "Load parent 20000000-0000-4000-8000-000000000199", exact: true }),
   ).toHaveCount(0);
 });
+test("the synthetic fixture cannot serve private workspace evidence", async ({ request }) => {
+  const health = await (await request.get("/health")).json();
+  const response = await request.get(health.privateCanaryURL);
+  expect(response.status()).toBe(403);
+  expect(await response.text()).not.toContain("SYNTHETIC_PRIVATE_FS_SENTINEL");
+});
