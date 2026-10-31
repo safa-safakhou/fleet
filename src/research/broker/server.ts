@@ -51,6 +51,12 @@ export class ResearchBroker {
     readonly capture: CaptureSession,
     private admission: () => Promise<void> = async () => {},
     private readonly embeddingCompute?: EmbeddingCompute,
+    private readonly evaluationPort?: (
+      session: WorkerSession,
+      scope: RunScope,
+      key: OperationKey,
+      input: unknown,
+    ) => Promise<BrokerResult>,
   ) {
     this.journal = new StepJournal(store, tasks);
     this.sessions = new WorkerSessions(store, this.journal);
@@ -276,6 +282,10 @@ export class ResearchBroker {
   }
   async scopedPort(session: WorkerSession, scope: RunScope, key: OperationKey, port: string, input: unknown[]) {
     const ctx = await this.sessions.assert(session, scope);
+    if (port === "evaluation.model") {
+      if (!this.evaluationPort || input.length !== 1) throw new FleetError("EVALUATION_SCOPE_REQUIRED", true);
+      return this.evaluationPort(session, scope, key, input[0]);
+    }
     const allowed = new Set([
       "state.load",
       "state.accept",

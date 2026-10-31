@@ -18,6 +18,7 @@ export async function memoryFixture(
     embedding?: import("../../../src/research/manifests/compiler.js").RunManifestInput["memory"]["embedding"];
     language?: string;
     contextPolicy?: string;
+    evaluation?: { datasetDigest: string; split: string; maxCalls: number };
   } = {},
 ) {
   await assertOwnedFixture(process.env.FLEET_TEST_DATABASE_URL ?? "", process.env.FLEET_ARCHITECTURE_NONCE ?? "");
@@ -35,6 +36,17 @@ export async function memoryFixture(
   input.model = { route: "ollama", model: "fake-model", parameters: { maxOutputTokens: 100 } };
   input.context.policy = options.contextPolicy ?? input.context.policy;
   if (options.contextPolicy) input.limits = { calls: "3", tokens: "1000000", concurrency: 1 };
+  if (options.evaluation) {
+    input.roles = [{ id: "evaluator", authority: "advisory" }];
+    input.tools = [];
+    input.context.maxBytes = 16384;
+    input.limits = { calls: String(options.evaluation.maxCalls), tokens: "1000000", concurrency: 1 };
+    input.evaluation = {
+      evaluator: "pact-rules@1",
+      dataset: options.evaluation.datasetDigest,
+      split: options.evaluation.split,
+    };
+  }
   input.environment.bindingId = claim.bindingId;
   input.retrieval.strategy = options.strategy ?? "baseline-v1";
   input.retrieval.language = options.language ?? "en";

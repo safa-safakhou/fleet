@@ -1,0 +1,115 @@
+{
+  "schemaVersion": "fleet.dataset/v1",
+  "id": "synthetic-pact@1",
+  "version": 1,
+  "files": {
+    "train": "train.jsonl",
+    "development": "development.jsonl",
+    "heldout": "heldout.jsonl"
+  },
+  "splitDigests": {
+    "train": "8109c1ac687143561a4f10ef873d8c5b625e2d447564829ca62b6b1e7ce3bb34",
+    "development": "2276afe1afdf734afc584759fcdad395c2cc543f0f849547d4461b6a31782ecb",
+    "heldout": "c6e0e47e349942f4cb7afe7bddd79f2d6adbd8b85e3deaaa096672c88869a133"
+  },
+  "records": [
+    {
+      "id": "train-owner",
+      "family": "train-owner-family",
+      "world": "train-owner-world",
+      "split": "train",
+      "contentHash": "8b464fab28ccacd47bf5d7f91d54126babf2232256af7ab229184f63cbb86ef4"
+    },
+    {
+      "id": "train-facts",
+      "family": "train-facts-family",
+      "world": "train-facts-world",
+      "split": "train",
+      "contentHash": "cf5a0fb947cd677946a07c15b7c6264b769113e5461c668a8d28bac29680775a"
+    },
+    {
+      "id": "train-pending",
+      "family": "train-pending-family",
+      "world": "train-pending-world",
+      "split": "train",
+      "contentHash": "a7cb0966ef94b52de415f2225c54f30de8b7ce36b6a6c7895e364609acde528d"
+    },
+    {
+      "id": "train-citation",
+      "family": "train-citation-family",
+      "world": "train-citation-world",
+      "split": "train",
+      "contentHash": "57eb6325929ee9b29908d60afcc363c9b40edcb2cd35df46ebedc6a7d283fc89"
+    },
+    {
+      "id": "development-owner",
+      "family": "development-owner-family",
+      "world": "development-owner-world",
+      "split": "development",
+      "contentHash": "b2b3e8e8a7c51a602081793661de408c222ceee47b04c6b9c29fcaa430277d27"
+    },
+    {
+      "id": "development-fresh-facts",
+      "family": "development-fresh-facts-family",
+      "world": "development-fresh-facts-world",
+      "split": "development",
+      "contentHash": "137a7facca55b4ea4f5d0e038c67831a6d21cc47922f4f59cd32c0dd48f85e8f"
+    },
+    {
+      "id": "development-exact-id",
+      "family": "development-exact-id-family",
+      "world": "development-exact-id-world",
+      "split": "development",
+      "contentHash": "2cc75ec224c6e54b1466ed623d6947889c27257be63ca8031baf8212dda7e3b6"
+    },
+    {
+      "id": "development-pending-receipt",
+      "family": "development-pending-receipt-family",
+      "world": "development-pending-receipt-world",
+      "split": "development",
+      "contentHash": "d79512dde81b4091eb2528bda864fdf4f46d801e241d55ba1ba3419ab49c8df5"
+    },
+    {
+      "id": "development-schema",
+      "family": "development-schema-family",
+      "world": "development-schema-world",
+      "split": "development",
+      "contentHash": "f603da644b2f17c0cc24e3ef7b253b8a8d08fb9ceb96172eb0d489fd57414bd5"
+    },
+    {
+      "id": "development-contradictory-peer",
+      "family": "development-contradictory-peer-family",
+      "world": "development-contradictory-peer-world",
+      "split": "development",
+      "contentHash": "eb2a7a99e2e337c3b7cac9148862e3d5d3f7951376301538cc6286ee530132b0"
+    },
+    {
+      "id": "development-large-context",
+      "family": "development-large-context-family",
+      "world": "development-large-context-world",
+      "split": "development",
+      "contentHash": "461dcb27b4cc1f383277f42606935f91ed1a3d54fe21009289e75d10a7d066c6"
+    },
+    {
+      "id": "development-refusal-recovery",
+      "family": "development-refusal-recovery-family",
+      "world": "development-refusal-recovery-world",
+      "split": "development",
+      "contentHash": "15b25b6e5093476533d26658bb2ff3574d17e5c10eeae2901b097986d6573a7f"
+    },
+    {
+      "id": "heldout-authority",
+      "family": "heldout-authority-family",
+      "world": "heldout-authority-world",
+      "split": "heldout",
+      "contentHash": "259af629ae13efa877f636f06bdccdd37f0c45ad8c9c563bd0beab30d0be8c62"
+    },
+    {
+      "id": "heldout-delayed-outcome",
+      "family": "heldout-delayed-outcome-family",
+      "world": "heldout-delayed-outcome-world",
+      "split": "heldout",
+      "contentHash": "1799622656d4117b822e14007b8f7f2a2711242fed535a8a30c53f3fa712d9be"
+    }
+  ]
+}

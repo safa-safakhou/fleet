@@ -21,6 +21,15 @@ const encoded = (value: unknown) =>
     JSON.stringify(value, (_k, v) => (typeof v === "bigint" ? String(v) : typeof v === "function" ? undefined : v)),
   );
 export class CaptureSession implements ObservationPort {
+  private readonly resourcePurpose = new AsyncLocalStorage<
+    "decision" | "helper" | "correction" | "optimizer" | "judge"
+  >();
+  withPurpose<T>(
+    purpose: "decision" | "helper" | "correction" | "optimizer" | "judge",
+    work: () => Promise<T>,
+  ): Promise<T> {
+    return this.resourcePurpose.run(purpose, work);
+  }
   private readonly inputContext = new AsyncLocalStorage<ContextPacket>();
   withInputContext<T>(packet: ContextPacket, work: () => Promise<T>): Promise<T> {
     if (!packet.lineage.artifact || !packet.eventId) throw new FleetError("EVIDENCE_UNAVAILABLE", true);
@@ -217,7 +226,9 @@ export class CaptureSession implements ObservationPort {
     purpose?: "decision" | "helper" | "correction",
   ) {
     const scope = await this.scope(claim);
-    return new ObservedPorts(this, async () => scope, allocationId, purpose).wrapModel(port).decide(input);
+    return new ObservedPorts(this, async () => scope, allocationId, this.resourcePurpose.getStore() ?? purpose)
+      .wrapModel(port)
+      .decide(input);
   }
   game(agentId: string, port: GamePort) {
     let previous: RunScope | undefined;
@@ -363,7 +374,7 @@ export class ObservedPorts {
     private capture: CaptureSession,
     private resolve: (method?: string, args?: unknown[]) => Promise<RunScope | undefined>,
     private allocationId?: string,
-    private purpose: "decision" | "helper" | "correction" = "decision",
+    private purpose: "decision" | "helper" | "correction" | "optimizer" | "judge" = "decision",
   ) {}
   wrapModel(port: ModelPort): ModelPort {
     if ((port as ModelPort & { [wrappedModel]?: boolean })[wrappedModel]) return port;

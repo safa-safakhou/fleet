@@ -1,0 +1,13 @@
+{
+  "schemaVersion": "fleet.prompt-suite/v1",
+  "mode": "offline",
+  "provider": "fleet-owned@1",
+  "datasetManifest": "evals/pact/datasets/manifest.json",
+  "split": "development",
+  "candidates": ["reference", "corrupt"],
+  "maxCalls": 16,
+  "promptfooVersion": "0.125.1",
+  "cache": false,
+  "sharing": false,
+  "writeLatestResults": false,
+}
