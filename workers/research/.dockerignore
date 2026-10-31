@@ -1,0 +1,11 @@
+# Send only reviewed build inputs, never a developer venv, evidence or cached bytecode.
+**
+!Dockerfile
+!requirements.lock
+!src/
+!src/**
+!tests/
+!tests/test_isolation.py
+**/__pycache__/
+**/*.pyc
+**/*.pyo

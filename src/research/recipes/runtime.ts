@@ -49,7 +49,7 @@ export async function runPactRecipe(
     const checkpoint = await broker.loadCheckpoint(session, scope),
       steps = await broker.stepMap(session, scope),
       blocked = steps.some((s) => s.result.status !== "completed" || !s.result.resultRef);
-    const instructions = `${services.configuration.instructions ?? ""}\nUse only the supplied authorized PACT observation. Return sourceRefs from delivered evidence. Actions use a delivered native quoted payload and exact revision/clock preconditions. You cannot claim success; Fleet validates and submits. No implicit repairs.`;
+    const instructions = `${services.configuration.instructions ?? ""}\nUse only the supplied authorized PACT observation. Available read tools: ${JSON.stringify(manifest.tools)}. A read decision has kind read and payload {tool, arguments}. Return sourceRefs from delivered evidence. Actions use a delivered native quoted payload and exact revision/clock preconditions. You cannot claim success; Fleet validates and submits. No implicit repairs.`;
     const input = {
       instructions,
       observation: operation.observation,

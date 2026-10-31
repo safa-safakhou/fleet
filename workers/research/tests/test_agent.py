@@ -60,7 +60,15 @@ async def test_agent_uses_only_broker_and_preserves_source_refs():
     assert result["sourceRefs"] == ["fixture:source"]
     assert len(broker.calls) == 2
     assert broker.reads == [("look", {})]
-    assert broker.calls[0]["schema"]["type"] == "object"
+    schema = broker.calls[0]["schema"]
+    assert schema["type"] == "object"
+    read = next(
+        branch
+        for branch in schema["anyOf"]
+        if branch["properties"]["kind"].get("const") == "read"
+    )
+    assert read["properties"]["payload"]["required"] == ["tool", "arguments"]
+    assert all(message["role"] != "tool" for message in broker.calls[1]["messages"])
 
 
 @pytest.mark.anyio

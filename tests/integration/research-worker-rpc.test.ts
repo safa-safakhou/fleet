@@ -4,6 +4,7 @@ import { join, resolve } from "node:path";
 import { afterEach, expect, test } from "vitest";
 import { builtinArchitectures } from "../../src/app/builtins.js";
 import { createScopedServices } from "../../src/app/host-services.js";
+import { compileGenerationSchema } from "../../src/model-schema.js";
 import { ResearchBroker } from "../../src/research/broker/server.js";
 import { StepJournal } from "../../src/research/broker/steps.js";
 import { serveBroker } from "../../src/research/broker/transport.js";
@@ -51,17 +52,40 @@ test.each(["native", "python"])("broker_is_the_only_effect_path (%s)", async (mo
   const scope = await new StepJournal(f.store, f.tasks).open(claim, "broker-run", "broker-op", m.digest),
     broker = new ResearchBroker(f.store, f.tasks, capture);
   let providerCalls = 0;
+  let deliveredRefs = ["fixture:source"];
   const h = f.host(
     {
-      decide: async () => {
+      decide: async (request) => {
         providerCalls++;
+        if (mode === "python" && providerCalls > 1) {
+          for (const message of request.messages) {
+            try {
+              const value = JSON.parse(message.content);
+              if (Array.isArray(value.value?.sourceRefs)) deliveredRefs = value.value.sourceRefs;
+            } catch {
+              /* Prompt prose is not a tool result. */
+            }
+          }
+          expect(deliveredRefs).not.toEqual(["fixture:source"]);
+        }
+        const decision =
+          mode === "python" && providerCalls === 1
+            ? {
+                kind: "read",
+                payload: { tool: "look", arguments: {} },
+                sourceRefs: ["fixture:source"],
+                preconditions: {},
+              }
+            : {
+                kind: "advisory",
+                payload: { text: "synthetic" },
+                sourceRefs: deliveredRefs,
+                preconditions: {},
+              };
+        expect(compileGenerationSchema(request.schema)(decision)).toBe(true);
+        expect(request.messages.every((message) => message.role !== "tool")).toBe(true);
         return {
-          decision: {
-            kind: "advisory",
-            payload: { text: "synthetic" },
-            sourceRefs: ["fixture:source"],
-            preconditions: {},
-          },
+          decision,
           inputTokens: 7,
           outputTokens: 8,
         };
@@ -119,10 +143,10 @@ test.each(["native", "python"])("broker_is_the_only_effect_path (%s)", async (mo
             },
             ctx.signal,
           );
-          expect(result).toMatchObject({ protocolVersion: 1, status: "proposed", sourceRefs: ["fixture:source"] });
+          expect(result).toMatchObject({ protocolVersion: 1, status: "proposed", sourceRefs: deliveredRefs });
           expect(await broker.loadCheckpoint(session, scope)).toMatchObject({
             version: "1",
-            state: { terminal: { sourceRefs: ["fixture:source"] } },
+            state: { terminal: { sourceRefs: deliveredRefs } },
           });
         } finally {
           await transport.close();
@@ -182,7 +206,9 @@ test.each(["native", "python"])("broker_is_the_only_effect_path (%s)", async (mo
     },
   );
   await capture.withScope(scope, () => h.host.run(claim));
-  expect(providerCalls).toBe(1);
-  expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([{ status: "reported" }]);
+  expect(providerCalls).toBe(mode === "python" ? 2 : 1);
+  expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual(
+    Array.from({ length: mode === "python" ? 2 : 1 }, () => ({ status: "reported" })),
+  );
   expect(f.board.executions).toBe(0);
 });

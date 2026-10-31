@@ -1,6 +1,7 @@
 """Pydantic model transport; Fleet owns all allocations, retries and credentials."""
 
 import json
+from copy import deepcopy
 from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart
 from pydantic_ai.models import Model
 from pydantic_ai.profiles import ModelProfile
@@ -37,7 +38,7 @@ class BrokerModel(Model):
                         "text": "assistant",
                     }[kind]
                 elif kind in ("tool-call", "tool-return"):
-                    role = "assistant" if kind == "tool-call" else "tool"
+                    role = "assistant" if kind == "tool-call" else "user"
                     content = json.dumps(
                         {
                             "tool": part.tool_name,
@@ -53,10 +54,46 @@ class BrokerModel(Model):
             prepared.insert(0, {"role": "system", "content": instruction.content})
         if params.output_object is None:
             raise ValueError("OUTPUT_SCHEMA_REQUIRED")
+        # Fleet providers receive one JSON decision contract, not provider-specific
+        # function-calling messages. Advertise the registered read capability too.
+        final_schema = deepcopy(params.output_object.json_schema)
+        definitions = final_schema.pop("$defs", {})
+        branches = [final_schema]
+        for tool in params.function_tools:
+            if tool.name != "read_game":
+                raise ValueError("UNSUPPORTED_WORKER_TOOL")
+            arguments = deepcopy(tool.parameters_json_schema)
+            for name, definition in arguments.pop("$defs", {}).items():
+                if name in definitions and definitions[name] != definition:
+                    raise ValueError("SCHEMA_DEFINITION_CONFLICT")
+                definitions[name] = definition
+            branches.append(
+                {
+                    "type": "object",
+                    "properties": {
+                        "kind": {"const": "read"},
+                        "payload": arguments,
+                        "sourceRefs": {
+                            "type": "array",
+                            "items": {"type": "string"},
+                            "maxItems": 1000,
+                        },
+                        "preconditions": {
+                            "type": "object",
+                            "additionalProperties": False,
+                        },
+                    },
+                    "required": ["kind", "payload", "sourceRefs", "preconditions"],
+                    "additionalProperties": False,
+                }
+            )
+        schema = {"type": "object", "anyOf": branches}
+        if definitions:
+            schema["$defs"] = definitions
         value = await self.broker.model(
             {
                 "messages": prepared,
-                "schema": params.output_object.json_schema,
+                "schema": schema,
                 "maxOutputTokens": (model_settings or {}).get("max_tokens", 1024),
                 "purpose": "decision",
             }

@@ -1,14 +1,15 @@
 {
   "schemaVersion": "fleet.worker-image/v1",
   "worker": "python-pydantic@1",
-  "runtimeImageId": "sha256:203cad7f97f15208936185427d46f339a6dd23259ea3959f3da331c95b54c521",
-  "isolationTestImageId": "sha256:a1bca5b690f72f32f0017fce089390da3b9162ea007f555375973b3629c89ea9",
+  "runtimeImageId": "sha256:4a33079f0fdc84cf1b1049fa3e90ffee5359e61ec60eac125a197ffb600d5a73",
+  "isolationTestImageId": "sha256:9aafe54f6de649e3f6230da0b22d347f6e4601791565bb50bd4c98c90b099f65",
   "platform": "linux/arm64",
   "dockerfileSha256": "b010bc1b5144650bbb5a3d2cd0cb3b5e42d2fc13e2c0b764eb52e0f4cfe6174e",
   "requirementsSha256": "a031fc32d2027ff7725a80cb3aae75de9cb76cb15b56c4019b0d4b6f391730bc",
   "uvLockSha256": "c6fd7b6bacf4cf57cc34d21d40a3e967d116c185650297912020447557d13061",
-  "pythonSourceTreeSha256": "667c4fa722979235edb0e21664dbf7949320e601227dc02842044ce35fcb33ad",
+  "pythonSourceTreeSha256": "11fb138cd25f8d1c2d29f7568385c72b43d12e5612d5dde4b490fedd91f57143",
   "sourceTreeHashFormat": "sorted relative path + colon + file SHA256 + newline, UTF-8",
   "isolationProbeSha256": "97f0c04974cc18dcf35c019da5e29e148510e472655caafd7ee8e84deaaee375",
-  "acceptance": "synthetic network-none isolation probes; native RPC integration separately verified; no deployed-runtime acceptance"
+  "acceptance": "synthetic network-none isolation probes; native RPC integration separately verified; no deployed-runtime acceptance",
+  "dockerignoreSha256": "61ff828a9b95434a9ee370309e8b16cd8d97e0874b9bd3d92ccfdc39b741d089"
 }
