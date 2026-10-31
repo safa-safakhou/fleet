@@ -1,5 +1,5 @@
 import { randomUUID } from "node:crypto";
-import { mkdir, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import { Readable } from "node:stream";
 import { EventKinds } from "../src/research/evidence/types.js";
@@ -41,6 +41,55 @@ const app = Fastify({ logger: false }),
     },
     appType: "custom",
   });
+// Q3 replay serves only the owned synthetic acceptance output, never a user-selected path.
+async function nativeWalkthrough() {
+  try {
+    const value = JSON.parse(
+      await readFile(".superpowers/sdd/2026-10-30-pact-research-07-qualification/native-walkthrough.json", "utf8"),
+    );
+    return value.fixtureTag === "fleet.owned-synthetic-walkthrough/v1" ? value : null;
+  } catch {
+    return null;
+  }
+}
+app.get("/__fixture/native", async (_r, reply) => {
+  const native = await nativeWalkthrough();
+  return native
+    ? { runId: native.snapshot.runId, createdAt: native.snapshot.createdAt, reconciliation: native.reconciliation }
+    : reply.code(404).send({ code: "NATIVE_FIXTURE_NOT_PREPARED" });
+});
+app.addHook("onRequest", async (r, reply) => {
+  const native = await nativeWalkthrough();
+  if (!native) return;
+  const prefix = `/api/research/runs/${encodeURIComponent(native.snapshot.runId)}`;
+  const url = new URL(r.url, "http://fixture.invalid");
+  if (url.pathname !== prefix && !url.pathname.startsWith(prefix + "/")) return;
+  if (revoked) return reply.code(403).send({ error: { code: "EVIDENCE_WITHHELD" } });
+  if (r.method !== "GET") return reply.code(403).send({ error: { code: "FIXTURE_ROUTE_DENIED" } });
+  const suffix = url.pathname.slice(prefix.length);
+  if (!suffix) return reply.send(native.snapshot);
+  if (suffix === "/metric-sets") return reply.send(native.metricSets);
+  if (url.searchParams.get("snapshotId") !== native.snapshot.id)
+    return reply.code(403).send({ error: { code: "FIXTURE_SNAPSHOT_REQUIRED" } });
+  if (suffix === "/events")
+    return reply.send({
+      snapshotId: native.snapshot.id,
+      events: native.events.filter(
+        (e: any) =>
+          (!url.searchParams.get("kind") || e.kind === url.searchParams.get("kind")) &&
+          (!url.searchParams.get("streamId") || e.streamId === url.searchParams.get("streamId")),
+      ),
+      total: native.snapshot.total,
+      hasMore: false,
+      nextCursor: null,
+      maximumOrdinal: native.snapshot.maximumOrdinal,
+    });
+  const event = suffix.match(/^\/events\/([^/]+)$/);
+  if (event) return reply.send(native.events.find((e: any) => e.id === event[1]));
+  const chunk = suffix.match(/^\/artifacts\/([^/]+)\/chunks\/(\d+)$/);
+  if (chunk && native.chunks[`${chunk[1]}:${chunk[2]}`]) return reply.send(native.chunks[`${chunk[1]}:${chunk[2]}`]);
+  return reply.code(404).send({ error: { code: "FIXTURE_ROUTE_DENIED" } });
+});
 let revoked = false;
 const snapshotId = "10000000-0000-4000-8000-000000000001",
   eventId = (i: number) => `20000000-0000-4000-8000-${String(i).padStart(12, "0")}`;

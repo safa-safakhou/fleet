@@ -3,66 +3,20 @@
   "scope": "fixture-design",
   "seed": 20261030,
   "dimensions": {
-    "recipe": [
-      "scripted",
-      "advisory",
-      "deliberative",
-      "specialist"
-    ],
-    "runtime": [
-      "ts",
-      "python"
-    ],
-    "owner": [
-      "platform",
-      "temporal"
-    ],
-    "retrieval": [
-      "baseline-v1",
-      "fts-v1",
-      "vector-exact-v1",
-      "rrf-v1"
-    ],
-    "consent": [
-      "disabled",
-      "consented"
-    ],
-    "budget": [
-      "finite",
-      "continuous"
-    ],
-    "tools": [
-      "supported",
-      "unsupported"
-    ],
-    "stop": [
-      "ready",
-      "cancelled",
-      "pending",
-      "unknown"
-    ]
+    "recipe": ["scripted", "advisory", "deliberative", "specialist"],
+    "runtime": ["ts", "python"],
+    "owner": ["platform", "temporal"],
+    "retrieval": ["baseline-v1", "fts-v1", "vector-exact-v1", "rrf-v1"],
+    "consent": ["disabled", "consented"],
+    "budget": ["finite", "continuous"],
+    "tools": ["supported", "unsupported"],
+    "stop": ["ready", "cancelled", "pending", "unknown"]
   },
   "mandatoryTriples": [
-    [
-      "cancel",
-      "lease-loss",
-      "late-usage"
-    ],
-    [
-      "retention",
-      "index",
-      "cached-context"
-    ],
-    [
-      "worker-restart",
-      "pending-command",
-      "duplicate-delivery"
-    ],
-    [
-      "optimizer",
-      "judge",
-      "heldout-split"
-    ]
+    ["cancel", "lease-loss", "late-usage"],
+    ["retention", "index", "cached-context"],
+    ["worker-restart", "pending-command", "duplicate-delivery"],
+    ["optimizer", "judge", "heldout-split"]
   ],
   "limits": [
     "Pairwise axes plus four required risk scenarios; not exhaustive higher-order coverage.",
@@ -306,11 +260,7 @@
         "stop": "ready"
       },
       "status": "covered",
-      "risks": [
-        "cancel",
-        "lease-loss",
-        "late-usage"
-      ]
+      "risks": ["cancel", "lease-loss", "late-usage"]
     },
     {
       "id": "23175ab4315dea9cdacabcfc5dcffbe3870ab49a2977128271b2a44925a6a1c1",
@@ -325,11 +275,7 @@
         "stop": "ready"
       },
       "status": "covered",
-      "risks": [
-        "retention",
-        "index",
-        "cached-context"
-      ]
+      "risks": ["retention", "index", "cached-context"]
     },
     {
       "id": "4e65fd4053fb521651031e1e720eec53241f5da73b6d8ca65c102dbb73ef6015",
@@ -344,11 +290,7 @@
         "stop": "ready"
       },
       "status": "covered",
-      "risks": [
-        "worker-restart",
-        "pending-command",
-        "duplicate-delivery"
-      ]
+      "risks": ["worker-restart", "pending-command", "duplicate-delivery"]
     },
     {
       "id": "6ac130c64db0f38dd121f7a996b6d668907b820042bcf5865ee16fbad9ff7800",
@@ -363,11 +305,7 @@
         "stop": "ready"
       },
       "status": "covered",
-      "risks": [
-        "optimizer",
-        "judge",
-        "heldout-split"
-      ]
+      "risks": ["optimizer", "judge", "heldout-split"]
     }
   ]
 }

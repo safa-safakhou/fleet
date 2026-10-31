@@ -36,7 +36,9 @@
     "test:research-ui": "playwright test --config playwright.research.config.ts",
     "qualify:research": "tsx scripts/qualify-research.ts",
     "test:research-migration": "tsx scripts/test-research-migration.ts --fixture",
-    "test:research-faults": "tsx scripts/test-research-faults.ts --fixture"
+    "test:research-faults": "tsx scripts/test-research-faults.ts --fixture",
+    "test:research-package": "tsx scripts/test-research-package.ts",
+    "benchmark:research": "tsx scripts/benchmark-research.ts"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.16.0",

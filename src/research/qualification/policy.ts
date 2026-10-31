@@ -16,6 +16,13 @@ export const requiredGates = [
   "package",
 ] as const;
 export type QualificationScope = "fixture" | "installation" | "provider" | "behavior";
+export interface QualificationGateBinding {
+  scope: QualificationScope;
+  target: string;
+  manifestDigest: string;
+  capabilityDigest: string;
+  dependenciesDigest: string;
+}
 export interface QualificationEvidence {
   scope: QualificationScope;
   manifest: ResolvedRunManifest;
@@ -27,7 +34,7 @@ export interface QualificationEvidence {
   issuedAt: string;
   expiresAt: string;
   data: { status: "complete" | "partial" | "unavailable" | "withheld" | "expired"; expected: string; recorded: string };
-  gates: Record<string, { status: string; evidenceDigest: string }>;
+  gates: Record<string, QualificationGateBinding & { status: string; evidenceDigest: string }>;
   attestation: {
     scope: QualificationScope;
     target: string;
@@ -65,7 +72,17 @@ const schema = z
       .refine((x) => BigInt(x.recorded) <= BigInt(x.expected)),
     gates: z.record(
       z.string(),
-      z.object({ status: z.enum(["pass", "fail", "skipped", "unavailable"]), evidenceDigest: sha }).strict(),
+      z
+        .object({
+          status: z.enum(["pass", "fail", "skipped", "unavailable"]),
+          evidenceDigest: sha,
+          scope,
+          target: z.string().min(1).max(200),
+          manifestDigest: sha,
+          capabilityDigest: sha,
+          dependenciesDigest: sha,
+        })
+        .strict(),
     ),
     attestation: z
       .object({
@@ -134,7 +151,19 @@ export class QualificationPolicy {
           fail("CAPABILITY_CHANGED");
         if (dependenciesDigest !== evidence.testedDependenciesDigest) fail("DEPENDENCIES_CHANGED");
         if (evidence.manifest.status !== "experimental") fail("MANIFEST_STATUS_INVALID");
-        for (const gate of requiredGates) if (evidence.gates[gate]?.status !== "pass") fail(`GATE_REQUIRED:${gate}`);
+        for (const gate of requiredGates) {
+          const proof = evidence.gates[gate];
+          if (proof?.status !== "pass") fail(`GATE_REQUIRED:${gate}`);
+          if (
+            proof &&
+            (proof.scope !== evidence.scope ||
+              proof.target !== evidence.attestation.target ||
+              proof.manifestDigest !== manifestDigest ||
+              proof.capabilityDigest !== capabilityDigest ||
+              proof.dependenciesDigest !== dependenciesDigest)
+          )
+            fail(`GATE_INPUT_CHANGED:${gate}`);
+        }
         if (evidence.data.status !== "complete" || BigInt(evidence.data.expected) !== BigInt(evidence.data.recorded))
           fail("INCOMPLETE_DATA");
         const issued = Date.parse(evidence.issuedAt),

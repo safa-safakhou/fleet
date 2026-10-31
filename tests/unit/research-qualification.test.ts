@@ -45,3 +45,20 @@ test("malformed untrusted evidence is blocked rather than throwing or trusting a
   for (const e of [null, {}, { status: "qualified" }, { ...qualificationEvidence(), gates: null }])
     expect(policy.assess("a".repeat(64), e as any).status).toBe("blocked");
 });
+
+test("retagging attestation scope or recompiling inputs cannot reuse old passing gates", () => {
+  const installation = qualificationEvidence();
+  installation.scope = "installation";
+  installation.attestation.scope = "installation";
+  expect(policy.assess(installation.testedManifestDigest, installation).status).toBe("blocked");
+  const changed = qualificationEvidence();
+  changed.manifest.seed = "new-design";
+  const { status: _, capabilityDigest: __, ...input } = changed.manifest;
+  // Honest new compilation is still insufficient without new evidence for that manifest.
+  return import("../../src/research/manifests/compiler.js").then(({ compileManifest }) => {
+    const compiled = compileManifest(input, changed.capability);
+    changed.manifest = compiled.manifest;
+    changed.testedManifestDigest = compiled.digest;
+    expect(policy.assess(compiled.digest, changed).status).toBe("blocked");
+  });
+});

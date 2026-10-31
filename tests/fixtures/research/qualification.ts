@@ -16,7 +16,20 @@ export function qualificationEvidence(): QualificationEvidence {
     issuedAt: "2026-10-31T11:00:00.000Z",
     expiresAt: "2026-11-01T11:00:00.000Z",
     data: { expected: "10", recorded: "10", status: "complete" },
-    gates: Object.fromEntries(requiredGates.map((x) => [x, { status: "pass", evidenceDigest: "a".repeat(64) }])),
+    gates: Object.fromEntries(
+      requiredGates.map((x) => [
+        x,
+        {
+          status: "pass",
+          evidenceDigest: "a".repeat(64),
+          scope: "fixture" as const,
+          target: "owned-synthetic@1",
+          manifestDigest: compiled.digest,
+          capabilityDigest: digest(capability),
+          dependenciesDigest: digest({ node: "26.13.0", fakeProvider: "1.0.0" }),
+        },
+      ]),
+    ),
     attestation: {
       scope: "fixture",
       target: "owned-synthetic@1",

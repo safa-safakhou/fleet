@@ -1,0 +1,47 @@
+name: fleet-research-inspection
+# No default service profile. This file is a reviewed recipe, not an activation grant.
+services:
+  inspection:
+    profiles: [inspection]
+    image: "${FLEET_RESEARCH_INSPECTION_IMAGE:?exact sha256 image reference required}"
+    user: "10001:10001"
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: [no-new-privileges:true]
+    pids_limit: 128
+    mem_limit: 1g
+    cpus: 2
+    tmpfs: ["/tmp:rw,noexec,nosuid,size=32m,uid=10001,gid=10001"]
+    env_file: ["${FLEET_RESEARCH_PRIVATE_ENV:?owner-only configuration reference required}"]
+    environment:
+      FLEET_LIVE_ENABLED: "0"
+      FLEET_BIND: 0.0.0.0
+      PORT: "8820"
+      FLEET_STATE_PATH: /state
+      FLEET_RESEARCH_REQUIRE_VECTOR: "1"
+      FLEET_RESEARCH_KEY_PROOF_FILE: /private/key-proof.json
+    ports: ["127.0.0.1::8820"]
+    volumes:
+      - evidence:/state
+      - "${FLEET_RESEARCH_KEY_PROOF:?owner-only encrypted key proof required}:/private/key-proof.json:ro"
+    networks: [authority]
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:8820/research/ready').then(r=>process.exit(r.ok?0:1)).catch(()=>process.exit(1))",
+        ]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+networks:
+  authority:
+    external: true
+    name: "${FLEET_RESEARCH_AUTHORITY_NETWORK:?isolated database network required}"
+
+volumes:
+  evidence:
+    external: true
+    name: "${FLEET_RESEARCH_STATE_VOLUME:?owned evidence volume required}"
