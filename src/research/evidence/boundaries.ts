@@ -4,7 +4,9 @@ import type { PoolClient } from "pg";
 import { type Data, FleetError, type GamePort, type ModelPort, object, safeCode } from "../../domain.js";
 import type { ObservationClaim, ObservationPort } from "../../platform/observation-port.js";
 import type { Store } from "../../store.js";
-import type { RunScope } from "../contracts.js";
+import type { ContextPacket } from "../context/assembler.js";
+import { account } from "../context/token-accounting.js";
+import { digest, type RunScope } from "../contracts.js";
 import { ArtifactStore, bytes } from "./artifacts.js";
 import type { ArtifactFiles } from "./filesystem.js";
 import { EvidenceRecorder } from "./recorder.js";
@@ -17,6 +19,14 @@ const encoded = (value: unknown) =>
     JSON.stringify(value, (_k, v) => (typeof v === "bigint" ? String(v) : typeof v === "function" ? undefined : v)),
   );
 export class CaptureSession implements ObservationPort {
+  private readonly inputContext = new AsyncLocalStorage<ContextPacket>();
+  withInputContext<T>(packet: ContextPacket, work: () => Promise<T>): Promise<T> {
+    if (!packet.lineage.artifact || !packet.eventId) throw new FleetError("EVIDENCE_UNAVAILABLE", true);
+    return this.inputContext.run(packet, work);
+  }
+  inputForModel() {
+    return this.inputContext.getStore();
+  }
   readonly artifacts: ArtifactStore;
   readonly recorder: EvidenceRecorder;
   private active = new AsyncLocalStorage<RunScope>();
@@ -334,6 +344,13 @@ export class ObservedPorts {
         const scope = await self.resolve();
         if (!scope) return port.decide(input);
         await self.capture.preflight(scope);
+        const context = self.capture.inputForModel();
+        let preparedEvent: string | undefined;
+        if (context) {
+          if (!port.tracksDispatch || digest({ messages: input.messages, schema: input.schema }) !== context.digest)
+            throw new FleetError("CONTEXT_INPUT_MISMATCH", true);
+          await self.capture.artifacts.record(scope, context.lineage.artifact!.id);
+        }
         const allocationId =
           self.allocationId ??
           (
@@ -366,17 +383,24 @@ export class ObservedPorts {
             schema: input.schema,
             outputContract: input.outputContract ?? null,
             maxOutputTokens: input.maxOutputTokens,
+            ...(context
+              ? {
+                  contextLineageRef: { id: context.lineage.artifact!.id, kind: "context.lineage/v1" },
+                  packetDigest: context.digest,
+                }
+              : {}),
           },
           attrs,
-          { required: true },
+          { required: true, parents: context?.eventId ? [context.eventId] : [] },
         );
         let dispatched = false;
         const mark = async () => {
+          if (context && !preparedEvent) throw new FleetError("CONTEXT_PREPARATION_REQUIRED", true);
           if (!dispatched) {
             dispatched = true;
             await self.capture.emit(scope, "model.dispatched", undefined, attrs, {
               required: true,
-              parents: request ? [request.id] : [],
+              parents: [...(request ? [request.id] : []), ...(preparedEvent ? [preparedEvent] : [])],
             });
           }
         };
@@ -392,10 +416,38 @@ export class ObservedPorts {
             },
             onEvidence: async (event) => {
               if (event.kind === "prepared") {
-                await self.capture.emit(scope, "context.prepared", event.body, attrs, {
-                  required: true,
-                  parents: request ? [request.id] : [],
-                });
+                if (context) {
+                  const messages = object(event.body).messages;
+                  if (!Array.isArray(messages) || digest(messages) !== digest(context.messages))
+                    throw new FleetError("CONTEXT_INPUT_MISMATCH", true);
+                  const schema = (object(event.body).format ??
+                    object(object(object(event.body).response_format).json_schema).schema ??
+                    input.schema) as Data;
+                  const actual = account(context.messages, schema);
+                  if (
+                    actual.totalBytes > context.limits.maxBytes ||
+                    actual.inputTokens + context.limits.maxOutputTokens > context.limits.maxTokens
+                  )
+                    throw new FleetError("CONTEXT_CAPACITY_REQUIRED", true);
+                  const prepared = await self.capture.emit(
+                    scope,
+                    "context.prepared",
+                    {
+                      wire: event.body,
+                      contextLineageRef: context.lineage.artifact,
+                      packetDigest: context.digest,
+                      providerSchemaDigest: digest(schema),
+                      accounting: actual,
+                    },
+                    attrs,
+                    { required: true, parents: [context.eventId!] },
+                  );
+                  preparedEvent = prepared?.id;
+                } else
+                  await self.capture.emit(scope, "context.prepared", event.body, attrs, {
+                    required: true,
+                    parents: request ? [request.id] : [],
+                  });
               } else
                 await self.capture.emit(
                   scope,

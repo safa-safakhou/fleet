@@ -7,9 +7,11 @@ import { withEffectHooks } from "../../platform/effect-context.js";
 import type { ScopedServices } from "../../platform/engine-context.js";
 import type { TaskStore } from "../../platform/tasks.js";
 import type { Store } from "../../store.js";
+import { preparePactContext } from "../context/pact.js";
 import { type BrokerResult, canonical, digest, type OperationKey, type RunScope } from "../contracts.js";
 import type { CaptureSession } from "../evidence/boundaries.js";
 import { ManifestRepository } from "../manifests/repository.js";
+import { MemoryRepository } from "../memory/repository.js";
 import { type CheckpointState, WorkerCheckpoints } from "./checkpoints.js";
 import { validateBrokerAction } from "./game.js";
 import {
@@ -117,8 +119,23 @@ export class ResearchBroker {
         throw new FleetError("RESEARCH_BUDGET_EXHAUSTED", true);
       const decide = ctx.ports.services.model.decideWithFeedback;
       if (!decide) throw new FleetError("SINGLE_ATTEMPT_MODEL_REQUIRED", true);
+      const packet =
+        manifest.context.policy === "source-complete@1"
+          ? await preparePactContext(
+              new MemoryRepository(this.store, this.journal, this.capture),
+              scope,
+              ctx.ports.services,
+              ctx.ports.observation,
+              request,
+            )
+          : undefined;
       mark();
-      const out = await decide(requestBody, { maxAttempts: 1, validate: () => null });
+      const run = () =>
+        decide(
+          { ...requestBody, ...(packet ? { messages: packet.messages, schema: packet.schema } : {}) },
+          { maxAttempts: 1, validate: () => null },
+        );
+      const out = packet ? await this.capture.withInputContext(packet, run) : await run();
       if (!out.result) throw new FleetError("MODEL_RESULT_UNAVAILABLE", true);
       const value = out.result;
       const row = (

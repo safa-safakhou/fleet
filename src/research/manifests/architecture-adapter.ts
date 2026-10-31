@@ -12,7 +12,14 @@ export function compileRecipeManifest(input: RunManifestInput, config: Data, cap
   return compileManifest(
     {
       ...input,
-      components: { ...input.components, worker: selected.worker, policy: selected.policy },
+      components: {
+        ...input.components,
+        worker: selected.worker,
+        policy: selected.policy,
+        ...(selected.contextPolicy === "source-complete@1"
+          ? { context: "source-complete@1", memory: "typed-memory@1" }
+          : {}),
+      },
       context: { ...input.context, policy: selected.contextPolicy },
       memory: { ...input.memory, namespace: selected.memoryNamespace },
     },

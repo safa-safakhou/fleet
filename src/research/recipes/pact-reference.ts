@@ -14,7 +14,7 @@ export const recipeConfigSchema = {
     worker: { type: "string", enum: ["typescript-reference@1", "python-pydantic@1"], title: "Worker implementation" },
     policy: { type: "string", enum: ["pact-reference@1", "pact-scripted@1"], title: "PACT policy" },
     memoryNamespace: { type: "string", minLength: 1, maxLength: 100, title: "Private memory namespace" },
-    contextPolicy: { type: "string", enum: ["observed-pact@1"], title: "Context policy" },
+    contextPolicy: { type: "string", enum: ["observed-pact@1", "source-complete@1"], title: "Context policy" },
     maxSteps: { type: "integer", minimum: 1, maximum: 100, title: "Maximum reasoning steps" },
     scriptedAction: {
       type: "string",
@@ -39,7 +39,7 @@ export const RecipeConfig = z
     worker: z.enum(["typescript-reference@1", "python-pydantic@1"]),
     policy: z.enum(["pact-reference@1", "pact-scripted@1"]),
     memoryNamespace: z.string().min(1).max(100),
-    contextPolicy: z.literal("observed-pact@1"),
+    contextPolicy: z.enum(["observed-pact@1", "source-complete@1"]),
     maxSteps: z.number().int().min(1).max(100),
     scriptedAction: z.string().max(100),
   })
@@ -78,7 +78,7 @@ export function recipeManifestIssues(input: RunManifestInput) {
     input.components.policy !== (input.profile.id === "pact-research-scripted" ? "pact-scripted@1" : "pact-reference@1")
   )
     fail("/components/policy");
-  if (input.context.policy !== "observed-pact@1") fail("/context/policy");
+  if (!["observed-pact@1", "source-complete@1"].includes(input.context.policy)) fail("/context/policy");
   if (
     input.profile.id === "pact-research-advisory"
       ? input.roles.some((r) => r.authority !== "advisory")
@@ -88,9 +88,8 @@ export function recipeManifestIssues(input: RunManifestInput) {
   if (input.clock.observationId !== "pact.game-time-ms") fail("/clock");
   if (
     input.context.compression ||
-    input.retrieval.strategy !== "baseline-v1" ||
-    input.memory.indexPolicy !== "disabled" ||
-    input.memory.embedding
+    (input.context.policy !== "source-complete@1" &&
+      (input.retrieval.strategy !== "baseline-v1" || input.memory.indexPolicy !== "disabled" || input.memory.embedding))
   )
     fail("/memory");
   if (input.profile.id === "pact-research-scripted" && input.components.worker !== "typescript-reference@1")

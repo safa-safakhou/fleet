@@ -17,16 +17,24 @@ export async function memoryFixture(
     strategy?: "baseline-v1" | "fts-v1" | "vector-exact-v1" | "rrf-v1";
     embedding?: import("../../../src/research/manifests/compiler.js").RunManifestInput["memory"]["embedding"];
     language?: string;
+    contextPolicy?: string;
   } = {},
 ) {
   await assertOwnedFixture(process.env.FLEET_TEST_DATABASE_URL ?? "", process.env.FLEET_ARCHITECTURE_NONCE ?? "");
   const f = await platformFixture(),
     root = await mkdtemp(join(tmpdir(), "fleet-memory-"));
+  await f.pool.query("UPDATE cohorts SET model=model||$2::jsonb WHERE id=$1", [
+    f.group.id,
+    JSON.stringify({ temperature: 1, topP: 1 }),
+  ]);
   await f.store.consent(f.group.id, true);
   await f.enqueue();
   const claim = await f.claim();
   const input = manifestInput();
   input.profile = claim.profile;
+  input.model = { route: "ollama", model: "fake-model", parameters: { maxOutputTokens: 100 } };
+  input.context.policy = options.contextPolicy ?? input.context.policy;
+  if (options.contextPolicy) input.limits = { calls: "3", tokens: "1000000", concurrency: 1 };
   input.environment.bindingId = claim.bindingId;
   input.retrieval.strategy = options.strategy ?? "baseline-v1";
   input.retrieval.language = options.language ?? "en";
@@ -37,6 +45,7 @@ export async function memoryFixture(
   }
   const m = compileManifest(input, {
     ...capability,
+    model: { ...capability.model, route: "ollama", model: "fake-model" },
     indexGrants: index
       ? [
           {

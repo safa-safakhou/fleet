@@ -32,6 +32,7 @@ export type RetrievalResult = {
   omitted: { id: string; reason: string }[];
   coverage: { status: "complete" | "partial"; expected: number; recorded: number };
   durationMs: number;
+  eventId?: string;
 };
 export function validateVector(vector: number[], identity: EmbeddingIdentity) {
   if (vector.length !== identity.dimension) throw new FleetError("EMBEDDING_INCOMPATIBLE", true);
@@ -214,7 +215,14 @@ export class RetrievalService {
       },
       durationMs: performance.now() - started,
     };
-    await this.memory.captureSession.emit(scope, "memory.read", { query: q, ...result }, {}, { required: true });
+    const event = await this.memory.captureSession.emit(
+      scope,
+      "memory.read",
+      { query: q, ...result },
+      {},
+      { required: true },
+    );
+    if (event) result.eventId = event.id;
     return result;
   }
 }
