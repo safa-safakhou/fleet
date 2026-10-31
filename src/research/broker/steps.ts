@@ -192,10 +192,22 @@ export class StepJournal {
       const previous = ResultSchema.parse(old.result);
       if (canonical(previous) === canonical(result)) return;
       if (["completed", "not_dispatched"].includes(previous.status)) fail("STEP_RESULT_CONFLICT");
-      if (
-        previous.status === "unknown" &&
-        !(previous.commandId && !previous.allocationId && result.status === "completed")
-      )
+      if (previous.status === "unknown" && previous.allocationId) {
+        if (!/^[a-f0-9-]{36}$/.test(previous.allocationId)) fail("STEP_RESULT_CONFLICT");
+        const native = (
+          await db.query(
+            "SELECT status,input_tokens::text,output_tokens::text FROM compute_ledger WHERE id=$1 AND turn_id=$2",
+            [previous.allocationId, scope.turnId],
+          )
+        ).rows[0];
+        if (
+          result.status !== "completed" ||
+          native?.status !== "reported" ||
+          result.usage?.inputTokens !== native.input_tokens ||
+          result.usage?.outputTokens !== native.output_tokens
+        )
+          fail("STEP_RESULT_CONFLICT");
+      } else if (previous.status === "unknown" && !(previous.commandId && result.status === "completed"))
         fail("STEP_RESULT_CONFLICT");
       for (const k of ["allocationId", "commandId"] as const)
         if (previous[k] && result[k] !== previous[k]) fail("STEP_RESULT_CONFLICT");

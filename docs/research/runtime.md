@@ -47,3 +47,11 @@ Migration049 owns worker sessions/checkpoints. Still-unimplemented memory/evalua
 A checkpoint seals policy version, input digest, consumed event, proposal digest and state. Restoring the same input returns the same proposal. A changed input cannot reuse a terminal checkpoint. The persistence adapter checks the stored checkpoint and uses its original encrypted artifact for idempotent `policy.transition` evidence; restoration can repair a missing event without invoking an action or allocating a model call. U2 can render the trace `{from:'ready',to:'selected',eventRef:'fixture:construction:1'}` from that artifact. Submission and receipt handling remain separate kernel boundaries.
 
 The pure transition API is documented by [Stately](https://stately.ai/docs/transitions).
+
+## Cancellation and reconciliation (R4)
+
+Stop requested, scope fenced, worker acknowledged and effect resolved are separate facts. `requestStop` persists a stable stop reference, fences the task/native actor and worker sessions, and asks only that task's supervisor to abort. A task stopped before admission needs no worker acknowledgement. An executing worker is acknowledged only after its invocation returns. Neither event means that a remote provider stopped or that PACT rolled back.
+
+`RuntimeReconciler.inspect` reports pending steps/receipts, running workers, unknown allocations, missing result payloads and evidence gaps. `reconcileKnown` reads original native allocations and command journals and projects only already recorded outcomes. It performs no network calls, inference, command submissions, refunds, worker restarts or uncertainty approvals. Known late usage can settle a still-reserved original allocation; usage attached after an allocation became unknown remains a separate observation and leaves the original reservation quarantined. A result with settled usage but no saved body remains explicitly unavailable to a resumed worker.
+
+Late evidence finds the original research scope by native turn even outside the original async context. Partial Python executions refuse whole-agent restart, including when all prior steps are known but no terminal checkpoint exists. Cancellation kills the owned worker process/container; a killed Docker client alone is not considered proof of container exit. Historical/unrelated operations are never selected by a task-scoped stop.

@@ -308,6 +308,7 @@ export class ResearchBroker {
         ])
       ).rows[0]?.result as BrokerResult | undefined;
       if (saved?.status === "pending") {
+        if (dispatched) await this.capture.gap(scope);
         let result: BrokerResult = {
           ...saved,
           status:

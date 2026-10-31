@@ -11,7 +11,7 @@ export async function scopeForTurn(
 ): Promise<RunScope> {
   const retained = (
     await db.query(
-      "SELECT scope FROM research_evidence_scopes WHERE run_id=$1::text AND turn_id=$1::uuid ORDER BY epoch LIMIT 1",
+      "SELECT s.scope FROM research_evidence_scopes s JOIN research_runs r ON r.run_id=s.run_id WHERE turn_id=$1::uuid ORDER BY (r.provenance='research') DESC,s.epoch DESC LIMIT 1",
       [turnId],
     )
   ).rows[0];

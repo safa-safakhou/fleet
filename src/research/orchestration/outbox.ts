@@ -12,6 +12,7 @@ export class TemporalTaskOwner {
     readonly client: TaskWorkflowClient,
     private run: (claim: TaskClaim) => Promise<void>,
     private admissionOpen: () => boolean = () => true,
+    private stopWork: (taskId: string) => Promise<void> = async () => {},
   ) {}
   async enroll(taskId: string, manifestDigest: string) {
     const manifest = await new ManifestRepository(this.store.pool).load(manifestDigest);
@@ -153,7 +154,15 @@ export class TemporalTaskOwner {
     } catch {
       await this.park(ref);
       return this.inspect(ref);
+    } finally {
+      await this.acknowledgeStoppedExecution(ref.taskId);
     }
+  }
+  private async acknowledgeStoppedExecution(taskId: string) {
+    await this.store.pool.query(
+      "UPDATE research_task_owners SET acknowledged_at=$2 WHERE task_id=$1 AND stop_id IS NOT NULL",
+      [taskId, this.store.now()],
+    );
   }
   async park(ref: WorkflowRef) {
     await transaction(this.store.pool, async (db) => {
@@ -171,12 +180,20 @@ export class TemporalTaskOwner {
     await transaction(this.store.pool, async (db) => {
       const row = (
         await db.query(
-          "SELECT o.stop_id,t.*,x.state native_state,x.code native_code,x.pending_command,x.unknown_usage,e.delivery_id FROM research_task_owners o JOIN platform_tasks t ON t.id=o.task_id LEFT JOIN research_task_executions e ON e.task_id=t.id AND e.phase<>'settled' LEFT JOIN turns x ON x.id=e.turn_id WHERE t.id=$1 AND o.manifest_digest=$2 FOR UPDATE OF o,t",
+          "SELECT o.stop_id,t.*,x.state native_state,x.code native_code,x.pending_command,x.unknown_usage,e.turn_id execution_turn_id,e.delivery_id FROM research_task_owners o JOIN platform_tasks t ON t.id=o.task_id LEFT JOIN research_task_executions e ON e.task_id=t.id AND e.phase<>'settled' LEFT JOIN turns x ON x.id=e.turn_id WHERE t.id=$1 AND o.manifest_digest=$2 FOR UPDATE OF o,t",
           [ref.taskId, ref.manifestDigest],
         )
       ).rows[0];
       if (!row) throw new FleetError("TASK_OWNER_MISMATCH", true);
-      if (!row.delivery_id) return;
+      if (!row.delivery_id) {
+        if (row.stop_id) {
+          await db.query("UPDATE research_task_owners SET phase='cancelled' WHERE task_id=$1", [ref.taskId]);
+          await db.query("UPDATE platform_tasks SET state='cancelled',code='OPERATION_STOPPED' WHERE id=$1", [
+            ref.taskId,
+          ]);
+        }
+        return;
+      }
       const unknown = (
         await db.query("SELECT 1 FROM compute_ledger WHERE turn_id=$1 AND status IN ('reserved','unknown') LIMIT 1", [
           row.active_turn_id,
@@ -228,9 +245,29 @@ export class TemporalTaskOwner {
       ]);
       await db.query("UPDATE platform_tasks SET fence=fence+1 WHERE id=$1", [taskId]);
       await db.query(
+        "UPDATE agents SET fence=fence+1 WHERE id=(SELECT agent_id FROM turns WHERE id=$1 AND state='running')",
+        [row.active_turn_id],
+      );
+      await db.query(
+        "UPDATE research_worker_sessions SET status='fenced',stopped_at=$2 WHERE operation_id IN(SELECT operation_id FROM research_operations WHERE task_id=$1) AND status='active'",
+        [taskId, now],
+      );
+      if (
+        !row.active_turn_id &&
+        !(await db.query("SELECT 1 FROM research_task_executions WHERE task_id=$1 AND phase<>'settled'", [taskId]))
+          .rowCount
+      ) {
+        await db.query("UPDATE research_task_owners SET phase='cancelled',acknowledged_at=$2 WHERE task_id=$1", [
+          taskId,
+          now,
+        ]);
+        await db.query("UPDATE platform_tasks SET state='cancelled',code='OPERATION_STOPPED' WHERE id=$1", [taskId]);
+      }
+      await db.query(
         "INSERT INTO research_task_outbox(id,task_id,kind,dedupe_key,created_at) VALUES($1,$2,'stop',$3,$4)",
         [stopId, taskId, `stop:${stopId}`, now],
       );
     });
+    await this.stopWork(taskId);
   }
 }

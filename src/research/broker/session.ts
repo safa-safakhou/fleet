@@ -73,6 +73,7 @@ export class WorkerSessions {
     this.ports.get(id)?.controller.abort(new FleetError("WORKER_SESSION_FENCED"));
   }
   async acknowledge(session: WorkerSession) {
+    this.ports.delete(session.id);
     await this.store.pool.query(
       "UPDATE research_worker_sessions SET status='acknowledged',acknowledged_at=$2 WHERE id=$1 AND status='fenced'",
       [session.id, this.store.now()],

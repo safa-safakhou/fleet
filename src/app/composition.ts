@@ -168,6 +168,7 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
         tasks,
         ...selected,
         admissionOpen: () => settings.liveAllowed && runWindow.isOpen(),
+        stop: (taskId) => host.stop(taskId),
         run: async (claim) => {
           const scope = await new StepJournal(store, tasks).open(
             claim,

@@ -15,6 +15,7 @@ export async function startTaskRuntime(options: {
   namespace: string;
   manifestDigest: string;
   admissionOpen: () => boolean;
+  stop?: (taskId: string) => Promise<void>;
 }) {
   const transport = await TemporalClient.connect(options.address, options.namespace),
     connection = await NativeConnection.connect({ address: options.address });
@@ -27,6 +28,7 @@ export async function startTaskRuntime(options: {
       await options.run(claim);
     },
     options.admissionOpen,
+    options.stop,
   );
   const worker = await Worker.create({
     connection,
@@ -46,10 +48,11 @@ export async function startTaskRuntime(options: {
   const running = worker.run();
   void running.catch(() => {});
   let busy = false;
+  let delivery: Promise<void> | undefined;
   const timer = setInterval(() => {
     if (busy) return;
     busy = true;
-    void (async () => {
+    delivery = (async () => {
       const rows = (
         await options.store.pool.query(
           "SELECT o.id FROM research_task_outbox o JOIN research_task_owners t ON t.task_id=o.task_id WHERE o.delivered_at IS NULL AND t.manifest_digest=$1 ORDER BY o.created_at,o.id LIMIT 10",
@@ -69,9 +72,13 @@ export async function startTaskRuntime(options: {
     close: async () => {
       clearInterval(timer);
       worker.shutdown();
-      await running;
-      await connection.close();
-      await transport.connection.close();
+      try {
+        await running;
+      } finally {
+        await delivery;
+        await connection.close();
+        await transport.connection.close();
+      }
     },
   };
 }
