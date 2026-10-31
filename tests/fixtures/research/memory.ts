@@ -11,7 +11,14 @@ import type { SourceClass } from "../../../src/research/memory/schema.js";
 import { assertOwnedFixture } from "../../architecture-fixture.js";
 import { platformFixture } from "../../platform-helpers.js";
 import { capability, manifestInput } from "./manifest.js";
-export async function memoryFixture(index = true) {
+export async function memoryFixture(
+  index = true,
+  options: {
+    strategy?: "baseline-v1" | "fts-v1" | "vector-exact-v1" | "rrf-v1";
+    embedding?: import("../../../src/research/manifests/compiler.js").RunManifestInput["memory"]["embedding"];
+    language?: string;
+  } = {},
+) {
   await assertOwnedFixture(process.env.FLEET_TEST_DATABASE_URL ?? "", process.env.FLEET_ARCHITECTURE_NONCE ?? "");
   const f = await platformFixture(),
     root = await mkdtemp(join(tmpdir(), "fleet-memory-"));
@@ -21,13 +28,27 @@ export async function memoryFixture(index = true) {
   const input = manifestInput();
   input.profile = claim.profile;
   input.environment.bindingId = claim.bindingId;
+  input.retrieval.strategy = options.strategy ?? "baseline-v1";
+  input.retrieval.language = options.language ?? "en";
+  if (options.embedding) input.memory.embedding = options.embedding;
   if (index) {
     input.memory.indexPolicy = "consented";
     input.memory.indexConsentRef = "fixture-index";
   }
   const m = compileManifest(input, {
     ...capability,
-    indexGrants: index ? [{ ref: "fixture-index", bindingId: claim.bindingId, namespace: input.memory.namespace }] : [],
+    indexGrants: index
+      ? [
+          {
+            ref: "fixture-index",
+            bindingId: claim.bindingId,
+            namespace: input.memory.namespace,
+            ...(options.embedding
+              ? { embeddingRevision: options.embedding.revision, dimension: options.embedding.dimension }
+              : {}),
+          },
+        ]
+      : [],
   });
   await new ManifestRepository(f.pool).save(m.manifest);
   const journal = new StepJournal(f.store, f.tasks),

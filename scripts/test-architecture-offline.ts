@@ -64,7 +64,11 @@ const runtime: FixtureRuntime = {
         envFile,
         "-p",
         "127.0.0.1::5432",
-        "postgres:17-alpine",
+        process.env.FLEET_RESEARCH_VECTOR_FIXTURE === "1"
+          ? process.arch === "arm64"
+            ? "pgvector/pgvector:0.8.7-pg17-bookworm@sha256:54c85cf1c63374d9af06fcf494cd86e133b4accbded69ac7622d11d6e7daef54"
+            : "pgvector/pgvector:0.8.7-pg17-bookworm@sha256:2017da03379b27508603c44e9041a082ef53ef711fed614ccd5044eaf9df6e31"
+          : "postgres:17-alpine",
       ]);
     } finally {
       await rm(directory, { recursive: true, force: true });

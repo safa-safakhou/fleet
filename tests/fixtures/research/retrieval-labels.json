@@ -1,0 +1,15 @@
+{
+  "schemaVersion": "fleet.retrieval-dataset/v1",
+  "id": "synthetic-development@1",
+  "split": "development",
+  "topK": 2,
+  "documents": [
+    { "id": "farm", "text": "wood wood farm", "vector": [1, 0, 0] },
+    { "id": "castle", "text": "stone castle", "vector": [0, 1, 0] },
+    { "id": "forest", "text": "wood forest", "vector": [0.6, 0.8, 0] }
+  ],
+  "queries": [
+    { "id": "wood", "text": "wood", "vector": [1, 0, 0], "relevance": { "farm": 2, "forest": 1 } },
+    { "id": "stone", "text": "stone", "vector": [0, 1, 0], "relevance": { "castle": 2 } }
+  ]
+}

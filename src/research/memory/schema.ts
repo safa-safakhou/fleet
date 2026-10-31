@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { FleetError } from "../../domain.js";
 import { digest, type RunScope } from "../contracts.js";
 import type { RunManifestInput } from "../manifests/compiler.js";
 export const SourceClassSchema = z.enum([
@@ -61,5 +62,5 @@ export function namespaceFor(scope: Pick<RunScope, "agentId" | "bindingId" | "pa
 export function textConfiguration(language: string) {
   if (language === "en") return "english";
   if (language === "simple") return "simple";
-  throw new Error("LANGUAGE_UNSUPPORTED");
+  throw new FleetError("LANGUAGE_UNSUPPORTED", true);
 }
