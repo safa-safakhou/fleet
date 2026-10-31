@@ -3,6 +3,7 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install --global npm@12.2.1 && npm ci
 COPY tsconfig*.json vite.config.ts vitest.config.ts biome.json ./
+COPY config/research/metrics.v1.json ./config/research/metrics.v1.json
 COPY src ./src
 COPY web ./web
 COPY vendor ./vendor

@@ -13,7 +13,7 @@
   "scripts": {
     "dev": "tsx src/main.ts",
     "dev:web": "vite --host 127.0.0.1",
-    "build": "tsc -p tsconfig.server.json && vite build",
+    "build": "tsc -p tsconfig.server.json && node scripts/build-research-assets.mjs && vite build",
     "check": "tsc --noEmit && biome check .",
     "test": "vitest run tests/unit",
     "test:architecture": "node --import tsx scripts/test-architecture-offline.ts",
