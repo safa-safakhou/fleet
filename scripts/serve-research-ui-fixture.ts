@@ -1,4 +1,5 @@
 import { Readable } from "node:stream";
+import { EventKinds } from "../src/research/evidence/types.js";
 import { compareExperiment } from "../src/research/experiments/comparison.js";
 import type { ExperimentSnapshot } from "../src/research/experiments/repository.js";
 /** Owned synthetic browser fixture. No database, providers, game clients or retained routes. */
@@ -164,6 +165,7 @@ app.get("/api/research/runs/:runId", (r) => ({
     commands: [{ id: "pending-construction", status: "admitted" }],
     cohorts: [{ id: "synthetic-cohort", state: "paused", createdAt: new Date().toISOString(), completedAt: null }],
   },
+  eventKinds: [...EventKinds],
   metricDefinitions: [],
 }));
 app.get("/api/research/runs/:runId/events", (r, reply) => {

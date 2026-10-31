@@ -17,6 +17,7 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
     [snapshot, setSnapshot] = useState<RunSnapshot | null>(null),
     [page, setPage] = useState<EventPage | null>(null),
     [selected, setSelected] = useState<InspectedEvent | null>(null),
+    [expanded, setExpanded] = useState<InspectedEvent[]>([]),
     [error, setError] = useState(""),
     [busy, setBusy] = useState(false),
     [filters, setFilters] = useState<TraceFilters>({ search: "", kind: "", stream: "", zoom: 1 }),
@@ -44,6 +45,7 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
     setSnapshot(null);
     setPage(null);
     setSelected(null);
+    setExpanded([]);
     setError("Private evidence unavailable: authorization, consent or retention changed.");
   }, []);
   if (!api.current) api.current = new ResearchAPI(clear);
@@ -54,6 +56,7 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
     ticket.current++;
     setSnapshot(null);
     setSelected(null);
+    setExpanded([]);
     setPage(null);
     setError("");
     if (!runId) return;
@@ -62,6 +65,7 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
       const s = await api.current!.snapshot(runId);
       if (scopeVersion !== scopeEpoch.current) return;
       performance.mark("fleet.metadata.loaded");
+      for (const kind of s.eventKinds ?? []) knownKinds.current.add(kind);
       setSnapshot(s);
       const p = await api.current!.page(runId, s.id);
       if (scopeVersion === scopeEpoch.current) receivePage(p);
@@ -105,6 +109,7 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
         const e = await api.current!.event(runId, snapshot.id, id);
         if (t === ticket.current) {
           setSelected(e);
+          setExpanded((old) => [...old.filter((x) => x.id !== e.id).slice(-99), e]);
           if (location.hash !== runLink(runId, id)) history.replaceState(null, "", runLink(runId, id));
         }
       } catch (e) {
@@ -291,7 +296,7 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
           ) : (
             <CausalGraph
               snapshotId={snapshot.id}
-              events={events}
+              events={[...new Map([...events, ...expanded].map((e) => [e.id, e])).values()]}
               selectedEventId={selected?.id}
               onSelect={(id) => void select(id)}
             />

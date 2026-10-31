@@ -24,6 +24,7 @@ test("studio parent and chunk reads stay within pinned snapshot and current auth
       { required: true },
     );
     const snap = await inspection.snapshot(f.scope.runId, p);
+    expect(snap.eventKinds).toContain("policy.transition");
     const found = await inspection.event(f.scope.runId, p, snap.id, event!.id);
     expect(found.id).toBe(event!.id);
     expect((await inspection.event(f.scope.runId, p, snap.id, found.artifacts[0].id)).id).toBe(event!.id);

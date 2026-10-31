@@ -17,7 +17,23 @@ export function CausalGraph({
   const graph = useMemo(() => {
     const chosen = events.findIndex((e) => e.id === selectedEventId),
       start = chosen >= 0 ? Math.max(0, chosen - 5) : Math.min(offset, Math.max(0, events.length - 1));
-    const trace = buildTrace(events.slice(start, start + 24)),
+    const ids = new Set<string>();
+    if (chosen >= 0) {
+      ids.add(events[chosen].id);
+      for (let depth = 0; depth < 3 && ids.size < 24; depth++) {
+        const frontier = new Set(ids);
+        for (const e of events) {
+          if (ids.size >= 24) break;
+          if (frontier.has(e.id))
+            for (const parent of e.parentIds) {
+              if (ids.size < 24 && events.some((x) => x.id === parent)) ids.add(parent);
+            }
+          if (e.parentIds.some((p) => frontier.has(p))) ids.add(e.id);
+        }
+      }
+    }
+    const selectedEvents = chosen >= 0 ? events.filter((e) => ids.has(e.id)) : events.slice(start, start + 24);
+    const trace = buildTrace(selectedEvents),
       missing = [...new Set(trace.edges.filter((e) => e.unavailable).map((e) => e.source))],
       g = new dagre.graphlib.Graph()
         .setGraph({ rankdir: "LR", ranksep: 60, nodesep: 40, marginx: 20, marginy: 20 })
@@ -32,8 +48,8 @@ export function CausalGraph({
     <section>
       <h2>Causal graph</h2>
       <p>
-        24-node viewport · page offset {graph.start}. Per-stream order and explicit parents; unavailable parents use
-        dashed edges. Scroll the graph or use equivalent table controls.
+        24-node viewport · page offset {graph.start}. Explicit expansions may be outside page filters. Per-stream order
+        and explicit parents; unavailable parents use dashed edges. Scroll the graph or use equivalent table controls.
       </p>
       <button type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - 24))}>
         Previous graph window

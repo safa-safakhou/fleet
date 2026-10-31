@@ -48,6 +48,7 @@ export type RunSnapshot = {
     }[];
     cohorts?: { id: string; createdAt: string; completedAt: string | null; state?: string }[];
   };
+  eventKinds?: readonly (typeof EventKinds)[number][];
   metricDefinitions: { id: string; definition: string }[];
 };
 const Query = z
@@ -187,6 +188,7 @@ export class RunInspection {
           attempts,
           cohorts,
         },
+        eventKinds: [...EventKinds],
         metricDefinitions: [
           {
             id: "coverage",

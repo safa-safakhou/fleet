@@ -96,3 +96,14 @@ test("legacy turn inspector opens its recorded research run without execution", 
   await expect(page.getByRole("heading", { name: "Research studio" })).toBeVisible();
   await expect(page.getByText("100000 recorded events", { exact: true })).toBeVisible();
 });
+test("expanding an outside-page parent adds it and its loaded child to the graph", async ({ page }) => {
+  await page.goto("/#research/run/synthetic-large");
+  await page.getByRole("button", { name: "Load next event page" }).click();
+  await page.getByRole("button", { name: "Causal graph", exact: true }).click();
+  await page.getByRole("button", { name: "Load parent 20000000-0000-4000-8000-000000000199", exact: true }).click();
+  await expect(page.getByRole("img", { name: "Explicit event causality" })).toContainText("actor #100");
+  await expect(page.getByRole("img", { name: "Explicit event causality" })).toContainText("actor #101");
+  await expect(
+    page.getByRole("button", { name: "Load parent 20000000-0000-4000-8000-000000000199", exact: true }),
+  ).toHaveCount(0);
+});
