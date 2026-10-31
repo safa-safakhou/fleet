@@ -1,5 +1,7 @@
 import { StrictMode, useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
+import { researchRoute } from "./research/route.js";
+import { ResearchWorkspace } from "./research/workspace.js";
 import "./style.css";
 import { ComparisonWorkspace } from "./comparisons.js";
 import { LaunchWizard } from "./launch.js";
@@ -125,7 +127,9 @@ function App() {
     }>({ operations: [], credentials: [] }),
     [notice, setNotice] = useState(""),
     [busy, setBusy] = useState(false),
-    [tab, setTab] = useState(location.hash.startsWith("#run=") ? "activity" : "overview"),
+    [tab, setTab] = useState(
+      location.hash.startsWith("#research") ? "research" : location.hash.startsWith("#run=") ? "activity" : "overview",
+    ),
     [runId, setRunId] = useState(location.hash.match(/^#run=([0-9a-f-]{36})$/i)?.[1] ?? ""),
     [cohortId, setCohortId] = useState(""),
     [selected, setSelected] = useState<Pair | null>(null),
@@ -145,6 +149,10 @@ function App() {
   };
   useEffect(() => {
     const changed = () => {
+      if (location.hash.startsWith("#research")) {
+        setTab("research");
+        return;
+      }
       const id = location.hash.match(/^#run=([0-9a-f-]{36})$/i)?.[1] ?? "";
       setRunId(id);
       if (id) setTab("activity");
@@ -326,6 +334,7 @@ function App() {
             ["society", "◎", "Society"],
             ["agents", "◈", "Agents"],
             ["activity", "↗", "Runs / debugging"],
+            ["research", "◈", "Research studio"],
             ["comparisons", "⇄", "Comparisons"],
             ["profiles", "◇", "Engines & reports"],
             ["settings", "⚙", "Fleet settings"],
@@ -373,19 +382,21 @@ function App() {
           <div>
             <p className="eyebrow">YOUR PERSISTENT WORLD</p>
             <h1>
-              {tab === "profiles"
-                ? "Engines & reports"
-                : tab === "comparisons"
-                  ? "Comparisons"
-                  : tab === "overview"
-                    ? "Fleet overview"
-                    : tab === "society"
-                      ? "The society"
-                      : tab === "agents"
-                        ? "Your agents"
-                        : tab === "activity"
-                          ? "Runs / debugging"
-                          : "Fleet settings"}
+              {tab === "research"
+                ? "Research studio"
+                : tab === "profiles"
+                  ? "Engines & reports"
+                  : tab === "comparisons"
+                    ? "Comparisons"
+                    : tab === "overview"
+                      ? "Fleet overview"
+                      : tab === "society"
+                        ? "The society"
+                        : tab === "agents"
+                          ? "Your agents"
+                          : tab === "activity"
+                            ? "Runs / debugging"
+                            : "Fleet settings"}
             </h1>
           </div>
           <div className="header-actions">
@@ -806,6 +817,15 @@ function App() {
               <p className="small-empty">No agents match this search and status filter.</p>
             )}
           </>
+        ) : tab === "research" ? (
+          <ResearchWorkspace
+            key={location.hash.split("?")[0]}
+            runId={
+              researchRoute(location.hash)?.kind === "run"
+                ? (researchRoute(location.hash) as { runId: string }).runId
+                : undefined
+            }
+          />
         ) : tab === "activity" ? (
           runId ? (
             <RunDetails

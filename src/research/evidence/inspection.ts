@@ -249,6 +249,51 @@ export class RunInspection {
         : null,
     };
   }
+  async event(
+    runId: string,
+    principal: ResearchPrincipal,
+    snapshotId: string,
+    eventId: string,
+  ): Promise<EvidenceEvent> {
+    const snap = await this.retained(runId, principal, snapshotId);
+    const row = (
+      await this.store.pool.query("SELECT event FROM research_events WHERE run_id=$1 AND id=$2 AND ordinal<=$3", [
+        runId,
+        z.uuid().parse(eventId),
+        snap.maximumOrdinal,
+      ])
+    ).rows[0];
+    if (!row) throw new FleetError("EVIDENCE_EVENT_UNAVAILABLE", true);
+    await this.retained(runId, principal, snapshotId);
+    return row.event;
+  }
+  async artifactChunk(
+    runId: string,
+    principal: ResearchPrincipal,
+    snapshotId: string,
+    artifactId: string,
+    index: number,
+  ) {
+    z.number().int().min(0).max(1000000).parse(index);
+    const { ref } = await this.artifactReference(runId, principal, artifactId, snapshotId);
+    if (index >= Number(ref.chunks)) throw new FleetError("ARTIFACT_CHUNK_UNAVAILABLE", true);
+    let current = 0;
+    for await (const chunk of this.artifact(runId, principal, artifactId, snapshotId)) {
+      if (current++ !== index) continue;
+      if (chunk.length > 1048576) throw new FleetError("ARTIFACT_CHUNK_INVALID", true);
+      await this.retained(runId, principal, snapshotId);
+      return {
+        index,
+        chunks: Number(ref.chunks),
+        bytes: chunk.length,
+        totalBytes: ref.bytes,
+        body: Buffer.from(chunk).toString("base64"),
+        complete: Number(ref.chunks) === 1,
+        contentType: ref.contentType,
+      };
+    }
+    throw new FleetError("ARTIFACT_CHUNK_UNAVAILABLE", true);
+  }
   async artifactReference(
     runId: string,
     principal: ResearchPrincipal,

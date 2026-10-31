@@ -2,6 +2,7 @@ import { Readable } from "node:stream";
 import type { FastifyInstance, FastifyRequest } from "fastify";
 import { z } from "zod";
 import { FleetError, object } from "../../domain.js";
+import { traceLink } from "../telemetry/projection.js";
 import { RunArchive } from "./export.js";
 import type { ResearchPrincipal, RunInspection } from "./inspection.js";
 import { EventKinds } from "./types.js";
@@ -38,6 +39,21 @@ export function registerEvidenceRoutes(app: FastifyInstance, inspection?: RunIns
   });
   app.get("/api/research/runs/:runId", async (r) => use().snapshot(run(r), principal(r)));
   app.get("/api/research/runs/:runId/events", async (r) => use().events(run(r), principal(r), query.parse(r.query)));
+  app.get("/api/research/runs/:runId/events/:eventId", async (r) => {
+    const { snapshotId } = z.object({ snapshotId: z.uuid() }).strict().parse(r.query);
+    const event = await use().event(run(r), principal(r), snapshotId, z.uuid().parse(object(r.params).eventId));
+    return { ...event, traceparent: traceLink(event) };
+  });
+  app.get("/api/research/runs/:runId/artifacts/:artifactId/chunks/:index", async (r) => {
+    const { snapshotId } = z.object({ snapshotId: z.uuid() }).strict().parse(r.query);
+    return use().artifactChunk(
+      run(r),
+      principal(r),
+      snapshotId,
+      z.uuid().parse(object(r.params).artifactId),
+      z.coerce.number().int().min(0).max(1000000).parse(object(r.params).index),
+    );
+  });
   app.get("/api/research/runs/:runId/coverage", async (r) => {
     const { snapshotId } = z.object({ snapshotId: z.uuid() }).strict().parse(r.query);
     return (await use().retained(run(r), principal(r), snapshotId)).coverage;

@@ -69,7 +69,7 @@ const compatibilityEdges = new Set([
 /** Trusted source ownership, not an executable plugin sandbox. Exceptions are exact legacy/inspection bridges. */
 export async function scanArchitectureGraph(root) {
   const violations = [];
-  for (const { from, specifier, target } of architectureImports(root)) {
+  for (const { from, specifier, target, typeOnly } of architectureImports(root)) {
     if (!from.startsWith("src/") && !from.startsWith("web/")) continue;
     if (compatibilityEdges.has(`${from}->${target}`)) continue;
     const own = from.match(/^src\/engines\/([^/]+)\//)?.[1],
@@ -104,6 +104,7 @@ export async function scanArchitectureGraph(root) {
       from.startsWith("web/") &&
       target?.startsWith("src/research/") &&
       target !== "src/research/contracts.ts" &&
+      !(target === "src/research/read-contracts.ts" && typeOnly) &&
       !target.startsWith("src/research/generated/")
     )
       code = "UI_RESEARCH_IMPLEMENTATION";

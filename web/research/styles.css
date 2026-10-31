@@ -1,0 +1,216 @@
+.research-studio {
+  --r-ink: #e8edf7;
+  --r-muted: #aebbd0;
+  --r-panel: #111b2c;
+  --r-line: #30425b;
+  color: var(--r-ink);
+  background: #0a1220;
+  padding: clamp(12px, 2vw, 28px);
+  border-radius: 12px;
+  min-height: 80vh;
+  font:
+    14px / 1.6 system-ui,
+    sans-serif;
+}
+.research-studio * {
+  box-sizing: border-box;
+}
+.research-studio h1 {
+  font-size: 28px;
+}
+.research-studio h2 {
+  font-size: 20px;
+  margin: 20px 0 8px;
+}
+.research-studio h3 {
+  font-size: 16px;
+}
+.research-studio a {
+  color: #9edcff;
+  overflow-wrap: anywhere;
+}
+.research-studio button,
+.research-studio input,
+.research-studio select {
+  font: inherit;
+  color: var(--r-ink);
+  background: #192a40;
+  border: 1px solid #60748e;
+  border-radius: 6px;
+  padding: 8px;
+  min-height: 40px;
+}
+.research-studio button:disabled {
+  opacity: 0.5;
+}
+.research-studio :focus-visible {
+  outline: 3px solid #ffd783;
+  outline-offset: 2px;
+}
+.research-studio nav,
+.research-actions,
+.research-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 12px 0;
+}
+.research-studio nav button[aria-pressed="true"] {
+  background: #314a6c;
+  border-color: #9edcff;
+}
+.research-studio section {
+  padding: 12px 0;
+  border-bottom: 1px solid var(--r-line);
+}
+.research-filters label {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.research-filters input {
+  max-width: 100%;
+}
+.research-warning {
+  color: #ffdb95;
+  background: #372b18;
+  padding: 10px;
+  border-left: 4px solid #ffdb95;
+}
+.research-studio [role="alert"] {
+  color: #ffd2cd;
+  border: 1px solid #e68c88;
+  padding: 14px;
+}
+.research-table-scroll {
+  max-width: 100%;
+  overflow: auto;
+  max-height: 520px;
+}
+.research-studio table {
+  border-collapse: collapse;
+  min-width: 600px;
+  width: 100%;
+  font-size: 12px;
+}
+.research-studio td,
+.research-studio th {
+  border-bottom: 1px solid var(--r-line);
+  padding: 8px;
+  vertical-align: top;
+  max-width: 420px;
+  overflow-wrap: anywhere;
+  text-align: left;
+}
+.research-studio caption {
+  text-align: left;
+  font-weight: 600;
+  padding: 10px;
+}
+.research-studio th {
+  background: #17253a;
+  position: sticky;
+  top: 0;
+}
+.research-studio pre {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+  max-height: 420px;
+  overflow: auto;
+  background: #101e31;
+  color: #e8edf7;
+  padding: 12px;
+  font-size: 12px;
+}
+.research-lanes {
+  overflow: auto;
+  border: 1px solid var(--r-line);
+  padding: 10px;
+}
+.research-lane {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 8px;
+  align-items: center;
+}
+.research-lane strong {
+  min-width: 110px;
+}
+.research-lane > div {
+  display: flex;
+  gap: 6px;
+}
+.research-lane button {
+  white-space: nowrap;
+  font-size: 11px;
+}
+.research-chart {
+  margin: 12px 0;
+  background: var(--r-panel);
+  border: 1px solid var(--r-line);
+  border-radius: 8px;
+  padding: 12px;
+}
+.research-chart > div {
+  height: 280px;
+  width: 100%;
+}
+.research-kpis {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+}
+.research-kpis article {
+  background: var(--r-panel);
+  padding: 12px;
+  border: 1px solid var(--r-line);
+  border-radius: 8px;
+}
+.research-kpis strong {
+  display: block;
+  font-size: 20px;
+}
+.research-studio mark {
+  background: #ffdc8f;
+  color: #152133;
+}
+.research-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(290px, 1fr));
+  gap: 16px;
+}
+@media (max-width: 600px) {
+  .research-studio {
+    padding: 12px;
+  }
+  .research-studio h1 {
+    font-size: 23px;
+  }
+  .research-filters label {
+    width: 100%;
+  }
+  .research-chart > div {
+    height: 230px;
+  }
+  .research-lane {
+    align-items: flex-start;
+  }
+  .research-studio table {
+    min-width: 600px;
+  }
+}
+.research-studio code {
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+.research-kpis article {
+  min-width: 0;
+}
+.research-graph-scroll {
+  overflow: auto;
+  max-width: 100%;
+  max-height: 420px;
+  margin: 12px 0;
+  border: 1px solid var(--r-line);
+  background: var(--r-panel);
+}

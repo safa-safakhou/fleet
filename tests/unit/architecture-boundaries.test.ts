@@ -162,3 +162,17 @@ it("blocks engines and browser code from research kernel capabilities while perm
     await rm(root, { recursive: true, force: true });
   }
 });
+it("permits only erased public research read-model imports, never runtime capabilities", async () => {
+  const root = await fixture({
+    "web/read.ts": 'import type {ReadSnapshot} from "../src/research/read-contracts.js";',
+    "web/runtime.ts": 'import {implementation} from "../src/research/read-contracts.js";',
+    "src/research/read-contracts.ts": "export type ReadSnapshot={id:string}; export const implementation=1;",
+  });
+  try {
+    expect(await scanArchitectureGraph(root)).toEqual([
+      "UI_RESEARCH_IMPLEMENTATION:web/runtime.ts->src/research/read-contracts.ts",
+    ]);
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});

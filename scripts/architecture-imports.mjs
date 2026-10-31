@@ -17,7 +17,7 @@ export function architectureImports(root) {
     for (const file of files) {
       const source = project.program.getSourceFile(file);
       if (!source) throw Error("ARCHITECTURE_SOURCE_UNAVAILABLE");
-      const take = (node) => {
+      const take = (node, typeOnly = false) => {
         if (!node) return;
         const text = node.text;
         if (
@@ -36,6 +36,7 @@ export function architectureImports(root) {
         edges.push({
           from: relative(root, file).replaceAll("\\", "/"),
           specifier: text,
+          typeOnly,
           target: targetFile
             ? relative(root, targetFile).replaceAll("\\", "/")
             : fallback
@@ -45,9 +46,18 @@ export function architectureImports(root) {
       };
       const visit = (node) => {
         if (node.kind === SyntaxKind.ImportDeclaration || node.kind === SyntaxKind.ExportDeclaration) {
-          if (node.moduleSpecifier) take(node.moduleSpecifier);
+          if (node.moduleSpecifier)
+            take(
+              node.moduleSpecifier,
+              Boolean(
+                node.isTypeOnly ||
+                  node.importClause?.isTypeOnly ||
+                  (node.importClause?.namedBindings?.elements?.length &&
+                    node.importClause.namedBindings.elements.every((e) => e.isTypeOnly)),
+              ),
+            );
         } else if (node.kind === SyntaxKind.ImportType) {
-          take(node.argument?.literal);
+          take(node.argument?.literal, true);
         } else if (
           node.kind === SyntaxKind.CallExpression &&
           (node.expression.kind === SyntaxKind.ImportKeyword || node.expression.text === "require")
