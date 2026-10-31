@@ -12,7 +12,7 @@ import type { Message } from "@bufbuild/protobuf";
  * Describes the file fleet/v1/evidence.proto.
  */
 export const file_fleet_v1_evidence: GenFile = /*@__PURE__*/
-  fileDesc("ChdmbGVldC92MS9ldmlkZW5jZS5wcm90bxIIZmxlZXQudjEi6gQKDUV2aWRlbmNlRXZlbnQSFgoOc2NoZW1hX3ZlcnNpb24YASABKAkSCgoCaWQYAiABKAkSIQoFc2NvcGUYAyABKAsyEi5mbGVldC52MS5SdW5TY29wZRIRCglzdHJlYW1faWQYBCABKAkSEAoIc2VxdWVuY2UYBSABKAQSDAoEa2luZBgGIAEoCRISCgpwYXJlbnRfaWRzGAcgAygJEhMKC29jY3VycmVkX2F0GAggASgJEhMKC3JlY29yZGVkX2F0GAkgASgJEhcKCnByb2Nlc3NfaWQYCiABKAlIAIgBARIZCgxtb25vdG9uaWNfbnMYCyABKARIAYgBARIaCg1nYW1lX2Nsb2NrX2lkGAwgASgJSAKIAQESFgoJZ2FtZV90aW1lGA0gASgJSAOIAQESOwoKYXR0cmlidXRlcxgOIAMoCzInLmZsZWV0LnYxLkV2aWRlbmNlRXZlbnQuQXR0cmlidXRlc0VudHJ5EigKCWFydGlmYWN0cxgPIAMoCzIVLmZsZWV0LnYxLkFydGlmYWN0UmVmEiQKCGNvdmVyYWdlGBAgASgLMhIuZmxlZXQudjEuQ292ZXJhZ2USDwoHb3JkaW5hbBgRIAEoBBIYCgtkdXJhdGlvbl9ucxgSIAEoBEgEiAEBGjEKD0F0dHJpYnV0ZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBQg0KC19wcm9jZXNzX2lkQg8KDV9tb25vdG9uaWNfbnNCEAoOX2dhbWVfY2xvY2tfaWRCDAoKX2dhbWVfdGltZUIOCgxfZHVyYXRpb25fbnMiOwoIRXZlbnRSZWYSCgoCaWQYASABKAkSEQoJc3RyZWFtX2lkGAIgASgJEhAKCHNlcXVlbmNlGAMgASgEIrEBCg5FdmVudFBhZ2VRdWVyeRINCgVsaW1pdBgBIAEoDRISCgVhZnRlchgCIAEoBEgAiAEBEhwKD21heGltdW1fb3JkaW5hbBgDIAEoBEgBiAEBEhEKBGtpbmQYBCABKAlIAogBARIWCglzdHJlYW1faWQYBSABKAlIA4gBAUIICgZfYWZ0ZXJCEgoQX21heGltdW1fb3JkaW5hbEIHCgVfa2luZEIMCgpfc3RyZWFtX2lkIpYBCglFdmVudFBhZ2USJwoGZXZlbnRzGAEgAygLMhcuZmxlZXQudjEuRXZpZGVuY2VFdmVudBINCgV0b3RhbBgCIAEoBBIQCghoYXNfbW9yZRgDIAEoCBIXCgpuZXh0X2FmdGVyGAQgASgESACIAQESFwoPbWF4aW11bV9vcmRpbmFsGAUgASgEQg0KC19uZXh0X2FmdGVyYgZwcm90bzM", [file_fleet_v1_common]);
+  fileDesc("ChdmbGVldC92MS9ldmlkZW5jZS5wcm90bxIIZmxlZXQudjEi6gQKDUV2aWRlbmNlRXZlbnQSFgoOc2NoZW1hX3ZlcnNpb24YASABKAkSCgoCaWQYAiABKAkSIQoFc2NvcGUYAyABKAsyEi5mbGVldC52MS5SdW5TY29wZRIRCglzdHJlYW1faWQYBCABKAkSEAoIc2VxdWVuY2UYBSABKAQSDAoEa2luZBgGIAEoCRISCgpwYXJlbnRfaWRzGAcgAygJEhMKC29jY3VycmVkX2F0GAggASgJEhMKC3JlY29yZGVkX2F0GAkgASgJEhcKCnByb2Nlc3NfaWQYCiABKAlIAIgBARIZCgxtb25vdG9uaWNfbnMYCyABKARIAYgBARIaCg1nYW1lX2Nsb2NrX2lkGAwgASgJSAKIAQESFgoJZ2FtZV90aW1lGA0gASgJSAOIAQESOwoKYXR0cmlidXRlcxgOIAMoCzInLmZsZWV0LnYxLkV2aWRlbmNlRXZlbnQuQXR0cmlidXRlc0VudHJ5EigKCWFydGlmYWN0cxgPIAMoCzIVLmZsZWV0LnYxLkFydGlmYWN0UmVmEiQKCGNvdmVyYWdlGBAgASgLMhIuZmxlZXQudjEuQ292ZXJhZ2USDwoHb3JkaW5hbBgRIAEoBBIYCgtkdXJhdGlvbl9ucxgSIAEoBEgEiAEBGjEKD0F0dHJpYnV0ZXNFbnRyeRILCgNrZXkYASABKAkSDQoFdmFsdWUYAiABKAk6AjgBQg0KC19wcm9jZXNzX2lkQg8KDV9tb25vdG9uaWNfbnNCEAoOX2dhbWVfY2xvY2tfaWRCDAoKX2dhbWVfdGltZUIOCgxfZHVyYXRpb25fbnMiOwoIRXZlbnRSZWYSCgoCaWQYASABKAkSEQoJc3RyZWFtX2lkGAIgASgJEhAKCHNlcXVlbmNlGAMgASgEIrEBCg5FdmVudFBhZ2VRdWVyeRINCgVsaW1pdBgBIAEoDRISCgVhZnRlchgCIAEoBEgAiAEBEhwKD21heGltdW1fb3JkaW5hbBgDIAEoBEgBiAEBEhEKBGtpbmQYBCABKAlIAogBARIWCglzdHJlYW1faWQYBSABKAlIA4gBAUIICgZfYWZ0ZXJCEgoQX21heGltdW1fb3JkaW5hbEIHCgVfa2luZEIMCgpfc3RyZWFtX2lkIpYBCglFdmVudFBhZ2USJwoGZXZlbnRzGAEgAygLMhcuZmxlZXQudjEuRXZpZGVuY2VFdmVudBINCgV0b3RhbBgCIAEoBBIQCghoYXNfbW9yZRgDIAEoCBIXCgpuZXh0X2FmdGVyGAQgASgESACIAQESFwoPbWF4aW11bV9vcmRpbmFsGAUgASgEQg0KC19uZXh0X2FmdGVyIioKDE1ldHJpY1dpbmRvdxINCgVzdGFydBgBIAEoCRILCgNlbmQYAiABKAkigwMKC01ldHJpY1ZhbHVlEgoKAmlkGAEgASgJEg8KB3ZlcnNpb24YAiABKAkSDAoEdW5pdBgDIAEoCRISCgV2YWx1ZRgEIAEoAUgAiAEBEhYKCW51bWVyYXRvchgFIAEoCUgBiAEBEhgKC2Rlbm9taW5hdG9yGAYgASgJSAKIAQESEgoKcG9wdWxhdGlvbhgHIAEoCRImCgZ3aW5kb3cYCCABKAsyFi5mbGVldC52MS5NZXRyaWNXaW5kb3cSEgoKdGltZV9iYXNpcxgJIAEoCRIkCghjb3ZlcmFnZRgKIAEoCzISLmZsZWV0LnYxLkNvdmVyYWdlEhMKC3NvdXJjZV9yZWZzGAsgAygJEhgKEGV2YWx1YXRvcl9kaWdlc3QYDCABKAkSEgoKZXhjbHVzaW9ucxgNIAMoCRIQCghjZW5zb3JlZBgOIAEoBBIQCgh1bmdyYWRlZBgPIAEoBEIICgZfdmFsdWVCDAoKX251bWVyYXRvckIOCgxfZGVub21pbmF0b3IiWAoPVW5yZXNvbHZlZFVzYWdlEhMKC2FsbG9jYXRpb25zGAEgASgEEhwKD3Jlc2VydmVkX3Rva2VucxgCIAEoCUgAiAEBQhIKEF9yZXNlcnZlZF90b2tlbnMiwwEKCU1ldHJpY1NldBIPCgd2ZXJzaW9uGAEgASgJEhMKC3NuYXBzaG90X2lkGAIgASgJEg4KBmRpZ2VzdBgDIAEoCRIlCgZ2YWx1ZXMYBCADKAsyFS5mbGVldC52MS5NZXRyaWNWYWx1ZRISCgpleGNsdXNpb25zGAUgAygJEhAKCHVuZ3JhZGVkGAYgASgEEjMKEHVucmVzb2x2ZWRfdXNhZ2UYByABKAsyGS5mbGVldC52MS5VbnJlc29sdmVkVXNhZ2UidwoQRXZhbHVhdGlvblJlc3VsdBIPCgd2ZXJzaW9uGAEgASgJEhMKC3NuYXBzaG90X2lkGAIgASgJEhgKEGV2YWx1YXRvcl9kaWdlc3QYAyABKAkSEwoLcmVzdWx0X2pzb24YBCABKAkSDgoGZGlnZXN0GAUgASgJYgZwcm90bzM", [file_fleet_v1_common]);
 
 /**
  * @generated from message fleet.v1.EvidenceEvent
@@ -216,3 +216,218 @@ export type EventPage = Message<"fleet.v1.EventPage"> & {
  */
 export const EventPageSchema: GenMessage<EventPage> = /*@__PURE__*/
   messageDesc(file_fleet_v1_evidence, 3);
+
+/**
+ * @generated from message fleet.v1.MetricWindow
+ */
+export type MetricWindow = Message<"fleet.v1.MetricWindow"> & {
+  /**
+   * @generated from field: string start = 1;
+   */
+  start: string;
+
+  /**
+   * @generated from field: string end = 2;
+   */
+  end: string;
+};
+
+/**
+ * Describes the message fleet.v1.MetricWindow.
+ * Use `create(MetricWindowSchema)` to create a new message.
+ */
+export const MetricWindowSchema: GenMessage<MetricWindow> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_evidence, 4);
+
+/**
+ * @generated from message fleet.v1.MetricValue
+ */
+export type MetricValue = Message<"fleet.v1.MetricValue"> & {
+  /**
+   * @generated from field: string id = 1;
+   */
+  id: string;
+
+  /**
+   * @generated from field: string version = 2;
+   */
+  version: string;
+
+  /**
+   * @generated from field: string unit = 3;
+   */
+  unit: string;
+
+  /**
+   * @generated from field: optional double value = 4;
+   */
+  value?: number | undefined;
+
+  /**
+   * @generated from field: optional string numerator = 5;
+   */
+  numerator?: string | undefined;
+
+  /**
+   * @generated from field: optional string denominator = 6;
+   */
+  denominator?: string | undefined;
+
+  /**
+   * @generated from field: string population = 7;
+   */
+  population: string;
+
+  /**
+   * @generated from field: fleet.v1.MetricWindow window = 8;
+   */
+  window?: MetricWindow | undefined;
+
+  /**
+   * @generated from field: string time_basis = 9;
+   */
+  timeBasis: string;
+
+  /**
+   * @generated from field: fleet.v1.Coverage coverage = 10;
+   */
+  coverage?: Coverage | undefined;
+
+  /**
+   * @generated from field: repeated string source_refs = 11;
+   */
+  sourceRefs: string[];
+
+  /**
+   * @generated from field: string evaluator_digest = 12;
+   */
+  evaluatorDigest: string;
+
+  /**
+   * @generated from field: repeated string exclusions = 13;
+   */
+  exclusions: string[];
+
+  /**
+   * @generated from field: uint64 censored = 14;
+   */
+  censored: bigint;
+
+  /**
+   * @generated from field: uint64 ungraded = 15;
+   */
+  ungraded: bigint;
+};
+
+/**
+ * Describes the message fleet.v1.MetricValue.
+ * Use `create(MetricValueSchema)` to create a new message.
+ */
+export const MetricValueSchema: GenMessage<MetricValue> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_evidence, 5);
+
+/**
+ * @generated from message fleet.v1.UnresolvedUsage
+ */
+export type UnresolvedUsage = Message<"fleet.v1.UnresolvedUsage"> & {
+  /**
+   * @generated from field: uint64 allocations = 1;
+   */
+  allocations: bigint;
+
+  /**
+   * @generated from field: optional string reserved_tokens = 2;
+   */
+  reservedTokens?: string | undefined;
+};
+
+/**
+ * Describes the message fleet.v1.UnresolvedUsage.
+ * Use `create(UnresolvedUsageSchema)` to create a new message.
+ */
+export const UnresolvedUsageSchema: GenMessage<UnresolvedUsage> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_evidence, 6);
+
+/**
+ * @generated from message fleet.v1.MetricSet
+ */
+export type MetricSet = Message<"fleet.v1.MetricSet"> & {
+  /**
+   * @generated from field: string version = 1;
+   */
+  version: string;
+
+  /**
+   * @generated from field: string snapshot_id = 2;
+   */
+  snapshotId: string;
+
+  /**
+   * @generated from field: string digest = 3;
+   */
+  digest: string;
+
+  /**
+   * @generated from field: repeated fleet.v1.MetricValue values = 4;
+   */
+  values: MetricValue[];
+
+  /**
+   * @generated from field: repeated string exclusions = 5;
+   */
+  exclusions: string[];
+
+  /**
+   * @generated from field: uint64 ungraded = 6;
+   */
+  ungraded: bigint;
+
+  /**
+   * @generated from field: fleet.v1.UnresolvedUsage unresolved_usage = 7;
+   */
+  unresolvedUsage?: UnresolvedUsage | undefined;
+};
+
+/**
+ * Describes the message fleet.v1.MetricSet.
+ * Use `create(MetricSetSchema)` to create a new message.
+ */
+export const MetricSetSchema: GenMessage<MetricSet> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_evidence, 7);
+
+/**
+ * @generated from message fleet.v1.EvaluationResult
+ */
+export type EvaluationResult = Message<"fleet.v1.EvaluationResult"> & {
+  /**
+   * @generated from field: string version = 1;
+   */
+  version: string;
+
+  /**
+   * @generated from field: string snapshot_id = 2;
+   */
+  snapshotId: string;
+
+  /**
+   * @generated from field: string evaluator_digest = 3;
+   */
+  evaluatorDigest: string;
+
+  /**
+   * @generated from field: string result_json = 4;
+   */
+  resultJson: string;
+
+  /**
+   * @generated from field: string digest = 5;
+   */
+  digest: string;
+};
+
+/**
+ * Describes the message fleet.v1.EvaluationResult.
+ * Use `create(EvaluationResultSchema)` to create a new message.
+ */
+export const EvaluationResultSchema: GenMessage<EvaluationResult> = /*@__PURE__*/
+  messageDesc(file_fleet_v1_evidence, 8);

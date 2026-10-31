@@ -261,3 +261,5 @@ export class PlatformReports {
     };
   }
 }
+
+export { MetricRepository as ResearchMetricReports } from "../research/metrics/repository.js";

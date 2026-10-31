@@ -105,6 +105,16 @@ export const MetricsQuery = z
 const num = (n: unknown) => (n === null || n === undefined ? null : Number(n));
 export class FleetMetrics {
   constructor(private store: Store) {}
+  /** Versioned research entry point; legacy read() retains its historical units/windows/cap. */
+  async research(input: {
+    repository: import("./research/metrics/repository.js").MetricRepository;
+    snapshot: import("./research/evidence/inspection.js").RunSnapshot;
+    ids: string[];
+    window: import("./research/metrics/types.js").MetricWindow;
+    evaluator?: import("./research/evaluation/pact.js").EvaluatorSpec;
+  }) {
+    return input.repository.compute(input.snapshot, input.ids, input.window, input.evaluator);
+  }
   async read(raw: unknown) {
     const q = MetricsQuery.parse(raw),
       now = this.store.now(),

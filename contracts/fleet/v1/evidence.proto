@@ -11,3 +11,13 @@ message EventRef { string id=1; string stream_id=2; uint64 sequence=3; }
 
 message EventPageQuery { uint32 limit=1; optional uint64 after=2; optional uint64 maximum_ordinal=3; optional string kind=4; optional string stream_id=5; }
 message EventPage { repeated EvidenceEvent events=1; uint64 total=2; bool has_more=3; optional uint64 next_after=4; uint64 maximum_ordinal=5; }
+
+message MetricWindow { string start=1; string end=2; }
+message MetricValue {
+ string id=1; string version=2; string unit=3; optional double value=4; optional string numerator=5; optional string denominator=6;
+ string population=7; MetricWindow window=8; string time_basis=9; Coverage coverage=10;
+ repeated string source_refs=11; string evaluator_digest=12; repeated string exclusions=13; uint64 censored=14; uint64 ungraded=15;
+}
+message UnresolvedUsage { uint64 allocations=1; optional string reserved_tokens=2; }
+message MetricSet { string version=1; string snapshot_id=2; string digest=3; repeated MetricValue values=4; repeated string exclusions=5; uint64 ungraded=6; UnresolvedUsage unresolved_usage=7; }
+message EvaluationResult { string version=1; string snapshot_id=2; string evaluator_digest=3; string result_json=4; string digest=5; }

@@ -32,8 +32,21 @@ export type RunSnapshot = {
       purpose: string;
       inputTokens: string | null;
       outputTokens: string | null;
+      createdAt?: string;
+      reservedTokens?: string;
+      requestMetrics?: Record<string, unknown>;
+      responseMetrics?: Record<string, unknown>;
     }[];
-    commands: { id: string; status: string }[];
+    commands: { id: string; status: string; createdAt?: string }[];
+    attempts?: {
+      id: string;
+      taskId: string | null;
+      startedAt: string;
+      finishedAt: string | null;
+      actions: number;
+      code: string | null;
+    }[];
+    cohorts?: { id: string; createdAt: string; completedAt: string | null; state?: string }[];
   };
   metricDefinitions: { id: string; definition: string }[];
 };
@@ -94,7 +107,7 @@ export class RunInspection {
             ?.manifest ?? null;
       const allocations = (
         await db.query(
-          `SELECT id,status,COALESCE((SELECT e.event->'attributes'->>'purpose' FROM research_events e WHERE e.run_id=$2 AND e.event->'attributes'->>'allocationId'=compute_ledger.id::text AND e.event->'attributes' ? 'purpose' ORDER BY e.ordinal LIMIT 1),request_metrics->>'purpose','unavailable') purpose,input_tokens::text "inputTokens",output_tokens::text "outputTokens" FROM compute_ledger WHERE turn_id=ANY($1::uuid[]) ORDER BY id`,
+          `SELECT id,status,COALESCE((SELECT e.event->'attributes'->>'purpose' FROM research_events e WHERE e.run_id=$2 AND e.event->'attributes'->>'allocationId'=compute_ledger.id::text AND e.event->'attributes' ? 'purpose' ORDER BY e.ordinal LIMIT 1),request_metrics->>'purpose','unavailable') purpose,input_tokens::text "inputTokens",output_tokens::text "outputTokens",created_at "createdAt",tokens::text "reservedTokens",request_metrics "requestMetrics",response_metrics "responseMetrics" FROM compute_ledger WHERE turn_id=ANY($1::uuid[]) ORDER BY id`,
           [turns, runId],
         )
       ).rows;
@@ -103,6 +116,26 @@ export class RunInspection {
           "SELECT command_id id,state status FROM platform_commands WHERE turn_id=ANY($1::uuid[]) UNION SELECT command_id id,'confirmed' status FROM command_resolutions WHERE turn_id=ANY($1::uuid[]) AND command_id NOT IN (SELECT command_id FROM platform_commands) UNION SELECT pending_command id,'pending' status FROM turns WHERE id=ANY($1::uuid[]) AND pending_command IS NOT NULL AND pending_command NOT IN (SELECT command_id FROM platform_commands) AND pending_command NOT IN (SELECT command_id FROM command_resolutions)",
           [turns],
         )
+      ).rows;
+      const attempts = (
+        await db.query(
+          'SELECT t.id,c.task_id "taskId",t.started_at "startedAt",t.finished_at "finishedAt",t.actions,t.code FROM turns t LEFT JOIN platform_task_claims c ON c.turn_id=t.id WHERE t.id=ANY($1::uuid[]) ORDER BY t.id',
+          [turns],
+        )
+      ).rows.map((r) => ({
+        ...r,
+        startedAt: r.startedAt.toISOString(),
+        finishedAt: r.finishedAt?.toISOString() ?? null,
+      }));
+      const cohortRows = (await db.query("SELECT id,created_at,state FROM cohorts WHERE id=$1", [run.cohort_id])).rows;
+      const cohorts = cohortRows.map((r) => ({
+        id: r.id,
+        createdAt: r.created_at.toISOString(),
+        completedAt: null,
+        state: r.state,
+      }));
+      const commandTimes = (
+        await db.query("SELECT command_id id,created_at FROM platform_commands WHERE turn_id=ANY($1::uuid[])", [turns])
       ).rows;
       const body: RunSnapshot = {
         version: "fleet.snapshot/v1",
@@ -123,7 +156,17 @@ export class RunInspection {
         manifestAvailability: manifest ? "sealed" : "unavailable",
         scopes,
         coverage: await new CoverageService(this.store).reconcile(runId, String(run.next_ordinal), db),
-        native: { allocations, commands },
+        native: {
+          allocations: allocations.map((r) => ({ ...r, createdAt: r.createdAt.toISOString() })),
+          commands: commands.map((r) => ({
+            ...r,
+            ...(commandTimes.find((c) => c.id === r.id)?.created_at
+              ? { createdAt: commandTimes.find((c) => c.id === r.id)!.created_at.toISOString() }
+              : {}),
+          })),
+          attempts,
+          cohorts,
+        },
         metricDefinitions: [
           {
             id: "coverage",

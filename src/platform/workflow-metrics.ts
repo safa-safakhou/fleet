@@ -78,3 +78,6 @@ export class WorkflowMetrics {
     };
   }
 }
+
+// Versioned research path is separate from the legacy in-memory descriptive snapshot.
+export { MetricAggregator as ResearchMetricAggregator } from "../research/metrics/aggregate.js";
