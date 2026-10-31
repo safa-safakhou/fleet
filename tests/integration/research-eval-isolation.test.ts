@@ -8,6 +8,23 @@ test("eval_never_bypasses_fleet: native allocations, purposes, call caps and sco
     dataset,
     async (r) => {
       const c = dataset.development[0];
+      await expect(
+        r.broker.requestModel(
+          r.session,
+          r.scope,
+          {
+            operationId: r.scope.operationId,
+            operationEpoch: r.scope.operationEpoch,
+            logicalStepId: "model:unauthorized",
+          },
+          {
+            messages: [{ role: "user", content: "bypass" }],
+            schema: { type: "object" },
+            maxOutputTokens: 100,
+            purpose: "helper",
+          },
+        ),
+      ).rejects.toThrow("EVALUATION_PORT_REQUIRED");
       const result = await r.client.call({
         datasetId: dataset.manifest.id,
         candidateId: "reference",
@@ -64,7 +81,7 @@ test("eval_never_bypasses_fleet: native allocations, purposes, call caps and sco
           "evaluation.heldout",
           [],
         ),
-      ).rejects.toThrow("TOOL_UNSUPPORTED");
+      ).rejects.toThrow("EVALUATION_PORT_REQUIRED");
       await expect(
         (async () => {
           for await (const _ of r.broker.artifact(r.session, r.scope, "00000000-0000-4000-8000-000000000099")) {

@@ -31,7 +31,8 @@
     "test:observability": "node --import tsx scripts/test-research-observability.ts",
     "research:archive:verify": "node --import tsx scripts/verify-research-archive.ts",
     "eval:retrieval": "tsx scripts/evaluate-research-retrieval.ts",
-    "eval:prompts": "tsx scripts/evaluate-research-prompts.ts"
+    "eval:prompts": "tsx scripts/evaluate-research-prompts.ts",
+    "optimize:offline": "tsx scripts/optimize-research.ts"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.16.0",

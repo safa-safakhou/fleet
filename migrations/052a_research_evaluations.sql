@@ -9,4 +9,4 @@ CREATE TABLE IF NOT EXISTS research_evaluation_calls (
  purpose text NOT NULL,token_reservation bigint NOT NULL,allocation_id uuid REFERENCES compute_ledger(id),status text NOT NULL CHECK(status IN('reserved','completed','not_dispatched','unknown')),
  created_at timestamptz NOT NULL,PRIMARY KEY(grant_id,logical_step_id)
 );
-REVOKE ALL ON research_evaluation_grants,research_evaluation_calls FROM PUBLIC,fleet_research_index;
+REVOKE ALL ON research_evaluation_budgets,research_evaluation_grants,research_evaluation_calls FROM PUBLIC,fleet_research_index;

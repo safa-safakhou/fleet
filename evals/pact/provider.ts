@@ -1,20 +1,8 @@
 import { z } from "zod";
-export type EvaluationReply = {
-  output: Record<string, unknown>;
-  allocationId: string;
-  inputTokens: string | null;
-  outputTokens: string | null;
-  resultRef: string;
-};
-export interface EvaluationPort {
-  call(input: {
-    candidateId: string;
-    datasetId: string;
-    caseId: string;
-    phase: "candidate" | "teacher" | "judge" | "repair";
-    prompt: string;
-  }): Promise<EvaluationReply>;
-}
+import type { EvaluationPort } from "../../src/research/evaluation/port.js";
+
+export type { EvaluationPort, EvaluationReply } from "../../src/research/evaluation/port.js";
+
 const Config = z
   .object({ mode: z.literal("offline"), datasetId: z.string().min(1), candidateId: z.string().min(1) })
   .strict();

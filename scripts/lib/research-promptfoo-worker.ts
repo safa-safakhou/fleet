@@ -37,7 +37,7 @@ try {
     );
     const record = await evaluate(
       {
-        prompts: ["{{actorInput}}"],
+        prompts: [input.candidatePrompt ?? "{{actorInput}}"],
         providers,
         sharing: false,
         writeLatestResults: false,

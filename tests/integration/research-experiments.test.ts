@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { expect, test } from "vitest";
 import { RunInspection } from "../../src/research/evidence/inspection.js";
 import { ComparisonService } from "../../src/research/experiments/comparison.js";
+import { MLflowProjection } from "../../src/research/experiments/mlflow.js";
 import { ExperimentRepository } from "../../src/research/experiments/repository.js";
 import { MetricRepository } from "../../src/research/metrics/repository.js";
 import { buildServer } from "../../src/server.js";
@@ -115,6 +116,27 @@ test("preregistration preserves missing runs, drift, immutable late results and 
     expect(api.headers["cache-control"]).toBe("no-store");
     expect(first.intervals[0].lower).toBeNull();
     const original = JSON.stringify(await repo.retained(snap.id));
+    const sent: unknown[] = [];
+    const tracking = new MLflowProjection(repo, {
+      sync: async (metadata) => {
+        sent.push(metadata);
+        return { status: "synced" };
+      },
+    });
+    expect((await tracking.sync(snap)).status).toBe("synced");
+    expect((await tracking.sync(snap)).status).toBe("synced");
+    expect(sent[0]).toEqual(sent[1]);
+    expect(Object.keys(sent[0] as object).sort()).toEqual(["artifactRefs", "metrics", "parameters", "snapshotDigest"]);
+    expect(
+      (
+        await new MLflowProjection(repo, {
+          sync: async () => {
+            throw Error("fixture outage");
+          },
+        }).sync(snap)
+      ).status,
+    ).toBe("unavailable");
+    expect(JSON.stringify(await repo.retained(snap.id))).toBe(original);
     const get = metrics.get.bind(metrics);
     metrics.get = async (id) => {
       await f.pool.query("DELETE FROM operator_sessions WHERE hash=$1", [sessionHash]);

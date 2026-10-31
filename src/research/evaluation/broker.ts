@@ -87,6 +87,9 @@ export class EvaluationBroker {
     )
       throw new FleetError("DATASET_SCOPE_DENIED", true);
     const nativeContext = await this.broker.sessions.assert(session, scope);
+    const manifest = await new ManifestRepository(this.broker.store.pool).load(scope.manifestDigest);
+    if (Buffer.byteLength(input.prompt) > manifest.context.maxBytes)
+      throw new FleetError("EVALUATION_CONTEXT_CAP", true);
     const tokenReservation = nativeContext.ports.services.configuration.budget.perCallTokenLimit;
     const hash = digest({ operationId: scope.operationId, input }),
       purpose =
@@ -151,7 +154,12 @@ export class EvaluationBroker {
             {
               role: "system",
               content: JSON.stringify({
-                fleetEvaluation: { caseId: input.caseId, candidateId: input.candidateId, phase: input.phase },
+                fleetEvaluation: {
+                  caseId: input.caseId,
+                  candidateId: input.candidateId,
+                  phase: input.phase,
+                  format: input.format,
+                },
               }),
             },
             { role: "user", content: input.prompt },

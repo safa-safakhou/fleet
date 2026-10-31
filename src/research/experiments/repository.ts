@@ -124,6 +124,9 @@ export class ExperimentRepository {
       if (!row || !spec.units.some((u) => u.runIds.includes(row.run_id)))
         throw new FleetError("EXPERIMENT_UNDECLARED_RUN", true);
       const snapshot = await this.metrics.inspection.retained(row.run_id, this.metrics.principal, snapshotId);
+      const unit = spec.units.find((u) => u.runIds.includes(snapshot.runId))!;
+      const nativeRun = await this.metrics.inspection.authorize(snapshot.runId, this.metrics.principal);
+      if (nativeRun.cohort_id !== unit.cohortId) throw new FleetError("EXPERIMENT_COHORT_MISMATCH", true);
       if (records.some((r) => r.snapshot.runId === snapshot.runId))
         throw new FleetError("EXPERIMENT_DUPLICATE_RUN", true);
       const result = await this.metrics.compute(

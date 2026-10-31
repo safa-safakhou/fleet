@@ -47,6 +47,7 @@ class BrokerClient:
         )
         reply = await self.stub.Execute(request, **self.options())
         result = reply.result
+        self.last_allocation_id = result.allocation_id
         if result.status != c.BrokerResult.completed or not result.HasField(
             "result_ref"
         ):
@@ -74,6 +75,21 @@ class BrokerClient:
                 raise ValueError("ARTIFACT_TOO_LARGE")
             chunks.append(chunk.body)
         return json.loads(b"".join(chunks)), ref
+
+    async def evaluate(self, request):
+        value, ref = await self.execute(
+            "port",
+            {
+                "scoped_port": w.ScopedPortRequest(
+                    port="evaluation.model", arguments_json=json.dumps([request])
+                )
+            },
+        )
+        return {
+            **value,
+            "allocationId": self.last_allocation_id,
+            "resultRef": ref["id"],
+        }
 
     async def model(self, request):
         value, _ = await self.execute(

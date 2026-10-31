@@ -1,3 +1,4 @@
+import { AsyncLocalStorage } from "node:async_hooks";
 import { createHash } from "node:crypto";
 import { z } from "zod";
 import { transaction } from "../../db.js";
@@ -42,6 +43,17 @@ export function commandFor(key: OperationKey) {
   return `${value.slice(0, 8)}-${value.slice(8, 12)}-5${value.slice(13, 16)}-8${value.slice(17, 20)}-${value.slice(20, 32)}`;
 }
 export class ResearchBroker {
+  private readonly evaluationContext = new AsyncLocalStorage<string>();
+  private async evaluationOnly(scope: RunScope) {
+    return Boolean(
+      (
+        await this.store.pool.query("SELECT 1 FROM research_evaluation_grants WHERE operation_id=$1", [
+          scope.operationId,
+        ])
+      ).rowCount,
+    );
+  }
+
   readonly journal: StepJournal;
   readonly sessions: WorkerSessions;
   readonly checkpoints: WorkerCheckpoints;
@@ -119,6 +131,8 @@ export class ResearchBroker {
       request = ModelRequestSchema.parse(raw),
       manifest = await new ManifestRepository(this.store.pool).load(scope.manifestDigest),
       budget = ctx.ports.services.configuration.budget;
+    if ((await this.evaluationOnly(scope)) && this.evaluationContext.getStore() !== scope.operationId)
+      throw new FleetError("EVALUATION_PORT_REQUIRED", true);
     if (
       request.maxOutputTokens > Math.min(budget.maxOutputTokens, manifest.model.parameters.maxOutputTokens) ||
       Buffer.byteLength(canonical(request)) > Math.min(budget.inputByteLimit, manifest.context.maxBytes)
@@ -284,8 +298,9 @@ export class ResearchBroker {
     const ctx = await this.sessions.assert(session, scope);
     if (port === "evaluation.model") {
       if (!this.evaluationPort || input.length !== 1) throw new FleetError("EVALUATION_SCOPE_REQUIRED", true);
-      return this.evaluationPort(session, scope, key, input[0]);
+      return this.evaluationContext.run(scope.operationId, () => this.evaluationPort!(session, scope, key, input[0]));
     }
+    if (await this.evaluationOnly(scope)) throw new FleetError("EVALUATION_PORT_REQUIRED", true);
     const allowed = new Set([
       "state.load",
       "state.accept",

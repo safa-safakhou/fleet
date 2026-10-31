@@ -30,6 +30,7 @@ export async function withEvaluationFixture<T>(
     maxCalls?: number;
     totalCalls?: number;
     candidates?: string[];
+    corruptCandidates?: string[];
   } = {},
 ) {
   const split = options.split ?? "development",
@@ -56,7 +57,7 @@ export async function withEvaluationFixture<T>(
         c = sources.get(meta.caseId);
       if (!c) throw Error("FIXTURE_CASE_UNAVAILABLE");
       const output =
-        meta.candidateId === "corrupt"
+        meta.candidateId === "corrupt" || options.corruptCandidates?.includes(meta.candidateId)
           ? {
               success: true,
               kind: "action",
@@ -81,6 +82,7 @@ export async function withEvaluationFixture<T>(
   const server = await serveBroker(broker, join(directory, "broker.sock")),
     runtimes: any[] = [];
   let sharedBudgetId: string | undefined;
+  let sharedBudgetCap = options.totalCalls ?? maxCalls;
   const run = async (
     claim: any,
     scope: any,
@@ -112,7 +114,7 @@ export async function withEvaluationFixture<T>(
         mode: "offline",
         split: phaseSplit as any,
         maxCalls: limit,
-        totalCalls: options.totalCalls ?? maxCalls,
+        totalCalls: sharedBudgetCap,
         ...(sharedBudgetId ? { budgetId: sharedBudgetId } : {}),
         cases: [...selected.train, ...selected.development, ...(selected.heldout ?? [])].map((c) => ({
           id: c.id,
@@ -184,12 +186,17 @@ export async function withEvaluationFixture<T>(
         const claim = await f.claimTask();
         if (claim.bindingId !== group.bindings[0].id) throw Error("EVALUATION_FIXTURE_CLAIM_CONFLICT");
         const scope = await broker.journal.open(claim, runId, operationId, m.digest);
-        const previousBudget = sharedBudgetId;
-        if (separateBudget) sharedBudgetId = undefined;
+        const previousBudget = sharedBudgetId,
+          previousCap = sharedBudgetCap;
+        if (separateBudget) {
+          sharedBudgetId = undefined;
+          sharedBudgetCap = limit;
+        }
         try {
           return await run(claim, scope, selected, phaseSplit, limit, callback);
         } finally {
           sharedBudgetId = previousBudget;
+          sharedBudgetCap = previousCap;
         }
       },
     };

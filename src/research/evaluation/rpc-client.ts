@@ -1,7 +1,7 @@
 import * as grpc from "@grpc/grpc-js";
-import type { EvaluationPort, EvaluationReply } from "../../../evals/pact/provider.js";
 import { brokerServiceDefinition } from "../broker/transport.js";
 import type { RunScope } from "../contracts.js";
+import type { EvaluationPort, EvaluationReply } from "./port.js";
 /** Worker exposes only the evaluation capability, not native game/DB/provider credentials. */
 export class EvaluationRPCClient implements EvaluationPort {
   private readonly client: grpc.Client;

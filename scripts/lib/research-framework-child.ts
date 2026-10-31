@@ -12,12 +12,18 @@ export async function runFrameworkChild(
   try {
     return await new Promise<any>((done, fail) => {
       const child = spawn(
-        process.execPath,
-        ["--import", import.meta.resolve("tsx"), resolve(root, "scripts/lib", worker)],
+        worker === "python" ? resolve(root, "workers/research/.venv/bin/python") : process.execPath,
+        worker === "python"
+          ? ["-m", "fleet_research.optimization.cli"]
+          : ["--import", import.meta.resolve("tsx"), resolve(root, "scripts/lib", worker)],
         {
           cwd: directory,
           env: {
             PATH: process.env.PATH,
+            PYTHONPATH: resolve(root, "workers/research/src"),
+            PYTHONDONTWRITEBYTECODE: "1",
+            DSPY_CACHEDIR: directory,
+            MLFLOW_ENABLE_ASYNC_LOGGING: "false",
             HOME: directory,
             TMPDIR: directory,
             LANG: "C.UTF-8",
