@@ -65,6 +65,7 @@ export function ArchitectureFields({
     return (
       <fieldset className="architecture-fields">
         <legend>{label}</legend>
+        {typeof s.description === "string" && <p>{s.description}</p>}
         {Object.entries(object(s.properties)).map(([key, child]) => (
           <ArchitectureFields
             key={key}
