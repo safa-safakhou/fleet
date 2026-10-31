@@ -126,3 +126,16 @@ test("metric protobuf roundtrip preserves zero, null and unknown usage distincti
   );
   expect(decodeMetricSet(encodeMetricSet(metrics))).toEqual(metrics);
 });
+
+test("independent evaluator version contributes to each metric evaluator digest", async () => {
+  const f = metricFixture();
+  const one = await new MetricAggregator(
+    { load: async () => f.evidence },
+    { window: f.window, evaluatorDigest: "a".repeat(64) },
+  ).compute(f.snapshot, ["objective_success_rate.v1"]);
+  const two = await new MetricAggregator(
+    { load: async () => f.evidence },
+    { window: f.window, evaluatorDigest: "b".repeat(64) },
+  ).compute(f.snapshot, ["objective_success_rate.v1"]);
+  expect(one.values[0].evaluatorDigest).not.toBe(two.values[0].evaluatorDigest);
+});

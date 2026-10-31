@@ -60,6 +60,12 @@ export function comparisonPreview(input: unknown) {
 
 export class Comparisons {
   constructor(private store: Store) {}
+  async research(
+    repository: import("./research/experiments/repository.js").ExperimentRepository,
+    spec: import("./research/experiments/schema.js").ExperimentSpec,
+  ) {
+    return repository.create(spec);
+  }
   async create(input: unknown) {
     const request = z.object({ requestId: z.uuid(), template: ComparisonTemplate }).strict().parse(input),
       preview = comparisonPreview(request.template),

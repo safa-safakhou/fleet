@@ -107,6 +107,12 @@ export class PlatformReports {
       },
     };
   }
+  async researchComparison(
+    service: import("../research/experiments/comparison.js").ComparisonService,
+    snapshotId: string,
+  ) {
+    return service.compare(snapshotId);
+  }
   async compareCohorts(rawIds: string[]) {
     const ids = idsSchema.refine((x) => x.length >= 2).parse(rawIds);
     return transaction(this.store.pool, async (db) => {

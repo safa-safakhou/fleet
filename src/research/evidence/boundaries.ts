@@ -276,6 +276,12 @@ export class CaptureSession implements ObservationPort {
       [this.store.now()],
     );
     await this.store.pool.query("DELETE FROM research_memories WHERE expires_at<=$1", [this.store.now()]);
+    await this.store.pool.query("UPDATE research_experiments SET spec_cipher=NULL WHERE expires_at<=$1", [
+      this.store.now(),
+    ]);
+    await this.store.pool.query("UPDATE research_experiment_snapshots SET body_cipher=NULL WHERE expires_at<=$1", [
+      this.store.now(),
+    ]);
     await this.store.pool.query("DELETE FROM research_memory_sources WHERE expires_at<=$1", [this.store.now()]);
   }
   scoped<T extends object>(claim: ObservationClaim, services: T): T {

@@ -25,6 +25,7 @@ import type { TaskStore } from "./platform/tasks.js";
 import { recoveryHint } from "./recovery.js";
 import type { RunInspection } from "./research/evidence/inspection.js";
 import { registerEvidenceRoutes } from "./research/evidence/routes.js";
+import { registerExperimentRoutes } from "./research/experiments/routes.js";
 import type { ResearchCapabilityResolver } from "./research/manifests/capabilities.js";
 import { registerManifestRoutes } from "./research/manifests/routes.js";
 import type { Store } from "./store.js";
@@ -89,6 +90,7 @@ export function buildServer(options: {
   });
   registerManifestRoutes(app, options.researchCapability);
   registerEvidenceRoutes(app, options.researchInspection);
+  registerExperimentRoutes(app, options.researchInspection);
   app.post("/api/login", async (request, reply) => {
     if (request.headers.origin !== options.origin) return reply.code(403).send({ error: { code: "ORIGIN_REQUIRED" } });
     const now = store.now().getTime(),

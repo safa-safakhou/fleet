@@ -20,7 +20,7 @@ const number = (n: bigint) => (n > BigInt(Number.MAX_SAFE_INTEGER) ? null : Numb
 export class MetricAggregator {
   constructor(
     readonly evidence: MetricEvidencePort,
-    readonly options: { window: MetricWindow; priceVersion?: string },
+    readonly options: { window: MetricWindow; priceVersion?: string; evaluatorDigest?: string },
     readonly catalog = new MetricCatalog(),
   ) {}
   async compute(snapshot: RunSnapshot, ids: string[]): Promise<MetricSet> {
@@ -46,7 +46,7 @@ export class MetricAggregator {
         complete = rows.filter((r) => r.status === "complete"),
         refs = new Set(data.sourceRefs),
         exclusions: string[] = [];
-      rows.forEach((r) => r.sourceRefs.forEach((s) => refs.add(s)));
+      for (const r of rows) for (const s of r.sourceRefs) refs.add(s);
       let value: number | null = null,
         n: string | null = null,
         den: string | null = null,
@@ -219,7 +219,12 @@ export class MetricAggregator {
         timeBasis: d.timeBasis,
         coverage,
         sourceRefs: [...refs].sort(),
-        evaluatorDigest: digest({ definition: d, window, priceVersion: this.options.priceVersion ?? null }),
+        evaluatorDigest: digest({
+          definition: d,
+          window,
+          priceVersion: this.options.priceVersion ?? null,
+          evaluator: this.options.evaluatorDigest ?? "native-measurement@1",
+        }),
         exclusions,
       };
     });

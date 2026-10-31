@@ -23,7 +23,10 @@ export class MetricRepository {
         ...evidence.measurements.filter((m) => !evaluation.measurements.some((e) => e.id === m.id)),
         ...evaluation.measurements,
       ];
-    const metrics = await new MetricAggregator({ load: async () => evidence }, { window }).compute(snapshot, ids);
+    const metrics = await new MetricAggregator(
+      { load: async () => evidence },
+      { window, ...(evaluation ? { evaluatorDigest: evaluation.evaluatorDigest } : {}) },
+    ).compute(snapshot, ids);
     const id = randomUUID(),
       scope = snapshot.scopes[0];
     if (!scope) throw new FleetError("EVIDENCE_SCOPE_MISMATCH", true);
