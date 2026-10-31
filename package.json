@@ -33,7 +33,8 @@
     "eval:retrieval": "tsx scripts/evaluate-research-retrieval.ts",
     "eval:prompts": "tsx scripts/evaluate-research-prompts.ts",
     "optimize:offline": "tsx scripts/optimize-research.ts",
-    "test:research-ui": "playwright test --config playwright.research.config.ts"
+    "test:research-ui": "playwright test --config playwright.research.config.ts",
+    "qualify:research": "tsx scripts/qualify-research.ts"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.16.0",

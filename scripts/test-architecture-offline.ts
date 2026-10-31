@@ -169,7 +169,7 @@ export function childFixtureEnvironment(
     FLEET_PROPERTY_RUNS: /^(200|2000)$/,
     FLEET_PROPERTY_SEED: /^-?\d{1,10}$/,
     FLEET_PROPERTY_PATH: /^\d+(?::\d+)*$/,
-    FLEET_PROPERTY_TARGET: /^(ledger|protection|canonical|all)$/,
+    FLEET_PROPERTY_TARGET: /^(ledger|protection|canonical|configuration|all)$/,
   })) {
     const value = parent[name];
     if (value !== undefined) {

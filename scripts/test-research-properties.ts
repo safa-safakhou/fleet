@@ -13,7 +13,8 @@ for (let i = 0; i < args.length; i++) {
   else throw Error("UNKNOWN_PROPERTY_OPTION");
 }
 if (path && target === "all") target = "ledger";
-if (!["all", "ledger", "protection", "canonical"].includes(target)) throw Error("INVALID_PROPERTY_TARGET");
+if (!["all", "ledger", "protection", "canonical", "configuration"].includes(target))
+  throw Error("INVALID_PROPERTY_TARGET");
 if (
   !/^-?\d+$/.test(seed) ||
   !Number.isSafeInteger(Number(seed)) ||
@@ -40,6 +41,7 @@ const result = spawnSync(
     "scripts/test-architecture-offline.ts",
     "tests/property/research-manifests.test.ts",
     "tests/property/research-ledger.test.ts",
+    "tests/property/research-config.test.ts",
   ],
   {
     stdio: "inherit",

@@ -1,0 +1,373 @@
+{
+  "schemaVersion": "fleet.configuration-matrix/v1",
+  "scope": "fixture-design",
+  "seed": 20261030,
+  "dimensions": {
+    "recipe": [
+      "scripted",
+      "advisory",
+      "deliberative",
+      "specialist"
+    ],
+    "runtime": [
+      "ts",
+      "python"
+    ],
+    "owner": [
+      "platform",
+      "temporal"
+    ],
+    "retrieval": [
+      "baseline-v1",
+      "fts-v1",
+      "vector-exact-v1",
+      "rrf-v1"
+    ],
+    "consent": [
+      "disabled",
+      "consented"
+    ],
+    "budget": [
+      "finite",
+      "continuous"
+    ],
+    "tools": [
+      "supported",
+      "unsupported"
+    ],
+    "stop": [
+      "ready",
+      "cancelled",
+      "pending",
+      "unknown"
+    ]
+  },
+  "mandatoryTriples": [
+    [
+      "cancel",
+      "lease-loss",
+      "late-usage"
+    ],
+    [
+      "retention",
+      "index",
+      "cached-context"
+    ],
+    [
+      "worker-restart",
+      "pending-command",
+      "duplicate-delivery"
+    ],
+    [
+      "optimizer",
+      "judge",
+      "heldout-split"
+    ]
+  ],
+  "limits": [
+    "Pairwise axes plus four required risk scenarios; not exhaustive higher-order coverage.",
+    "Generated cases are test obligations, not execution evidence or qualification."
+  ],
+  "cases": [
+    {
+      "id": "96ff6ede24178b951c37bdf43a66574c07959dd393c9308800ed1fc1428946ce",
+      "values": {
+        "recipe": "scripted",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "baseline-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "ready"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "db034cabc845e46893a6b1d28e104ac5b07e60e300464d33aeac83ffb91be612",
+      "values": {
+        "recipe": "scripted",
+        "runtime": "python",
+        "owner": "temporal",
+        "retrieval": "fts-v1",
+        "consent": "consented",
+        "budget": "continuous",
+        "tools": "unsupported",
+        "stop": "cancelled"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "cefcc30fe02d99baebc25293553613f9020f7648fdb14eb571c6441da49fc8c2",
+      "values": {
+        "recipe": "advisory",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "vector-exact-v1",
+        "consent": "disabled",
+        "budget": "continuous",
+        "tools": "unsupported",
+        "stop": "pending"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "8d704a64a1cddf6e68040c5e7c0e82788f1a1aa5147ba66f2da983eef2a2d380",
+      "values": {
+        "recipe": "advisory",
+        "runtime": "python",
+        "owner": "temporal",
+        "retrieval": "rrf-v1",
+        "consent": "consented",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "unknown"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "b7cb1338e1d2c84963950c0fec7e19406ce2496093b42e69b80b4d3d50e0bd7f",
+      "values": {
+        "recipe": "deliberative",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "baseline-v1",
+        "consent": "consented",
+        "budget": "continuous",
+        "tools": "unsupported",
+        "stop": "unknown"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "f8a6cad92ab0bd5d095a1dd111026047781bed00bf50c2132ea393946d5a0129",
+      "values": {
+        "recipe": "deliberative",
+        "runtime": "python",
+        "owner": "temporal",
+        "retrieval": "fts-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "pending"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "9c03d5206ed4916bd7f2f3d68d455deb596e124a3dd7c698d67f0fc0901d3cce",
+      "values": {
+        "recipe": "specialist",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "rrf-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "unsupported",
+        "stop": "cancelled"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "17bdb7865905cb10d2790c419d0cccb7290fa9a67b6be199085268f1ff017feb",
+      "values": {
+        "recipe": "specialist",
+        "runtime": "python",
+        "owner": "temporal",
+        "retrieval": "vector-exact-v1",
+        "consent": "consented",
+        "budget": "continuous",
+        "tools": "supported",
+        "stop": "ready"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "83e94f2fce9d820722c0c3b48ebb52bd6b5435b648a84f4917b6174f14fe127b",
+      "values": {
+        "recipe": "scripted",
+        "runtime": "ts",
+        "owner": "temporal",
+        "retrieval": "vector-exact-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "unknown"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "73ee1fb032ea5c8a96d75b9d6d36d085e45df87ca608e50602ab7b1783ec0153",
+      "values": {
+        "recipe": "scripted",
+        "runtime": "python",
+        "owner": "platform",
+        "retrieval": "rrf-v1",
+        "consent": "consented",
+        "budget": "continuous",
+        "tools": "supported",
+        "stop": "pending"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "c15be12059ca34cdf2c2ff6fb338bfd2441e5bdbea43345b04b28887d3b330a9",
+      "values": {
+        "recipe": "advisory",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "fts-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "unsupported",
+        "stop": "ready"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "cd4ca196e25892961adc2d1815ffe1af10cf6448f6fc8b0fd105f63b30418c71",
+      "values": {
+        "recipe": "advisory",
+        "runtime": "python",
+        "owner": "temporal",
+        "retrieval": "baseline-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "cancelled"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "16b60e0fc4ee2baaa69979f1e94ee40dff331a7bd490223b2b3566e0ff77d245",
+      "values": {
+        "recipe": "deliberative",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "vector-exact-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "cancelled"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "f2d0e9b77fbc7262201e796d613ea2d0e4121e3eaf1ff7046230e192fe441cf1",
+      "values": {
+        "recipe": "deliberative",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "rrf-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "ready"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "3129a7802efc75fab141a8231ebf05a77bc6b99c907d7f15f229506b9a2831d1",
+      "values": {
+        "recipe": "specialist",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "baseline-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "pending"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "13b3e28dd034890911c378af3d3b8d8daa2de16690f2bbc83ab82f4b3b9d55c0",
+      "values": {
+        "recipe": "specialist",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "fts-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "unknown"
+      },
+      "status": "covered"
+    },
+    {
+      "id": "c3169c184c35a46db2a383d0fe4e88b54a6133e297052e2f92381d3ccc6521a8",
+      "values": {
+        "recipe": "scripted",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "baseline-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "ready"
+      },
+      "status": "covered",
+      "risks": [
+        "cancel",
+        "lease-loss",
+        "late-usage"
+      ]
+    },
+    {
+      "id": "23175ab4315dea9cdacabcfc5dcffbe3870ab49a2977128271b2a44925a6a1c1",
+      "values": {
+        "recipe": "scripted",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "baseline-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "ready"
+      },
+      "status": "covered",
+      "risks": [
+        "retention",
+        "index",
+        "cached-context"
+      ]
+    },
+    {
+      "id": "4e65fd4053fb521651031e1e720eec53241f5da73b6d8ca65c102dbb73ef6015",
+      "values": {
+        "recipe": "scripted",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "baseline-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "ready"
+      },
+      "status": "covered",
+      "risks": [
+        "worker-restart",
+        "pending-command",
+        "duplicate-delivery"
+      ]
+    },
+    {
+      "id": "6ac130c64db0f38dd121f7a996b6d668907b820042bcf5865ee16fbad9ff7800",
+      "values": {
+        "recipe": "scripted",
+        "runtime": "ts",
+        "owner": "platform",
+        "retrieval": "baseline-v1",
+        "consent": "disabled",
+        "budget": "finite",
+        "tools": "supported",
+        "stop": "ready"
+      },
+      "status": "covered",
+      "risks": [
+        "optimizer",
+        "judge",
+        "heldout-split"
+      ]
+    }
+  ]
+}
