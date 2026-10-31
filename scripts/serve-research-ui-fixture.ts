@@ -38,6 +38,44 @@ const scope = {
   operationEpoch: "1",
   manifestDigest: "a".repeat(64),
 };
+const artifactId = (i: number) => `40000000-0000-4000-8000-${String(i).padStart(12, "0")}`;
+const packet = {
+  messages: [
+    { role: "system", content: "Owner guidance: no actions." },
+    { role: "user", content: "fact é <img src=x onerror=alert(1)> contradictory peer claim" },
+  ],
+  schema: { type: "object", required: ["kind"] },
+  lineage: {
+    version: "context-lineage@1",
+    spans: [
+      {
+        id: "contradictory-peer",
+        sourceClass: "peer-claim",
+        messageIndex: 1,
+        startByte: 0,
+        endByte: 7,
+        sourceRefs: [artifactId(4)],
+        transform: "identity-utf8@1",
+      },
+    ],
+    omitted: [
+      { id: "old-source", reason: "expired" },
+      { id: "large-source", reason: "capacity" },
+    ],
+    mandatoryCoverage: { expected: 2, recorded: 2, status: "complete" },
+  },
+  transition: { from: "observing", to: "thinking", reason: "recorded-admission" },
+  version: 2,
+};
+const artifact = (i: number) => ({
+  id: artifactId(i),
+  contentType: i === 2 ? "text/plain" : "application/json",
+  bytes: String(i === 2 ? 16777216 : Buffer.byteLength(JSON.stringify(packet))),
+  chunks: i === 2 ? "16" : "1",
+  ciphertextDigest: "b".repeat(64),
+  privacyClass: "private",
+  retentionClass: "30d",
+});
 export function fixtureEvent(i: number) {
   return {
     schemaVersion: "fleet.evidence/v1",
@@ -54,7 +92,7 @@ export function fixtureEvent(i: number) {
       ...(i % 3 === 0 ? { durationMs: "20", inputTokens: "7", outputTokens: "8" } : { outcome: "pending" }),
       purpose: "decision",
     },
-    artifacts: [],
+    artifacts: i === 2 ? [artifact(1), artifact(2)] : [],
     coverage: { status: "complete", expected: "1", recorded: "1", reasons: [] },
   };
 }
@@ -137,6 +175,25 @@ app.get("/api/research/runs/:runId/events/:eventId", (r) => {
   const n = Number(id.split("-").at(-1));
   if (!n || n > 100000) throw Error("EVIDENCE_UNAVAILABLE");
   return fixtureEvent(n);
+});
+app.get("/api/research/runs/:runId/artifacts/:artifactId/chunks/:index", (r, reply) => {
+  const p = r.params as { artifactId: string; index: string },
+    index = Number(p.index);
+  if (![artifactId(1), artifactId(2), artifactId(4)].includes(p.artifactId))
+    return reply.code(404).send({ error: { code: "ARTIFACT_UNAVAILABLE" } });
+  const large = p.artifactId === artifactId(2),
+    body = large ? Buffer.alloc(1048576, 90) : Buffer.from(JSON.stringify(packet));
+  if (!Number.isInteger(index) || index < 0 || index >= (large ? 16 : 1))
+    return reply.code(404).send({ error: { code: "ARTIFACT_CHUNK_UNAVAILABLE" } });
+  return {
+    index,
+    chunks: large ? 16 : 1,
+    bytes: body.length,
+    totalBytes: String(large ? 16777216 : body.length),
+    body: body.toString("base64"),
+    complete: !large,
+    contentType: large ? "text/plain" : "application/json",
+  };
 });
 app.get("/api/research/runs/:runId/coverage", () => ({ status: "partial" }));
 app.setNotFoundHandler(async (r, reply) => {

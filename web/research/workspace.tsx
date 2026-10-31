@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ResearchAPI } from "./api.js";
 import { CausalGraph } from "./causal-graph.js";
+import { ContextInspector } from "./context.js";
 import { ResearchFilters, type TraceFilters } from "./filters.js";
+import { ManifestInspector } from "./manifest.js";
 import { researchRoute, runLink } from "./route.js";
 import { RunTimeline } from "./timeline.js";
 import type { EventPage, InspectedEvent, RunSnapshot } from "./types.js";
@@ -199,9 +201,13 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
             ))}
           </section>
           <nav aria-label="Research views">
-            {["timeline", "causal"].map((x) => (
+            {["timeline", "causal", "context", "manifest"].map((x) => (
               <button type="button" key={x} aria-pressed={view === x} onClick={() => setView(x)}>
-                {x === "timeline" ? "Timeline" : "Causal graph"}
+                {
+                  { timeline: "Timeline", causal: "Causal graph", context: "Context & lineage", manifest: "Manifest" }[
+                    x
+                  ]
+                }
               </button>
             ))}
           </nav>
@@ -223,6 +229,20 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
               onSelect={(id) => void select(id)}
               zoom={filters.zoom}
             />
+          ) : view === "context" ? (
+            selected ? (
+              <ContextInspector
+                key={selected.id}
+                runId={runId}
+                snapshotId={snapshot.id}
+                event={selected}
+                api={api.current!}
+              />
+            ) : (
+              <p>Select a recorded event to inspect its context and lineage.</p>
+            )
+          ) : view === "manifest" ? (
+            <ManifestInspector manifestDigest={snapshot.manifestDigest} manifest={snapshot.manifest} />
           ) : (
             <CausalGraph
               snapshotId={snapshot.id}
