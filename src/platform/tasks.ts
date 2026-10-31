@@ -145,7 +145,7 @@ export class TaskStore {
     if (deadlineAt && !Number.isFinite(deadlineAt.getTime())) throw new FleetError("INVALID_DEADLINE");
     if (old) {
       await db.query(
-        "UPDATE platform_tasks SET revision=revision+1,state=CASE WHEN state='waiting' THEN 'ready' ELSE state END,wake=NULL,deadline=$2,deadline_at=$3 WHERE id=$1",
+        "UPDATE platform_tasks SET revision=revision+1,state=CASE WHEN state='waiting' AND scheduler_owner='platform' THEN 'ready' ELSE state END,wake=CASE WHEN scheduler_owner='platform' THEN NULL ELSE wake END,deadline=$2,deadline_at=$3 WHERE id=$1",
         [old.id, deadline ?? null, deadlineAt],
       );
       return old.id;
@@ -222,7 +222,7 @@ export class TaskStore {
     } else {
       const deadline = earliestDeadline(task.deadline ?? undefined, event.deadline);
       await db.query(
-        "UPDATE platform_tasks SET revision=revision+1,state=CASE WHEN state='waiting' THEN 'ready' ELSE state END,wake=NULL,deadline=$2,deadline_at=$3 WHERE id=$1",
+        "UPDATE platform_tasks SET revision=revision+1,state=CASE WHEN state='waiting' AND scheduler_owner='platform' THEN 'ready' ELSE state END,wake=CASE WHEN scheduler_owner='platform' THEN NULL ELSE wake END,deadline=$2,deadline_at=$3 WHERE id=$1",
         [task.id, deadline ?? null, deadline?.clockId === "utc" ? new Date(deadline.value) : null],
       );
     }
@@ -302,20 +302,37 @@ export class TaskStore {
     selectedTaskId?: string,
     beforeAdmit?: (binding: BindingRef) => Promise<void>,
   ): Promise<TaskClaim | null> {
+    return this.claimOwned(workerId, now, selectedTaskId, beforeAdmit);
+  }
+  async claimTemporal(
+    workerId: string,
+    now: Date,
+    reference: { taskId: string; deliveryId: string; manifestDigest: string },
+    beforeAdmit?: (binding: BindingRef) => Promise<void>,
+  ) {
+    return this.claimOwned(workerId, now, reference.taskId, beforeAdmit, reference);
+  }
+  private async claimOwned(
+    workerId: string,
+    now: Date,
+    selectedTaskId?: string,
+    beforeAdmit?: (binding: BindingRef) => Promise<void>,
+    reference?: { taskId: string; deliveryId: string; manifestDigest: string },
+  ): Promise<TaskClaim | null> {
     await this.store.recoverExpired();
     await this.recover();
-    await this.seedScheduled();
+    if (!reference) await this.seedScheduled();
     return transaction(this.store.pool, async (db) => {
       await db.query("SELECT pg_advisory_xact_lock(19281462)");
       if (!(await canClaimWorker(db, this.maxConcurrency))) return null;
       await db.query(
-        "UPDATE platform_tasks SET state='ready' WHERE state='waiting' AND wake->>'kind'='retry' AND due_at<=$1",
+        "UPDATE platform_tasks SET state='ready' WHERE scheduler_owner='platform' AND state='waiting' AND wake->>'kind'='retry' AND due_at<=$1",
         [now],
       );
       const candidate = (
         await db.query(
           `SELECT t.*,a.id actor_agent_id FROM platform_tasks t JOIN environment_bindings b ON b.id=t.binding_id JOIN agents a ON a.id=b.agent_id JOIN cohorts c ON c.id=t.cohort_id JOIN cohort_engine_profiles p ON p.cohort_id=c.id LEFT JOIN platform_cohort_admission admission ON admission.cohort_id=c.id LEFT JOIN specialist_participant_admission participant ON participant.instance_id=t.architecture_instance_id AND participant.binding_id=t.binding_id AND participant.specialist_id=t.participant_id
-    WHERE t.state='ready' AND t.due_at<=$1 AND b.state='active' AND c.state='running' AND a.state='ready' AND a.credential_state='ready' AND c.model IS NOT NULL AND c.budget IS NOT NULL
+    WHERE t.scheduler_owner=$6 AND ($6='platform' OR (t.research_manifest_digest=$7 AND EXISTS(SELECT 1 FROM research_task_executions e WHERE e.task_id=t.id AND e.delivery_id=$8 AND e.turn_id IS NULL AND e.phase='prepared'))) AND t.state='ready' AND t.due_at<=$1 AND b.state='active' AND c.state='running' AND a.state='ready' AND a.credential_state='ready' AND c.model IS NOT NULL AND c.budget IS NOT NULL
     AND b.environment_id=$2 AND b.environment_version=$3 AND b.instance_id=$4 AND ($5::uuid IS NULL OR t.id=$5)
     AND NOT EXISTS(SELECT 1 FROM turns x WHERE x.agent_id=a.id AND (x.state IN('running','pending','needs_owner') OR x.pending_command IS NOT NULL))
     AND NOT EXISTS(SELECT 1 FROM agent_blockers x WHERE x.agent_id=a.id) AND NOT EXISTS(SELECT 1 FROM maintenance_holds h WHERE h.cohort_id=c.id AND h.released_at IS NULL)
@@ -327,6 +344,9 @@ export class TaskStore {
             this.bindings.selected.version,
             this.bindings.selected.instanceId,
             selectedTaskId ?? null,
+            reference ? "temporal" : "platform",
+            reference?.manifestDigest ?? null,
+            reference?.deliveryId ?? null,
           ],
         )
       ).rows[0];
@@ -335,6 +355,11 @@ export class TaskStore {
       const agent = await this.store.agent(candidate.actor_agent_id, db);
       const turn = await this.store.admitAgent(db, agent, workerId, now, candidate.due_at);
       if (!turn) return null;
+      if (reference)
+        await db.query(
+          "UPDATE research_task_executions SET turn_id=$2,phase='executing',updated_at=$3 WHERE delivery_id=$1",
+          [reference.deliveryId, turn.id, now],
+        );
       const fence = Number(candidate.fence) + 1;
       await db.query("UPDATE platform_tasks SET state='running',fence=$2,active_turn_id=$3 WHERE id=$1", [
         candidate.id,
@@ -407,7 +432,7 @@ export class TaskStore {
       );
       const rows = (
         await db.query(
-          "SELECT t.*,x.state turn_state,x.code turn_code,x.pending_command,x.unknown_usage,x.calls turn_calls,c.revision claimed_revision,a.next_due_at,o.phase recovery_phase FROM platform_tasks t JOIN turns x ON x.id=t.active_turn_id JOIN platform_task_claims c ON c.turn_id=x.id JOIN agents a ON a.id=x.agent_id LEFT JOIN recovery_operations o ON o.turn_id=x.id WHERE t.state IN('running','blocked') AND x.state<>'running' FOR UPDATE OF t",
+          "SELECT t.*,x.state turn_state,x.code turn_code,x.pending_command,x.unknown_usage,x.calls turn_calls,c.revision claimed_revision,a.next_due_at,o.phase recovery_phase FROM platform_tasks t JOIN turns x ON x.id=t.active_turn_id JOIN platform_task_claims c ON c.turn_id=x.id JOIN agents a ON a.id=x.agent_id LEFT JOIN recovery_operations o ON o.turn_id=x.id WHERE t.scheduler_owner='platform' AND t.state IN('running','blocked') AND x.state<>'running' FOR UPDATE OF t",
         )
       ).rows;
       for (const row of rows) {

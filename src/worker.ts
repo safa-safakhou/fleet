@@ -16,6 +16,7 @@ let stop = false,
   failures = 0,
   recoveryInFlight: Promise<unknown> | undefined,
   intakeInFlight: Promise<unknown> | undefined;
+const researchRuntime = r.settings.researchRuntime ? await r.startResearchRuntime() : undefined;
 const stopTelemetry = startTelemetryLoop(r.telemetry);
 const workers = new WorkerPool(r.settings.maxConcurrency, r.settings.maxConcurrency);
 const participantCancellation = new AbortController();
@@ -180,6 +181,7 @@ try {
   await r.host.stop();
   await Promise.allSettled([workers.drain(), recoveryInFlight, intakeInFlight]);
   await r.host.drain();
+  await researchRuntime?.close();
   await stopTelemetry();
   await r.pool.end();
 }

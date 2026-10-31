@@ -13,6 +13,19 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
   const origin = endpoint(env.FLEET_ORIGIN ?? "http://127.0.0.1:8820", true),
     gameBase = endpoint(env.FLEET_GAME_BASE_URL ?? env.PACT_BASE_URL ?? "https://pact.tinyagenttools.com", allowHttp);
   return {
+    researchRuntime: env.FLEET_RESEARCH_TEMPORAL_ADDRESS
+      ? {
+          address: z
+            .string()
+            .regex(/^(127\.0\.0\.1|localhost):[0-9]{1,5}$/)
+            .parse(env.FLEET_RESEARCH_TEMPORAL_ADDRESS),
+          namespace: z.string().min(1).max(200).parse(env.FLEET_RESEARCH_TEMPORAL_NAMESPACE),
+          manifestDigest: z
+            .string()
+            .regex(/^[a-f0-9]{64}$/)
+            .parse(env.FLEET_RESEARCH_MANIFEST),
+        }
+      : undefined,
     observabilityEndpoint: env.FLEET_OBSERVABILITY_OTLP_URL,
     pactFactRequests: parsePactFactRequests(env.FLEET_PACT_FACT_REQUESTS),
     databaseUrl,

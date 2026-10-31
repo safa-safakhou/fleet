@@ -25,6 +25,7 @@ import { CommandExecutor } from "../platform/execution.js";
 import { providerCapacity } from "../platform/provider-policy.js";
 import { OperationSupervisor, PlatformHost } from "../platform/supervisor.js";
 import { TaskStore } from "../platform/tasks.js";
+import { StepJournal } from "../research/broker/steps.js";
 import { CaptureSession } from "../research/evidence/boundaries.js";
 import { ArtifactFilesystem } from "../research/evidence/filesystem.js";
 import { RunInspection } from "../research/evidence/inspection.js";
@@ -158,6 +159,26 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
     settings,
     evidence,
     telemetry,
+    startResearchRuntime: async () => {
+      const selected = settings.researchRuntime;
+      if (!selected) throw new FleetError("RESEARCH_RUNTIME_DISABLED", true);
+      const { startTaskRuntime } = await import("../research/orchestration/worker.js");
+      return startTaskRuntime({
+        store,
+        tasks,
+        ...selected,
+        admissionOpen: () => settings.liveAllowed && runWindow.isOpen(),
+        run: async (claim) => {
+          const scope = await new StepJournal(store, tasks).open(
+            claim,
+            `task:${claim.taskId}`,
+            `task:${claim.taskId}`,
+            selected.manifestDigest,
+          );
+          await evidence.withScope(scope, () => host.run(claim));
+        },
+      });
+    },
     researchInspection: new RunInspection(store, evidence.artifacts),
     legacy: new LegacyRunner(store, engine),
     maintenance: createMaintenance(store),
