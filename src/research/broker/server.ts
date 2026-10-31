@@ -61,7 +61,9 @@ export class ResearchBroker {
     const manifest = await new ManifestRepository(this.store.pool).load(scope.manifestDigest);
     if (
       manifest.model.route !== services.configuration.model.route ||
-      manifest.model.model !== services.configuration.model.model
+      manifest.model.model !== services.configuration.model.model ||
+      manifest.model.parameters.temperature !== services.configuration.model.temperature ||
+      manifest.model.parameters.topP !== services.configuration.model.topP
     )
       throw new FleetError("CAPABILITY_CHANGED", true);
     await this.capture.recorder.append(scope, {

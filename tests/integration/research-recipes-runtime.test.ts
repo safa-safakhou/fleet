@@ -33,6 +33,10 @@ test.each([
       JSON.stringify({ deadlineAt: new Date(Date.now() + 3600000).toISOString() }),
     ]);
     await f.store.setState(f.group.id, "paused", false);
+    await f.pool.query("UPDATE cohorts SET model=model||$2::jsonb WHERE id=$1", [
+      f.group.id,
+      JSON.stringify({ temperature: 1, topP: 1 }),
+    ]);
     await f.store.consent(f.group.id, true);
     const profile = { id, version: "1" },
       config = { ...recipeDefaults(id), worker },

@@ -30,6 +30,10 @@ test.each(["native", "python"])("broker_is_the_only_effect_path (%s)", async (mo
     await f.pool.end();
     await rm(root, { recursive: true, force: true });
   };
+  await f.pool.query("UPDATE cohorts SET model=model||$2::jsonb WHERE id=$1", [
+    f.group.id,
+    JSON.stringify({ temperature: 1, topP: 1 }),
+  ]);
   await f.store.consent(f.group.id, true);
   await f.enqueue();
   const claim = await f.claim();
@@ -107,6 +111,17 @@ test.each(["native", "python"])("broker_is_the_only_effect_path (%s)", async (mo
         model: h.admission,
         commands: h.commands,
       });
+      await expect(
+        broker.open(
+          scope,
+          {
+            ...services,
+            configuration: { ...services.configuration, model: { ...services.configuration.model, temperature: 0 } },
+          },
+          "actor",
+          ctx.signal,
+        ),
+      ).rejects.toThrow("CAPABILITY_CHANGED");
       const auth = await broker.open(scope, services, "actor", ctx.signal, {
           ...ctx.observation,
           sourceRefs: ["fixture:source"],
