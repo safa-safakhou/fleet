@@ -34,7 +34,9 @@
     "eval:prompts": "tsx scripts/evaluate-research-prompts.ts",
     "optimize:offline": "tsx scripts/optimize-research.ts",
     "test:research-ui": "playwright test --config playwright.research.config.ts",
-    "qualify:research": "tsx scripts/qualify-research.ts"
+    "qualify:research": "tsx scripts/qualify-research.ts",
+    "test:research-migration": "tsx scripts/test-research-migration.ts --fixture",
+    "test:research-faults": "tsx scripts/test-research-faults.ts --fixture"
   },
   "dependencies": {
     "@bufbuild/protobuf": "2.16.0",
