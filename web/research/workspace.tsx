@@ -4,6 +4,7 @@ import { CausalGraph } from "./causal-graph.js";
 import { ContextInspector } from "./context.js";
 import { ResearchFilters, type TraceFilters } from "./filters.js";
 import { ManifestInspector } from "./manifest.js";
+import { ResourceDashboard } from "./resources.js";
 import { researchRoute, runLink } from "./route.js";
 import { RunTimeline } from "./timeline.js";
 import type { EventPage, InspectedEvent, RunSnapshot } from "./types.js";
@@ -201,12 +202,16 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
             ))}
           </section>
           <nav aria-label="Research views">
-            {["timeline", "causal", "context", "manifest"].map((x) => (
+            {["timeline", "causal", "context", "manifest", "resources"].map((x) => (
               <button type="button" key={x} aria-pressed={view === x} onClick={() => setView(x)}>
                 {
-                  { timeline: "Timeline", causal: "Causal graph", context: "Context & lineage", manifest: "Manifest" }[
-                    x
-                  ]
+                  {
+                    timeline: "Timeline",
+                    causal: "Causal graph",
+                    context: "Context & lineage",
+                    manifest: "Manifest",
+                    resources: "Resources & outcomes",
+                  }[x]
                 }
               </button>
             ))}
@@ -228,6 +233,14 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
               selectedEventId={selected?.id}
               onSelect={(id) => void select(id)}
               zoom={filters.zoom}
+            />
+          ) : view === "resources" ? (
+            <ResourceDashboard
+              snapshotId={snapshot.id}
+              runId={runId}
+              api={api.current!}
+              events={events}
+              onSelect={(id) => void select(id)}
             />
           ) : view === "context" ? (
             selected ? (

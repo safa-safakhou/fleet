@@ -62,6 +62,22 @@ export class MetricRepository {
     });
     return { id, metrics, evaluation };
   }
+  async latest(runId: string) {
+    await this.inspection.authorize(runId, this.principal);
+    const ids = (
+      await this.inspection.store.pool.query(
+        "SELECT id FROM research_metric_snapshots WHERE run_id=$1 ORDER BY created_at DESC,id DESC LIMIT 20",
+        [runId],
+      )
+    ).rows;
+    const published = [];
+    for (const { id } of ids) {
+      const { metrics, evaluation } = await this.get(id);
+      published.push({ id, metrics, evaluation });
+    }
+    await this.inspection.authorize(runId, this.principal);
+    return published;
+  }
   async get(id: string): Promise<MetricRecord> {
     const row = (await this.inspection.store.pool.query("SELECT * FROM research_metric_snapshots WHERE id=$1", [id]))
       .rows[0];

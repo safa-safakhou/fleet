@@ -19,6 +19,9 @@ export function registerExperimentRoutes(app: FastifyInstance, inspection?: RunI
     return { metrics, experiments: new ExperimentRepository(metrics), principal };
   };
   const id = (r: FastifyRequest) => z.uuid().parse(object(r.params).id);
+  app.get("/api/research/runs/:runId/metric-sets", async (r) =>
+    use(r).metrics.latest(z.string().min(1).max(2000).parse(object(r.params).runId)),
+  );
   app.post("/api/research/runs/:runId/metrics", async (r) => {
     const body = z
         .object({

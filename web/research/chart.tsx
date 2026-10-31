@@ -1,4 +1,4 @@
-import { BarChart, GraphChart, LineChart, ScatterChart } from "echarts/charts";
+import { BarChart, LineChart, ScatterChart } from "echarts/charts";
 import { AriaComponent, DataZoomComponent, GridComponent, LegendComponent, TooltipComponent } from "echarts/components";
 import { type EChartsCoreOption, init, use } from "echarts/core";
 import { SVGRenderer } from "echarts/renderers";
@@ -8,7 +8,6 @@ use([
   BarChart,
   LineChart,
   ScatterChart,
-  GraphChart,
   GridComponent,
   TooltipComponent,
   LegendComponent,
@@ -21,7 +20,9 @@ export function ResearchChart({ label, option }: { label: string; option: EChart
   useEffect(() => {
     const c = init(ref.current!, undefined, { renderer: "svg" });
     c.setOption({ ...option, animation: false, aria: { enabled: true, decal: { show: true } } });
-    const observer = new ResizeObserver(() => c.resize());
+    const observer = new ResizeObserver(() => {
+      if (!c.isDisposed() && ref.current?.clientWidth && ref.current.clientHeight) c.resize();
+    });
     observer.observe(ref.current!);
     return () => {
       observer.disconnect();
@@ -29,7 +30,7 @@ export function ResearchChart({ label, option }: { label: string; option: EChart
     };
   }, [option]);
   return (
-    <figure className="research-chart">
+    <figure className="research-chart" aria-label={label}>
       <figcaption>{label} · equivalent rows below</figcaption>
       <div role="img" aria-label={label} ref={ref} />
     </figure>

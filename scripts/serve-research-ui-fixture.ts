@@ -84,7 +84,16 @@ export function fixtureEvent(i: number) {
     streamId: i % 2 ? "actor" : "provider",
     sequence: String(Math.ceil(i / 2)),
     ordinal: String(i),
-    kind: i === 2 ? "context.prepared" : i % 3 ? "queue.enter" : "model.response",
+    kind:
+      i === 5
+        ? "command.receipt"
+        : i === 6
+          ? "task.state"
+          : i === 2
+            ? "context.prepared"
+            : i % 3
+              ? "queue.enter"
+              : "model.response",
     occurredAt: `2026-10-31T10:00:00.000Z`,
     recordedAt: "2026-10-31T10:00:01.000Z",
     parentIds: i > 2 ? [eventId(i - 2)] : [],
@@ -195,6 +204,60 @@ app.get("/api/research/runs/:runId/artifacts/:artifactId/chunks/:index", (r, rep
     contentType: large ? "text/plain" : "application/json",
   };
 });
+const metricValues = [
+  ...[
+    { id: "tasks.v1", value: 4, unit: "tasks" },
+    { id: "attempts.v1", value: 8, unit: "attempts" },
+    { id: "confirmed_actions.v1", value: 3, unit: "commands" },
+    { id: "queue_p95.v1", value: 30, unit: "ms" },
+    { id: "latency_p95.v1", value: 20, unit: "ms" },
+    { id: "admission_deferrals.v1", value: 1, unit: "deferrals" },
+    { id: "output_cap_hits.v1", value: 2, unit: "calls" },
+    { id: "disk_bytes.v1", value: 16777216, unit: "bytes" },
+    { id: "input_limit_utilization.v1", value: 0.8, unit: "ratio" },
+    { id: "monetary_cost.v1", value: null, unit: "currency" },
+  ].map((m) => ({ ...m, numerator: String(m.value ?? "0"), denominator: null })),
+
+  { id: "calls.v1", value: 205, unit: "call", numerator: "205", denominator: null },
+  { id: "known_input_tokens.v1", value: 1000, unit: "token", numerator: "1000", denominator: null },
+  { id: "unknown_allocations.v1", value: 2, unit: "allocation", numerator: "2", denominator: null },
+  { id: "reserved_tokens.v1", value: 5000, unit: "token", numerator: "5000", denominator: null },
+  { id: "known_tokens_per_success.v1", value: null, unit: "token/success", numerator: "1000", denominator: "1" },
+  { id: "messages_delivered.v1", value: 0, unit: "message", numerator: "0", denominator: null },
+].map((m) => ({
+  ...m,
+  version: "1",
+  population: "full authorized published native population",
+  window: { start: "2026-10-31T10:00:00.000Z", end: "2026-10-31T11:00:00.000Z" },
+  timeBasis: "allocation-created",
+  coverage: { status: "partial", expected: 207, recorded: 205, censored: 2, ungraded: 0 },
+  sourceRefs: [eventId(2)],
+  evaluatorDigest: "e".repeat(64),
+  exclusions: m.value === null ? ["UNKNOWN_USAGE"] : [],
+}));
+const metricSet = {
+  version: "fleet.metric-set/v1",
+  snapshotId: "historical-published-snapshot",
+  digest: "c".repeat(64),
+  values: metricValues,
+  unresolvedUsage: { allocations: 2, reservedTokens: "5000" },
+  ungraded: 0,
+  exclusions: ["UNKNOWN_USAGE"],
+};
+app.get("/api/research/runs/:runId/metric-sets", () => [
+  {
+    id: "50000000-0000-4000-8000-000000000001",
+    metrics: metricSet,
+    evaluation: {
+      version: "fleet.evaluation/v1",
+      evaluatorDigest: "e".repeat(64),
+      objectives: [
+        { id: "verified-upgrade", status: "completed", sourceRefs: [eventId(2)] },
+        { id: "ungraded-objective", status: "ungraded", sourceRefs: [] },
+      ],
+    },
+  },
+]);
 app.get("/api/research/runs/:runId/coverage", () => ({ status: "partial" }));
 app.setNotFoundHandler(async (r, reply) => {
   if (r.url.startsWith("/api/")) return reply.code(403).send({ error: { code: "FIXTURE_ROUTE_DENIED" } });
