@@ -102,6 +102,8 @@ test("preregistration preserves missing runs, drift, immutable late results and 
       snap = await repo.snapshot(spec.id, [source.id]),
       comparison = new ComparisonService(repo),
       first = await comparison.compare(snap.id);
+    expect(first.spec.primaryMetric).toBe("known_input_tokens.v1");
+    expect(first.experimentId).toBe(spec.id);
     expect(first.missingRuns).toEqual(["missing-bad-run"]);
     expect(first.winner).toBeNull();
     expect(first.flags).toContain("UNKNOWN_USAGE");

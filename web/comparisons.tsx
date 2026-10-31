@@ -105,6 +105,7 @@ export function ComparisonWorkspace({
   }
   return (
     <section className="comparison-workspace">
+      <a href="#research">Inspect a published research experiment →</a>
       <article className="panel">
         <h2>Prepare a comparison</h2>
         <p className="muted">

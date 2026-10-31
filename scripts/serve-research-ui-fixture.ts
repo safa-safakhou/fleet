@@ -1,3 +1,6 @@
+import { Readable } from "node:stream";
+import { compareExperiment } from "../src/research/experiments/comparison.js";
+import type { ExperimentSnapshot } from "../src/research/experiments/repository.js";
 /** Owned synthetic browser fixture. No database, providers, game clients or retained routes. */
 
 import { performance } from "node:perf_hooks";
@@ -22,7 +25,11 @@ const app = Fastify({ logger: false }),
       ],
     },
     root: process.cwd(),
-    server: { middlewareMode: true, watch: { ignored: ["**/.superpowers/**", "**/.state/**", "**/test-results/**"] } },
+    server: {
+      middlewareMode: true,
+      allowedHosts: ["host.docker.internal", "127.0.0.1", "localhost"],
+      watch: { ignored: ["**/.superpowers/**", "**/.state/**", "**/test-results/**"] },
+    },
     appType: "custom",
   });
 let revoked = false;
@@ -122,6 +129,7 @@ app.addHook("onRequest", async (r, reply) => {
       return reply.code(403).send({ error: { code: "FIXTURE_ROUTE_DENIED" } });
   }
 });
+app.get("/api/research/turns/:turnId/runs", () => [{ runId: "synthetic-large", provenance: "synthetic" }]);
 app.get("/api/research/runs/:runId", (r) => ({
   version: "fleet.snapshot/v1",
   id: snapshotId,
@@ -258,6 +266,89 @@ app.get("/api/research/runs/:runId/metric-sets", () => [
     },
   },
 ]);
+const spec = {
+  schemaVersion: "fleet.experiment/v1",
+  id: "70000000-0000-4000-8000-000000000001",
+  assignmentUnit: "world",
+  baseline: "base",
+  primaryMetric: "first_pass_accuracy.v1",
+  secondaryMetrics: ["calls.v1", "known_tokens_per_success.v1"],
+  margin: 0.05,
+  window: { start: "2026-10-31T10:00:00.000Z", end: "2026-10-31T11:00:00.000Z" },
+  horizonMs: 3600000,
+  seed: 42,
+  paired: false,
+  stoppingRule: "fixed-horizon",
+  missingness: "report-and-block-inference",
+  splitDigests: { train: "a".repeat(64), development: "b".repeat(64), heldout: "c".repeat(64) },
+  units: [],
+};
+const study = {
+  version: "fleet.experiment-snapshot/v1",
+  id: "60000000-0000-4000-8000-000000000001",
+  experimentId: spec.id,
+  spec,
+  createdAt: new Date().toISOString(),
+  expiresAt: new Date(Date.now() + 3600000).toISOString(),
+  digest: "f".repeat(64),
+  units: ["base", "candidate"].map((arm, i) => ({
+    id: i ? "=SUM(1)" : "baseline",
+    arm,
+    worldId: `world-${i}`,
+    sessionId: `session-${i}`,
+    expectedRuns: [i ? "synthetic-large" : "synthetic-baseline", ...(i ? ["missing-bad-run"] : [])],
+    missingRuns: i ? ["missing-bad-run"] : [],
+    flags: i ? ["UNKNOWN_USAGE", "CENSORED_HORIZON", "MISSING_RUNS", "MANIFEST_MISMATCH"] : [],
+    manifestDifferences: [],
+    runs: [
+      {
+        runId: i ? "synthetic-large" : "synthetic-baseline",
+        snapshotId,
+        metricId: "50000000-0000-4000-8000-000000000001",
+        configuration: {
+          environment: { worldIncarnation: `world-${i}` },
+          evaluation: { evaluator: i ? "changed@2" : "pact-rules@1" },
+        },
+        metrics: {
+          ...metricSet,
+          values: [
+            ...metricSet.values,
+            {
+              ...metricValues[0],
+              id: "first_pass_accuracy.v1",
+              unit: "ratio",
+              value: i ? 0.6 : 0.5,
+              numerator: i ? "6" : "5",
+              denominator: "10",
+            },
+          ],
+        },
+      },
+    ],
+  })),
+} as unknown as ExperimentSnapshot;
+spec.units = study.units.map((u) => ({
+  id: u.id,
+  arm: u.arm,
+  cohortId: "synthetic",
+  worldId: u.worldId,
+  sessionId: u.sessionId,
+  runIds: u.expectedRuns,
+  limits: { calls: "16", tokens: "1000000", concurrency: 1 },
+})) as never[];
+app.get("/api/research/experiment-snapshots/:id", () => compareExperiment(study));
+app.get("/api/research/runs/:runId/export", (r, reply) => {
+  if (typeof r.headers["x-fleet-export-key"] !== "string" || !/^[a-f0-9]{64}$/.test(r.headers["x-fleet-export-key"]))
+    return reply.code(400).send({ error: { code: "EXPORT_KEY_REQUIRED" } });
+  reply.type("application/vnd.fleet.encrypted-archive");
+  return reply.send(
+    Readable.from(
+      (async function* () {
+        for (let i = 0; i < 4; i++) yield Buffer.alloc(1048576, 43);
+      })(),
+    ),
+  );
+});
 app.get("/api/research/runs/:runId/coverage", () => ({ status: "partial" }));
 app.setNotFoundHandler(async (r, reply) => {
   if (r.url.startsWith("/api/")) return reply.code(403).send({ error: { code: "FIXTURE_ROUTE_DENIED" } });

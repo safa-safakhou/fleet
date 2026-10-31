@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from "react";
+import { turnLink } from "./research/route.js";
 
 export type ObservedAgent = {
   id: string;
@@ -496,6 +497,7 @@ function TurnList({
                   Open full run debugging →
                 </button>
               )}
+              <a href={turnLink(t.id)}>Inspect recorded research evidence →</a>
               <span>Reported tokens: {number(Number(t.input_tokens ?? 0) + Number(t.output_tokens ?? 0))}</span>
               <span>Finished: {when(t.finished_at)}</span>
               {inspect && (

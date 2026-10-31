@@ -214,3 +214,25 @@
   border: 1px solid var(--r-line);
   background: var(--r-panel);
 }
+.research-studio > header {
+  display: block;
+}
+.research-studio label {
+  max-width: 100%;
+  min-width: 0;
+}
+.research-studio input,
+.research-studio select {
+  max-width: 100%;
+  min-width: 0;
+}
+.research-actions > label {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 220px;
+}
+.research-studio th {
+  font-size: 12px;
+  letter-spacing: 0;
+  color: #dce5f5;
+}

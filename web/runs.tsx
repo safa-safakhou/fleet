@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import type { evidenceChain } from "../src/platform/evidence.js";
 import { type RecordedTurn, readable } from "./observe.js";
-import { runLink } from "./research/route.js";
+import { turnLink } from "./research/route.js";
 import { explainStep, StepExplanation } from "./run-steps.js";
 
 type RunData = {
@@ -322,7 +322,7 @@ export function RunDetails({
   return (
     <section className="panel run-report">
       <div className="run-navigation">
-        <a href={runLink(id)}>Inspect full research evidence →</a>
+        <a href={turnLink(id)}>Inspect full research evidence →</a>
         <button type="button" onClick={back}>
           ← All runs
         </button>

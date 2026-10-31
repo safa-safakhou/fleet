@@ -330,6 +330,7 @@ export function MetricsWorkspace({
   }, [api, minutes, scope]);
   return (
     <div className="metrics-workspace">
+      <a href="#research">Open full research metrics and evidence →</a>
       <div className="section-heading">
         <div>
           <h2>Fleet metrics</h2>

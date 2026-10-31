@@ -77,6 +77,8 @@ export function compareExperiment(snapshot: ExperimentSnapshot) {
   const body = {
     version: "fleet.comparison/v1",
     snapshotId: snapshot.id,
+    experimentId: snapshot.experimentId,
+    spec: snapshot.spec,
     snapshotDigest: snapshot.digest,
     baseline: spec.baseline,
     units,

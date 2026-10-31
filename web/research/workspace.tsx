@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ResearchAPI } from "./api.js";
+import { ArchiveExport } from "./archive.js";
 import { CausalGraph } from "./causal-graph.js";
+import { ResearchComparison } from "./comparison.js";
 import { ContextInspector } from "./context.js";
 import { ResearchFilters, type TraceFilters } from "./filters.js";
 import { ManifestInspector } from "./manifest.js";
@@ -19,10 +21,26 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
     [busy, setBusy] = useState(false),
     [filters, setFilters] = useState<TraceFilters>({ search: "", kind: "", stream: "", zoom: 1 }),
     [view, setView] = useState("timeline");
+  const knownKinds = useRef(new Set<string>()),
+    knownStreams = useRef(new Set<string>());
+  const receivePage = useCallback((p: EventPage) => {
+    for (const e of p.events) {
+      knownKinds.current.add(e.kind);
+      if (knownStreams.current.size < 200) knownStreams.current.add(e.streamId);
+    }
+    setPage(p);
+  }, []);
+  const scopeEpoch = useRef(0),
+    pageEpoch = useRef(0);
   const ticket = useRef(0),
     api = useRef<ResearchAPI>(null);
   const clear = useCallback(() => {
     ticket.current++;
+    scopeEpoch.current++;
+    pageEpoch.current++;
+    api.current?.dispose();
+    knownKinds.current.clear();
+    knownStreams.current.clear();
     setSnapshot(null);
     setPage(null);
     setSelected(null);
@@ -31,6 +49,8 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
   if (!api.current) api.current = new ResearchAPI(clear);
   const load = useCallback(async () => {
     api.current!.dispose();
+    const scopeVersion = ++scopeEpoch.current;
+    pageEpoch.current++;
     ticket.current++;
     setSnapshot(null);
     setSelected(null);
@@ -40,16 +60,18 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
     setBusy(true);
     try {
       const s = await api.current!.snapshot(runId);
+      if (scopeVersion !== scopeEpoch.current) return;
       performance.mark("fleet.metadata.loaded");
       setSnapshot(s);
       const p = await api.current!.page(runId, s.id);
-      setPage(p);
+      if (scopeVersion === scopeEpoch.current) receivePage(p);
     } catch (e) {
-      if ((e as Error).name !== "AbortError") setError(`Evidence unavailable: ${(e as Error).message}`);
+      if (scopeVersion === scopeEpoch.current && (e as Error).name !== "AbortError")
+        setError(`Evidence unavailable: ${(e as Error).message}`);
     } finally {
-      setBusy(false);
+      if (scopeVersion === scopeEpoch.current) setBusy(false);
     }
-  }, [runId]);
+  }, [runId, receivePage]);
   useEffect(() => {
     void load();
     return () => api.current!.dispose();
@@ -105,10 +127,13 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
   }, [page]);
   const next = async () => {
     if (!snapshot || !page?.nextCursor) return;
+    const g = scopeEpoch.current,
+      p = ++pageEpoch.current;
     setBusy(true);
     setSelected(null);
     try {
-      setPage(await api.current!.page(runId, snapshot.id, page.nextCursor, filters.kind, filters.stream));
+      const next = await api.current!.page(runId, snapshot.id, page.nextCursor, filters.kind, filters.stream);
+      if (g === scopeEpoch.current && p === pageEpoch.current) receivePage(next);
     } catch (e) {
       setError(`Page unavailable: ${(e as Error).message}`);
     } finally {
@@ -119,9 +144,14 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
     setFilters(f);
     if (snapshot && (f.kind !== filters.kind || f.stream !== filters.stream)) {
       setSelected(null);
+      setPage(null);
+      const g = scopeEpoch.current,
+        p = ++pageEpoch.current;
       void api
         .current!.page(runId, snapshot.id, undefined, f.kind, f.stream)
-        .then(setPage)
+        .then((next) => {
+          if (g === scopeEpoch.current && p === pageEpoch.current) receivePage(next);
+        })
         .catch((e) => setError(`Page unavailable: ${e.message}`));
     }
   };
@@ -201,6 +231,7 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
               </p>
             ))}
           </section>
+          <ArchiveExport runId={runId} snapshotId={snapshot.id} api={api.current!} />
           <nav aria-label="Research views">
             {["timeline", "causal", "context", "manifest", "resources"].map((x) => (
               <button type="button" key={x} aria-pressed={view === x} onClick={() => setView(x)}>
@@ -219,8 +250,8 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
           <ResearchFilters
             value={filters}
             onChange={changeFilters}
-            kinds={[...new Set(page?.events.map((e) => e.kind))].sort()}
-            streams={[...new Set(page?.events.map((e) => e.streamId))].sort()}
+            kinds={[...knownKinds.current].sort()}
+            streams={[...knownStreams.current].sort()}
           />
           <p>
             Showing {events.length} of {page?.total ?? snapshot.total} matching events. Metadata is page bounded; search
@@ -236,6 +267,7 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
             />
           ) : view === "resources" ? (
             <ResourceDashboard
+              allocations={snapshot.native.allocations}
               snapshotId={snapshot.id}
               runId={runId}
               api={api.current!}
@@ -293,6 +325,84 @@ export function ResearchWorkspace({ runId: initialRunId }: { runId?: string }) {
           )}
         </>
       )}
+    </main>
+  );
+}
+
+export function ResearchStudio() {
+  const [route, setRoute] = useState(researchRoute(location.hash)),
+    [experiment, setExperiment] = useState("");
+  useEffect(() => {
+    const update = () => setRoute(researchRoute(location.hash));
+    window.addEventListener("hashchange", update);
+    return () => window.removeEventListener("hashchange", update);
+  }, []);
+  if (route?.kind === "turn") return <RecordedTurnRuns key={route.turnId} turnId={route.turnId} />;
+  if (route?.kind === "comparison")
+    return <ResearchComparison key={route.snapshotId} experimentSnapshotId={route.snapshotId} />;
+  return (
+    <>
+      <ResearchWorkspace
+        key={route?.kind === "run" ? route.runId : "home"}
+        runId={route?.kind === "run" ? route.runId : undefined}
+      />
+      {route?.kind !== "run" && (
+        <section className="research-studio">
+          <h2>Inspect a published experiment</h2>
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              location.hash = `research/comparison/${encodeURIComponent(experiment)}`;
+            }}
+          >
+            <label>
+              Experiment snapshot identifier
+              <input value={experiment} onChange={(e) => setExperiment(e.target.value)} required />
+            </label>
+            <button type="submit">Open published comparison</button>
+          </form>
+        </section>
+      )}
+    </>
+  );
+}
+
+function RecordedTurnRuns({ turnId }: { turnId: string }) {
+  const [runs, setRuns] = useState<Pick<RunSnapshot, "runId" | "provenance">[]>([]),
+    [error, setError] = useState("");
+  useEffect(() => {
+    let active = true;
+    const api = new ResearchAPI(() => {
+      if (active) {
+        setRuns([]);
+        setError("Recorded evidence unavailable.");
+      }
+    });
+    void api
+      .request<Pick<RunSnapshot, "runId" | "provenance">[]>(`/turns/${encodeURIComponent(turnId)}/runs`)
+      .then((r) => {
+        if (active) setRuns(r);
+      })
+      .catch(() => {
+        if (active) setError("Recorded evidence unavailable.");
+      });
+    return () => {
+      active = false;
+      api.dispose();
+    };
+  }, [turnId]);
+  return (
+    <main className="research-studio">
+      <h1>Recorded runs for turn</h1>
+      <p>{turnId}</p>
+      {error && <p role="alert">{error}</p>}
+      {runs.map((r) => (
+        <p key={r.runId}>
+          <a href={runLink(r.runId)}>Open recorded run {r.runId}</a> · {r.provenance}
+        </p>
+      ))}
+      {!runs.length && !error && <p>No authorized research run recorded for this turn.</p>}
+      <a href="#research">Research studio</a>
     </main>
   );
 }

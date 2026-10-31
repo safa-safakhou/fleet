@@ -1,5 +1,5 @@
 import { writeFile } from "node:fs/promises";
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test.js";
 
 test.beforeEach(async ({ request }) => {
   await request.post("/__fixture/reset");
@@ -75,4 +75,24 @@ test("synthetic performance and bounded causal graph", async ({ page, request, b
   await page.getByRole("button", { name: "Causal graph", exact: true }).click();
   await expect(page.getByRole("img", { name: "Explicit event causality" })).toBeVisible();
   await page.screenshot({ path: info.outputPath("causal-graph.png"), fullPage: true });
+});
+test("late filtered pages cannot replace the current selection", async ({ page }) => {
+  await page.goto("/#research/run/synthetic-large");
+  await expect(page.getByRole("button", { name: /Inspect event/ }).first()).toBeVisible();
+  await page.route("**/events?**", async (route) => {
+    if (new URL(route.request().url()).searchParams.get("kind") === "model.response")
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    await route.continue();
+  });
+  await page.getByLabel("Event family").selectOption("model.response");
+  await page.getByLabel("Event family").selectOption("queue.enter");
+  await expect(page.getByRole("cell", { name: "queue.enter", exact: true }).first()).toBeVisible();
+  await page.waitForTimeout(350);
+  await expect(page.getByRole("cell", { name: "model.response", exact: true })).toHaveCount(0);
+});
+test("legacy turn inspector opens its recorded research run without execution", async ({ page }) => {
+  await page.goto("/#research/turn/80000000-0000-4000-8000-000000000001");
+  await page.getByRole("link", { name: "Open recorded run synthetic-large" }).click();
+  await expect(page.getByRole("heading", { name: "Research studio" })).toBeVisible();
+  await expect(page.getByText("100000 recorded events", { exact: true })).toBeVisible();
 });

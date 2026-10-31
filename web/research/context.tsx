@@ -32,12 +32,14 @@ export function contextView(raw: unknown) {
 }
 export function SourceSpan({ text, startByte, endByte }: { text: string; startByte: number; endByte: number }) {
   const bytes = new TextEncoder().encode(text),
-    decoder = new TextDecoder();
+    decoder = new TextDecoder(),
+    windowStart = Math.max(0, Math.min(bytes.length, startByte) - 2048),
+    windowEnd = Math.min(bytes.length, windowStart + 65536);
   return (
     <pre>
-      {decoder.decode(bytes.slice(0, startByte))}
-      <mark>{decoder.decode(bytes.slice(startByte, endByte))}</mark>
-      {decoder.decode(bytes.slice(endByte))}
+      {decoder.decode(bytes.slice(windowStart, Math.max(windowStart, startByte)))}
+      <mark>{decoder.decode(bytes.slice(Math.max(windowStart, startByte), Math.min(windowEnd, endByte)))}</mark>
+      {decoder.decode(bytes.slice(Math.min(windowEnd, endByte), windowEnd))}
     </pre>
   );
 }
@@ -54,10 +56,12 @@ export function ContextInspector({
 }) {
   const [chunk, setChunk] = useState<ArtifactChunk | null>(null),
     [artifactId, setArtifactId] = useState(""),
+    [sourceVia, setSourceVia] = useState<string | undefined>(),
     [error, setError] = useState(""),
     [tab, setTab] = useState("packet"),
+    [textOffset, setTextOffset] = useState(0),
     [highlight, setHighlight] = useState<ContextLineage["spans"][number] | null>(null),
-    [previous, setPrevious] = useState<string | null>(null),
+    [previous, setPrevious] = useState<{ text: string; expiresAt: string; id: string; via?: string } | null>(null),
     [diff, setDiff] = useState(false);
   const epoch = useRef(0);
   // biome-ignore lint/correctness/useExhaustiveDependencies: switching evidence identity must erase private state.
@@ -71,15 +75,20 @@ export function ContextInspector({
       epoch.current++;
     };
   }, [event.id]);
-  const load = async (id: string, index = 0) => {
+  const load = async (id: string, index = 0, via?: string) => {
+    setSourceVia(via);
     const t = ++epoch.current;
     setChunk(null);
+    setTextOffset(0);
     setHighlight(null);
     setError("");
     setArtifactId(id);
     try {
-      const c = await api.chunk(runId, snapshotId, id, index);
-      if (epoch.current === t) setChunk(c);
+      const c = await api.chunk(runId, snapshotId, id, index, via);
+      if (epoch.current === t) {
+        if (c.expiresAt && Date.parse(c.expiresAt) <= Date.now()) throw Error("SOURCE_EXPIRED");
+        setChunk(c);
+      }
     } catch {
       if (epoch.current === t) {
         setChunk(null);
@@ -88,6 +97,30 @@ export function ContextInspector({
       }
     }
   };
+  useEffect(() => {
+    if (!chunk?.expiresAt) return;
+    const timer = setTimeout(
+      () => {
+        epoch.current++;
+        setChunk(null);
+        setPrevious(null);
+        setError("Private source expired.");
+      },
+      Math.max(0, Date.parse(chunk.expiresAt) - Date.now()),
+    );
+    return () => clearTimeout(timer);
+  }, [chunk]);
+  useEffect(() => {
+    if (!previous) return;
+    const timer = setTimeout(
+      () => {
+        setPrevious(null);
+        setDiff(false);
+      },
+      Math.max(0, Date.parse(previous.expiresAt) - Date.now()),
+    );
+    return () => clearTimeout(timer);
+  }, [previous]);
   const bytes = chunk ? Uint8Array.from(atob(chunk.body), (c) => c.charCodeAt(0)) : null,
     text = bytes ? new TextDecoder().decode(bytes) : "";
   let raw: unknown = null;
@@ -97,7 +130,7 @@ export function ContextInspector({
     } catch {}
   }
   const view = contextView(raw),
-    shown = text.slice(0, 65536),
+    shown = text.slice(textOffset, textOffset + 65536),
     span = highlight && view.messages[highlight.messageIndex];
   return (
     <section aria-label="Context inspector">
@@ -121,15 +154,37 @@ export function ContextInspector({
             {chunk.bytes}/{chunk.totalBytes} bytes · at most65536 characters displayed. Split UTF8 code points may need
             adjacent chunks.
           </p>
-          <button type="button" disabled={chunk.index === 0} onClick={() => void load(artifactId, chunk.index - 1)}>
+          <button
+            type="button"
+            disabled={chunk.index === 0}
+            onClick={() => void load(artifactId, chunk.index - 1, sourceVia)}
+          >
             Previous artifact chunk
           </button>
           <button
             type="button"
             disabled={chunk.index + 1 >= chunk.chunks}
-            onClick={() => void load(artifactId, chunk.index + 1)}
+            onClick={() => void load(artifactId, chunk.index + 1, sourceVia)}
           >
             Next artifact chunk
+          </button>
+          <p>
+            Text viewport characters [{textOffset},{Math.min(text.length, textOffset + 65536)}). UTF8 rendering can
+            replace binary or split code points; the encrypted archive retains exact bytes.
+          </p>
+          <button
+            type="button"
+            disabled={textOffset === 0}
+            onClick={() => setTextOffset(Math.max(0, textOffset - 65536))}
+          >
+            Previous text window
+          </button>
+          <button
+            type="button"
+            disabled={textOffset + 65536 >= text.length}
+            onClick={() => setTextOffset(textOffset + 65536)}
+          >
+            Next text window
           </button>
           <nav aria-label="Artifact views">
             {["packet", "schema", "parameters", "bytes", "lineage"].map((k) => (
@@ -142,7 +197,7 @@ export function ContextInspector({
             <section aria-label="Captured artifact text">
               <pre>
                 {shown}
-                {text.length > shown.length ? "\n[Display window ends; original bytes retained]" : ""}
+                {textOffset + shown.length < text.length ? "\n[Display window ends; original bytes retained]" : ""}
               </pre>
             </section>
           ) : !chunk.complete ? (
@@ -187,7 +242,7 @@ export function ContextInspector({
                     .flatMap((s) => s.sourceRefs)
                     .filter((id, i, a) => a.indexOf(id) === i)
                     .map((id) => (
-                      <button type="button" key={id} onClick={() => void load(id)}>
+                      <button type="button" key={id} onClick={() => void load(id, 0, artifactId)}>
                         Inspect source {id}
                       </button>
                     ))}
@@ -208,18 +263,37 @@ export function ContextInspector({
             type="button"
             disabled={!chunk.complete}
             onClick={() => {
-              setPrevious(text);
+              setPrevious({
+                text,
+                expiresAt: chunk.expiresAt ?? new Date().toISOString(),
+                id: artifactId,
+                via: sourceVia,
+              });
               setDiff(false);
             }}
           >
             Pin this recorded revision for comparison
           </button>
-          <button type="button" disabled={!previous || !chunk.complete} onClick={() => setDiff(true)}>
+          <button
+            type="button"
+            disabled={!previous || !chunk.complete}
+            onClick={() => {
+              setDiff(false);
+              if (previous)
+                void api
+                  .chunk(runId, snapshotId, previous.id, 0, previous.via)
+                  .then(() => setDiff(true))
+                  .catch(() => {
+                    setPrevious(null);
+                    setError("Pinned revision unavailable.");
+                  });
+            }}
+          >
             Compare recorded revisions
           </button>
           {diff && previous && (
             <div className="research-grid">
-              <pre>{previous.slice(0, 65536)}</pre>
+              <pre>{previous.text.slice(0, 65536)}</pre>
               <pre>{shown}</pre>
             </div>
           )}

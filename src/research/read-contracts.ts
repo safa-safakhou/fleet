@@ -9,6 +9,8 @@ export type ComparisonReport = ReturnType<typeof import("./experiments/compariso
 export type EventPage = Awaited<ReturnType<import("./evidence/inspection.js").RunInspection["events"]>>;
 export type WireEvent = import("./generated/fleet/v1/evidence_pb.js").EvidenceEvent;
 export type ArtifactChunk = {
+  expiresAt?: string;
+  originRunId?: string;
   index: number;
   chunks: number;
   bytes: number;

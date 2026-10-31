@@ -1,6 +1,6 @@
 import { expect, test } from "vitest";
 import { outcomeRows } from "../../web/research/outcomes.js";
-import { resourceSeries } from "../../web/research/resources.js";
+import { nativeTimingSeries, resourceSeries } from "../../web/research/resources.js";
 import type { EvidenceEvent, MetricSet } from "../../web/research/types.js";
 
 test("activity_is_not_effectiveness and null cost is never zero", () => {
@@ -33,4 +33,20 @@ test("activity_is_not_effectiveness and null cost is never zero", () => {
   expect(rows[0].meaning).toBe("Admission receipt; completion not established");
   expect(rows[1].meaning).toContain("WAIT");
   expect(rows.some((x) => x.meaning === "completed")).toBe(false);
+});
+
+test("native timing dots preserve reported measurements and unknown samples", () => {
+  const points = nativeTimingSeries([
+    {
+      id: "known",
+      status: "reported",
+      responseMetrics: { providerExecutionMs: 12 },
+      requestMetrics: { queueDelayMs: 30 },
+    },
+    { id: "unknown", status: "unknown", responseMetrics: { providerExecutionMs: 0 } },
+  ] as never);
+  expect(points).toEqual([
+    { id: "known", serviceMs: 12, queueMs: 30 },
+    { id: "unknown", serviceMs: null, queueMs: null },
+  ]);
 });

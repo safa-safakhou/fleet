@@ -50,3 +50,24 @@ test("deep links retain opaque run/event identifiers and refuse malformed routes
   expect(researchRoute("#run=legacy")).toBeNull();
   expect(researchRoute("#research/run/%zz")).toBeNull();
 });
+test("recorded queue and service measurements are visible without inventing cross-clock durations", () => {
+  const trace = buildTrace([
+    e("queue", "queue", "1", "2026-10-31T10:00:00.000Z", [], {
+      kind: "queue.leave",
+      attributes: { queueDelayMs: "30" },
+    }),
+    e("service", "provider", "1", "2026-10-31T09:00:00.000Z", [], {
+      kind: "model.response",
+      attributes: { durationMs: "12" },
+    }),
+  ]);
+  expect(trace.nodes.find((x) => x.id === "queue")!.durationMs).toBe(30);
+  expect(trace.nodes.find((x) => x.id === "service")!.durationMs).toBe(12);
+  expect(trace.nodes.find((x) => x.id === "service")!.label).toContain("reported");
+});
+test("legacy turn links resolve to recorded run identities", () => {
+  expect(researchRoute("#research/turn/80000000-0000-4000-8000-000000000001")).toEqual({
+    kind: "turn",
+    turnId: "80000000-0000-4000-8000-000000000001",
+  });
+});

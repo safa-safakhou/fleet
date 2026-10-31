@@ -4,18 +4,73 @@ import type { ResearchAPI } from "./api.js";
 import { ResearchChart } from "./chart.js";
 import { PactOutcomeTimeline } from "./outcomes.js";
 import { ResearchTable } from "./table.js";
-import type { EvidenceEvent, MetricSet } from "./types.js";
+import type { EvidenceEvent, MetricSet, RunSnapshot } from "./types.js";
 export function resourceSeries(set: MetricSet) {
   return set.values.map((m) => ({ ...m, label: m.value === null ? "Unavailable / unknown" : String(m.value) }));
 }
+export function nativeTimingSeries(allocations: RunSnapshot["native"]["allocations"]) {
+  const measured = (v: unknown) => (typeof v === "number" && Number.isFinite(v) && v >= 0 ? v : null);
+  return allocations.map((a) => ({
+    id: a.id,
+    serviceMs: a.status === "reported" ? measured(a.responseMetrics?.providerExecutionMs) : null,
+    queueMs: measured(a.requestMetrics?.queueDelayMs),
+  }));
+}
+function NativeTimingPlot({ allocations }: { allocations: RunSnapshot["native"]["allocations"] }) {
+  const [page, setPage] = useState(0),
+    all = nativeTimingSeries(allocations),
+    points = all.slice(page * 200, (page + 1) * 200);
+  const option = {
+    tooltip: { renderMode: "richText" },
+    grid: { left: 60, right: 30, bottom: 45, top: 30 },
+    xAxis: { type: "value", name: "queue ms", axisLabel: { color: "#aebbd0" } },
+    yAxis: { type: "value", name: "service ms", axisLabel: { color: "#aebbd0" } },
+    series: [
+      {
+        type: "scatter",
+        data: points
+          .filter((p) => p.queueMs !== null && p.serviceMs !== null)
+          .map((p) => ({ name: p.id, value: [p.queueMs, p.serviceMs] })),
+        symbolSize: 10,
+        itemStyle: { color: "#9edcff" },
+      },
+    ],
+  };
+  return (
+    <section>
+      <h3>Current snapshot timing observations</h3>
+      <p>
+        Native per-allocation measurements, separate from historical aggregate windows. Displaying {points.length} of{" "}
+        {all.length}; missing coordinates have no dot.
+      </p>
+      <ResearchChart label="Per-allocation queue and service measurements (ms)" option={option} />
+      <ResearchTable
+        caption="Current native timing samples"
+        headers={["Allocation", "Queue ms", "Service ms"]}
+        rows={points.map((p) => ({
+          id: p.id,
+          cells: [p.id, p.queueMs ?? "unavailable", p.serviceMs ?? "unavailable"],
+        }))}
+      />
+      <button type="button" disabled={page === 0} onClick={() => setPage(page - 1)}>
+        Previous timing page
+      </button>
+      <button type="button" disabled={(page + 1) * 200 >= all.length} onClick={() => setPage(page + 1)}>
+        Next timing page
+      </button>
+    </section>
+  );
+}
 export function ResourceDashboard({
   snapshotId,
+  allocations = [],
   runId,
   api,
   events,
   onSelect,
 }: {
   snapshotId: string;
+  allocations?: RunSnapshot["native"]["allocations"];
   runId: string;
   api: ResearchAPI;
   events: EvidenceEvent[];
@@ -111,6 +166,7 @@ export function ResourceDashboard({
       ) : (
         <p>No published metric set available. Fields never recorded remain unavailable.</p>
       )}
+      <NativeTimingPlot allocations={allocations} />
       <PactOutcomeTimeline
         snapshotId={snapshotId}
         events={events}

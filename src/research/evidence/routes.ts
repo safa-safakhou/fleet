@@ -25,6 +25,9 @@ export function registerEvidenceRoutes(app: FastifyInstance, inspection?: RunIns
       streamId: z.string().max(120).optional(),
     })
     .strict();
+  app.get("/api/research/turns/:turnId/runs", async (r) =>
+    use().runsForTurn(z.uuid().parse(object(r.params).turnId), principal(r)),
+  );
   app.get("/api/research/runs/:runId/export", async (r, reply) => {
     const { snapshotId } = z.object({ snapshotId: z.uuid() }).strict().parse(r.query);
     const raw = r.headers["x-fleet-export-key"];
@@ -45,7 +48,19 @@ export function registerEvidenceRoutes(app: FastifyInstance, inspection?: RunIns
     return { ...event, traceparent: traceLink(event) };
   });
   app.get("/api/research/runs/:runId/artifacts/:artifactId/chunks/:index", async (r) => {
-    const { snapshotId } = z.object({ snapshotId: z.uuid() }).strict().parse(r.query);
+    const { snapshotId, viaArtifactId } = z
+      .object({ snapshotId: z.uuid(), viaArtifactId: z.uuid().optional() })
+      .strict()
+      .parse(r.query);
+    if (viaArtifactId)
+      return use().sourceChunk(
+        run(r),
+        principal(r),
+        snapshotId,
+        viaArtifactId,
+        z.uuid().parse(object(r.params).artifactId),
+        z.coerce.number().int().min(0).max(1000000).parse(object(r.params).index),
+      );
     return use().artifactChunk(
       run(r),
       principal(r),

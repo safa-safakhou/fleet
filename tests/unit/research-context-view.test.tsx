@@ -34,3 +34,9 @@ test("final_input_is_auditable without executing peer HTML or concealing omissio
   expect(html).not.toContain("<img");
   expect(html).toContain("&lt;img");
 });
+test("highlighting a distant source span keeps the rendered text window bounded", () => {
+  const text = "a".repeat(400000) + "selected" + "b".repeat(600000);
+  const html = renderToStaticMarkup(<SourceSpan text={text} startByte={400000} endByte={400008} />);
+  expect(html).toContain("<mark>selected</mark>");
+  expect(html.length).toBeLessThan(70000);
+});

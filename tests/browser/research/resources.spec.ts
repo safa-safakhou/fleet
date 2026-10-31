@@ -1,4 +1,4 @@
-import { expect, test } from "@playwright/test";
+import { expect, test } from "./test.js";
 
 test.beforeEach(async ({ request }) => {
   await request.post("/__fixture/reset");

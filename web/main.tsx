@@ -1,7 +1,7 @@
 import { StrictMode, useCallback, useEffect, useRef, useState } from "react";
 import { createRoot } from "react-dom/client";
 import { researchRoute } from "./research/route.js";
-import { ResearchWorkspace } from "./research/workspace.js";
+import { ResearchStudio } from "./research/workspace.js";
 import "./style.css";
 import { ComparisonWorkspace } from "./comparisons.js";
 import { LaunchWizard } from "./launch.js";
@@ -818,14 +818,7 @@ function App() {
             )}
           </>
         ) : tab === "research" ? (
-          <ResearchWorkspace
-            key={location.hash.split("?")[0]}
-            runId={
-              researchRoute(location.hash)?.kind === "run"
-                ? (researchRoute(location.hash) as { runId: string }).runId
-                : undefined
-            }
-          />
+          <ResearchStudio />
         ) : tab === "activity" ? (
           runId ? (
             <RunDetails

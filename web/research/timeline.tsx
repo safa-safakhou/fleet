@@ -11,11 +11,20 @@ export function buildTrace(events: EvidenceEvent[]) {
           ? 1
           : a.id.localeCompare(b.id)),
   );
-  const nodes = sorted.map((e) => ({
-    ...e,
-    durationMs: e.processId && e.durationNs !== undefined ? Number(BigInt(e.durationNs)) / 1e6 : null,
-    label: `${e.kind} · ${e.durationNs && e.processId ? `${Number(BigInt(e.durationNs)) / 1e6} ms measured` : e.kind === "queue.enter" ? "censored wait / unmeasured gap" : "unmeasured gap"}`,
-  }));
+  const nodes = sorted.map((e) => {
+    const monotonic = Boolean(e.processId && e.durationNs !== undefined);
+    const reported = e.kind === "queue.leave" ? e.attributes.queueDelayMs : e.attributes.durationMs;
+    const durationMs = monotonic
+      ? Number(BigInt(e.durationNs!)) / 1e6
+      : reported === undefined
+        ? null
+        : Number(reported);
+    return {
+      ...e,
+      durationMs,
+      label: `${e.kind} · ${durationMs !== null ? `${durationMs} ms ${monotonic ? "measured / process monotonic" : "reported measurement"}` : e.kind === "queue.enter" ? "censored wait / unmeasured gap" : "unmeasured gap"}`,
+    };
+  });
   const lanes = [...new Set(nodes.map((e) => e.streamId))].map((id) => ({
       id,
       events: nodes.filter((e) => e.streamId === id),
@@ -65,6 +74,7 @@ export function RunTimeline({
                   type="button"
                   key={e.id}
                   aria-pressed={e.id === selectedEventId}
+                  style={{ minWidth: 100 * zoom }}
                   title={e.label}
                   onClick={() => onSelect(e.id)}
                 >

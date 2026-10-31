@@ -90,6 +90,26 @@ export class RunInspection {
     if (!run.observation_consent) throw new FleetError("EVIDENCE_WITHHELD", true);
     return run;
   }
+  async runsForTurn(turnId: string, principal: ResearchPrincipal) {
+    if (
+      !(
+        await this.store.pool.query("SELECT 1 FROM operator_sessions WHERE hash=$1 AND expires_at>$2", [
+          principal.sessionHash,
+          this.store.now(),
+        ])
+      ).rowCount
+    )
+      throw new FleetError("EVIDENCE_FORBIDDEN", true);
+    const rows = (
+      await this.store.pool.query(
+        "SELECT DISTINCT r.run_id,r.provenance FROM research_evidence_scopes s JOIN research_runs r ON r.run_id=s.run_id WHERE s.turn_id=$1 ORDER BY r.run_id LIMIT 201",
+        [z.uuid().parse(turnId)],
+      )
+    ).rows;
+    if (rows.length > 200) throw new FleetError("EVIDENCE_REFERENCE_QUOTA", true);
+    for (const r of rows) await this.authorize(r.run_id, principal);
+    return rows.map((r) => ({ runId: r.run_id as string, provenance: r.provenance as string }));
+  }
   async snapshot(runId: string, principal: ResearchPrincipal): Promise<RunSnapshot> {
     return transaction(this.store.pool, async (db) => {
       await db.query("SET TRANSACTION ISOLATION LEVEL REPEATABLE READ");
@@ -257,11 +277,10 @@ export class RunInspection {
   ): Promise<EvidenceEvent> {
     const snap = await this.retained(runId, principal, snapshotId);
     const row = (
-      await this.store.pool.query("SELECT event FROM research_events WHERE run_id=$1 AND id=$2 AND ordinal<=$3", [
-        runId,
-        z.uuid().parse(eventId),
-        snap.maximumOrdinal,
-      ])
+      await this.store.pool.query(
+        "SELECT event FROM research_events WHERE run_id=$1 AND (id=$2 OR event->'artifacts' @> $4::jsonb) AND ordinal<=$3 ORDER BY ordinal LIMIT 1",
+        [runId, z.uuid().parse(eventId), snap.maximumOrdinal, JSON.stringify([{ id: eventId }])],
+      )
     ).rows[0];
     if (!row) throw new FleetError("EVIDENCE_EVENT_UNAVAILABLE", true);
     await this.retained(runId, principal, snapshotId);
@@ -275,7 +294,8 @@ export class RunInspection {
     index: number,
   ) {
     z.number().int().min(0).max(1000000).parse(index);
-    const { ref } = await this.artifactReference(runId, principal, artifactId, snapshotId);
+    const { ref, scope } = await this.artifactReference(runId, principal, artifactId, snapshotId);
+    const record = await this.artifacts.record(scope, artifactId);
     if (index >= Number(ref.chunks)) throw new FleetError("ARTIFACT_CHUNK_UNAVAILABLE", true);
     let current = 0;
     for await (const chunk of this.artifact(runId, principal, artifactId, snapshotId)) {
@@ -290,6 +310,55 @@ export class RunInspection {
         body: Buffer.from(chunk).toString("base64"),
         complete: Number(ref.chunks) === 1,
         contentType: ref.contentType,
+        originRunId: runId,
+        expiresAt: new Date(record.expires_at).toISOString(),
+      };
+    }
+    throw new FleetError("ARTIFACT_CHUNK_UNAVAILABLE", true);
+  }
+  async sourceChunk(
+    runId: string,
+    principal: ResearchPrincipal,
+    snapshotId: string,
+    viaArtifactId: string,
+    sourceId: string,
+    index: number,
+  ) {
+    z.number().int().min(0).max(1000000).parse(index);
+    await this.artifactChunk(runId, principal, snapshotId, z.uuid().parse(viaArtifactId), 0);
+    const linked = (
+      await this.store.pool.query(
+        "SELECT a.* FROM research_artifact_sources s JOIN research_artifacts a ON a.id=s.source_artifact_id WHERE s.artifact_id=$1 AND s.source_artifact_id=$2",
+        [viaArtifactId, z.uuid().parse(sourceId)],
+      )
+    ).rows[0];
+    if (!linked) throw new FleetError("ARTIFACT_SOURCE_UNAVAILABLE", true);
+    await this.authorize(linked.run_id, principal);
+    const ref = {
+      id: linked.id,
+      contentType: linked.content_type,
+      bytes: String(linked.bytes),
+      chunks: String(linked.chunks.length),
+      ciphertextDigest: linked.ciphertext_digest,
+      privacyClass: linked.privacy_class,
+      retentionClass: linked.retention_class,
+    };
+    if (index >= linked.chunks.length) throw new FleetError("ARTIFACT_CHUNK_UNAVAILABLE", true);
+    let current = 0;
+    for await (const chunk of this.artifacts.read(linked.scope, ref)) {
+      if (current++ !== index) continue;
+      await this.retained(runId, principal, snapshotId);
+      await this.authorize(linked.run_id, principal);
+      return {
+        index,
+        chunks: linked.chunks.length,
+        bytes: chunk.length,
+        totalBytes: ref.bytes,
+        body: Buffer.from(chunk).toString("base64"),
+        complete: linked.chunks.length === 1,
+        contentType: ref.contentType,
+        originRunId: linked.run_id as string,
+        expiresAt: new Date(linked.expires_at).toISOString(),
       };
     }
     throw new FleetError("ARTIFACT_CHUNK_UNAVAILABLE", true);
