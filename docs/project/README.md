@@ -6,7 +6,7 @@ PACT is a persistent kingdom game with consequential choices. Fleet is an indepe
 
 The platform has progressed further than demonstrated intelligence. We have multiple engines, durable tasks, scoped evidence, budgets, receipts and recoverability. We have not demonstrated reliable long-term memory use, sound strategic decisions, or an architecture that improves survival and relationships in live play.
 
-**31 October research update:** the [PACT research qualification record](../research/acceptance-20261031.md) covers the new tooling, studio, preservation and disabled package. Final Linux/performance qualification is blocked; no installed runtime or provider/behavior acceptance follows from source completion. The historical handbook checkpoint below remains dated.
+**1 November research update:** the [current PACT research qualification record](../research/acceptance-20261101.md) covers protected Docker recovery and completed Linux/native/browser/package checks. All non-performance fixture gates pass; measured recording latency/RSS overhead blocks qualification. No installed runtime or provider/behavior acceptance follows from source completion. The historical handbook checkpoint below remains dated.
 
 ## Latest negotiation preparation
 

@@ -10,7 +10,7 @@
 
 **Spec:** [Design §§4–11](../specs/2026-10-30-pact-research-engine-design.md); [master constraints](2026-10-30-pact-research-engine.md). Depends on all preceding packages.
 
-**Execution status — 31 October 2026:** source deliverables implemented inline on master; [actual acceptance record](../../research/acceptance-20261031.md). Q1/Q2 fixture checks passed before Docker storage loss. Q3 native/UI walkthrough and Q4 compiled macOS package checks pass; Linux package, recording performance, final native reruns and complete fixture qualification remain blocked. Unchecked acceptance items remain required. No installed service or world activation occurred.
+**Execution status — 1 November 2026:** source deliverables implemented inline on master. [Protected Docker recovery and current actual acceptance](../../research/acceptance-20261101.md) supersede the historical infrastructure block in the [31 October record](../../research/acceptance-20261031.md). All remaining commands have executed. Q1 proof/configuration, Q2 fault/restore, Q3 native/current macOS+Linux visual walkthrough and Q4 compiled Linux package/synthetic Compose checks pass. Q3 recording overhead exceeds both unchanged limits, so integrated fixture qualification remains blocked. No installed runtime, real-provider or behavioral acceptance/activation is implied. The sequence below retains its original implementation checkboxes; this dated status and the linked evidence distinguish completed checks from the remaining performance acceptance.
 
 ## Global Constraints
 

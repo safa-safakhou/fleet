@@ -1,6 +1,6 @@
 # Scoped research qualification
 
-**Current result: blocked.** See the [dated acceptance report](acceptance-20261031.md); unavailable Linux gates have not passed.
+**Current result: blocked by measured recording latency/RSS overhead.** See the [1 November acceptance report](acceptance-20261101.md). All eleven non-performance gates pass after protected Docker recovery; every remaining check was executed.
 
 Qualification is evidence about an exact tested fixture, installation, provider or behavior scope. It is never an execution grant. The immutable record binds the resolved manifest, current capability fingerprint, dependency versions, dataset, completeness, all twelve mandatory gates and an expiry of at most 30 days. Each gate binds its own scope, target and manifest/capability/dependency digests; retagging the outer attestation or recompiling a different manifest cannot reuse those proofs. Evidence ingestion is internal and trusted, not a public signature or execution credential. Current inputs must be reassessed before use. Altering a label or copying a decision cannot produce an assessed record. Changes require new evidence and a new manifest; original records remain intact.
 

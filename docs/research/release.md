@@ -1,6 +1,6 @@
 # Research source release and package
 
-**Current qualification is blocked.** Linux package/performance acceptance and Compose validation are outstanding; see [actual results](acceptance-20261031.md).
+**Current qualification is blocked by measured recording overhead.** Linux package checks and synthetic Compose validation now pass after protected Docker recovery; see [actual results and limits](acceptance-20261101.md). Production installation remains separate.
 
 This is a source release with a separate compiled inspection entry point, `dist/server/research/package.js`. It starts no worker, enrollment, task pump, Temporal activity, model call or game call. Live/worker/Temporal activation settings are refused. Login/logout and authenticated GET/HEAD inspection remain available; other API mutations return `RESEARCH_PACKAGE_READ_ONLY`. Normal execution still requires the separately authorized controller/worker entry points and a scoped run grant.
 
