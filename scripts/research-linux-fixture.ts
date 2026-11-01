@@ -5,6 +5,7 @@ import { tmpdir } from "node:os";
 import { dirname, join, resolve } from "node:path";
 import { promisify } from "node:util";
 import { connect, migrate } from "../src/db.js";
+import { storageBlockers } from "../src/research/qualification/storage.js";
 import { assertOwnedFixture } from "../tests/architecture-fixture.js";
 import { createOwnedFixture } from "./test-architecture-offline.js";
 
@@ -69,6 +70,38 @@ export async function publicSourceDigest() {
 export async function buildQualificationImage() {
   const disk = await statfs(tmpdir());
   if (disk.bavail * disk.bsize < 8 * 1024 ** 3) throw Error("BUILD_DISK_SPACE_REQUIRED");
+  // A fresh read-only container measures Docker's filesystem, not the host-mounted source tree.
+  let dockerFree: unknown;
+  try {
+    const output = await docker([
+      "run",
+      "--rm",
+      "--pull=never",
+      "--network",
+      "none",
+      "--read-only",
+      "--cap-drop",
+      "ALL",
+      "--security-opt",
+      "no-new-privileges",
+      "--user",
+      "10001:10001",
+      "--memory",
+      "128m",
+      "--pids-limit",
+      "32",
+      "--entrypoint",
+      "node",
+      "node:26.13.0-bookworm-slim@sha256:bc0a2afd3b74ce12222fc8bab99271e66257f021078f5f4a5d687a77d280c1d9",
+      "-e",
+      "const s=require('node:fs').statfsSync('/');console.log(JSON.stringify({freeBytes:s.bavail*s.bsize}))",
+    ]);
+    dockerFree = JSON.parse(output).freeBytes;
+  } catch {
+    throw Error("DOCKER_STORAGE_PROBE_UNAVAILABLE");
+  }
+  const blockers = storageBlockers(disk.bavail * disk.bsize, dockerFree);
+  if (blockers.length) throw Error(blockers[0]);
   const root = await mkdtemp(join(tmpdir(), "fleet-package-build-")),
     tag = `fleet-research-qualification:${randomUUID()}`;
   try {
@@ -82,6 +115,9 @@ export async function buildQualificationImage() {
     try {
       await docker([
         "build",
+        "--force-rm",
+        "--label",
+        `fleet.qualification.source=${sourceDigest}`,
         "--network",
         "default",
         "--target",

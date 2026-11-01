@@ -1,10 +1,10 @@
 import { writeFile } from "node:fs/promises";
-import { buildQualificationImage, runLinuxFixture } from "./research-linux-fixture.js";
+import { qualificationImage, runLinuxFixture } from "./research-linux-fixture.js";
 
 if (process.argv.slice(2).join(" ") !== "--fixture") throw Error("EXPLICIT_FIXTURE_REQUIRED");
 const failureRoot = ".superpowers/sdd/2026-10-30-pact-research-07-qualification";
 try {
-  const image = await buildQualificationImage(),
+  const image = await qualificationImage(),
     result = await runLinuxFixture(image, [
       "node_modules/vitest/vitest.mjs",
       "run",
