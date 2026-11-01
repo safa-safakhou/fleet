@@ -93,5 +93,8 @@ export async function migrate(pool: Pool) {
     await c.query(await readFile(resolve("migrations/054_research_recording_operations.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/055_research_indexed_lookups.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/056_research_artifact_tiers.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/057_research_atomic_dispatch.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/058_research_pending_copy_index.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/059_research_resolved_capture.sql"), "utf8"));
   });
 }

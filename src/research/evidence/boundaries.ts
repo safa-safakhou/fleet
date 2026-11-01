@@ -203,10 +203,17 @@ export class CaptureSession implements ObservationPort {
     kind: EvidenceEventInput["kind"],
     body: unknown,
     attributes: EvidenceEventInput["attributes"],
-    options: { required?: boolean; producerKey?: string; stream?: string; parents?: string[]; occurredAt?: string },
+    options: {
+      required?: boolean;
+      producerKey?: string;
+      stream?: string;
+      parents?: string[];
+      occurredAt?: string;
+      dispatch?: boolean;
+    },
     knownPolicy?: { allowed: boolean; version: string; quota: string },
     beforeEvent?: ReturnType<typeof prepareEvent>,
-  ): Promise<EventRef> {
+  ): Promise<EventRef & { dispatched?: boolean }> {
     ScopeSchema.parse(scope);
     const sc = canonical(scope);
     const query = async (text: string, values: unknown[]) => {
@@ -227,13 +234,23 @@ export class CaptureSession implements ObservationPort {
       kind === "recording.gap"
         ? { status: "partial", expected: "1", recorded: "0", reasons: ["PROVIDER_FIELD_UNAVAILABLE"] }
         : { status: "complete", expected: "1", recorded: "1", reasons: [] };
-    if (body !== undefined) {
-      const policy =
-        knownPolicy ?? (await query("SELECT research_capture_policy($1::jsonb) policy", [sc])).rows[0].policy;
-      if (policy.allowed) {
+    const resolvePolicy = body !== undefined && !knownPolicy;
+    let encodingError: string | null = null;
+    if (resolvePolicy) {
+      // Sealing is pure and retains nothing. The server chooses the authorized
+      // candidate under fresh locks; a withheld body is never inserted.
+      try {
         const raw = encoded(body);
-        quota = Number(policy.quota);
-        version = policy.version;
+        if (raw.length > 32 * 1024 * 1024) throw new FleetError("ARTIFACT_QUOTA", true);
+        artifact = this.artifacts.seal(scope, raw);
+      } catch (error) {
+        encodingError = error instanceof FleetError ? error.code : "ARTIFACT_INCOMPLETE";
+      }
+    } else if (body !== undefined && knownPolicy) {
+      if (knownPolicy.allowed) {
+        const raw = encoded(body);
+        quota = Number(knownPolicy.quota);
+        version = knownPolicy.version;
         if (raw.length > 32 * 1024 * 1024 || !Number.isSafeInteger(quota) || quota < raw.length)
           throw new FleetError("ARTIFACT_QUOTA", true);
         artifact = this.artifacts.seal(scope, raw);
@@ -247,7 +264,7 @@ export class CaptureSession implements ObservationPort {
       streamId: "run",
       producerKey: "capture-start",
     });
-    const prepared = prepareEvent(this.store, scope, {
+    const eventInput = {
       kind,
       ...(options.occurredAt ? { occurredAt: options.occurredAt } : {}),
       streamId: options.stream ?? kind.split(".")[0],
@@ -256,24 +273,66 @@ export class CaptureSession implements ObservationPort {
       attributes,
       artifacts: artifact ? [artifact.ref] : [],
       coverage,
-    });
+    };
+    const prepared = prepareEvent(this.store, scope, eventInput);
+    const dispatched =
+      options.dispatch && artifact?.storageBackend === "postgres"
+        ? prepareEvent(this.store, scope, {
+            kind: "model.dispatched",
+            streamId: "model",
+            producerKey: randomUUID(),
+            parentIds: [prepared.event.id],
+            attributes,
+          })
+        : null;
     const copies = this.artifacts.copyAcknowledgments();
-    const ref = (
-      await query(
-        "SELECT research_capture_write($1::jsonb,$2::jsonb,$3::jsonb,$4::jsonb,$5,$6,$7,$8::jsonb,$9::jsonb) ref",
-        [
-          sc,
-          prepared,
-          started,
-          artifact,
-          version,
-          quota,
-          this.store.now(),
-          JSON.stringify(copies),
-          beforeEvent ?? null,
-        ],
-      )
-    ).rows[0].ref;
+    let ref: EventRef & { dispatched?: boolean };
+    if (resolvePolicy) {
+      const withheld = prepareEvent(this.store, scope, {
+        ...eventInput,
+        artifacts: [],
+        coverage: { status: "withheld", expected: "1", recorded: "0", reasons: ["CONSENT_WITHHELD"] },
+      });
+      const result = (
+        await query(
+          "SELECT research_capture_resolved($1::jsonb,$2::jsonb,$3::jsonb,$4::jsonb,$5::jsonb,$6,$7,$8::jsonb,$9) result",
+          [
+            sc,
+            prepared,
+            started,
+            artifact,
+            withheld,
+            Boolean(options.required && this.active.getStore()),
+            this.store.now(),
+            JSON.stringify(copies),
+            encodingError,
+          ],
+        )
+      ).rows[0].result;
+      ref = result.ref;
+      version = result.version ?? null;
+      if (!result.stored) artifact = null;
+    } else {
+      ref = (
+        await query(
+          dispatched
+            ? "SELECT research_capture_dispatch($1::jsonb,$2::jsonb,$3::jsonb,$4::jsonb,$5,$6,$7,$8::jsonb,$9::jsonb,$10::jsonb) ref"
+            : "SELECT research_capture_write($1::jsonb,$2::jsonb,$3::jsonb,$4::jsonb,$5,$6,$7,$8::jsonb,$9::jsonb) ref",
+          [
+            sc,
+            prepared,
+            started,
+            artifact,
+            version,
+            quota,
+            this.store.now(),
+            JSON.stringify(copies),
+            beforeEvent ?? null,
+            ...(dispatched ? [dispatched] : []),
+          ],
+        )
+      ).rows[0].ref;
+    }
     this.artifacts.acknowledgeCopies(copies);
     // Canonical SQL bytes were verified under the capture transaction locks.
     // Filesystem publication still needs its durable copy and fresh post-IO check.
@@ -323,6 +382,7 @@ export class CaptureSession implements ObservationPort {
     body: unknown,
     attributes: EvidenceEventInput["attributes"],
     policy: { allowed: boolean; version: string; quota: string },
+    dispatch = false,
   ) {
     const queue = {
       kind: "queue.leave" as const,
@@ -337,7 +397,7 @@ export class CaptureSession implements ObservationPort {
         "model.request",
         body,
         attributes,
-        { required: true },
+        { required: true, dispatch },
         policy,
         prepareEvent(this.store, scope, queue),
       );
@@ -616,8 +676,15 @@ export class ObservedPorts {
               }
             : {}),
         };
-        let request: EventRef | undefined;
-        if (capturePolicy) request = await self.capture.beginModelRequest(scope, requestBody, attrs, capturePolicy);
+        let request: (EventRef & { dispatched?: boolean }) | undefined;
+        if (capturePolicy)
+          request = await self.capture.beginModelRequest(
+            scope,
+            requestBody,
+            attrs,
+            capturePolicy,
+            !port.tracksDispatch,
+          );
         else {
           await self.capture.emit(scope, "queue.leave", undefined, attrs);
           request = await self.capture.emit(scope, "model.request", requestBody, attrs, {
@@ -625,7 +692,7 @@ export class ObservedPorts {
             parents: context?.eventId ? [context.eventId] : [],
           });
         }
-        let dispatched = false;
+        let dispatched = request?.dispatched ?? false;
         const mark = async () => {
           if (context && !preparedEvent) throw new FleetError("CONTEXT_PREPARATION_REQUIRED", true);
           if (!dispatched) {

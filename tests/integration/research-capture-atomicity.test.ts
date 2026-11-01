@@ -269,7 +269,7 @@ test("a lost capture commit acknowledgment preserves encrypted files without ret
       calls = 0;
     f.pool.query = (async (...args: any[]) => {
       const result = await (query as (...args: any[]) => Promise<any>)(...args);
-      if (!lost && String(args[0]).includes("SELECT research_capture_write(")) {
+      if (!lost && /SELECT research_capture_(write|dispatch)\(/.test(String(args[0]))) {
         lost = true;
         throw new Error("synthetic lost commit acknowledgment");
       }
@@ -491,3 +491,140 @@ for (const reason of ["expiry", "revocation"] as const)
       await rm(root, { recursive: true, force: true });
     }
   });
+
+test("immediate dispatch commits validated canonical input and its dispatch event together before invocation", async () => {
+  const f = await researchFixture(),
+    root = await mkdtemp(join(tmpdir(), "fleet-atomic-dispatch-"));
+  try {
+    await f.pool.query(`CREATE TABLE fixture_dispatch_transactions(kind text,xid text);
+      CREATE FUNCTION fixture_dispatch_transaction() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN
+       IF NEW.event->>'kind' IN ('model.request','model.dispatched') THEN INSERT INTO fixture_dispatch_transactions VALUES(NEW.event->>'kind',pg_current_xact_id()::text); END IF; RETURN NEW; END $$;
+      CREATE TRIGGER fixture_dispatch_transaction AFTER INSERT ON research_events FOR EACH ROW EXECUTE FUNCTION fixture_dispatch_transaction()`);
+    const scope = await scopeForTurn(f.store, f.claim.turn.id),
+      capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    let calls = 0;
+    await capture.withScope(scope, () =>
+      capture.model(f.claim.turn, f.request(), {
+        decide: async () => {
+          calls++;
+          const rows = (await f.pool.query("SELECT kind,xid FROM fixture_dispatch_transactions ORDER BY kind")).rows;
+          expect(rows.map((x) => x.kind)).toEqual(["model.dispatched", "model.request"]);
+          expect(new Set(rows.map((x) => x.xid)).size).toBe(1);
+          return { decision: { kind: "wait" }, inputTokens: 7, outputTokens: 8 };
+        },
+      }),
+    );
+    expect(calls).toBe(1);
+  } finally {
+    await f.pool.query(
+      "DROP TRIGGER IF EXISTS fixture_dispatch_transaction ON research_events; DROP FUNCTION IF EXISTS fixture_dispatch_transaction(); DROP TABLE IF EXISTS fixture_dispatch_transactions",
+    );
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("a provider that reports dispatch keeps preparation and dispatch as distinct durable stages", async () => {
+  const f = await researchFixture(),
+    root = await mkdtemp(join(tmpdir(), "fleet-tracked-dispatch-"));
+  try {
+    const scope = await scopeForTurn(f.store, f.claim.turn.id),
+      capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    const events = async () =>
+      (
+        await f.pool.query("SELECT event->>'kind' kind FROM research_events WHERE run_id=$1 ORDER BY ordinal", [
+          scope.runId,
+        ])
+      ).rows.map((x) => x.kind);
+    await capture.withScope(scope, () =>
+      capture.model(f.claim.turn, f.request(), {
+        tracksDispatch: true,
+        decide: async (input) => {
+          expect(await events()).toEqual(["run.started", "queue.leave", "model.request"]);
+          await input.onEvidence?.({
+            kind: "prepared",
+            body: { messages: [{ role: "user", content: "synthetic prepared packet" }] },
+          });
+          expect(await events()).toEqual(["run.started", "queue.leave", "model.request", "context.prepared"]);
+          await input.onDispatch?.();
+          await input.onDispatch?.();
+          expect(await events()).toEqual([
+            "run.started",
+            "queue.leave",
+            "model.request",
+            "context.prepared",
+            "model.dispatched",
+          ]);
+          return { decision: { kind: "wait" }, inputTokens: 7, outputTokens: 8 };
+        },
+      }),
+    );
+    expect((await events()).at(-1)).toBe("model.response");
+  } finally {
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("fresh response consent withholds bytes while preserving known provider usage", async () => {
+  const f = await researchFixture(),
+    root = await mkdtemp(join(tmpdir(), "fleet-response-withheld-"));
+  try {
+    const scope = await scopeForTurn(f.store, f.claim.turn.id),
+      capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    const result = await capture.withScope(scope, () =>
+      capture.model(f.claim.turn, f.request(), {
+        decide: async () => {
+          await f.pool.query("UPDATE cohorts SET observation_consent=false WHERE id=$1", [f.group.id]);
+          return { decision: { kind: "wait" }, inputTokens: 7, outputTokens: 8 };
+        },
+      }),
+    );
+    expect(result).toMatchObject({ inputTokens: 7, outputTokens: 8 });
+    const { EvidenceRepository } = await import("../../src/research/evidence/repository.js");
+    const response = (await new EvidenceRepository(f.store).page(scope, {})).events.find(
+      (e) => e.kind === "model.response",
+    )!;
+    expect(response.coverage).toEqual({
+      status: "withheld",
+      expected: "1",
+      recorded: "0",
+      reasons: ["CONSENT_WITHHELD"],
+    });
+    expect(response.artifacts).toEqual([]);
+    expect(
+      (await f.pool.query("SELECT count(*)::int n FROM research_artifacts WHERE run_id=$1", [scope.runId])).rows[0].n,
+    ).toBe(1);
+  } finally {
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("withheld metadata survives an unencodable body without storing it", async () => {
+  const f = await researchFixture(),
+    root = await mkdtemp(join(tmpdir(), "fleet-unencodable-withheld-"));
+  try {
+    const scope = await scopeForTurn(f.store, f.claim.turn.id),
+      capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    await f.pool.query("UPDATE cohorts SET observation_consent=false WHERE id=$1", [f.group.id]);
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    expect(await capture.emit(scope, "observation.record", circular, {}, { required: true })).toBeDefined();
+    const { EvidenceRepository } = await import("../../src/research/evidence/repository.js");
+    const event = (await new EvidenceRepository(f.store).page(scope, {})).events.at(-1)!;
+    expect(event.coverage.status).toBe("withheld");
+    expect(event.artifacts).toEqual([]);
+    expect(
+      (
+        await f.pool.query(
+          "SELECT capture_failed,artifact_reserved_bytes::text bytes FROM research_runs WHERE run_id=$1",
+          [scope.runId],
+        )
+      ).rows[0],
+    ).toEqual({ capture_failed: false, bytes: "0" });
+  } finally {
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
+  }
+});

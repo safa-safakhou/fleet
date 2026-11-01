@@ -133,7 +133,7 @@ test("reused bound-scope plans reject a changed native task claim", async () => 
   }
 });
 
-test("a complete recorded call uses at most 24 database requests with every event and artifact retained", async () => {
+test("a complete recorded call uses at most three database requests with every event and artifact retained", async () => {
   const f = await researchFixture();
   const { mkdtemp, rm } = await import("node:fs/promises");
   const { tmpdir } = await import("node:os");
@@ -166,7 +166,7 @@ test("a complete recorded call uses at most 24 database requests with every even
       );
       expect(result.inputTokens).toBe(7);
       expect(calls).toBe(1);
-      expect(requests).toBeLessThanOrEqual(24);
+      expect(requests).toBeLessThanOrEqual(3);
     } finally {
       client.query = query;
     }
@@ -245,5 +245,32 @@ test("one parent and one completed copy do not scan unrelated retained history",
   } finally {
     await f.pool.end();
     await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("pending-copy inspection does not visit retained canonical bodies in the same run", async () => {
+  const f = await researchFixture();
+  try {
+    const scope = await scopeForTurn(f.store, f.claim.turn.id);
+    await transaction(f.pool, (db) => new EvidenceRepository(f.store).bind(scope, db));
+    await f.pool.query(
+      "INSERT INTO research_artifacts(id,run_id,scope,consent_version,content_type,privacy_class,retention_class,status,reserved_bytes,created_at,expires_at,storage_backend,inline_cipher) SELECT gen_random_uuid(),$1,$2,0,'application/json','private','30d','complete',0,now(),now()+interval '1 day','postgres','[]'::jsonb FROM generate_series(1,5000)",
+      [scope.runId, scope],
+    );
+    await f.pool.query("ANALYZE research_artifacts");
+    await transaction(f.pool, async (db) => {
+      expect(
+        (await db.query("SELECT research_model_capture_policy($1::jsonb,NULL,'{}'::uuid[]) policy", [scope])).rows[0]
+          .policy.pending,
+      ).toBe(false);
+      const row = (
+        await db.query(
+          "SELECT seq_tup_read+idx_tup_fetch visits FROM pg_stat_xact_user_tables WHERE relname='research_artifacts'",
+        )
+      ).rows[0];
+      expect(Number(row.visits)).toBeLessThanOrEqual(20);
+    });
+  } finally {
+    await f.pool.end();
   }
 });
