@@ -26,8 +26,9 @@ export class EvidenceRecorder {
     // bind holds the run lock, serializing producers before this snapshot.
     // Duplicate/conflicting keys and foreign parents must allocate no sequence.
     const row = (
-      await tx.query(
-        `WITH old AS MATERIALIZED (
+      await tx.query({
+        name: "fleet-evidence-append-v1",
+        text: `WITH old AS MATERIALIZED (
  SELECT id,input_digest,event->>'streamId' stream_id,event->>'sequence' sequence
  FROM research_events WHERE run_id=$1 AND stream_id=$2 AND producer_key=$3
 ), foreign_parent AS MATERIALIZED (
@@ -50,8 +51,8 @@ export class EvidenceRecorder {
  UNION ALL SELECT id,input_digest,stream_id,sequence,false FROM inserted
  UNION ALL SELECT NULL::uuid,NULL::text,NULL::text,NULL::text,true
  WHERE NOT EXISTS(SELECT 1 FROM old) AND EXISTS(SELECT 1 FROM foreign_parent)`,
-        [scope.runId, value.streamId, producerKey, hash, value.parentIds, event.id, event],
-      )
+        values: [scope.runId, value.streamId, producerKey, hash, value.parentIds, event.id, event],
+      })
     ).rows[0];
     if (row.foreign_parent) throw new FleetError("EVIDENCE_PARENT_SCOPE", true);
     if (row.input_digest !== hash) throw new FleetError("EVENT_KEY_CONFLICT", true);

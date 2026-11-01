@@ -44,18 +44,29 @@ export class EvidenceRepository {
     // Revalidate existing bindings from one database snapshot, without caching
     // authority or repeating idempotent creation writes on every event.
     const bound = (
-      await db.query(
-        `SELECT t.agent_id,t.cohort_id,r.agent_id run_agent_id,r.cohort_id run_cohort_id,
- r.binding_id,r.manifest_digest,s.scope,o.scope operation_scope,
- (SELECT prior.scope FROM research_evidence_scopes prior JOIN research_runs pr ON pr.run_id=prior.run_id
-  WHERE prior.turn_id=$4::uuid ORDER BY (pr.provenance='research') DESC,prior.epoch DESC LIMIT 1) retained_scope,
+      await db.query({
+        name: "fleet-evidence-bind-v1",
+        text: `SELECT t.agent_id,t.cohort_id,r.agent_id run_agent_id,r.cohort_id run_cohort_id,
+ r.binding_id,r.manifest_digest,s.scope=$7::jsonb scope_valid,
+ CASE WHEN o.scope IS NOT NULL THEN
+ (o.scope-'turnId'-'operationEpoch')=($7::jsonb-'turnId'-'operationEpoch') AND
  EXISTS(SELECT 1 FROM platform_task_claims c JOIN platform_tasks task ON task.id=c.task_id
-  WHERE c.turn_id=$4::uuid AND c.task_id::text=$5 AND c.fence::text=$3 AND task.binding_id::text=$6) valid_claim
+  WHERE c.turn_id=$4::uuid AND c.task_id::text=$5 AND c.fence::text=$3 AND task.binding_id::text=$6)
+ ELSE (SELECT prior.scope FROM research_evidence_scopes prior JOIN research_runs pr ON pr.run_id=prior.run_id
+  WHERE prior.turn_id=$4::uuid ORDER BY (pr.provenance='research') DESC,prior.epoch DESC LIMIT 1)=$7::jsonb END authority_valid
  FROM research_runs r JOIN research_evidence_scopes s ON s.run_id=r.run_id AND s.operation_id=$2 AND s.epoch=$3
  JOIN turns t ON t.id=$4::uuid LEFT JOIN research_operations o ON o.operation_id=$2
  WHERE r.run_id=$1 FOR UPDATE OF r`,
-        [scope.runId, scope.operationId, scope.operationEpoch, scope.turnId, scope.taskId, scope.bindingId],
-      )
+        values: [
+          scope.runId,
+          scope.operationId,
+          scope.operationEpoch,
+          scope.turnId,
+          scope.taskId,
+          scope.bindingId,
+          canonical(scope),
+        ],
+      })
     ).rows[0];
     if (bound) {
       if (
@@ -64,10 +75,8 @@ export class EvidenceRepository {
         bound.cohort_id !== bound.run_cohort_id ||
         bound.binding_id !== scope.bindingId ||
         bound.manifest_digest !== scope.manifestDigest ||
-        canonical(bound.scope) !== canonical(scope) ||
-        (bound.operation_scope
-          ? canonical(stable(bound.operation_scope)) !== canonical(stable(scope)) || !bound.valid_claim
-          : canonical(bound.retained_scope) !== canonical(scope))
+        !bound.scope_valid ||
+        !bound.authority_valid
       )
         throw new FleetError("EVIDENCE_SCOPE_MISMATCH", true);
       return;
