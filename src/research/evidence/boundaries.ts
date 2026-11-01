@@ -275,7 +275,9 @@ export class CaptureSession implements ObservationPort {
       )
     ).rows[0].ref;
     this.artifacts.acknowledgeCopies(copies);
-    if (artifact) await this.artifacts.publishSealed(scope, artifact, version!);
+    // Canonical SQL bytes were verified under the capture transaction locks.
+    // Filesystem publication still needs its durable copy and fresh post-IO check.
+    if (artifact?.storageBackend === "filesystem") await this.artifacts.publishSealed(scope, artifact, version!);
     return ref;
   }
   async flush() {

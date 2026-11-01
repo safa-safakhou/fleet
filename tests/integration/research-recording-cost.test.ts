@@ -198,7 +198,13 @@ test("one parent and one completed copy do not scan unrelated retained history",
   try {
     const scope = await scopeForTurn(f.store, f.claim.turn.id);
     const capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
-    const parent = await capture.emit(scope, "model.request", { text: "synthetic" }, {}, { required: true });
+    const parent = await capture.emit(
+      scope,
+      "model.request",
+      { text: "synthetic".repeat(8192) },
+      {},
+      { required: true },
+    );
     expect(parent).toBeDefined();
     await f.pool.query(
       "INSERT INTO research_runs(run_id,agent_id,cohort_id,binding_id,manifest_digest,provenance,created_at,expires_at) SELECT 'unrelated-history',agent_id,cohort_id,binding_id,manifest_digest,provenance,created_at,expires_at FROM research_runs WHERE run_id=$1",

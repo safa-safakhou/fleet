@@ -70,7 +70,9 @@ test("recording failure before dispatch refuses work; after dispatch preserves r
         return { decision: { kind: "wait" }, inputTokens: 7, outputTokens: 8 };
       },
     };
-    await expect(capture.model(f.claim.turn, f.request(), model)).rejects.toThrow("EVIDENCE_UNAVAILABLE");
+    await expect(
+      capture.model(f.claim.turn, { ...f.request(), messages: [{ role: "user", content: "x".repeat(65536) }] }, model),
+    ).rejects.toThrow("EVIDENCE_UNAVAILABLE");
     expect(calls).toBe(0);
     files.writeChunk = original;
     const second = new CaptureSession(f.store, files);
@@ -80,7 +82,7 @@ test("recording failure before dispatch refuses work; after dispatch preserves r
         files.writeChunk = async () => {
           throw Error("disk full after dispatch");
         };
-        return { decision: { kind: "wait" }, inputTokens: 7, outputTokens: 8 };
+        return { decision: { kind: "wait", reason: "x".repeat(65536) }, inputTokens: 7, outputTokens: 8 };
       },
     });
     expect(result.inputTokens).toBe(7);

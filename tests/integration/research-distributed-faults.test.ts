@@ -56,7 +56,7 @@ test("database outage, artifact outage and stale checkpoint preserve obligations
     };
     const failed = new CaptureSession(f.store, files);
     await expect(
-      failed.emit(f.scope, "context.prepared", { text: "synthetic" }, {}, { required: true }),
+      failed.emit(f.scope, "context.prepared", { text: "synthetic".repeat(8192) }, {}, { required: true }),
     ).rejects.toThrow();
     const coverage = await new CoverageService(f.store).reconcile(f.scope.runId);
     expect(coverage.status).not.toBe("complete");

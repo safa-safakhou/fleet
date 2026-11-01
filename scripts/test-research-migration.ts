@@ -8,6 +8,7 @@ import { promisify } from "node:util";
 import { builtinArchitectures } from "../src/app/builtins.js";
 import { connect, migrate } from "../src/db.js";
 import { digest } from "../src/research/contracts.js";
+import { bytes } from "../src/research/evidence/artifacts.js";
 import { CaptureSession } from "../src/research/evidence/boundaries.js";
 import { RunArchive, verifyArchive, writeArchive } from "../src/research/evidence/export.js";
 import { ArtifactFilesystem } from "../src/research/evidence/filesystem.js";
@@ -69,6 +70,31 @@ export async function rehearseMigration() {
       {},
       { required: true },
     );
+    const raw = Buffer.from("legacy filesystem synthetic backup");
+    const legacy = await capture.artifacts.put(scope, bytes(raw), {
+      ...(await capture.artifacts.policy(scope)),
+      expectedBytes: raw.length,
+    });
+    await capture.recorder.append(scope, {
+      kind: "observation.record",
+      streamId: "restore",
+      producerKey: "legacy-restore",
+      artifacts: [legacy],
+    });
+    const tiers = (
+      await pool.query(
+        "SELECT storage_backend,count(*)::int artifacts FROM research_artifacts WHERE run_id=$1 GROUP BY storage_backend ORDER BY storage_backend",
+        [scope.runId],
+      )
+    ).rows;
+    if (
+      JSON.stringify(tiers) !==
+      JSON.stringify([
+        { storage_backend: "filesystem", artifacts: 1 },
+        { storage_backend: "postgres", artifacts: 1 },
+      ])
+    )
+      throw Error("MIXED_TIER_REQUIRED");
     await capture.artifacts.materialize(100);
     const all = await columns(pool),
       full = await rowHashes(pool, all),
@@ -115,7 +141,16 @@ export async function rehearseMigration() {
       before.digest === after.digest &&
       before.digest === restoredLegacy.digest &&
       full.digest === restoredFull.digest &&
-      archive.status === "verified";
+      archive.status === "verified" &&
+      archive.artifacts === 2 &&
+      archive.gaps === 0 &&
+      archive.bytes ===
+        String(
+          raw.length +
+            Buffer.byteLength(
+              JSON.stringify({ synthetic: "ciphertext backup and restore", counter: "9007199254740993" }),
+            ),
+        );
     return {
       schemaVersion: "fleet.migration-rehearsal/v1",
       scope: "owned-synthetic",
@@ -128,6 +163,7 @@ export async function rehearseMigration() {
       restoredFull,
       unknown,
       archive,
+      tiers,
       dumpDigest: digest(await readFile(dump, "utf8")),
       rollback: {
         pre048Binary: "incompatible",

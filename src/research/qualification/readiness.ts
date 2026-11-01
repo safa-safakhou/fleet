@@ -15,6 +15,7 @@ export async function packageReadiness(
  to_regprocedure('research_bind_existing_scope(jsonb)') IS NOT NULL AND
  to_regprocedure('research_scope_snapshot(jsonb,boolean)') IS NOT NULL AND
  to_regprocedure('research_verify_materialization(jsonb,uuid,text,text,timestamptz)') IS NOT NULL AND
+ to_regprocedure('research_verify_postgres_artifact(jsonb,uuid,text,jsonb,timestamptz)') IS NOT NULL AND
  to_regprocedure('research_parent_run(uuid)') IS NOT NULL AND
  to_regprocedure('research_acknowledge_copy(uuid,text)') IS NOT NULL AND
  to_regprocedure('research_append_event(jsonb,jsonb)') IS NOT NULL AND

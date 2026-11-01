@@ -42,7 +42,7 @@ test("a rejected capture event leaves no extra private artifact or quota reserva
       )
     ).rows[0];
     expect(after).toEqual(before);
-    expect(await capture.artifacts.files.list()).toHaveLength(1);
+    expect(await capture.artifacts.files.list()).toHaveLength(0);
     expect(
       (
         await f.pool.query(
@@ -118,12 +118,16 @@ test("consent lost during standalone file publication blocks provider dispatch",
     const capture = new CaptureSession(f.store, files);
     await expect(
       capture.withScope(scope, () =>
-        capture.model(f.claim.turn, f.request(), {
-          decide: async () => {
-            calls++;
-            return { decision: { kind: "wait" }, inputTokens: 7, outputTokens: 8 };
+        capture.model(
+          f.claim.turn,
+          { ...f.request(), messages: [{ role: "user", content: "x".repeat(65536) }] },
+          {
+            decide: async () => {
+              calls++;
+              return { decision: { kind: "wait" }, inputTokens: 7, outputTokens: 8 };
+            },
           },
-        }),
+        ),
       ),
     ).rejects.toThrow("EVIDENCE_UNAVAILABLE");
     expect(calls).toBe(0);
@@ -184,7 +188,7 @@ test("cipher-copy acknowledgments preserve readable evidence and never cache con
     expect(
       (
         await f.pool.query(
-          "SELECT count(*)::int n FROM research_artifacts WHERE run_id=$1 AND inline_cipher IS NOT NULL",
+          "SELECT count(*)::int n FROM research_artifacts WHERE run_id=$1 AND storage_backend='filesystem' AND inline_cipher IS NOT NULL",
           [scope.runId],
         )
       ).rows[0].n,
@@ -309,7 +313,13 @@ test("copy acknowledgment skips a locked artifact and leaves restart reconciliat
   try {
     const scope = await scopeForTurn(f.store, f.claim.turn.id);
     const capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
-    const event = await capture.emit(scope, "model.request", { text: "synthetic locked copy" }, {}, { required: true });
+    const event = await capture.emit(
+      scope,
+      "model.request",
+      { text: "synthetic locked copy".repeat(4096) },
+      {},
+      { required: true },
+    );
     const id = (await f.pool.query("SELECT id FROM research_artifacts WHERE run_id=$1", [scope.runId])).rows[0].id;
     await locker.query("BEGIN");
     await locker.query("SELECT 1 FROM research_artifacts WHERE id=$1 FOR UPDATE", [id]);
@@ -332,7 +342,7 @@ test("copy acknowledgment skips a locked artifact and leaves restart reconciliat
     const stored = (await new EvidenceRepository(f.store).page(scope, {})).events.find((x) => x.id === event!.id)!;
     const chunks = [];
     for await (const chunk of restarted.artifacts.read(scope, stored.artifacts[0])) chunks.push(chunk);
-    expect(JSON.parse(Buffer.concat(chunks).toString())).toEqual({ text: "synthetic locked copy" });
+    expect(JSON.parse(Buffer.concat(chunks).toString())).toEqual({ text: "synthetic locked copy".repeat(4096) });
   } finally {
     await locker.query("ROLLBACK").catch(() => {});
     locker.release();
@@ -358,3 +368,126 @@ test("inspection readiness refuses a missing indexed parent lookup", async () =>
     await f.pool.end();
   }
 });
+
+test("small canonical bodies survive flush and restart without filesystem publication", async () => {
+  const f = await researchFixture(),
+    root = await mkdtemp(join(tmpdir(), "fleet-canonical-tier-"));
+  try {
+    const scope = await scopeForTurn(f.store, f.claim.turn.id),
+      files = new ArtifactFilesystem(root);
+    files.writeChunk = async () => {
+      throw Error("filesystem must not be required for a SQL artifact");
+    };
+    const capture = new CaptureSession(f.store, files);
+    await capture.emit(scope, "model.request", { text: "canonical synthetic body" }, {}, { required: true });
+    const { EvidenceRepository } = await import("../../src/research/evidence/repository.js");
+    const ref = (await new EvidenceRepository(f.store).page(scope, {})).events.find((e) => e.kind === "model.request")!
+      .artifacts[0];
+    await f.pool.query("SELECT research_acknowledge_copies($1::jsonb)", [
+      JSON.stringify([{ id: ref.id, digest: ref.ciphertextDigest }]),
+    ]);
+    await capture.flush();
+    const restarted = new CaptureSession(f.store, files);
+    await restarted.preflight(scope);
+    expect(
+      (
+        await f.pool.query(
+          "SELECT storage_backend,inline_cipher IS NOT NULL retained FROM research_artifacts WHERE id=$1",
+          [ref.id],
+        )
+      ).rows[0],
+    ).toEqual({ storage_backend: "postgres", retained: true });
+    expect(await files.list()).toEqual([]);
+    const parts = [];
+    for await (const part of restarted.artifacts.read(scope, ref)) parts.push(part);
+    expect(JSON.parse(Buffer.concat(parts).toString())).toEqual({ text: "canonical synthetic body" });
+    expect((await restarted.prepareModel(scope)).pending).toBe(false);
+  } finally {
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test.each(["cipher", "missing-digest"])(
+  "canonical storage %s corruption rolls back request, quota and bytes before provider dispatch",
+  async (fault) => {
+    const f = await researchFixture(),
+      root = await mkdtemp(join(tmpdir(), "fleet-canonical-corrupt-"));
+    try {
+      const scope = await scopeForTurn(f.store, f.claim.turn.id);
+      await f.pool.query(`CREATE FUNCTION fixture_corrupt_cipher() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN ${fault === "cipher" ? `NEW.inline_cipher='["corrupted"]'::jsonb;` : `NEW.chunks=jsonb_set(NEW.chunks,'{0,digest}','null'::jsonb);`} RETURN NEW; END $$;
+      CREATE TRIGGER fixture_corrupt_cipher BEFORE INSERT ON research_artifacts FOR EACH ROW EXECUTE FUNCTION fixture_corrupt_cipher()`);
+      const capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+      let calls = 0;
+      await expect(
+        capture.withScope(scope, () =>
+          capture.model(f.claim.turn, f.request(), {
+            decide: async () => {
+              calls++;
+              return { decision: { kind: "wait" }, inputTokens: 7, outputTokens: 8 };
+            },
+          }),
+        ),
+      ).rejects.toThrow("EVIDENCE_UNAVAILABLE");
+      expect(calls).toBe(0);
+      expect(
+        (await f.pool.query("SELECT count(*)::int n FROM research_artifacts WHERE run_id=$1", [scope.runId])).rows[0].n,
+      ).toBe(0);
+      expect(
+        (
+          await f.pool.query(
+            "SELECT artifact_reserved_bytes::text bytes,capture_failed FROM research_runs WHERE run_id=$1",
+            [scope.runId],
+          )
+        ).rows[0],
+      ).toEqual({ bytes: "0", capture_failed: true });
+      await expect(new CaptureSession(f.store, new ArtifactFilesystem(root)).preflight(scope)).rejects.toThrow(
+        "EVIDENCE_UNAVAILABLE",
+      );
+    } finally {
+      await f.pool.query(
+        "DROP TRIGGER IF EXISTS fixture_corrupt_cipher ON research_artifacts; DROP FUNCTION IF EXISTS fixture_corrupt_cipher()",
+      );
+      await f.pool.end();
+      await rm(root, { recursive: true, force: true });
+    }
+  },
+);
+
+for (const reason of ["expiry", "revocation"] as const)
+  test(`canonical SQL bodies are inaccessible and purged on ${reason}`, async () => {
+    const f = await researchFixture(),
+      root = await mkdtemp(join(tmpdir(), "fleet-canonical-retention-"));
+    try {
+      const scope = await scopeForTurn(f.store, f.claim.turn.id),
+        capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+      await capture.emit(scope, "model.request", { text: "synthetic retained body" }, {}, { required: true });
+      const { EvidenceRepository } = await import("../../src/research/evidence/repository.js");
+      const ref = (await new EvidenceRepository(f.store).page(scope, {})).events.find(
+        (e) => e.kind === "model.request",
+      )!.artifacts[0];
+      if (reason === "expiry")
+        await f.pool.query("UPDATE research_artifacts SET expires_at=$2 WHERE id=$1", [ref.id, new Date(0)]);
+      else await f.pool.query("UPDATE cohorts SET observation_consent=false WHERE id=$1", [f.group.id]);
+      const read = async () => {
+        for await (const _ of capture.artifacts.read(scope, ref)) {
+          /* exhaust */
+        }
+      };
+      await expect(read()).rejects.toThrow(reason === "expiry" ? "ARTIFACT_EXPIRED" : "ARTIFACT_WITHHELD");
+      await capture.artifacts.expire(f.store.now());
+      expect(
+        (await f.pool.query("SELECT inline_cipher,purged FROM research_artifacts WHERE id=$1", [ref.id])).rows[0],
+      ).toEqual({ inline_cipher: null, purged: true });
+      expect(
+        (
+          await f.pool.query("SELECT artifact_reserved_bytes::text bytes FROM research_runs WHERE run_id=$1", [
+            scope.runId,
+          ])
+        ).rows[0].bytes,
+      ).toBe("0");
+    } finally {
+      await f.pool.end();
+      await rm(root, { recursive: true, force: true });
+    }
+  });

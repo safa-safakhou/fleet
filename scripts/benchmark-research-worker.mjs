@@ -124,10 +124,18 @@ try {
   ).rows[0];
   const pendingCipherCopies = (
     await pool.query(
-      "SELECT count(*)::int n FROM research_artifacts a JOIN research_runs r ON r.run_id=a.run_id WHERE r.cohort_id=$1 AND a.inline_cipher IS NOT NULL",
+      "SELECT count(*)::int n FROM research_artifacts a JOIN research_runs r ON r.run_id=a.run_id WHERE r.cohort_id=$1 AND a.storage_backend='filesystem' AND a.inline_cipher IS NOT NULL",
       [cohort],
     )
   ).rows[0].n;
+  const storage = (
+    await pool.query(
+      "SELECT count(*) FILTER (WHERE a.storage_backend='postgres')::int postgres_artifacts,count(*) FILTER (WHERE a.storage_backend='filesystem')::int filesystem_artifacts,COALESCE(sum(a.disk_bytes) FILTER (WHERE a.storage_backend='postgres'),0)::text postgres_cipher_bytes,COALESCE(sum(a.bytes),0)::text logical_bytes FROM research_artifacts a JOIN research_runs r ON r.run_id=a.run_id WHERE r.cohort_id=$1",
+      [cohort],
+    )
+  ).rows[0];
+  if (storage.postgres_artifacts + storage.filesystem_artifacts !== counts.artifacts)
+    throw Error("RECORDING_STORAGE_INCOMPLETE");
   if (pendingCipherCopies !== 0) throw Error("RECORDING_CLEANUP_INCOMPLETE");
   async function bytes(path) {
     let total = 0;
@@ -156,6 +164,7 @@ try {
       cpuMicros: cpu.user + cpu.system,
       artifactBytes: await bytes(root),
       footprint,
+      storage,
       counts,
       runner: {
         os: platform(),

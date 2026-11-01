@@ -8,7 +8,11 @@ test("preserves_pre041_synthetic_history through twice-applied migrations and SQ
   expect(report.before.digest).toBe(report.restoredLegacy.digest);
   expect(report.full.digest).toBe(report.restoredFull.digest);
   expect(report.unknown).toEqual({ count: 1, tokens: "40000" });
-  expect(report.archive).toMatchObject({ status: "verified", events: 2, artifacts: 1, gaps: 0 });
+  expect(report.archive).toMatchObject({ status: "verified", events: 3, artifacts: 2, gaps: 0 });
+  expect(report.tiers).toEqual([
+    { storage_backend: "filesystem", artifacts: 1 },
+    { storage_backend: "postgres", artifacts: 1 },
+  ]);
   expect(report.rollback).toEqual({
     pre048Binary: "incompatible",
     required: "stop-fence-drain; retain new rows; use tested ownership-aware build",

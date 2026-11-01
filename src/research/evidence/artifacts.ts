@@ -33,6 +33,7 @@ export type ArtifactRecord = {
   disk_bytes: string;
   chunks: Chunk[];
   inline_cipher: string[] | null;
+  storage_backend: "filesystem" | "postgres";
   ciphertext_digest: string | null;
   created_at: Date;
   expires_at: Date;
@@ -195,7 +196,7 @@ export class ArtifactStore {
       privacyClass: "private",
       retentionClass: "30d",
     };
-    return { ref, id, chunks, ciphers, disk, cipherDigest };
+    return { ref, id, chunks, ciphers, disk, cipherDigest, storageBackend: disk <= 65536 ? "postgres" : "filesystem" };
   }
   /** Publish immediately after the capture statement's locked authorization.
    * SQL ciphertext remains durable until files and the final fresh check succeed.
@@ -241,7 +242,7 @@ export class ArtifactStore {
     if (!runId) await this.flushCopies();
     const rows = (
       await this.store.pool.query(
-        "SELECT * FROM research_artifacts WHERE inline_cipher IS NOT NULL AND status='complete' AND ($2::text IS NULL OR run_id=$2) AND NOT(id=ANY($3::uuid[])) ORDER BY created_at,id LIMIT $1",
+        "SELECT * FROM research_artifacts WHERE storage_backend='filesystem' AND inline_cipher IS NOT NULL AND status='complete' AND ($2::text IS NULL OR run_id=$2) AND NOT(id=ANY($3::uuid[])) ORDER BY created_at,id LIMIT $1",
         [limit, runId ?? null, [...this.copied.keys()]],
       )
     ).rows as ArtifactRecord[];
