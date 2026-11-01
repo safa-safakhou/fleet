@@ -42,6 +42,7 @@ test("a rejected capture event leaves no extra private artifact or quota reserva
       )
     ).rows[0];
     expect(after).toEqual(before);
+    expect(await capture.artifacts.files.list()).toHaveLength(1);
     expect(
       (
         await f.pool.query(
@@ -249,6 +250,53 @@ test("an unencodable model request preserves queue metadata and blocks dispatch 
       "EVIDENCE_UNAVAILABLE",
     );
   } finally {
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("a lost capture commit acknowledgment preserves encrypted files without retrying the model", async () => {
+  const f = await researchFixture();
+  const root = await mkdtemp(join(tmpdir(), "fleet-ambiguous-capture-"));
+  const query = f.pool.query.bind(f.pool);
+  try {
+    const scope = await scopeForTurn(f.store, f.claim.turn.id);
+    let lost = false,
+      calls = 0;
+    f.pool.query = (async (...args: any[]) => {
+      const result = await (query as (...args: any[]) => Promise<any>)(...args);
+      if (!lost && String(args[0]).includes("SELECT research_capture_write(")) {
+        lost = true;
+        throw new Error("synthetic lost commit acknowledgment");
+      }
+      return result;
+    }) as typeof f.pool.query;
+    const capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    await expect(
+      capture.withScope(scope, () =>
+        capture.model(f.claim.turn, f.request(), {
+          decide: async () => {
+            calls++;
+            return { decision: { kind: "wait" }, inputTokens: 1, outputTokens: 1 };
+          },
+        }),
+      ),
+    ).rejects.toThrow("EVIDENCE_UNAVAILABLE");
+    expect(lost).toBe(true);
+    expect(calls).toBe(0);
+    const { EvidenceRepository } = await import("../../src/research/evidence/repository.js");
+    const events = (await new EvidenceRepository(f.store).page(scope, {})).events;
+    expect(events.filter((e) => e.kind === "model.request")).toHaveLength(1);
+    expect(events.filter((e) => e.kind === "queue.leave")).toHaveLength(1);
+    const request = events.find((e) => e.kind === "model.request")!;
+    const chunks = [];
+    for await (const chunk of capture.artifacts.read(scope, request.artifacts[0])) chunks.push(chunk);
+    expect(Buffer.concat(chunks).length).toBeGreaterThan(0);
+    await expect(new CaptureSession(f.store, new ArtifactFilesystem(root)).preflight(scope)).rejects.toThrow(
+      "EVIDENCE_UNAVAILABLE",
+    );
+  } finally {
+    f.pool.query = query;
     await f.pool.end();
     await rm(root, { recursive: true, force: true });
   }

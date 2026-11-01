@@ -18,12 +18,26 @@ export class ArtifactFilesystem implements ArtifactFiles {
   ) {
     this.root = resolve(root);
   }
-  async initialize() {
+  private setup: Promise<void> | undefined;
+  private async prepare() {
     await mkdir(this.root, { recursive: true, mode: 0o700 });
     const s = await lstat(this.root);
     if (s.isSymbolicLink() || !s.isDirectory()) throw new FleetError("ARTIFACT_PATH_INVALID", true);
     await chmod(this.root, 0o700);
     this.root = await realpath(this.root);
+  }
+  async initialize() {
+    // Cache only canonical-path setup. Each operation still checks the current
+    // directory type and permissions; neither consent nor filesystem authority
+    // is inferred from an earlier successful write.
+    this.setup ??= this.prepare().catch((error) => {
+      this.setup = undefined;
+      throw error;
+    });
+    await this.setup;
+    const s = await lstat(this.root);
+    if (s.isSymbolicLink() || !s.isDirectory()) throw new FleetError("ARTIFACT_PATH_INVALID", true);
+    if ((s.mode & 0o7777) !== 0o700) await chmod(this.root, 0o700);
   }
   private path(id: string, index?: number) {
     if (
