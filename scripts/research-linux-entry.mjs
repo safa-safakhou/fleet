@@ -1,7 +1,7 @@
 // Container-local proxy only to the parent-owned disposable PostgreSQL instance.
 
 import { spawn } from "node:child_process";
-import { connect, createServer } from "node:net";
+import { postgresRelay } from "./research-postgres-relay.mjs";
 
 const remote = new URL(process.env.FLEET_TEST_DATABASE_URL ?? "");
 if (
@@ -13,13 +13,7 @@ if (
   !/^[a-f0-9]{64}$/.test(process.env.FLEET_ARCHITECTURE_NONCE ?? "")
 )
   throw Error("OWNED_LINUX_FIXTURE_REQUIRED");
-const proxy = createServer((socket) => {
-  const upstream = connect({ host: remote.hostname, port: Number(remote.port) });
-  socket.pipe(upstream).pipe(socket);
-  socket.on("error", () => upstream.destroy());
-  upstream.on("error", () => socket.destroy());
-  socket.on("close", () => upstream.destroy());
-});
+const proxy = postgresRelay({ host: remote.hostname, port: Number(remote.port) });
 await new Promise((done) => proxy.listen(0, "127.0.0.1", done));
 const local = new URL(remote);
 local.hostname = "127.0.0.1";

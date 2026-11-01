@@ -153,6 +153,8 @@ else {
       "tests/integration/research-metric-coverage.test.ts",
       "tests/integration/research-experiments.test.ts",
       "tests/integration/architecture-maintenance.test.ts",
+      "tests/integration/research-recording-cost.test.ts",
+      "tests/integration/research-capture-atomicity.test.ts",
     ],
     { FLEET_RESEARCH_VECTOR_FIXTURE: "1" },
   );
@@ -178,6 +180,7 @@ else {
         "tests/unit/research-qualification-bundle.test.ts",
         "tests/unit/research-source-expiry.test.ts",
         "tests/unit/codex.test.ts",
+        "tests/unit/research-relay.test.ts",
         "tests/unit/owned-local-world.test.ts",
       ],
       { temporaryExecutables: true },
