@@ -1,6 +1,6 @@
 # Research source release and package
 
-**Current qualification is blocked by measured recording overhead.** Linux package checks and synthetic Compose validation now pass after protected Docker recovery; see [actual results and limits](acceptance-20261101.md). Production installation remains separate.
+**Current qualification is blocked by recording latency overhead (21.10% against10%); RSS overhead13.69% now passes15%.** Linux package checks and synthetic Compose validation now pass after protected Docker recovery; see [current requalification and limits](requalification-20261101.md). Production installation remains separate.
 
 This is a source release with a separate compiled inspection entry point, `dist/server/research/package.js`. It starts no worker, enrollment, task pump, Temporal activity, model call or game call. Live/worker/Temporal activation settings are refused. Login/logout and authenticated GET/HEAD inspection remain available; other API mutations return `RESEARCH_PACKAGE_READ_ONLY`. Normal execution still requires the separately authorized controller/worker entry points and a scoped run grant.
 
@@ -25,3 +25,5 @@ Disk sizing must include SQL, encrypted chunk overhead, journal/backup copies, o
 Keep dependency notices and license records from [dependencies](dependencies.md). Grafana/Tempo AGPL obligations and separate model-weight licenses remain material. No model weights or third-party service redistribution is granted by a green source test.
 
 See [operations](operations.md) for backup/rollback and later activation gates, and the dated acceptance report for actual results.
+
+The Q3 recording repair requires migration054 and its invoker-rights recording routines before the new application binary. Inspection readiness refuses missing routines; the synthetic migration/restore rehearsal applies the complete migration set twice. This is an additive source/package change, not an installed-runtime migration or activation. Exact source/image/lock provenance and original failed plus successful rerun receipts are in the current requalification report.

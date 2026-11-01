@@ -1,0 +1,1005 @@
+{
+  "schemaVersion": "fleet.qualification-status/v1",
+  "date": "2026-11-01",
+  "status": "blocked",
+  "activationAuthorized": false,
+  "scope": "source/offline; owned synthetic fixtures only",
+  "sourceCommit": "8a9bbb5",
+  "qualificationDecision": {
+    "schemaVersion": "fleet.qualification/v1",
+    "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+    "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+    "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+    "evidenceDigest": "39107d569cc6ec36d52760efd49f8ed93e25bc521b9db2299db3c1bbeaac723e",
+    "scope": "fixture",
+    "status": "blocked",
+    "reasons": ["GATE_REQUIRED:performance"],
+    "issuedAt": "2026-11-01T13:47:03.554Z",
+    "expiresAt": "2026-11-02T13:47:03.554Z",
+    "activationAuthorized": false
+  },
+  "sourceDigest": "01b9599cda90020a5aeeeab38076350f0be447434b0288a37b4b703b0e9cbad8",
+  "lockDigest": "74ae0befe5de6c0edc90790522b905ae7b8a65a04bc9aceb97a0beee0c3467ca",
+  "image": "sha256:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+  "actualLinuxVersions": {
+    "postgresql": "17.11 (Debian 17.11-1.pgdg12+2)",
+    "pgvector": "0.8.7"
+  },
+  "gates": [
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "contracts",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "376a5e9d6b795ff2b6adb53f56a82632dcaf19af754a7f742306f78717846f36"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "invariants",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "3b263f7da6d26ade8bfce73dd8d400b5db4b562164a905f93b35815fff0b9cc4"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "privacy",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "cdce10ab4d4f0aa4248a008b225e0435bf13fe6eaa08fae681261fd0843fd59d"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "accounting",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "3807ca9403d08c4932a584a14871b911952aa1c4fbf7e0d321b44ad0c18fbce8"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "ownership",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "e0aad4d90725833ae748571c76d94f09db20ea4688bb8831cc6a13f503d9219a"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "faults",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "e0aad4d90725833ae748571c76d94f09db20ea4688bb8831cc6a13f503d9219a"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "preservation",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "38210a5230a6dce14401727eb4218574fe5b8a6808c84bdf2de1d44829d7b51d"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "wire",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "5a3eb755e587de530c72eaf0795bea70d045023a7cb1ec1691bbf71715f8d742"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "metrics",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "483635f22a67da9a60813661d8a3eef47ef7bfc49e1b0e29d75177c19ce89520"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "visualization",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "ba1f03e9924e34faf35d9fe5579d10f756966daaff61a7e96dfe422ac3193e25"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "performance",
+      "status": "fail",
+      "exitCode": 1,
+      "evidenceDigest": "46a85d943109dba017d7a2950f690d52aa9181f7d636b25aa61506b26a36e723"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "manifestDigest": "6e94c01b3b6acfb1b95ba43ba2c8a511285e8c8120dc44bdb5824fc7b1057ee0",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "package",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "f6ae49ec383fcd0291fd7f4ff500f6d9842d17c4aa16431000496f8a5f53d3a8"
+    }
+  ],
+  "runs": [
+    {
+      "id": "units",
+      "command": ["npm", "test"],
+      "exitCode": 0,
+      "digest": "a3e46c43b269fdb2104d41020415efe69bdcca3028a11726c2f5afb6734056a6",
+      "executed": true
+    },
+    {
+      "id": "contracts",
+      "command": ["npm", "run", "research:contracts:check"],
+      "exitCode": 0,
+      "digest": "b4f29adae0df89adc75cdcb59e7307708a6f8dd4f0212a1e48eda4a672000e94",
+      "executed": true
+    },
+    {
+      "id": "check",
+      "command": ["npm", "run", "check"],
+      "exitCode": 0,
+      "digest": "90c7fec7e13d2d40da580a9831421a6087a09cf19e0b16bcb864e67f0742dfc3",
+      "executed": true,
+      "evidence": "check-final.log"
+    },
+    {
+      "id": "boundaries",
+      "command": ["npm", "run", "check:boundaries"],
+      "exitCode": 0,
+      "digest": "54d909cb8e82fdb4a0df29184d40eb331b6ae2ae3d3c24bd74dfe72f6a87274a",
+      "executed": true
+    },
+    {
+      "id": "build",
+      "command": ["npm", "run", "build"],
+      "exitCode": 0,
+      "digest": "1d698678f3e9ea88214cee81c280a22e5ca5d36742cb809447f22742160f7b23",
+      "executed": true
+    },
+    {
+      "id": "properties",
+      "command": ["npm", "run", "test:properties", "--", "--release", "--seed", "20261030"],
+      "exitCode": 0,
+      "digest": "f0bedf16e57e2d01fac275e91484b02da2f8bdf403ae35da0c210ed0e217e566",
+      "executed": true,
+      "evidence": "properties-retry.log"
+    },
+    {
+      "id": "python",
+      "command": [
+        "uv",
+        "run",
+        "--project",
+        "workers/research",
+        "--group",
+        "dev",
+        "--extra",
+        "optimization",
+        "pytest",
+        "workers/research/tests",
+        "-q"
+      ],
+      "exitCode": 0,
+      "digest": "6f62fb6485ddd3c758d8a25e8b933da9d4da012506f2219cc7261245a387eabf",
+      "executed": true
+    },
+    {
+      "id": "worker-isolation",
+      "command": [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "--security-opt",
+        "no-new-privileges",
+        "--pids-limit",
+        "64",
+        "--memory",
+        "512m",
+        "--cpus",
+        "1",
+        "--user",
+        "10001:10001",
+        "--tmpfs",
+        "/tmp:rw,noexec,nosuid,size=32m,uid=10001,gid=10001",
+        "-e",
+        "FLEET_ISOLATION_PROBE=1",
+        "sha256:40abdd66273eebe69c808f81d749f183757cc59555f89749daca1fe6478539fd"
+      ],
+      "exitCode": 0,
+      "digest": "f3a09edf95ac1baa1a058a00274d59788df2911704c2efc5c8d3834532dad17d",
+      "executed": true
+    },
+    {
+      "id": "faults",
+      "command": ["npm", "run", "test:research-faults"],
+      "exitCode": 0,
+      "digest": "7c539901bc4eb88f610c0ec96168d9fde934d6a7af069a0615f8dc9d4259480e",
+      "executed": true
+    },
+    {
+      "id": "preservation",
+      "command": ["npm", "run", "test:research-migration"],
+      "exitCode": 0,
+      "digest": "b1dc8b5e5e33f846512a6554c3d722404fc41869934c0efe0074c758b2c39bc4",
+      "executed": true
+    },
+    {
+      "id": "native",
+      "command": [
+        "npm",
+        "run",
+        "test:architecture",
+        "--",
+        "tests/acceptance/research-engine.test.ts",
+        "tests/acceptance/pact.test.ts",
+        "tests/integration/research-qualification.test.ts",
+        "tests/integration/research-recipes-runtime.test.ts",
+        "tests/integration/research-context-lineage.test.ts",
+        "tests/integration/research-retrieval.test.ts",
+        "tests/integration/research-metric-coverage.test.ts",
+        "tests/integration/research-experiments.test.ts",
+        "tests/integration/architecture-maintenance.test.ts",
+        "tests/integration/research-recording-cost.test.ts",
+        "tests/integration/research-capture-atomicity.test.ts"
+      ],
+      "exitCode": 0,
+      "digest": "f073b04c8ce90ff8376f3ff90ccd2d9cb0c1c289402db1a882e070f6bef263ff",
+      "executed": true
+    },
+    {
+      "id": "browser",
+      "command": ["npm", "run", "test:research-ui"],
+      "exitCode": 0,
+      "digest": "c1650fd396453a20ce863aca10dfc33e574f941e2c1a6b8217c72a2bcd762615",
+      "executed": true
+    },
+    {
+      "id": "package",
+      "command": ["npm", "run", "test:research-package", "--", "--fixture"],
+      "exitCode": 0,
+      "digest": "4ad9c937f4ff8b06926dc6ce67791fb7402dbc2bf39b53be9fac1be61f88fe4c",
+      "executed": true
+    },
+    {
+      "id": "benchmark",
+      "command": ["npm", "run", "benchmark:research", "--", "--fixture"],
+      "exitCode": 1,
+      "digest": "1ffd3d7007993ab6d4157242745d258a04a98ae2b8ceee7c3a6cf94282a8e5ad",
+      "executed": true
+    },
+    {
+      "id": "architecture",
+      "command": ["npm", "run", "test:architecture"],
+      "exitCode": 0,
+      "digest": "f5cf08af541c8d9dd506a6e2e7195fdd640e2001681d1a8bf73121f8c2024dc6",
+      "executed": true
+    },
+    {
+      "id": "audit",
+      "command": ["npm", "audit", "--json"],
+      "exitCode": 0,
+      "digest": "4f8792dbe63d05ed29e17e940bdfa2c5555301f2d6272881b86249a2a2d4fc79",
+      "executed": true
+    },
+    {
+      "id": "linux-units",
+      "command": [
+        "owned-linux-fixture",
+        "vitest",
+        "affected qualification/expiry units and Linux-only process fixtures"
+      ],
+      "exitCode": 0,
+      "executed": true,
+      "digest": "f40784ee7282effaf3164e2f4b7fb796a1aa370e367636709be40cc417302b8a"
+    }
+  ],
+  "retryHistory": [
+    {
+      "original": {
+        "id": "check",
+        "command": ["npm", "run", "check"],
+        "exitCode": 1,
+        "digest": "90902179c9fb2b76f8e873ffdad5a1d94d083d3fd97146afdac1e6409be6bf99",
+        "executed": true
+      },
+      "retry": {
+        "id": "check",
+        "command": ["npm", "run", "check"],
+        "exitCode": 0,
+        "digest": "90c7fec7e13d2d40da580a9831421a6087a09cf19e0b16bcb864e67f0742dfc3",
+        "executed": true,
+        "evidence": "check-final.log"
+      }
+    },
+    {
+      "original": {
+        "id": "properties",
+        "command": ["npm", "run", "test:properties", "--", "--release", "--seed", "20261030"],
+        "exitCode": 1,
+        "digest": "30d4c343fddf3daaebc5de5fc3e6a9b303f42970cfa4025a52984978e8f02791",
+        "executed": true
+      },
+      "retry": {
+        "id": "properties",
+        "command": ["npm", "run", "test:properties", "--", "--release", "--seed", "20261030"],
+        "exitCode": 0,
+        "digest": "f0bedf16e57e2d01fac275e91484b02da2f8bdf403ae35da0c210ed0e217e566",
+        "executed": true,
+        "evidence": "properties-retry.log"
+      }
+    }
+  ],
+  "originalBundleDigest": "203cdf75b440322c9f04a29b192182682eb1588a83dd5267f5ca86948f86f9e9",
+  "matrixCases": 20,
+  "mandatoryRiskTriples": 4,
+  "verification": {
+    "rootUnits": {
+      "passed": 1251,
+      "skipped": 23
+    },
+    "ownedArchitectureUnits": {
+      "passed": 1251,
+      "skipped": 23
+    },
+    "linuxProcessAndAffectedUnits": {
+      "passed": 43
+    },
+    "researchIntegrations": {
+      "passed": 97
+    },
+    "releaseProperties": {
+      "checks": 7,
+      "randomizedProperties": 4,
+      "historiesPerRandomizedProperty": 2000,
+      "seed": 20261030,
+      "maxTransitions": 50
+    },
+    "python": {
+      "passed": 21,
+      "skipped": 4
+    },
+    "linuxWorkerIsolationProbes": 3,
+    "faultChecks": 32,
+    "nativeAndPairedPactChecks": 38,
+    "macOSBrowserChecks": 26,
+    "linuxBrowserChecks": 26,
+    "typesStyleBuildContractsBoundaries": "pass",
+    "npmAuditVulnerabilities": 0,
+    "syntheticComposeConfig": "pass",
+    "linuxCompiledPackageChecks": 1
+  },
+  "performance": {
+    "recordingBenchmark": {
+      "schemaVersion": "fleet.benchmark/v1",
+      "scope": "owned-linux-synthetic-recording-boundary",
+      "status": "blocked",
+      "latencyOverhead": 0.21103652800486783,
+      "rssOverhead": 0.13693581582348147,
+      "blockers": ["SERVICE_P95_OVERHEAD_EXCEEDS_10_PERCENT"],
+      "aggregation": "Mean of five per-repetition p95 service latencies; maximum process peak RSS across five repetitions. Both modes warmed once; alternating recorded order.",
+      "repetitions": [
+        {
+          "repetition": -1,
+          "warmup": true,
+          "disabled": {
+            "schemaVersion": "fleet.benchmark-sample/v2",
+            "enabled": false,
+            "operations": 1000,
+            "concurrency": 4,
+            "fakeProviderMs": 50,
+            "providerCalls": 1000,
+            "elapsedMs": 12811.468844,
+            "cleanupMs": 0.27663099999881524,
+            "pendingCipherCopies": 0,
+            "p95ServiceMs": 54.13224900000023,
+            "p95ProviderMs": 54.13104100000055,
+            "p95HostExclusiveMs": 0.005042000000685221,
+            "peakRssBytes": 84504576,
+            "cpuMicros": 132386,
+            "artifactBytes": 0,
+            "footprint": {
+              "database_bytes": "12555955",
+              "relation_bytes": "2523136"
+            },
+            "counts": {
+              "events": 0,
+              "artifacts": 0
+            },
+            "runner": {
+              "os": "linux",
+              "release": "6.8.0-100-generic",
+              "node": "v26.13.0",
+              "cpu": "unknown",
+              "cpus": 2,
+              "totalRamBytes": 3040251904
+            },
+            "limits": [
+              "Recording boundary benchmark; excludes native admission, scheduler, Temporal and optional telemetry backends. No real provider or game IO."
+            ]
+          },
+          "enabled": {
+            "schemaVersion": "fleet.benchmark-sample/v2",
+            "enabled": true,
+            "operations": 1000,
+            "concurrency": 4,
+            "fakeProviderMs": 50,
+            "providerCalls": 1000,
+            "elapsedMs": 15586.001901,
+            "cleanupMs": 0.9050200000001496,
+            "pendingCipherCopies": 0,
+            "p95ServiceMs": 67.59755399999995,
+            "p95ProviderMs": 53.48207199999979,
+            "p95HostExclusiveMs": 15.396844999999303,
+            "peakRssBytes": 96423936,
+            "cpuMicros": 1574299,
+            "artifactBytes": 534000,
+            "footprint": {
+              "database_bytes": "22894259",
+              "relation_bytes": "12861440"
+            },
+            "counts": {
+              "events": 4004,
+              "artifacts": 2000
+            },
+            "runner": {
+              "os": "linux",
+              "release": "6.8.0-100-generic",
+              "node": "v26.13.0",
+              "cpu": "unknown",
+              "cpus": 2,
+              "totalRamBytes": 3040251904
+            },
+            "limits": [
+              "Recording boundary benchmark; excludes native admission, scheduler, Temporal and optional telemetry backends. No real provider or game IO."
+            ]
+          }
+        },
+        {
+          "repetition": 0,
+          "warmup": false,
+          "enabled": {
+            "schemaVersion": "fleet.benchmark-sample/v2",
+            "enabled": true,
+            "operations": 1000,
+            "concurrency": 4,
+            "fakeProviderMs": 50,
+            "providerCalls": 1000,
+            "elapsedMs": 15203.89149,
+            "cleanupMs": 0.7813100000003033,
+            "pendingCipherCopies": 0,
+            "p95ServiceMs": 65.35559999999896,
+            "p95ProviderMs": 52.89127499999995,
+            "p95HostExclusiveMs": 14.53853499999991,
+            "peakRssBytes": 96399360,
+            "cpuMicros": 1562673,
+            "artifactBytes": 534000,
+            "footprint": {
+              "database_bytes": "33478323",
+              "relation_bytes": "23445504"
+            },
+            "counts": {
+              "events": 4004,
+              "artifacts": 2000
+            },
+            "runner": {
+              "os": "linux",
+              "release": "6.8.0-100-generic",
+              "node": "v26.13.0",
+              "cpu": "unknown",
+              "cpus": 2,
+              "totalRamBytes": 3040251904
+            },
+            "limits": [
+              "Recording boundary benchmark; excludes native admission, scheduler, Temporal and optional telemetry backends. No real provider or game IO."
+            ]
+          },
+          "disabled": {
+            "schemaVersion": "fleet.benchmark-sample/v2",
+            "enabled": false,
+            "operations": 1000,
+            "concurrency": 4,
+            "fakeProviderMs": 50,
+            "providerCalls": 1000,
+            "elapsedMs": 12956.570538,
+            "cleanupMs": 0.23513000000093598,
+            "pendingCipherCopies": 0,
+            "p95ServiceMs": 54.53353100000095,
+            "p95ProviderMs": 54.530902000000424,
+            "p95HostExclusiveMs": 0.011249000001043896,
+            "peakRssBytes": 84201472,
+            "cpuMicros": 237626,
+            "artifactBytes": 0,
+            "footprint": {
+              "database_bytes": "33478323",
+              "relation_bytes": "23445504"
+            },
+            "counts": {
+              "events": 0,
+              "artifacts": 0
+            },
+            "runner": {
+              "os": "linux",
+              "release": "6.8.0-100-generic",
+              "node": "v26.13.0",
+              "cpu": "unknown",
+              "cpus": 2,
+              "totalRamBytes": 3040251904
+            },
+            "limits": [
+              "Recording boundary benchmark; excludes native admission, scheduler, Temporal and optional telemetry backends. No real provider or game IO."
+            ]
+          }
+        },
+        {
+          "repetition": 1,
+          "warmup": false,
+          "disabled": {
+            "schemaVersion": "fleet.benchmark-sample/v2",
+            "enabled": false,
+            "operations": 1000,
+            "concurrency": 4,
+            "fakeProviderMs": 50,
+            "providerCalls": 1000,
+            "elapsedMs": 12964.076744,
+            "cleanupMs": 0.561388000000079,
+            "pendingCipherCopies": 0,
+            "p95ServiceMs": 54.621289000000615,
+            "p95ProviderMs": 54.619080000000395,
+            "p95HostExclusiveMs": 0.008916999999996733,
+            "peakRssBytes": 84799488,
+            "cpuMicros": 187983,
+            "artifactBytes": 0,
+            "footprint": {
+              "database_bytes": "33478323",
+              "relation_bytes": "23445504"
+            },
+            "counts": {
+              "events": 0,
+              "artifacts": 0
+            },
+            "runner": {
+              "os": "linux",
+              "release": "6.8.0-100-generic",
+              "node": "v26.13.0",
+              "cpu": "unknown",
+              "cpus": 2,
+              "totalRamBytes": 3040251904
+            },
+            "limits": [
+              "Recording boundary benchmark; excludes native admission, scheduler, Temporal and optional telemetry backends. No real provider or game IO."
+            ]
+          },
+          "enabled": {
+            "schemaVersion": "fleet.benchmark-sample/v2",
+            "enabled": true,
+            "operations": 1000,
+            "concurrency": 4,
+            "fakeProviderMs": 50,
+            "providerCalls": 1000,
+            "elapsedMs": 15235.017005,
+            "cleanupMs": 0.6065139999991516,
+            "pendingCipherCopies": 0,
+            "p95ServiceMs": 65.60479200000009,
+            "p95ProviderMs": 53.12446799999998,
+            "p95HostExclusiveMs": 14.230200999999852,
+            "peakRssBytes": 96542720,
+            "cpuMicros": 1633712,
+            "artifactBytes": 534000,
+            "footprint": {
+              "database_bytes": "44070579",
+              "relation_bytes": "34037760"
+            },
+            "counts": {
+              "events": 4004,
+              "artifacts": 2000
+            },
+            "runner": {
+              "os": "linux",
+              "release": "6.8.0-100-generic",
+              "node": "v26.13.0",
+              "cpu": "unknown",
+              "cpus": 2,
+              "totalRamBytes": 3040251904
+            },
+            "limits": [
+              "Recording boundary benchmark; excludes native admission, scheduler, Temporal and optional telemetry backends. No real provider or game IO."
+            ]
+          }
+        },
+        {
+          "repetition": 2,
+          "warmup": false,
+          "enabled": {
+            "schemaVersion": "fleet.benchmark-sample/v2",
+            "enabled": true,
+            "operations": 1000,
+            "concurrency": 4,
+            "fakeProviderMs": 50,
+            "providerCalls": 1000,
+            "elapsedMs": 15331.610807000001,
+            "cleanupMs": 0.7316419999988284,
+            "pendingCipherCopies": 0,
+            "p95ServiceMs": 66.31061000000045,
+            "p95ProviderMs": 53.336772000000565,
+            "p95HostExclusiveMs": 14.968136999999842,
+            "peakRssBytes": 96428032,
+            "cpuMicros": 1646007,
+            "artifactBytes": 534000,
+            "footprint": {
+              "database_bytes": "52560399",
+              "relation_bytes": "42532864"
+            },
+            "counts": {
+              "events": 4004,
+              "artifacts": 2000
+            },
+            "runner": {
+              "os": "linux",
+              "release": "6.8.0-100-generic",
+              "node": "v26.13.0",
+              "cpu": "unknown",
+              "cpus": 2,
+              "totalRamBytes": 3040251904
+            },
+            "limits": [
+              "Recording boundary benchmark; excludes native admission, scheduler, Temporal and optional telemetry backends. No real provider or game IO."
+            ]
+          },
+          "disabled": {
+            "schemaVersion": "fleet.benchmark-sample/v2",
+            "enabled": false,
+            "operations": 1000,
+            "concurrency": 4,
+            "fakeProviderMs": 50,
+            "providerCalls": 1000,
+            "elapsedMs": 12926.486065000001,
+            "cleanupMs": 0.4222589999990305,
+            "pendingCipherCopies": 0,
+            "p95ServiceMs": 54.44371499999994,
+            "p95ProviderMs": 54.433757000000014,
+            "p95HostExclusiveMs": 0.007417000000714324,
+            "peakRssBytes": 84332544,
+            "cpuMicros": 177340,
+            "artifactBytes": 0,
+            "footprint": {
+              "database_bytes": "52721331",
+              "relation_bytes": "42532864"
+            },
+            "counts": {
+              "events": 0,
+              "artifacts": 0
+            },
+            "runner": {
+              "os": "linux",
+              "release": "6.8.0-100-generic",
+              "node": "v26.13.0",
+              "cpu": "unknown",
+              "cpus": 2,
+              "totalRamBytes": 3040251904
+            },
+            "limits": [
+              "Recording boundary benchmark; excludes native admission, scheduler, Temporal and optional telemetry backends. No real provider or game IO."
+            ]
+          }
+        },
+        {
+          "repetition": 3,
+          "warmup": false,
+          "disabled": {
+            "schemaVersion": "fleet.benchmark-sample/v2",
+            "enabled": false,
+            "operations": 1000,
+            "concurrency": 4,
+            "fakeProviderMs": 50,
+            "providerCalls": 1000,
+            "elapsedMs": 12956.017859,
+            "cleanupMs": 0.41459299999951327,
+            "pendingCipherCopies": 0,
+            "p95ServiceMs": 54.646559000000025,
+            "p95ProviderMs": 54.64060100000006,
+            "p95HostExclusiveMs": 0.007167000000208645,
+            "peakRssBytes": 85577728,
+            "cpuMicros": 174235,
+            "artifactBytes": 0,
+            "footprint": {
+              "database_bytes": "52721331",
+              "relation_bytes": "42532864"
+            },
+            "counts": {
+              "events": 0,
+              "artifacts": 0
+            },
+            "runner": {
+              "os": "linux",
+              "release": "6.8.0-100-generic",
+              "node": "v26.13.0",
+              "cpu": "unknown",
+              "cpus": 2,
+              "totalRamBytes": 3040251904
+            },
+            "limits": [
+              "Recording boundary benchmark; excludes native admission, scheduler, Temporal and optional telemetry backends. No real provider or game IO."
+            ]
+          },
+          "enabled": {
+            "schemaVersion": "fleet.benchmark-sample/v2",
+            "enabled": true,
+            "operations": 1000,
+            "concurrency": 4,
+            "fakeProviderMs": 50,
+            "providerCalls": 1000,
+            "elapsedMs": 15414.195256,
+            "cleanupMs": 0.6987239999998565,
+            "pendingCipherCopies": 0,
+            "p95ServiceMs": 66.2975460000016,
+            "p95ProviderMs": 53.62370899999951,
+            "p95HostExclusiveMs": 14.710594000000128,
+            "peakRssBytes": 96776192,
+            "cpuMicros": 1664719,
+            "artifactBytes": 534000,
+            "footprint": {
+              "database_bytes": "63215283",
+              "relation_bytes": "53026816"
+            },
+            "counts": {
+              "events": 4004,
+              "artifacts": 2000
+            },
+            "runner": {
+              "os": "linux",
+              "release": "6.8.0-100-generic",
+              "node": "v26.13.0",
+              "cpu": "unknown",
+              "cpus": 2,
+              "totalRamBytes": 3040251904
+            },
+            "limits": [
+              "Recording boundary benchmark; excludes native admission, scheduler, Temporal and optional telemetry backends. No real provider or game IO."
+            ]
+          }
+        },
+        {
+          "repetition": 4,
+          "warmup": false,
+          "enabled": {
+            "schemaVersion": "fleet.benchmark-sample/v2",
+            "enabled": true,
+            "operations": 1000,
+            "concurrency": 4,
+            "fakeProviderMs": 50,
+            "providerCalls": 1000,
+            "elapsedMs": 15438.988986,
+            "cleanupMs": 0.8502279999993334,
+            "pendingCipherCopies": 0,
+            "p95ServiceMs": 66.65618399999994,
+            "p95ProviderMs": 53.719506999999794,
+            "p95HostExclusiveMs": 14.807471999999962,
+            "peakRssBytes": 97296384,
+            "cpuMicros": 1603263,
+            "artifactBytes": 534000,
+            "footprint": {
+              "database_bytes": "72294927",
+              "relation_bytes": "62201856"
+            },
+            "counts": {
+              "events": 4004,
+              "artifacts": 2000
+            },
+            "runner": {
+              "os": "linux",
+              "release": "6.8.0-100-generic",
+              "node": "v26.13.0",
+              "cpu": "unknown",
+              "cpus": 2,
+              "totalRamBytes": 3040251904
+            },
+            "limits": [
+              "Recording boundary benchmark; excludes native admission, scheduler, Temporal and optional telemetry backends. No real provider or game IO."
+            ]
+          },
+          "disabled": {
+            "schemaVersion": "fleet.benchmark-sample/v2",
+            "enabled": false,
+            "operations": 1000,
+            "concurrency": 4,
+            "fakeProviderMs": 50,
+            "providerCalls": 1000,
+            "elapsedMs": 12925.619111,
+            "cleanupMs": 0.3118819999999687,
+            "pendingCipherCopies": 0,
+            "p95ServiceMs": 54.43432100000064,
+            "p95ProviderMs": 54.43282100000033,
+            "p95HostExclusiveMs": 0.007292000002053101,
+            "peakRssBytes": 84889600,
+            "cpuMicros": 182025,
+            "artifactBytes": 0,
+            "footprint": {
+              "database_bytes": "72488627",
+              "relation_bytes": "62234624"
+            },
+            "counts": {
+              "events": 0,
+              "artifacts": 0
+            },
+            "runner": {
+              "os": "linux",
+              "release": "6.8.0-100-generic",
+              "node": "v26.13.0",
+              "cpu": "unknown",
+              "cpus": 2,
+              "totalRamBytes": 3040251904
+            },
+            "limits": [
+              "Recording boundary benchmark; excludes native admission, scheduler, Temporal and optional telemetry backends. No real provider or game IO."
+            ]
+          }
+        }
+      ],
+      "limits": [
+        "No native admission/scheduler/Temporal or optional OTel backend throughput qualification. Active host+PostgreSQL container resource samples are recorded separately."
+      ],
+      "image": "sha256:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+      "isolation": {
+        "image": "sha256:4df8fd05dd62d012b52991d511fbcd77eba0f4a9cc3cf66974edf92ede21ec18",
+        "user": "10001:10001",
+        "network": "owned internal database only",
+        "readOnlyRoot": true,
+        "cpus": 2,
+        "ramBytes": 2147483648,
+        "tmpfsBytes": 536870912,
+        "temporaryExecutables": false
+      }
+    },
+    "baseline": {
+      "latencyOverhead": 0.6886184955164714,
+      "rssOverhead": 0.3865611121838193
+    },
+    "containerResources": {
+      "samples": 87,
+      "peaksAcrossWholeBenchmark": {
+        "database": {
+          "peakMemoryBytes": 167247872,
+          "peakSampledCPUPercent": 22.09
+        },
+        "runner": {
+          "peakMemoryBytes": 157181542,
+          "peakSampledCPUPercent": 31.34
+        }
+      },
+      "scope": "Concurrent runner and owned PostgreSQL samples across warmup and measured pairs; not per-mode backend overhead attribution."
+    }
+  },
+  "preservation": {
+    "legacyTables": 77,
+    "beforeDigest": "620ed27dd8093bb4dcb0b77101fbacd23bf256e36b4c545b7b49e69b01c6bf4e",
+    "afterDigest": "620ed27dd8093bb4dcb0b77101fbacd23bf256e36b4c545b7b49e69b01c6bf4e",
+    "restoredLegacyDigest": "620ed27dd8093bb4dcb0b77101fbacd23bf256e36b4c545b7b49e69b01c6bf4e",
+    "fullDigest": "4ea287f67662971e6247ce31eb375345ec5bd5da0b01a5810b1d491c3fc2d238",
+    "restoredFullDigest": "4ea287f67662971e6247ce31eb375345ec5bd5da0b01a5810b1d491c3fc2d238",
+    "unknown": {
+      "count": 1,
+      "tokens": "40000"
+    },
+    "archive": {
+      "status": "verified",
+      "events": 2,
+      "artifacts": 1,
+      "gaps": 0,
+      "bytes": "74",
+      "coverageStatus": "complete"
+    }
+  },
+  "nativeWalkthrough": {
+    "calls": 1,
+    "commands": 1,
+    "events": 17,
+    "artifacts": 13,
+    "archive": {
+      "status": "verified",
+      "events": 17,
+      "artifacts": 13,
+      "gaps": 0,
+      "bytes": "11427",
+      "coverageStatus": "complete"
+    }
+  },
+  "originalServices": {
+    "at": "2026-11-01T13:51:15.007006+00:00",
+    "originalContainers": 67,
+    "containerConfigDifferences": [],
+    "originalVolumes": 115,
+    "originalVolumeDefinitionsMatch": true,
+    "services": [
+      {
+        "name": "fleet-mac-nemotron-db",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "automated-traffic-service-db-1",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "toolbox-document-worker",
+        "state": "running",
+        "health": "healthy"
+      }
+    ]
+  },
+  "evidenceSha256": {
+    "final-qualification-bundle.json": "b7b99f9c3b832808dc15b1c1d34380df9879f9570fb305cda185471bd8caccbc",
+    "requalification-bundle.json": "9b4f911cfb07dfad8f9b4a832fd63f560d2a75f4d026c76981445f5e43236770",
+    "final-benchmark-report.json": "1089820879f6a83c7b876f2307a844c2b845aaa1713bc7d1c1ac2a761ce46b44",
+    "properties-retry.log": "4efbe846ea46953e7f12ff16fbba32ee52655206ec06744122334dee0fab36cb",
+    "properties-retry-result.json": "7ec6c0a43bc5df0baf2226db7908e66e0ed01841a5755a1c67aa40df9dcc29e9",
+    "check-final.log": "98a0801f5e3c1f19b5b45a0bd34cd4b291716f64c676e705de9a780f4f8a4a9f",
+    "linux-browser.log": "da896e6bcb268b7223c99b79adeed3fcd22a950f920cd754782e9b6cb150cdeb",
+    "preservation-final.json": "ee101a2e24e74f0c187796d773d915308a88da686866a1ef04a70f3610c6b255"
+  },
+  "privateEvidenceRoot": ".superpowers/sdd/2026-10-30-pact-research-07-qualification/overhead-20261101",
+  "limits": [
+    "The unchanged 10% latency limit fails; 15% process peak RSS limit passes. No qualified release or live-test readiness.",
+    "Recording-boundary workload excludes native admission/scheduling/Temporal and optional telemetry-backend throughput; backend resource samples are separately retained.",
+    "First release-property attempt lost its disposable PostgreSQL connection during migration at history312, before model/oracle comparison. Root cause not established; full unchanged-seed, unchanged-bounds rerun passes. Initial failure and canceled replay retained.",
+    "Initial style failure was an implicit-any temporary query result. A type-only annotation was committed before package build; actual full check rerun passes. Original runner bundle remains unchanged and reassessment uses the original strict policy with actual rerun receipts.",
+    "23 root and4 Python skips remain explicit;43 separate Linux checks do not imply every skipped opt-in test ran.",
+    "No host power-loss/arbitrary network-partition certification, real-provider accuracy or strategic effectiveness acceptance, installation/deployment, game/model calls or pushes.",
+    "All67 original container configurations and115 volume definitions match,3 services healthy. This is not a complete retained SQL-row audit; no preincident readable row-hash baseline exists."
+  ],
+  "finalSpace": {
+    "hostAvailableBytes": 15682105344,
+    "dockerDataAvailableBytes": 5486473216,
+    "hostAvailableGiB": 14.61,
+    "dockerDataAvailableGiB": 5.11,
+    "containers": 67,
+    "runningContainers": 3,
+    "qualifiedCandidateRetained": true,
+    "recoveryCopiesPreserved": true
+  }
+}
