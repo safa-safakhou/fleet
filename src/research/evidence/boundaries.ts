@@ -291,7 +291,7 @@ export class CaptureSession implements ObservationPort {
           allocationId ?? null,
           this.artifacts.copyAcknowledgments().map((c) => c.id),
         ]);
-      let result;
+      let result: Awaited<ReturnType<typeof read>>;
       try {
         result = await read();
       } catch (error) {
