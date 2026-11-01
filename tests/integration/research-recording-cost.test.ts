@@ -186,3 +186,58 @@ test("a complete recorded call uses at most 24 database requests with every even
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("one parent and one completed copy do not scan unrelated retained history", async () => {
+  const { mkdtemp, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { CaptureSession } = await import("../../src/research/evidence/boundaries.js");
+  const { ArtifactFilesystem } = await import("../../src/research/evidence/filesystem.js");
+  const f = await researchFixture(),
+    root = await mkdtemp(join(tmpdir(), "fleet-bounded-history-"));
+  try {
+    const scope = await scopeForTurn(f.store, f.claim.turn.id);
+    const capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    const parent = await capture.emit(scope, "model.request", { text: "synthetic" }, {}, { required: true });
+    expect(parent).toBeDefined();
+    await f.pool.query(
+      "INSERT INTO research_runs(run_id,agent_id,cohort_id,binding_id,manifest_digest,provenance,created_at,expires_at) SELECT 'unrelated-history',agent_id,cohort_id,binding_id,manifest_digest,provenance,created_at,expires_at FROM research_runs WHERE run_id=$1",
+      [scope.runId],
+    );
+    await f.pool.query(
+      "INSERT INTO research_events(id,run_id,stream_id,sequence,ordinal,producer_key,input_digest,event) SELECT gen_random_uuid(),'unrelated-history','history',n,n,n::text,repeat('a',64),'{}'::jsonb FROM generate_series(1,5000) n",
+    );
+    await f.pool.query(
+      "INSERT INTO research_artifacts(id,run_id,scope,consent_version,content_type,privacy_class,retention_class,status,reserved_bytes,bytes,disk_bytes,chunks,inline_cipher,ciphertext_digest,created_at,expires_at,expected_bytes) SELECT gen_random_uuid(),'unrelated-history',scope||'{\"runId\":\"unrelated-history\"}'::jsonb,consent_version,content_type,privacy_class,retention_class,status,reserved_bytes,bytes,disk_bytes,chunks,inline_cipher,ciphertext_digest,created_at,expires_at,expected_bytes FROM research_artifacts CROSS JOIN generate_series(1,5000) WHERE run_id=$1",
+      [scope.runId],
+    );
+    await f.pool.query("ANALYZE research_events,research_artifacts");
+    await transaction(f.pool, async (db) => {
+      await capture.artifacts.flushCopies(db);
+      await new EvidenceRecorder(f.store).append(
+        scope,
+        { kind: "model.dispatched", streamId: "model", producerKey: "bounded-history", parentIds: [parent!.id] },
+        db,
+      );
+      const scans = (
+        await db.query(
+          "SELECT relname,seq_tup_read FROM pg_stat_xact_user_tables WHERE relname IN ('research_events','research_artifacts')",
+        )
+      ).rows;
+      expect(Object.fromEntries(scans.map((x) => [x.relname, Number(x.seq_tup_read)]))).toEqual({
+        research_events: expect.any(Number),
+        research_artifacts: expect.any(Number),
+      });
+      for (const row of scans) expect(Number(row.seq_tup_read), row.relname).toBeLessThanOrEqual(20);
+    });
+    const page = await new EvidenceRepository(f.store).page(scope, {});
+    expect(page.events.at(-1)?.parentIds).toEqual([parent!.id]);
+    expect(
+      (await f.pool.query("SELECT inline_cipher FROM research_artifacts WHERE run_id=$1", [scope.runId])).rows[0]
+        .inline_cipher,
+    ).toBeNull();
+  } finally {
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
+  }
+});

@@ -301,3 +301,42 @@ test("a lost capture commit acknowledgment preserves encrypted files without ret
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("copy acknowledgment skips a locked artifact and leaves restart reconciliation intact", async () => {
+  const f = await researchFixture(),
+    root = await mkdtemp(join(tmpdir(), "fleet-locked-copy-"));
+  const locker = await f.pool.connect();
+  try {
+    const scope = await scopeForTurn(f.store, f.claim.turn.id);
+    const capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    const event = await capture.emit(scope, "model.request", { text: "synthetic locked copy" }, {}, { required: true });
+    const id = (await f.pool.query("SELECT id FROM research_artifacts WHERE run_id=$1", [scope.runId])).rows[0].id;
+    await locker.query("BEGIN");
+    await locker.query("SELECT 1 FROM research_artifacts WHERE id=$1 FOR UPDATE", [id]);
+    const { transaction } = await import("../../src/db.js");
+    await transaction(f.pool, async (db) => {
+      await db.query("SET LOCAL lock_timeout='100ms'");
+      await capture.artifacts.flushCopies(db);
+      expect(
+        (await db.query("SELECT inline_cipher IS NOT NULL pending FROM research_artifacts WHERE id=$1", [id])).rows[0]
+          .pending,
+      ).toBe(true);
+    });
+    await locker.query("COMMIT");
+    const restarted = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    await restarted.preflight(scope);
+    expect(
+      (await f.pool.query("SELECT inline_cipher FROM research_artifacts WHERE id=$1", [id])).rows[0].inline_cipher,
+    ).toBeNull();
+    const { EvidenceRepository } = await import("../../src/research/evidence/repository.js");
+    const stored = (await new EvidenceRepository(f.store).page(scope, {})).events.find((x) => x.id === event!.id)!;
+    const chunks = [];
+    for await (const chunk of restarted.artifacts.read(scope, stored.artifacts[0])) chunks.push(chunk);
+    expect(JSON.parse(Buffer.concat(chunks).toString())).toEqual({ text: "synthetic locked copy" });
+  } finally {
+    await locker.query("ROLLBACK").catch(() => {});
+    locker.release();
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
+  }
+});
