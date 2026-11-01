@@ -79,6 +79,7 @@ try {
     start = performance.now();
   const sample = setInterval(() => rss.push(process.memoryUsage().rss), 10);
   await mkdir(root, { recursive: true, mode: 0o700 });
+  let cleanupMs = 0;
   try {
     await Promise.all(
       Array.from({ length: 4 }, (_, worker) =>
@@ -102,6 +103,9 @@ try {
         })(),
       ),
     );
+    const cleanupStart = performance.now();
+    await capture.flush();
+    cleanupMs = performance.now() - cleanupStart;
   } finally {
     clearInterval(sample);
   }
@@ -118,6 +122,13 @@ try {
       [cohort],
     )
   ).rows[0];
+  const pendingCipherCopies = (
+    await pool.query(
+      "SELECT count(*)::int n FROM research_artifacts a JOIN research_runs r ON r.run_id=a.run_id WHERE r.cohort_id=$1 AND a.inline_cipher IS NOT NULL",
+      [cohort],
+    )
+  ).rows[0].n;
+  if (pendingCipherCopies !== 0) throw Error("RECORDING_CLEANUP_INCOMPLETE");
   async function bytes(path) {
     let total = 0;
     for (const e of await readdir(path, { withFileTypes: true })) {
@@ -129,13 +140,15 @@ try {
   const percentile = (a) => [...a].sort((a, b) => a - b)[Math.ceil(a.length * 0.95) - 1];
   console.log(
     JSON.stringify({
-      schemaVersion: "fleet.benchmark-sample/v1",
+      schemaVersion: "fleet.benchmark-sample/v2",
       enabled,
       operations: 1000,
       concurrency: 4,
       fakeProviderMs: 50,
       providerCalls,
       elapsedMs,
+      cleanupMs,
+      pendingCipherCopies,
       p95ServiceMs: percentile(times),
       p95ProviderMs: percentile(providerMs),
       p95HostExclusiveMs: percentile(times.map((value, index) => value - providerMs[index])),

@@ -14,6 +14,8 @@ function pairs() {
       p95ServiceMs: 100,
       p95ProviderMs: 50,
       peakRssBytes: 1000000,
+      cleanupMs: 0,
+      pendingCipherCopies: 0,
       counts: { events: 0, artifacts: 0 },
       runner: { os: "linux" },
     },
@@ -26,6 +28,8 @@ function pairs() {
       p95ServiceMs: 110,
       p95ProviderMs: 50,
       peakRssBytes: 1150000,
+      cleanupMs: 0,
+      pendingCipherCopies: 0,
       counts: { events: 4004, artifacts: 2000 },
       runner: { os: "linux" },
     },
@@ -47,6 +51,17 @@ test("missing samples, nonfinite timings, wrong platform or missing events canno
     (x: any) => (x[1].disabled.peakRssBytes = 0),
     (x: any) => (x[1].enabled.runner.os = "darwin"),
     (x: any) => (x[1].enabled.counts.events = 4003),
+  ]) {
+    const x = pairs();
+    mutate(x);
+    expect(assessBenchmark(x).status).toBe("blocked");
+  }
+});
+
+test("unmeasured or undrained duplicate ciphertext cleanup cannot qualify", () => {
+  for (const mutate of [
+    (x: any) => delete x[1].enabled.cleanupMs,
+    (x: any) => (x[1].enabled.pendingCipherCopies = 1),
   ]) {
     const x = pairs();
     mutate(x);

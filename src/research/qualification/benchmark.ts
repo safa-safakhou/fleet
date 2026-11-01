@@ -6,6 +6,8 @@ const sample = z.object({
   concurrency: z.literal(4),
   fakeProviderMs: z.literal(50),
   providerCalls: z.literal(1000),
+  cleanupMs: z.number().nonnegative(),
+  pendingCipherCopies: z.literal(0),
   p95ServiceMs: z.number().positive(),
   p95ProviderMs: z.number().nonnegative(),
   peakRssBytes: z.number().int().positive(),
