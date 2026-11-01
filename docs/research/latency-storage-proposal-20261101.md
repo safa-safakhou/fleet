@@ -1,6 +1,6 @@
 # Q3 storage-path decision — 1 November 2026
 
-**Proposal only; storage implementation is not approved or changed.** The owner requires recording overhead below10% without losing observation, validation or existing data. The last packaged qualification still fails latency at21.10%; memory passes at13.69%. Current diagnostic timings differ from that older run, so new source needs its own exact packaged qualification.
+**Approved for implementation1 November2026; not yet implemented or qualified.** The owner selected “Use your judgment and proceed with a validated storage change.” The owner requires recording overhead below10% without losing observation, validation or existing data. The last packaged qualification still fails latency at21.10%; memory passes at13.69%. Current diagnostic timings differ from that older run, so new source needs its own exact packaged qualification.
 
 ## Work already completed
 
@@ -13,7 +13,7 @@ The group-commit experiment passed its21 targeted correctness checks but increas
 1. **Keep the current filesystem architecture.** Continue optimizing the existing SQL-outbox → file publication → post-publication validation path. This preserves the current storage implementation. The remaining serialized commit/publication barriers still exceed the limit in diagnostics; there is no demonstrated sub10% candidate.
 2. **Add a small-artifact PostgreSQL tier.** Use the existing authenticated-encrypted chunk representation and read path to retain small artifacts durably in PostgreSQL. Keep the existing filesystem path for larger artifacts and all legacy records. This removes duplicate storage work for eligible artifacts without making evidence asynchronous or removing its authorization and validation rules. It changes the reference storage implementation and increases retained SQL payloads and backup/storage responsibility.
 
-**Builder recommendation:** investigate approach2, using no new language, service or dependency. It is not yet proven to meet10%. The pending user decision determines whether to proceed; no approach is recorded as selected.
+**Builder recommendation:** investigate approach2, using no new language, service or dependency. It is not yet proven to meet10%. Approach2 is selected under the owner’s delegated judgment;64KiB is the initial implementation ceiling to validate.
 
 ## Proposed boundaries if approach2 is selected
 
