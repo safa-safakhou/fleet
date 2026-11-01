@@ -340,3 +340,21 @@ test("copy acknowledgment skips a locked artifact and leaves restart reconciliat
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("inspection readiness refuses a missing indexed parent lookup", async () => {
+  const f = await researchFixture();
+  const { packageReadiness } = await import("../../src/research/qualification/readiness.js");
+  const { readFile } = await import("node:fs/promises");
+  try {
+    expect((await packageReadiness(f.pool, f.store.vault, undefined, false)).reasons).not.toContain(
+      "RESEARCH_SCHEMA_UNAVAILABLE",
+    );
+    await f.pool.query("DROP FUNCTION research_parent_run(uuid)");
+    expect((await packageReadiness(f.pool, f.store.vault, undefined, false)).reasons).toContain(
+      "RESEARCH_SCHEMA_UNAVAILABLE",
+    );
+  } finally {
+    await f.pool.query(await readFile("migrations/055_research_indexed_lookups.sql", "utf8"));
+    await f.pool.end();
+  }
+});
