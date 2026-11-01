@@ -55,3 +55,26 @@ test("a rejected capture event leaves no extra private artifact or quota reserva
     await rm(root, { recursive: true, force: true });
   }
 });
+
+test("an initial encoding failure remains fenced after recreating the capture session", async () => {
+  const f = await researchFixture();
+  const root = await mkdtemp(join(tmpdir(), "fleet-capture-first-gap-"));
+  try {
+    const scope = await scopeForTurn(f.store, f.claim.turn.id);
+    const capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    const circular: Record<string, unknown> = {};
+    circular.self = circular;
+    await expect(capture.emit(scope, "model.request", circular, {}, { required: true })).rejects.toThrow(
+      "EVIDENCE_UNAVAILABLE",
+    );
+    expect(
+      (await f.pool.query("SELECT capture_failed FROM research_runs WHERE run_id=$1", [scope.runId])).rows[0]
+        ?.capture_failed,
+    ).toBe(true);
+    const restarted = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    await expect(restarted.preflight(scope)).rejects.toThrow("EVIDENCE_UNAVAILABLE");
+  } finally {
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
+  }
+});

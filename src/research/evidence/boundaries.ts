@@ -64,9 +64,18 @@ export class CaptureSession implements ObservationPort {
   async gap(scope: RunScope, code = "CAPTURE_FAILED", db?: PoolClient) {
     this.failed.add(scope.runId);
     try {
-      await (db ?? this.store.pool).query("UPDATE research_runs SET capture_failed=true WHERE run_id=$1", [
-        scope.runId,
-      ]);
+      const updated = await (db ?? this.store.pool).query(
+        "UPDATE research_runs SET capture_failed=true WHERE run_id=$1",
+        [scope.runId],
+      );
+      if (!db && updated.rowCount === 0) {
+        // A first capture can roll back creation as well as its body. Persist
+        // the failure fence independently, after freshly validating authority.
+        await transaction(this.store.pool, async (client) => {
+          await new EvidenceRepository(this.store).bind(scope, client);
+          await client.query("UPDATE research_runs SET capture_failed=true WHERE run_id=$1", [scope.runId]);
+        });
+      }
     } catch {
       /* Native settlement has priority; native-ledger reconciliation still exposes the missing record. */
     }
