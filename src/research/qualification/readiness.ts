@@ -10,8 +10,18 @@ export async function packageReadiness(
 ) {
   const reasons: string[] = [];
   try {
-    const schema = (await pool.query("SELECT to_regclass('public.research_qualifications')::text name")).rows[0];
-    if (!schema?.name) reasons.push("RESEARCH_SCHEMA_UNAVAILABLE");
+    const schema = (
+      await pool.query(`SELECT to_regclass('public.research_qualifications')::text name,
+ to_regprocedure('research_bind_existing_scope(jsonb)') IS NOT NULL AND
+ to_regprocedure('research_scope_snapshot(jsonb,boolean)') IS NOT NULL AND
+ to_regprocedure('research_verify_materialization(jsonb,uuid,text,text,timestamptz)') IS NOT NULL AND
+ to_regprocedure('research_append_event(jsonb,jsonb)') IS NOT NULL AND
+ to_regprocedure('research_capture_policy(jsonb)') IS NOT NULL AND
+ to_regprocedure('research_acknowledge_copies(jsonb)') IS NOT NULL AND
+ to_regprocedure('research_model_capture_policy(jsonb,uuid,uuid[])') IS NOT NULL AND
+ to_regprocedure('research_capture_write(jsonb,jsonb,jsonb,jsonb,text,bigint,timestamptz,jsonb,jsonb)') IS NOT NULL recording`)
+    ).rows[0];
+    if (!schema?.name || !schema.recording) reasons.push("RESEARCH_SCHEMA_UNAVAILABLE");
     if (
       requireVector &&
       (await pool.query("SELECT extversion FROM pg_extension WHERE extname='vector'")).rows[0]?.extversion !== "0.8.7"

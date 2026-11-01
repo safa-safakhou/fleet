@@ -7,11 +7,11 @@ import type { ObservationClaim, ObservationPort } from "../../platform/observati
 import type { Store } from "../../store.js";
 import type { ContextPacket } from "../context/assembler.js";
 import { account } from "../context/token-accounting.js";
-import { digest, type RunScope } from "../contracts.js";
+import { canonical, digest, type RunScope, ScopeSchema } from "../contracts.js";
 import { ArtifactStore, bytes } from "./artifacts.js";
 import { inheritSources } from "./derivations.js";
 import type { ArtifactFiles } from "./filesystem.js";
-import { EvidenceRecorder } from "./recorder.js";
+import { EvidenceRecorder, prepareEvent } from "./recorder.js";
 import { EvidenceRepository, scopeForTurn } from "./repository.js";
 import type { EventRef, EvidenceEventInput } from "./types.js";
 
@@ -92,6 +92,7 @@ export class CaptureSession implements ObservationPort {
       stream?: string;
       producerKey?: string;
       sourceRefs?: string[];
+      occurredAt?: string;
     } = {},
   ): Promise<EventRef | undefined> {
     const repo = new EvidenceRepository(this.store);
@@ -105,6 +106,7 @@ export class CaptureSession implements ObservationPort {
     const write = async () => {
       if (db) {
         await repo.bind(scope, db);
+        await this.artifacts.flushCopies(db);
         if (ownTransaction)
           await this.recorder.append(scope, { kind: "run.started", streamId: "run", producerKey: "capture-start" }, db);
       } else {
@@ -147,6 +149,7 @@ export class CaptureSession implements ObservationPort {
         scope,
         {
           kind,
+          ...(options.occurredAt ? { occurredAt: options.occurredAt } : {}),
           producerKey: options.producerKey ?? randomUUID(),
           streamId: options.stream ?? kind.split(".")[0],
           parentIds: options.parents ?? [],
@@ -176,6 +179,7 @@ export class CaptureSession implements ObservationPort {
       }
     }
     try {
+      if (ownTransaction) return await this.standalone(scope, kind, body, attributes, options);
       // Private copies and source links commit together; a rejected source leaves no orphan body.
       if (sourceRefs.length || ownTransaction) {
         const result = await transaction(this.store.pool, async (client) => {
@@ -192,6 +196,158 @@ export class CaptureSession implements ObservationPort {
       await this.gap(scope);
       if (options.required) throw new FleetError("EVIDENCE_UNAVAILABLE", true);
       return;
+    }
+  }
+  private async standalone(
+    scope: RunScope,
+    kind: EvidenceEventInput["kind"],
+    body: unknown,
+    attributes: EvidenceEventInput["attributes"],
+    options: { required?: boolean; producerKey?: string; stream?: string; parents?: string[]; occurredAt?: string },
+    knownPolicy?: { allowed: boolean; version: string; quota: string },
+    beforeEvent?: ReturnType<typeof prepareEvent>,
+  ): Promise<EventRef> {
+    ScopeSchema.parse(scope);
+    const sc = canonical(scope);
+    const query = async (text: string, values: unknown[]) => {
+      try {
+        return await this.store.pool.query(text, values);
+      } catch (error) {
+        // This specific server refusal proves the statement made no write.
+        // Initialize metadata once; ambiguous transport failures are never replayed.
+        if (!(error instanceof Error) || error.message !== "EVIDENCE_RUN_NOT_FOUND") throw error;
+        await transaction(this.store.pool, (db) => new EvidenceRepository(this.store).bind(scope, db));
+        return this.store.pool.query(text, values);
+      }
+    };
+    let artifact: ReturnType<ArtifactStore["seal"]> | null = null;
+    let version: string | null = null,
+      quota: number | null = null;
+    let coverage: EvidenceEventInput["coverage"] =
+      kind === "recording.gap"
+        ? { status: "partial", expected: "1", recorded: "0", reasons: ["PROVIDER_FIELD_UNAVAILABLE"] }
+        : { status: "complete", expected: "1", recorded: "1", reasons: [] };
+    if (body !== undefined) {
+      const policy =
+        knownPolicy ?? (await query("SELECT research_capture_policy($1::jsonb) policy", [sc])).rows[0].policy;
+      if (policy.allowed) {
+        const raw = encoded(body);
+        quota = Number(policy.quota);
+        version = policy.version;
+        if (raw.length > 32 * 1024 * 1024 || !Number.isSafeInteger(quota) || quota < raw.length)
+          throw new FleetError("ARTIFACT_QUOTA", true);
+        artifact = this.artifacts.seal(scope, raw);
+      } else {
+        coverage = { status: "withheld", expected: "1", recorded: "0", reasons: ["CONSENT_WITHHELD"] };
+        if (options.required && this.active.getStore()) throw new FleetError("EVIDENCE_UNAVAILABLE", true);
+      }
+    }
+    const started = prepareEvent(this.store, scope, {
+      kind: "run.started",
+      streamId: "run",
+      producerKey: "capture-start",
+    });
+    const prepared = prepareEvent(this.store, scope, {
+      kind,
+      ...(options.occurredAt ? { occurredAt: options.occurredAt } : {}),
+      streamId: options.stream ?? kind.split(".")[0],
+      producerKey: options.producerKey ?? randomUUID(),
+      parentIds: options.parents ?? [],
+      attributes,
+      artifacts: artifact ? [artifact.ref] : [],
+      coverage,
+    });
+    const copies = this.artifacts.copyAcknowledgments();
+    const ref = (
+      await query(
+        "SELECT research_capture_write($1::jsonb,$2::jsonb,$3::jsonb,$4::jsonb,$5,$6,$7,$8::jsonb,$9::jsonb) ref",
+        [
+          sc,
+          prepared,
+          started,
+          artifact,
+          version,
+          quota,
+          this.store.now(),
+          JSON.stringify(copies),
+          beforeEvent ?? null,
+        ],
+      )
+    ).rows[0].ref;
+    this.artifacts.acknowledgeCopies(copies);
+    if (artifact) await this.artifacts.publishSealed(scope, artifact, version!);
+    return ref;
+  }
+  async flush() {
+    await this.artifacts.flushCopies();
+  }
+  async prepareModel(scope: RunScope, allocationId?: string) {
+    try {
+      if (this.failed.has(scope.runId)) throw new FleetError("EVIDENCE_UNAVAILABLE", true);
+      ScopeSchema.parse(scope);
+      const read = () =>
+        this.store.pool.query("SELECT research_model_capture_policy($1::jsonb,$2::uuid,$3::uuid[]) policy", [
+          canonical(scope),
+          allocationId ?? null,
+          this.artifacts.copyAcknowledgments().map((c) => c.id),
+        ]);
+      let result;
+      try {
+        result = await read();
+      } catch (error) {
+        if (!(error instanceof Error) || error.message !== "EVIDENCE_RUN_NOT_FOUND") throw error;
+        await transaction(this.store.pool, (db) => new EvidenceRepository(this.store).bind(scope, db));
+        result = await read();
+      }
+      const policy = result.rows[0].policy as {
+        failed: boolean;
+        pending: boolean;
+        allowed: boolean;
+        version: string;
+        quota: string;
+        allocationId: string | null;
+        metrics: Data | null;
+      };
+      if (policy.failed) throw new FleetError("EVIDENCE_UNAVAILABLE", true);
+      if (policy.pending) await this.artifacts.materialize(1000, scope.runId);
+      return policy;
+    } catch {
+      await this.gap(scope);
+      throw new FleetError("EVIDENCE_UNAVAILABLE", true);
+    }
+  }
+  async beginModelRequest(
+    scope: RunScope,
+    body: unknown,
+    attributes: EvidenceEventInput["attributes"],
+    policy: { allowed: boolean; version: string; quota: string },
+  ) {
+    const queue = {
+      kind: "queue.leave" as const,
+      streamId: "queue",
+      producerKey: randomUUID(),
+      occurredAt: this.store.now().toISOString(),
+      attributes,
+    };
+    try {
+      return await this.standalone(
+        scope,
+        "model.request",
+        body,
+        attributes,
+        { required: true },
+        policy,
+        prepareEvent(this.store, scope, queue),
+      );
+    } catch {
+      await this.gap(scope);
+      // Preserve queue metadata on request failure. Its stable key and time make
+      // recovery idempotent even if the request's commit acknowledgment was lost.
+      await this.emit(scope, "queue.leave", undefined, attributes, {
+        producerKey: queue.producerKey,
+        occurredAt: queue.occurredAt,
+      });
+      throw new FleetError("EVIDENCE_UNAVAILABLE", true);
     }
   }
   async preflight(scope: RunScope) {
@@ -411,29 +567,33 @@ export class ObservedPorts {
       async decide(input) {
         const scope = await self.resolve();
         if (!scope) return port.decide(input);
-        await self.capture.preflight(scope);
         const context = self.capture.inputForModel();
+        const capturePolicy = context ? undefined : await self.capture.prepareModel(scope, self.allocationId);
+        if (context) await self.capture.preflight(scope);
         let preparedEvent: string | undefined;
         if (context) {
           if (!port.tracksDispatch || digest({ messages: input.messages, schema: input.schema }) !== context.digest)
             throw new FleetError("CONTEXT_INPUT_MISMATCH", true);
           await self.capture.artifacts.record(scope, context.lineage.artifact!.id);
         }
-        const allocationId =
-          self.allocationId ??
-          (
-            await self.capture.store.pool.query(
-              "SELECT id FROM compute_ledger WHERE turn_id=$1 AND status='reserved' ORDER BY created_at DESC,id DESC LIMIT 1",
-              [scope.turnId],
-            )
-          ).rows[0]?.id;
-        const metadata = allocationId
-          ? (
-              await self.capture.store.pool.query("SELECT request_metrics FROM compute_ledger WHERE id=$1", [
-                allocationId,
-              ])
-            ).rows[0]?.request_metrics
-          : undefined;
+        const allocationId = capturePolicy
+          ? (capturePolicy.allocationId ?? undefined)
+          : (self.allocationId ??
+            (
+              await self.capture.store.pool.query(
+                "SELECT id FROM compute_ledger WHERE turn_id=$1 AND status='reserved' ORDER BY created_at DESC,id DESC LIMIT 1",
+                [scope.turnId],
+              )
+            ).rows[0]?.id);
+        const metadata = capturePolicy
+          ? capturePolicy.metrics
+          : allocationId
+            ? (
+                await self.capture.store.pool.query("SELECT request_metrics FROM compute_ledger WHERE id=$1", [
+                  allocationId,
+                ])
+              ).rows[0]?.request_metrics
+            : undefined;
         const purpose = metadata?.decisionFeedbackCode ? ("correction" as const) : self.purpose;
         const queue = metadata?.queueDelayMs;
         const attrs = {
@@ -441,26 +601,28 @@ export class ObservedPorts {
           purpose,
           ...(Number.isSafeInteger(queue) && queue >= 0 ? { queueDelayMs: String(queue) } : {}),
         };
-        await self.capture.emit(scope, "queue.leave", undefined, attrs);
-        const request = await self.capture.emit(
-          scope,
-          "model.request",
-          {
-            model: input.model,
-            messages: input.messages,
-            schema: input.schema,
-            outputContract: input.outputContract ?? null,
-            maxOutputTokens: input.maxOutputTokens,
-            ...(context
-              ? {
-                  contextLineageRef: { id: context.lineage.artifact!.id, kind: "context.lineage/v1" },
-                  packetDigest: context.digest,
-                }
-              : {}),
-          },
-          attrs,
-          { required: true, parents: context?.eventId ? [context.eventId] : [] },
-        );
+        const requestBody = {
+          model: input.model,
+          messages: input.messages,
+          schema: input.schema,
+          outputContract: input.outputContract ?? null,
+          maxOutputTokens: input.maxOutputTokens,
+          ...(context
+            ? {
+                contextLineageRef: { id: context.lineage.artifact!.id, kind: "context.lineage/v1" },
+                packetDigest: context.digest,
+              }
+            : {}),
+        };
+        let request: EventRef | undefined;
+        if (capturePolicy) request = await self.capture.beginModelRequest(scope, requestBody, attrs, capturePolicy);
+        else {
+          await self.capture.emit(scope, "queue.leave", undefined, attrs);
+          request = await self.capture.emit(scope, "model.request", requestBody, attrs, {
+            required: true,
+            parents: context?.eventId ? [context.eventId] : [],
+          });
+        }
         let dispatched = false;
         const mark = async () => {
           if (context && !preparedEvent) throw new FleetError("CONTEXT_PREPARATION_REQUIRED", true);

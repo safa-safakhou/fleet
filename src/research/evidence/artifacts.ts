@@ -42,6 +42,22 @@ export type ArtifactRecord = {
 export type RetentionReport = { expired: number; withheld: number; orphans: number };
 const CHUNK = 1024 * 1024;
 export class ArtifactStore {
+  // Publication state only: no authority or plaintext is cached. Eviction leaves
+  // the durable SQL outbox available to ordinary restart reconciliation.
+  private readonly copied = new Map<string, string>();
+  copyAcknowledgments() {
+    return [...this.copied].map(([id, digest]) => ({ id, digest }));
+  }
+  acknowledgeCopies(copies: { id: string; digest: string }[]) {
+    for (const copy of copies) if (this.copied.get(copy.id) === copy.digest) this.copied.delete(copy.id);
+  }
+  async flushCopies(db: PoolClient | Store["pool"] = this.store.pool) {
+    const copies = this.copyAcknowledgments();
+    if (!copies.length) return;
+    await db.query("SELECT research_acknowledge_copies($1::jsonb)", [JSON.stringify(copies)]);
+    this.acknowledgeCopies(copies);
+  }
+
   constructor(
     readonly store: Store,
     readonly files: ArtifactFiles,
@@ -113,27 +129,8 @@ export class ArtifactStore {
       throw new FleetError("ARTIFACT_QUOTA_POLICY_MISMATCH", true);
     if (BigInt(run.artifact_reserved_bytes) + BigInt(body.length) > BigInt(policy.runQuotaBytes))
       throw new FleetError("ARTIFACT_QUOTA", true);
-    const id = randomUUID(),
-      chunks: Chunk[] = [],
-      ciphers: string[] = [],
-      hash = createHash("sha256");
-    let disk = 0;
-    for (let offset = 0; offset < body.length; offset += CHUNK) {
-      const plain = Buffer.from(body.subarray(offset, offset + CHUNK)),
-        index = chunks.length,
-        cipher = this.store.vault.encrypt(plain.toString("base64"), this.aad(scope, id, index));
-      ciphers.push(cipher);
-      const raw = Buffer.from(cipher);
-      hash.update(raw);
-      disk += raw.length;
-      chunks.push({
-        index,
-        bytes: plain.length,
-        diskBytes: raw.length,
-        digest: createHash("sha256").update(raw).digest("hex"),
-      });
-    }
-    const cipherDigest = hash.digest("hex"),
+    const sealed = this.seal(scope, body),
+      { id, chunks, ciphers, disk, cipherDigest } = sealed,
       now = this.store.now();
     await db.query(
       "INSERT INTO research_artifacts(id,run_id,scope,consent_version,content_type,privacy_class,retention_class,status,reserved_bytes,bytes,disk_bytes,chunks,inline_cipher,ciphertext_digest,created_at,expires_at,expected_bytes) VALUES($1,$2,$3,$4,$5,'private','30d','complete',$6,$6,$7,$8,$9,$10,$11,$12,$6)",
@@ -166,11 +163,86 @@ export class ArtifactStore {
       retentionClass: "30d",
     };
   }
+  /** Pure sealing; callers must authorize and atomically publish the result. */
+  seal(scope: RunScope, body: Uint8Array) {
+    const id = randomUUID(),
+      chunks: Chunk[] = [],
+      ciphers: string[] = [],
+      hash = createHash("sha256");
+    let disk = 0;
+    for (let offset = 0; offset < body.length; offset += CHUNK) {
+      const plain = Buffer.from(body.subarray(offset, offset + CHUNK)),
+        index = chunks.length,
+        cipher = this.store.vault.encrypt(plain.toString("base64"), this.aad(scope, id, index));
+      ciphers.push(cipher);
+      const raw = Buffer.from(cipher);
+      hash.update(raw);
+      disk += raw.length;
+      chunks.push({
+        index,
+        bytes: plain.length,
+        diskBytes: raw.length,
+        digest: createHash("sha256").update(raw).digest("hex"),
+      });
+    }
+    const cipherDigest = hash.digest("hex");
+    const ref: ArtifactRef = {
+      id,
+      contentType: "application/json",
+      bytes: String(body.length),
+      chunks: String(chunks.length),
+      ciphertextDigest: cipherDigest,
+      privacyClass: "private",
+      retentionClass: "30d",
+    };
+    return { ref, id, chunks, ciphers, disk, cipherDigest };
+  }
+  /** Publish immediately after the capture statement's locked authorization.
+   * SQL ciphertext remains durable until files and the final fresh check succeed.
+   */
+  async publishSealed(scope: RunScope, sealed: ReturnType<ArtifactStore["seal"]>, version: string) {
+    try {
+      if (sealed.chunks.length === 1) {
+        const cipher = Buffer.from(sealed.ciphers[0]);
+        try {
+          await this.files.writeChunk(sealed.id, 0, cipher);
+        } catch (error) {
+          const existing = await this.files.readChunk(sealed.id, 0).catch(() => null);
+          if (!existing?.equals(cipher)) throw error;
+        }
+      } else await this.materialize(1000, scope.runId);
+      await this.store.pool.query("SELECT research_verify_materialization($1::jsonb,$2::uuid,$3,$4,$5)", [
+        canonical(scope),
+        sealed.id,
+        version,
+        sealed.cipherDigest,
+        this.store.now(),
+      ]);
+      if (this.copied.size >= 128) this.copied.delete(this.copied.keys().next().value!);
+      this.copied.set(sealed.id, sealed.cipherDigest);
+    } catch (error) {
+      const code = error instanceof Error ? error.message : "ARTIFACT_STORAGE";
+      if (["ARTIFACT_WITHHELD", "ARTIFACT_EXPIRED"].includes(code)) await this.files.remove(sealed.id);
+      if (
+        [
+          "ARTIFACT_WITHHELD",
+          "ARTIFACT_EXPIRED",
+          "ARTIFACT_INCOMPLETE",
+          "ARTIFACT_INTEGRITY",
+          "ARTIFACT_SCOPE_MISMATCH",
+          "EVIDENCE_SCOPE_MISMATCH",
+        ].includes(code)
+      )
+        throw new FleetError(code, true);
+      throw error;
+    }
+  }
   async materialize(limit = 100, runId?: string): Promise<number> {
+    if (!runId) await this.flushCopies();
     const rows = (
       await this.store.pool.query(
-        "SELECT * FROM research_artifacts WHERE inline_cipher IS NOT NULL AND status='complete' AND ($2::text IS NULL OR run_id=$2) ORDER BY created_at,id LIMIT $1",
-        [limit, runId ?? null],
+        "SELECT * FROM research_artifacts WHERE inline_cipher IS NOT NULL AND status='complete' AND ($2::text IS NULL OR run_id=$2) AND NOT(id=ANY($3::uuid[])) ORDER BY created_at,id LIMIT $1",
+        [limit, runId ?? null, [...this.copied.keys()]],
       )
     ).rows as ArtifactRecord[];
     let count = 0;

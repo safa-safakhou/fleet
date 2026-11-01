@@ -1,7 +1,11 @@
 import { expect, test } from "vitest";
 import { transaction } from "../../src/db.js";
+import { StepJournal } from "../../src/research/broker/steps.js";
 import { EvidenceRecorder } from "../../src/research/evidence/recorder.js";
 import { EvidenceRepository, scopeForTurn } from "../../src/research/evidence/repository.js";
+import { compileManifest } from "../../src/research/manifests/compiler.js";
+import { ManifestRepository } from "../../src/research/manifests/repository.js";
+import { capability, manifestInput } from "../fixtures/research/manifest.js";
 import { researchFixture } from "../research-helpers.js";
 
 test("bound evidence writes stay within six database requests without caching authority", async () => {
@@ -16,6 +20,7 @@ test("bound evidence writes stay within six database requests without caching au
       let requests = 0;
       db.query = ((...args: unknown[]) => {
         requests++;
+
         return (query as (...args: unknown[]) => unknown)(...args);
       }) as typeof db.query;
       try {
@@ -50,6 +55,7 @@ test("journal allocation and deduplication use two requests while preserving con
       let requests = 0;
       db.query = ((...args: unknown[]) => {
         requests++;
+
         return (query as (...args: unknown[]) => unknown)(...args);
       }) as typeof db.query;
       try {
@@ -101,5 +107,82 @@ test("foreign parents cannot allocate journal positions, and concurrent duplicat
     expect(page.events[1].parentIds).toEqual([first.id]);
   } finally {
     await f.pool.end();
+  }
+});
+
+test("reused bound-scope plans reject a changed native task claim", async () => {
+  const f = await researchFixture();
+  try {
+    const input = manifestInput();
+    input.environment.bindingId = f.claim.bindingId;
+    input.profile = f.claim.profile;
+    const manifest = compileManifest(input, capability);
+    await new ManifestRepository(f.pool).save(manifest.manifest);
+    const scope = await new StepJournal(f.store, f.tasks).open(
+      f.claim,
+      "native-recording-run",
+      "native-recording-op",
+      manifest.digest,
+    );
+    const repository = new EvidenceRepository(f.store);
+    for (let i = 0; i < 8; i++) await transaction(f.pool, (db) => repository.bind(scope, db));
+    await f.pool.query("UPDATE platform_task_claims SET fence=fence+1 WHERE turn_id=$1", [scope.turnId]);
+    await expect(transaction(f.pool, (db) => repository.bind(scope, db))).rejects.toThrow("EVIDENCE_SCOPE_MISMATCH");
+  } finally {
+    await f.pool.end();
+  }
+});
+
+test("a complete recorded call uses at most 24 database requests with every event and artifact retained", async () => {
+  const f = await researchFixture();
+  const { mkdtemp, rm } = await import("node:fs/promises");
+  const { tmpdir } = await import("node:os");
+  const { join } = await import("node:path");
+  const { CaptureSession } = await import("../../src/research/evidence/boundaries.js");
+  const { ArtifactFilesystem } = await import("../../src/research/evidence/filesystem.js");
+  const root = await mkdtemp(join(tmpdir(), "fleet-recording-budget-"));
+  try {
+    const scope = await scopeForTurn(f.store, f.claim.turn.id);
+    await transaction(f.pool, (db) => new EvidenceRepository(f.store).bind(scope, db));
+    const client = await f.pool.connect(),
+      query = client.query.bind(client);
+    let requests = 0,
+      calls = 0;
+    client.query = ((...args: unknown[]) => {
+      requests++;
+
+      return (query as (...args: unknown[]) => unknown)(...args);
+    }) as typeof client.query;
+    client.release();
+    const capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    try {
+      const result = await capture.withScope(scope, () =>
+        capture.model(f.claim.turn, f.request(), {
+          decide: async () => {
+            calls++;
+            return { decision: { kind: "wait" }, inputTokens: 7, outputTokens: 8 };
+          },
+        }),
+      );
+      expect(result.inputTokens).toBe(7);
+      expect(calls).toBe(1);
+      expect(requests).toBeLessThanOrEqual(24);
+    } finally {
+      client.query = query;
+    }
+    const page = await new EvidenceRepository(f.store).page(scope, {});
+    expect(page.events.map((x) => x.kind)).toEqual([
+      "run.started",
+      "queue.leave",
+      "model.request",
+      "model.dispatched",
+      "model.response",
+    ]);
+    expect(
+      (await f.pool.query("SELECT count(*)::int n FROM research_artifacts WHERE run_id=$1", [scope.runId])).rows[0].n,
+    ).toBe(2);
+  } finally {
+    await f.pool.end();
+    await rm(root, { recursive: true, force: true });
   }
 });
