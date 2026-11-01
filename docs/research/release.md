@@ -1,6 +1,6 @@
 # Research source release and package
 
-**Current qualification is blocked by recording latency overhead (21.10% against10%); RSS overhead13.69% now passes15%.** Linux package checks and synthetic Compose validation now pass after protected Docker recovery; see [current requalification and limits](requalification-20261101.md). Production installation remains separate.
+**Current qualification remains blocked by recording latency overhead (16.29% against10%); RSS overhead12.72% passes15%.** All eleven non-performance gates pass on the exact hybrid-storage candidate; see [current requalification and limits](hybrid-requalification-20261101.md). Production installation remains separate.
 
 This is a source release with a separate compiled inspection entry point, `dist/server/research/package.js`. It starts no worker, enrollment, task pump, Temporal activity, model call or game call. Live/worker/Temporal activation settings are refused. Login/logout and authenticated GET/HEAD inspection remain available; other API mutations return `RESEARCH_PACKAGE_READ_ONLY`. Normal execution still requires the separately authorized controller/worker entry points and a scoped run grant.
 
@@ -14,7 +14,7 @@ The disabled Compose recipe is [package.compose.yaml](../../ops/research/package
 
 | Component | Authority / persistence | Access and provisioned envelope |
 | --- | --- | --- |
-| Fleet inspection/kernel | Fleet PostgreSQL17, schema through053; encrypted evidence chunks on separate owned volume | Console8820 internally, random loopback publish; inspection1GiB/2CPU. Fleet runtime role owns its migrations; an inspection-only DB role still needs target-specific verification. |
+| Fleet inspection/kernel | Fleet PostgreSQL17, schema through059; canonical small standalone ciphertext in SQL, encrypted native/large/legacy chunks on separate owned volume | Console8820 internally, random loopback publish; inspection1GiB/2CPU. Fleet runtime role owns its migrations; an inspection-only DB role still needs target-specific verification. |
 | Research Python worker | Broker sessions and encrypted checkpoints remain in Fleet; no worker database or vault | One explicitly invoked process, network none, UID10001, read-only root,512MiB/1CPU/64PIDs,32MiB noexec scratch, dedicated read-only IPC directory. Exact worker image in `worker-image.json`. Native development mode does not receive container isolation qualification. |
 | Temporal | Separate database/role and history; never Fleet accounting tables |7233 internal; optional UI8080 loopback only. Server installation/version/schema/capacity gates remain target-specific. Local native replay fixtures do not certify a production Temporal server. |
 | Collector / Tempo / Prometheus / Grafana | Replaceable projections, separate volumes, no raw private bodies | Existing pinned observation recipe; loopback4318/3200/9090/3000,256MiB/1GiB/512MiB/512MiB service caps. Actual installation and aggregate capacity remain unaccepted. |
@@ -26,4 +26,6 @@ Keep dependency notices and license records from [dependencies](dependencies.md)
 
 See [operations](operations.md) for backup/rollback and later activation gates, and the dated acceptance report for actual results.
 
-The Q3 recording repair requires migration054 and its invoker-rights recording routines before the new application binary. Inspection readiness refuses missing routines; the synthetic migration/restore rehearsal applies the complete migration set twice. This is an additive source/package change, not an installed-runtime migration or activation. Exact source/image/lock provenance and original failed plus successful rerun receipts are in the current requalification report.
+The Q3 recording repair requires migrations054–059 and their invoker-rights recording routines before the new application binary. Inspection readiness refuses missing routines; the synthetic migration/restore rehearsal applies the complete migration set twice. This is an additive source/package change, not an installed-runtime migration or activation. Exact source/image/lock provenance and original failed plus successful rerun receipts are in the current requalification report.
+
+Canonical SQL bodies require a tier-aware runtime. Pre056 binaries can mistake retained ciphertext for a filesystem outbox; use an explicitly reviewed conversion or a tier-aware rollback build. Current source qualification does not migrate installed services or existing evidence.

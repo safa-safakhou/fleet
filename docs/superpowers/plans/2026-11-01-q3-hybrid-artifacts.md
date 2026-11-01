@@ -10,6 +10,8 @@
 
 **Spec:** [Approved storage proposal](../../research/latency-storage-proposal-20261101.md), owner approval1 November2026.
 
+**Execution checkpoint:** Runtime committed through `bf51a69`; [actual requalification](../../research/hybrid-requalification-20261101.md). All non-performance checks pass; Q3 remains open at16.29% latency, so this plan is not fully accepted.
+
 ## Global Constraints
 
 - Preserve1MiB plaintext chunks,32MiB capture bodies, manifest/run quotas and30-day privacy retention.
@@ -32,10 +34,10 @@
 
 **Interfaces:** `ArtifactRecord.storage_backend: 'filesystem'|'postgres'`; `ArtifactStore.seal()` supplies selected `storageBackend`; existing capture-write signature remains compatible. Native putWithin/streaming put remain filesystem.
 
-- [ ] Write regressions: small required capture remains readable after flush/restart without filesystem writes; acknowledgment cannot clear canonical bytes; corruption/expiry/revocation/quota/rollback/ambiguous acknowledgment block or purge correctly. Keep filesystem-specific fault fixtures explicitly above the tier boundary.
-- [ ] Run owned-fixture tests; expected RED on missing canonical storage behavior.
-- [ ] Add additive discriminator defaulting legacy rows to filesystem; atomically validate PostgreSQL ciphertext metadata/hash before returning capture commit. Exclude canonical bytes from pending-copy queries/acknowledgments. Preserve all filesystem publication checks and per-read authentication.
-- [ ] Run affected integrations, root unit suite, check/build/boundaries; expected PASS. Commit verified implementation.
+- [x] Write regressions: small required capture remains readable after flush/restart without filesystem writes; acknowledgment cannot clear canonical bytes; corruption/expiry/revocation/quota/rollback/ambiguous acknowledgment block or purge correctly. Keep filesystem-specific fault fixtures explicitly above the tier boundary.
+- [x] Run owned-fixture tests; expected RED on missing canonical storage behavior.
+- [x] Add additive discriminator defaulting legacy rows to filesystem; atomically validate PostgreSQL ciphertext metadata/hash before returning capture commit. Exclude canonical bytes from pending-copy queries/acknowledgments. Preserve all filesystem publication checks and per-read authentication.
+- [x] Run affected integrations, root unit suite, check/build/boundaries; expected PASS. Commit verified implementation.
 
 ### Task2: Mixed-tier recovery, archive and honest performance evidence
 
@@ -43,9 +45,9 @@
 
 **Interfaces:** Consume Task1 discriminator; `pendingCipherCopies` counts filesystem outbox only, with canonical PostgreSQL payload counts/bytes and physical DB footprint reported separately.
 
-- [ ] Add mixed legacy/new-tier SQL/chunk restore and archive assertions; expected RED if either tier loses bytes or IDs.
-- [ ] Preserve filesystem directory in SQL-only archive fixtures, add mixed-tier restore payloads, retain full row-hash comparisons.
-- [ ] Run migration/archive/retention/fault checks and unchanged benchmark. Expected exact4004events/2000artifacts/1000calls, zero pending filesystem copies, readable canonical bodies; thresholds unchanged.
+- [x] Add mixed legacy/new-tier SQL/chunk restore and archive assertions; expected RED if either tier loses bytes or IDs.
+- [x] Preserve the filesystem side of mixed-tier restore fixtures, add mixed-tier restore payloads, retain full row-hash comparisons.
+- [x] Run migration/archive/retention/fault checks and unchanged benchmark. Expected exact4004events/2000artifacts/1000calls, zero pending filesystem copies, readable canonical bodies; thresholds unchanged.
 - [ ] Measure diagnostics, address proven bottlenecks without weakening guards, commit verified changes.
 
 ### Task3: Exact-source qualification and preservation handoff
@@ -54,7 +56,7 @@
 
 **Interfaces:** Consume exact final source/image/lock identity and unchanged qualification assembler.
 
-- [ ] Preserve old raw receipts, build exact-source package using only owned-image cleanup if needed; run all qualification gates, macOS/Linux browsers and backend resource sampling.
-- [ ] Verify67 original containers/115 volumes/three services, disk health/headroom and clean trees.
-- [ ] Review full diff independently inline (delegation forbidden by AGENTS); fix meaningful findings with RED/GREEN coverage.
-- [ ] Record actual limits, failures/retries and results; mark Q3 accepted only if unchanged gates pass. Commit reports and hand off source versus live acceptance distinctly.
+- [x] Preserve old raw receipts, build exact-source package using only owned-image cleanup if needed; run all qualification gates, macOS/Linux browsers and backend resource sampling.
+- [x] Verify67 original containers/115 volumes/three services, disk health/headroom and clean trees.
+- [x] Review the full diff in a separate author self-review pass (delegation forbidden by AGENTS); fix meaningful findings with RED/GREEN coverage.
+- [x] Record actual limits, failures/retries and results; mark Q3 accepted only if unchanged gates pass. Commit reports and hand off source versus live acceptance distinctly.

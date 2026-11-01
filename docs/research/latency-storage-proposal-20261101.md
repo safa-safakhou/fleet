@@ -1,6 +1,6 @@
 # Q3 storage-path decision — 1 November 2026
 
-**Approved for implementation1 November2026; not yet implemented or qualified.** The owner selected “Use your judgment and proceed with a validated storage change.” The owner requires recording overhead below10% without losing observation, validation or existing data. The last packaged qualification still fails latency at21.10%; memory passes at13.69%. Current diagnostic timings differ from that older run, so new source needs its own exact packaged qualification.
+**Approved and implemented1 November2026; latency acceptance remains blocked.** The owner selected “Use your judgment and proceed with a validated storage change.” See the [actual requalification](hybrid-requalification-20261101.md):16.29% latency/12.72% RSS, eleven non-performance gate passes; the sub10% objective is still open. The owner requires recording overhead below10% without losing observation, validation or existing data. The last packaged qualification still fails latency at21.10%; memory passes at13.69%. Current diagnostic timings differ from that older run, so new source needs its own exact packaged qualification.
 
 ## Work already completed
 

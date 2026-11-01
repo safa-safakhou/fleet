@@ -1,0 +1,633 @@
+{
+  "schemaVersion": "fleet.hybrid-requalification/v1",
+  "date": "2026-11-01",
+  "status": "blocked",
+  "scope": "owned-synthetic-source-only",
+  "objectiveAchieved": false,
+  "remaining": ["Q3 recording mean-p95 overhead must be <=10%; current16.2868538%."],
+  "sourceCommit": "bf51a69",
+  "sourceDigest": "09fabc6219a317f29cd24434810f73426b20e7782efe6c577c9ee468b2083bab",
+  "lockDigest": "74ae0befe5de6c0edc90790522b905ae7b8a65a04bc9aceb97a0beee0c3467ca",
+  "image": "sha256:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+  "qualificationDecision": {
+    "schemaVersion": "fleet.qualification/v1",
+    "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+    "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+    "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+    "evidenceDigest": "338c35b46f34c30cfc7e68a9d0cfff0f513e05a568601dc3d6aa8312fe2fc9f2",
+    "scope": "fixture",
+    "status": "blocked",
+    "reasons": ["GATE_REQUIRED:performance"],
+    "issuedAt": "2026-11-01T20:09:34.992Z",
+    "expiresAt": "2026-11-02T20:09:34.992Z",
+    "activationAuthorized": false
+  },
+  "gates": [
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+      "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "contracts",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "033c8d73d91c91d0e1b3a69a493b194be7e012a89fb1c3b627d4b40207203ec3"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+      "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "invariants",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "426057a719d362b85947e54666d2e11fc008f02adfff64137558500108bc0650"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+      "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "privacy",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "5b6bc79d924d9faae527d0d22540af9aaf9c321b618d48dde3798ec4335e7b0b"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+      "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "accounting",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "245cbde02a4aebf87a3b522f4a19c68bdfb2945a0e66deea30d2714f12eb9785"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+      "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "ownership",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "0911d19c1a3fdbeea7a6fead490fb24755cc0b9e5023d09b18e85bbebbc25b7d"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+      "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "faults",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "0911d19c1a3fdbeea7a6fead490fb24755cc0b9e5023d09b18e85bbebbc25b7d"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+      "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "preservation",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "d7bace4f7f6ab202ae9bb065725e009d08382b23f59c0baee2ec48c1a8fbc632"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+      "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "wire",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "595193beac53bdc0f010387bb55fa032cc752a688eb868626acf6aa4fa85c54d"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+      "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "metrics",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "57b6d4190c31de60c9ae43ded086c975c56cb0a6f508764ebcfa89c57ed2322d"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+      "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "visualization",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "8871304a891fabe556360ff0857853aa667f30785dbe4cb4257f2c3fc567a464"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+      "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "performance",
+      "status": "fail",
+      "exitCode": 1,
+      "evidenceDigest": "81f25ce30c21882a71e7da341e0465e5657bb65f2165caf6170be43c87d346d1"
+    },
+    {
+      "scope": "fixture",
+      "target": "owned-source-suite:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+      "manifestDigest": "207571d08df0ceffdb4a5c1efe954a616d56761c6f93ff91fccadcf5ae137cfe",
+      "capabilityDigest": "b11c36e5e295419cbb7da94e82d61327661413b3effafc5c4dd2baa30d567ee0",
+      "dependenciesDigest": "ae9c5aad24ca3abb861b63959b47fc1c95ca03719b22914e6445ba58fe611d40",
+      "name": "package",
+      "status": "pass",
+      "exitCode": 0,
+      "evidenceDigest": "b46a93930b2396ea70ffb1a50c63cca3b847c9747d9607cc62a43093787952bc"
+    }
+  ],
+  "benchmark": {
+    "latencyOverhead": 0.16286853807153645,
+    "rssOverhead": 0.12716049382716044,
+    "limits": {
+      "latency": 0.1,
+      "rss": 0.15
+    },
+    "meanP95ServiceMs": {
+      "disabled": 54.51381160000037,
+      "enabled": 63.3923963999996
+    },
+    "peakRssBytes": {
+      "disabled": 86261760,
+      "enabled": 97230848
+    },
+    "additionalP95ReductionRequiredMs": 3.4272036399991848,
+    "resourceSnapshots": 85,
+    "repetitions": [
+      {
+        "repetition": -1,
+        "warmup": true,
+        "disabled": {
+          "p95ServiceMs": 54.59521600000062,
+          "p95ProviderMs": 54.594340999999986,
+          "p95HostExclusiveMs": 0.0040829999998095445,
+          "peakRssBytes": 85098496,
+          "cpuMicros": 94677,
+          "elapsedMs": 12915.018514,
+          "cleanupMs": 0.17587600000115344,
+          "pendingCipherCopies": 0,
+          "providerCalls": 1000,
+          "counts": {
+            "events": 0,
+            "artifacts": 0
+          },
+          "artifactBytes": 0,
+          "footprint": {
+            "database_bytes": "12588723",
+            "relation_bytes": "2531328"
+          },
+          "storage": {
+            "postgres_artifacts": 0,
+            "filesystem_artifacts": 0,
+            "postgres_cipher_bytes": "0",
+            "logical_bytes": "0"
+          }
+        },
+        "enabled": {
+          "p95ServiceMs": 64.93142599999919,
+          "p95ProviderMs": 54.20437099999981,
+          "p95HostExclusiveMs": 12.7157419999985,
+          "peakRssBytes": 96100352,
+          "cpuMicros": 1208418,
+          "elapsedMs": 15006.239712,
+          "cleanupMs": 0.11379300000044168,
+          "pendingCipherCopies": 0,
+          "providerCalls": 1000,
+          "counts": {
+            "events": 4004,
+            "artifacts": 2000
+          },
+          "artifactBytes": 0,
+          "footprint": {
+            "database_bytes": "23180979",
+            "relation_bytes": "13123584"
+          },
+          "storage": {
+            "postgres_artifacts": 2000,
+            "filesystem_artifacts": 0,
+            "postgres_cipher_bytes": "534000",
+            "logical_bytes": "244000"
+          }
+        }
+      },
+      {
+        "repetition": 0,
+        "warmup": false,
+        "disabled": {
+          "p95ServiceMs": 54.334398000000874,
+          "p95ProviderMs": 54.33389800000077,
+          "p95HostExclusiveMs": 0.003666999999950349,
+          "peakRssBytes": 85491712,
+          "cpuMicros": 85992,
+          "elapsedMs": 12912.309288999999,
+          "cleanupMs": 0.1799189999983355,
+          "pendingCipherCopies": 0,
+          "providerCalls": 1000,
+          "counts": {
+            "events": 0,
+            "artifacts": 0
+          },
+          "artifactBytes": 0,
+          "footprint": {
+            "database_bytes": "33674931",
+            "relation_bytes": "23617536"
+          },
+          "storage": {
+            "postgres_artifacts": 0,
+            "filesystem_artifacts": 0,
+            "postgres_cipher_bytes": "0",
+            "logical_bytes": "0"
+          }
+        },
+        "enabled": {
+          "p95ServiceMs": 63.49315399999978,
+          "p95ProviderMs": 53.04935099999966,
+          "p95HostExclusiveMs": 11.727272999999968,
+          "peakRssBytes": 96878592,
+          "cpuMicros": 1226349,
+          "elapsedMs": 14772.228536,
+          "cleanupMs": 0.11741800000163494,
+          "pendingCipherCopies": 0,
+          "providerCalls": 1000,
+          "counts": {
+            "events": 4004,
+            "artifacts": 2000
+          },
+          "artifactBytes": 0,
+          "footprint": {
+            "database_bytes": "33674931",
+            "relation_bytes": "23617536"
+          },
+          "storage": {
+            "postgres_artifacts": 2000,
+            "filesystem_artifacts": 0,
+            "postgres_cipher_bytes": "534000",
+            "logical_bytes": "244000"
+          }
+        }
+      },
+      {
+        "repetition": 1,
+        "warmup": false,
+        "disabled": {
+          "p95ServiceMs": 54.65001800000027,
+          "p95ProviderMs": 54.64914399999907,
+          "p95HostExclusiveMs": 0.003999999998995918,
+          "peakRssBytes": 85594112,
+          "cpuMicros": 82749,
+          "elapsedMs": 12948.40703,
+          "cleanupMs": 0.11862599999949452,
+          "pendingCipherCopies": 0,
+          "providerCalls": 1000,
+          "counts": {
+            "events": 0,
+            "artifacts": 0
+          },
+          "artifactBytes": 0,
+          "footprint": {
+            "database_bytes": "33674931",
+            "relation_bytes": "23617536"
+          },
+          "storage": {
+            "postgres_artifacts": 0,
+            "filesystem_artifacts": 0,
+            "postgres_cipher_bytes": "0",
+            "logical_bytes": "0"
+          }
+        },
+        "enabled": {
+          "p95ServiceMs": 63.72804899999937,
+          "p95ProviderMs": 52.99487399999998,
+          "p95HostExclusiveMs": 12.043770999999651,
+          "peakRssBytes": 97058816,
+          "cpuMicros": 1287038,
+          "elapsedMs": 14664.449418,
+          "cleanupMs": 0.11933400000089023,
+          "pendingCipherCopies": 0,
+          "providerCalls": 1000,
+          "counts": {
+            "events": 4004,
+            "artifacts": 2000
+          },
+          "artifactBytes": 0,
+          "footprint": {
+            "database_bytes": "44275379",
+            "relation_bytes": "34217984"
+          },
+          "storage": {
+            "postgres_artifacts": 2000,
+            "filesystem_artifacts": 0,
+            "postgres_cipher_bytes": "534000",
+            "logical_bytes": "244000"
+          }
+        }
+      },
+      {
+        "repetition": 2,
+        "warmup": false,
+        "disabled": {
+          "p95ServiceMs": 54.42504300000019,
+          "p95ProviderMs": 54.42391799999996,
+          "p95HostExclusiveMs": 0.0057509999996909755,
+          "peakRssBytes": 85794816,
+          "cpuMicros": 97864,
+          "elapsedMs": 12974.484445,
+          "cleanupMs": 0.17545999999856576,
+          "pendingCipherCopies": 0,
+          "providerCalls": 1000,
+          "counts": {
+            "events": 0,
+            "artifacts": 0
+          },
+          "artifactBytes": 0,
+          "footprint": {
+            "database_bytes": "54916787",
+            "relation_bytes": "44670976"
+          },
+          "storage": {
+            "postgres_artifacts": 0,
+            "filesystem_artifacts": 0,
+            "postgres_cipher_bytes": "0",
+            "logical_bytes": "0"
+          }
+        },
+        "enabled": {
+          "p95ServiceMs": 63.07528699999966,
+          "p95ProviderMs": 53.72479100000055,
+          "p95HostExclusiveMs": 11.138762000000497,
+          "peakRssBytes": 95444992,
+          "cpuMicros": 1257434,
+          "elapsedMs": 14754.725073,
+          "cleanupMs": 0.13987599999927625,
+          "pendingCipherCopies": 0,
+          "providerCalls": 1000,
+          "counts": {
+            "events": 4004,
+            "artifacts": 2000
+          },
+          "artifactBytes": 0,
+          "footprint": {
+            "database_bytes": "54755855",
+            "relation_bytes": "44670976"
+          },
+          "storage": {
+            "postgres_artifacts": 2000,
+            "filesystem_artifacts": 0,
+            "postgres_cipher_bytes": "534000",
+            "logical_bytes": "244000"
+          }
+        }
+      },
+      {
+        "repetition": 3,
+        "warmup": false,
+        "disabled": {
+          "p95ServiceMs": 54.71528800000033,
+          "p95ProviderMs": 54.71462100000008,
+          "p95HostExclusiveMs": 0.00391700000182027,
+          "peakRssBytes": 85704704,
+          "cpuMicros": 88959,
+          "elapsedMs": 12976.906742000001,
+          "cleanupMs": 0.17187700000067707,
+          "pendingCipherCopies": 0,
+          "providerCalls": 1000,
+          "counts": {
+            "events": 0,
+            "artifacts": 0
+          },
+          "artifactBytes": 0,
+          "footprint": {
+            "database_bytes": "54916787",
+            "relation_bytes": "44670976"
+          },
+          "storage": {
+            "postgres_artifacts": 0,
+            "filesystem_artifacts": 0,
+            "postgres_cipher_bytes": "0",
+            "logical_bytes": "0"
+          }
+        },
+        "enabled": {
+          "p95ServiceMs": 63.29172699999981,
+          "p95ProviderMs": 53.88868999999977,
+          "p95HostExclusiveMs": 11.217549999998482,
+          "peakRssBytes": 96583680,
+          "cpuMicros": 1245811,
+          "elapsedMs": 14839.580414,
+          "cleanupMs": 0.12125100000048405,
+          "pendingCipherCopies": 0,
+          "providerCalls": 1000,
+          "counts": {
+            "events": 4004,
+            "artifacts": 2000
+          },
+          "artifactBytes": 0,
+          "footprint": {
+            "database_bytes": "65345203",
+            "relation_bytes": "55099392"
+          },
+          "storage": {
+            "postgres_artifacts": 2000,
+            "filesystem_artifacts": 0,
+            "postgres_cipher_bytes": "534000",
+            "logical_bytes": "244000"
+          }
+        }
+      },
+      {
+        "repetition": 4,
+        "warmup": false,
+        "disabled": {
+          "p95ServiceMs": 54.4443110000002,
+          "p95ProviderMs": 54.44347800000014,
+          "p95HostExclusiveMs": 0.0039160000005722395,
+          "peakRssBytes": 86261760,
+          "cpuMicros": 84479,
+          "elapsedMs": 13015.832549,
+          "cleanupMs": 0.19629300000087824,
+          "pendingCipherCopies": 0,
+          "providerCalls": 1000,
+          "counts": {
+            "events": 0,
+            "artifacts": 0
+          },
+          "artifactBytes": 0,
+          "footprint": {
+            "database_bytes": "76297907",
+            "relation_bytes": "65953792"
+          },
+          "storage": {
+            "postgres_artifacts": 0,
+            "filesystem_artifacts": 0,
+            "postgres_cipher_bytes": "0",
+            "logical_bytes": "0"
+          }
+        },
+        "enabled": {
+          "p95ServiceMs": 63.373764999999366,
+          "p95ProviderMs": 53.854937000000064,
+          "p95HostExclusiveMs": 11.329257999999982,
+          "peakRssBytes": 97230848,
+          "cpuMicros": 1218746,
+          "elapsedMs": 14571.899178,
+          "cleanupMs": 0.16550199999983306,
+          "pendingCipherCopies": 0,
+          "providerCalls": 1000,
+          "counts": {
+            "events": 4004,
+            "artifacts": 2000
+          },
+          "artifactBytes": 0,
+          "footprint": {
+            "database_bytes": "76104207",
+            "relation_bytes": "65921024"
+          },
+          "storage": {
+            "postgres_artifacts": 2000,
+            "filesystem_artifacts": 0,
+            "postgres_cipher_bytes": "534000",
+            "logical_bytes": "244000"
+          }
+        }
+      }
+    ]
+  },
+  "checks": {
+    "root": {
+      "passed": 1251,
+      "skipped": 23
+    },
+    "ownedArchitecture": {
+      "passed": 1251,
+      "skipped": 23
+    },
+    "researchIntegrations": 111,
+    "nativeAndPact": 52,
+    "linuxProcessAndAffected": 43,
+    "faults": 32,
+    "properties": {
+      "suiteChecks": 7,
+      "randomizedProperties": 4,
+      "historiesEach": 2000,
+      "seed": 20261030,
+      "maxTransitions": 50
+    },
+    "python": {
+      "passed": 21,
+      "skipped": 4
+    },
+    "linuxWorkerIsolation": 3,
+    "macBrowser": 26,
+    "linuxBrowser": 26,
+    "auditVulnerabilities": 0,
+    "legacyTableProjections": 77,
+    "restoredArchive": {
+      "events": 3,
+      "artifacts": 2,
+      "bytes": "108",
+      "gaps": 0
+    },
+    "unknownFixtureReservation": {
+      "count": 1,
+      "tokens": "40000"
+    }
+  },
+  "preservation": {
+    "at": "2026-11-01T20:31:31.605106+00:00",
+    "originalContainers": 67,
+    "containerConfigDifferences": [],
+    "originalVolumes": 115,
+    "originalVolumeDefinitionsMatch": true,
+    "services": [
+      {
+        "name": "fleet-mac-nemotron-db",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "automated-traffic-service-db-1",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "toolbox-document-worker",
+        "state": "running",
+        "health": "healthy"
+      }
+    ]
+  },
+  "linuxBrowser": {
+    "exitCode": 0,
+    "image": "mcr.microsoft.com/playwright@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea",
+    "user": "1635975290:318066763",
+    "trace": "retain-on-failure; container tmpfs then complete host copy",
+    "limits": {
+      "cpus": 2,
+      "ramBytes": 2147483648,
+      "tmpfsBytes": 536870912
+    },
+    "versions": "v24.22.1\nGoogle Chrome for Testing 156.0.8078.4"
+  },
+  "evidenceDigests": {
+    "qualification-bundle.json": "f5c8913dc07183d364b8264d9c2669b186731b75768e13e8c403e5e28e286b78",
+    "benchmark-report.json": "7677547cc03b5211a9cbd403cb346d08fc746c4d71303415434b21fcdbc09174",
+    "migration-report.json": "df2c6ee8063ea21ad77221d3ee37e13a85e916edda680597a2af8b803352e0ed",
+    "fault-report.json": "accaa36c4a52aaf8eddce371757da8741eb160c4d51a491b4b5ef0d17e7abb2f",
+    "qualify-units.log": "35d3b2eca7532800db66282d0c28b989d1a80b2969aca363a80477fed9108225",
+    "qualify-properties.log": "c440d17b7d01bd78864f3a055b66f1d3ef693e5da5893ec1fb7fe35366110504",
+    "qualify-native.log": "2bfcdf3328a03341f587f83393068df12fa348cfd9a3ad8cf64eefde890c54c1",
+    "qualify-linux-units.log": "33bff8a1dc0e8d01e6301c62dabfa91a14a8c08729114a902b988b4564d8f3fd",
+    "qualify-architecture.log": "dd1a55d7861c0076262512147d58ddda3032917865bfe7d7e0e60a9d2e3ddb32",
+    "qualify-browser.log": "acd2005e55ba2e935582057271166b751ededb717ba7448c878eaaaf325ce02c",
+    "qualify-package.log": "2452e6e0fac1ad2ef661efdfb7f4783a044cb3db48ef511dfdb736047640109e",
+    "qualify-audit.log": "fe8b9c1f9e9f235d59dea67603cb529c4b915ba06f1062df3a42f2afeeff7faa"
+  },
+  "supplementalEvidenceDigests": {
+    "final-all-research.log": "e24e9f012728c595fbe908c161f780d1a112bafcbc855a73411a92682417eea2",
+    "linux-browser.log": "951cadd7cd2d9417a5c4ca0313f4f1ca249a9ba348ee6dd90ea96c98765c481e",
+    "linux-browser-rerun.log": "07b1654f6542ba3a1b73a09b20257e6ccf640e69fe1f48a1a8581f3d4df0bc91",
+    "linux-browser-final.log": "ac2db66aec258ddb9e2d23b23aec2bad39006e9744e09a63ab7aee259b814dbf",
+    "linux-browser-final.json": "71a6e31190b89859da43775f7f82784d8a983c1e143444aa89fb2f5af824d969",
+    "preservation-final.json": "6423f807ef389334115efe501754f20123486c4519561d3da492efe692033efe"
+  },
+  "limitations": [
+    "Performance acceptance not achieved; no activation authorization.",
+    "Tests use fake providers and fresh owned fixtures; no real inference/game activity, retained-world migration, deployment or push.",
+    "Browser first attempt had a trace-file permission error; a second collector attempt could not copy tmpfs with docker cp; final retained-trace collection passed26 checks. All attempts remain private.",
+    "Measurement categories overlap and must not be summed as unique tests.",
+    "Physical DB totals accumulate cohorts and include metadata/indexes; logical body and ciphertext sizes are reported separately. WAL is outside pg_database_size.",
+    "No pre-incident retained-world SQL hash baseline exists; preservation checks compare container/volume configuration and service health, not a full business-data audit.",
+    "Pre056 tier-unaware runtime rollback needs explicit reviewed conversion or a tier-aware binary."
+  ],
+  "spaceHealth": {
+    "hostFreeBytes": 14587703296,
+    "dockerFreeBytes": 5486067712,
+    "dockerMountOptions": "rw,relatime",
+    "kernelErrorMatchesSince": "2026-11-01 19:15:00 guest time",
+    "kernelErrorMatches": []
+  },
+  "resourceInventory": {
+    "allContainers": 67,
+    "allVolumes": 115
+  }
+}
