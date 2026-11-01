@@ -155,7 +155,7 @@ export async function buildQualificationImage() {
     await rm(root, { recursive: true, force: true });
   }
 }
-export async function runLinuxFixture(image: string, args: string[]) {
+export async function runLinuxFixture(image: string, args: string[], options: { temporaryExecutables?: boolean } = {}) {
   if (!/^sha256:[a-f0-9]{64}$/.test(image)) throw Error("PINNED_FIXTURE_IMAGE_REQUIRED");
   const previous = process.env.FLEET_RESEARCH_VECTOR_FIXTURE;
   process.env.FLEET_RESEARCH_VECTOR_FIXTURE = "1";
@@ -227,7 +227,8 @@ export async function runLinuxFixture(image: string, args: string[]) {
       "--user",
       "10001:10001",
       "--tmpfs",
-      "/tmp:rw,nosuid,size=512m,uid=10001,gid=10001,mode=1777",
+      // Only fake CLI process fixtures require executable temporary programs.
+      `/tmp:rw,${options.temporaryExecutables ? "exec" : "noexec"},nosuid,size=512m,uid=10001,gid=10001,mode=1777`,
       "--tmpfs",
       "/app/node_modules/.vite-temp:rw,nosuid,size=32m,uid=10001,gid=10001,mode=0700",
       "--tmpfs",
@@ -284,6 +285,7 @@ export async function runLinuxFixture(image: string, args: string[]) {
         cpus: 2,
         ramBytes: 2147483648,
         tmpfsBytes: 536870912,
+        temporaryExecutables: options.temporaryExecutables === true,
       },
     };
   } finally {

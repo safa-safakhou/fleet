@@ -167,17 +167,21 @@ else {
   try {
     if (!infrastructureReady) throw Error("BUILD_DISK_SPACE_REQUIRED");
     image = await qualificationImage();
-    linux = await runLinuxFixture(image, [
-      "node_modules/vitest/vitest.mjs",
-      "run",
-      "--config",
-      "tests/architecture.vitest.config.ts",
-      "tests/unit/research-qualification.test.ts",
-      "tests/unit/research-qualification-bundle.test.ts",
-      "tests/unit/research-source-expiry.test.ts",
-      "tests/unit/codex.test.ts",
-      "tests/unit/owned-local-world.test.ts",
-    ]);
+    linux = await runLinuxFixture(
+      image,
+      [
+        "node_modules/vitest/vitest.mjs",
+        "run",
+        "--config",
+        "tests/architecture.vitest.config.ts",
+        "tests/unit/research-qualification.test.ts",
+        "tests/unit/research-qualification-bundle.test.ts",
+        "tests/unit/research-source-expiry.test.ts",
+        "tests/unit/codex.test.ts",
+        "tests/unit/owned-local-world.test.ts",
+      ],
+      { temporaryExecutables: true },
+    );
     linuxOutput = linux.stdout + linux.stderr;
   } catch (error) {
     linuxOutput =
