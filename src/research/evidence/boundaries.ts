@@ -92,9 +92,13 @@ export class CaptureSession implements ObservationPort {
       ...(options.sourceRefs ?? []),
       ...(context?.lineage.artifact ? [context.lineage.artifact.id] : []),
     ];
+    const ownTransaction = !db && sourceRefs.length === 0;
     const write = async () => {
-      if (db) await repo.bind(scope, db);
-      else {
+      if (db) {
+        await repo.bind(scope, db);
+        if (ownTransaction)
+          await this.recorder.append(scope, { kind: "run.started", streamId: "run", producerKey: "capture-start" }, db);
+      } else {
         await this.recorder.append(scope, { kind: "run.started", streamId: "run", producerKey: "capture-start" });
       }
       const consent = (
@@ -164,11 +168,16 @@ export class CaptureSession implements ObservationPort {
     }
     try {
       // Private copies and source links commit together; a rejected source leaves no orphan body.
-      if (sourceRefs.length)
-        return await transaction(this.store.pool, async (client) => {
+      if (sourceRefs.length || ownTransaction) {
+        const result = await transaction(this.store.pool, async (client) => {
           db = client;
           return write();
         });
+        // The encrypted outbox, quota, lineage and event commit together.
+        // File IO happens only after commit; required capture still waits for it.
+        if (ownTransaction && body !== undefined) await this.artifacts.materialize(1000, scope.runId);
+        return result;
+      }
       return await write();
     } catch {
       await this.gap(scope);
