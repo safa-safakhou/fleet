@@ -1,0 +1,19 @@
+# Docker filesystem recovery — 1 November 2026
+
+The owner authorized safe disk/Docker repair, preservation of existing services/data, completion of research qualification and a final space audit. The host had approximately 13 GiB free after the owner's cleanup, but Docker still returned storage I/O errors and its Linux guest could not execute its shell. This was not resolved by host free space alone.
+
+Before recovery, protected copies of all 67 container configurations and 115 volume definitions were saved outside Git, including the metadata needed to compare images, restart policies and mounts. The initial service inventory found two unhealthy running services and the Fleet database exited after the storage fault. No container, volume, retained world or encrypted evidence was removed.
+
+APFS copy-on-write snapshots of the 20 GiB root and 100 GiB persistent disks were taken in an owner-only recovery directory. A shutdown-in-progress copy is explicitly marked not quiescent; additional copies were taken only after Lima confirmed the VM stopped. Successful clone operations, file sizes and five sampled 1 MiB regions per disk were verified. These clones share extents and are rollback checkpoints on the same device, not independent physical backups or complete checksums of every database row.
+
+The first controlled stop/start replayed ext4 journals and recovered service startup, but the kernel still requested filesystem checks. A temporary GRUB setting requested forced checks with `fsck.repair=preen`; a temporary fstab entry ensured the persistent disk was checked before mounting. `preen` restricts automatic repair to problems the checker considers safely repairable; it does not answer yes to all repairs. See [systemd's fsck documentation](https://www.freedesktop.org/software/systemd/man/latest/systemd-fsck%40.service.html). Both filesystems subsequently reported **clean**, with last-check timestamps at 10:24 on 1 November. The original fstab was restored byte-for-byte, the temporary GRUB fragment removed, and GRUB regenerated.
+
+All three original services recovered to Docker **healthy**. All 67 original container identities, names, image IDs, configurations, host settings and normalized mount sets matched their captured values. All 115 original volume definitions matched. One initial mount-array difference was ordering only. `colima status`, guest commands and Docker storage accounting responded normally again. No application deployment, model/game activity, cohort activation, global prune or database reset was performed.
+
+These checks establish filesystem health and service/configuration preservation. There was no readable pre-incident SQL row-hash baseline, so they are not a claim of a full business-data audit. Recovery snapshots and private diagnostics remain preserved; actual-target provider/behavior acceptance stays separate from disposable qualification fixtures.
+
+## Preventing another qualification build exhaustion
+
+Commit `230b12b` adds independent preflight checks: at least 8 GiB free on the host and 6 GiB on Docker's backing filesystem, with missing/invalid measurements rejected. The Docker measurement comes from a pinned, disposable, read-only, network-disabled container. Package tests reuse an image only when its exact public-source digest still matches, and build intermediates are removed by their own build operation. No unowned image, container or volume is pruned. The source guard's threshold/error cases passed two tests, types and ownership-boundary checks before commit.
+
+The initial Docker data filesystem was about 92% used, with 7.9 GiB available; its root disk had 18 GiB available. Qualification progress and the final measurements are recorded in the subsequent dated acceptance report. The machine-wide usage inventory is kept private because it includes personal application/profile paths.
