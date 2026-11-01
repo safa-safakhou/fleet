@@ -1,0 +1,175 @@
+{
+  "schemaVersion": "fleet.live-readiness-audit/v1",
+  "date": "2026-11-01",
+  "status": "awaiting-target-and-provider",
+  "scope": "read-only prerequisite audit; no installation acceptance",
+  "target": null,
+  "providerModel": null,
+  "providerPreflightBudget": null,
+  "installationAcceptance": "not-assessed",
+  "providerAcceptance": "not-assessed",
+  "liveRunStarted": false,
+  "recommendedApproach": {
+    "status": "builder-recommendation; awaiting owner selection",
+    "target": "new isolated local Fleet/PACT instance",
+    "firstProfile": "pact-research-advisory@1 with TypeScript reference worker; proposed only",
+    "reason": "preserve retained worlds, identities, grants, pending commands and unknown allocations",
+    "requiredScheduler": "Temporal; TypeScript worker does not remove the recipe enrollment requirement"
+  },
+  "runtimeCandidate": {
+    "at": "2026-11-01T22:38:24.532993+00:00",
+    "status": "pass",
+    "scope": "read-only artifact structure/hash audit; no application startup",
+    "image": "sha256:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+    "sourceDigest": "09fabc6219a317f29cd24434810f73426b20e7782efe6c577c9ee468b2083bab",
+    "node": "v26.13.0",
+    "files": {
+      "dist/server/research/package.js": "1258c813472569e7a73fd93b900244e3a5aa180077c011e4833f3150bea07bf7",
+      "dist/server/research/evidence/boundaries.js": "f73510f40d6df151562d04820504e6d128fdb700223faa437e050c7231fd0f4d",
+      "dist/server/research/evidence/artifacts.js": "4a928d7ea14aa41fea057292e44e38a21c73c000147f7ac11cb6749aa0343d82",
+      "dist/server/research/qualification/readiness.js": "d07e52841330c87be4dc69a8dfef68a499c247ce7a946d1b8987db9fa136ce1b"
+    },
+    "sourceLock": "74ae0befe5de6c0edc90790522b905ae7b8a65a04bc9aceb97a0beee0c3467ca",
+    "hasVitest": false,
+    "hasPlaywright": false
+  },
+  "originalResourcePreservation": {
+    "originalContainers": 67,
+    "containerConfigDifferences": [],
+    "originalVolumes": 115,
+    "volumeDefinitionsMatch": true,
+    "runningOriginalServices": [
+      {
+        "name": "fleet-mac-nemotron-db",
+        "status": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "automated-traffic-service-db-1",
+        "status": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "toolbox-document-worker",
+        "status": "running",
+        "health": "healthy"
+      }
+    ]
+  },
+  "capacity": {
+    "hostRamBytes": 51539607552,
+    "hostFreeBytes": 14485118976,
+    "dockerFreeBytes": 5486022656,
+    "docker": {
+      "ServerVersion": "29.2.1",
+      "NCPU": 2,
+      "MemTotal": 3040251904,
+      "OSType": "linux",
+      "Architecture": "aarch64"
+    },
+    "freshQualificationBuildMinimumDockerBytes": 6442450944,
+    "freshQualificationBuildHeadroomPass": false,
+    "caution": "Image reported size is not guaranteed reclaimable space; layers can be shared. No cache has been removed in this audit."
+  },
+  "localPinnedImageCache": [
+    {
+      "image": "temporalio/server:1.32.1",
+      "digest": "sha256:acecbab5b0b8ae9cf4012b508866ca97feda3709577bf157b537239f40029049",
+      "cached": false,
+      "imageId": null
+    },
+    {
+      "image": "temporalio/ui:2.57.0",
+      "digest": "sha256:d944f959d0923c35cd991a17a0edbe087770eff843724b181933e0cfdd563ab2",
+      "cached": false,
+      "imageId": null
+    },
+    {
+      "image": "otel/opentelemetry-collector-contrib:0.164.0",
+      "digest": "sha256:340c9ca6a36617084c6661bdc4f0fe92b7cda5a805d61673ec8db375fddc522b",
+      "cached": true,
+      "imageId": "sha256:340c9ca6a36617084c6661bdc4f0fe92b7cda5a805d61673ec8db375fddc522b"
+    },
+    {
+      "image": "grafana/tempo:3.1.1",
+      "digest": "sha256:64e2fbd56d9c2b3412a4b430a58ea59e91a670b1e75f920a0c702213ad145044",
+      "cached": true,
+      "imageId": "sha256:64e2fbd56d9c2b3412a4b430a58ea59e91a670b1e75f920a0c702213ad145044"
+    },
+    {
+      "image": "prom/prometheus:v3.15.1",
+      "digest": "sha256:fa3302279710be2f21a8301ec17a8b4f2301fd829bd113839b3b6b02b6f191a2",
+      "cached": true,
+      "imageId": "sha256:fa3302279710be2f21a8301ec17a8b4f2301fd829bd113839b3b6b02b6f191a2"
+    },
+    {
+      "image": "grafana/grafana:13.3.0",
+      "digest": "sha256:488984b716c0862639f91a698adbe2862677a5a07bad42da5f03f3030883b205",
+      "cached": true,
+      "imageId": "sha256:488984b716c0862639f91a698adbe2862677a5a07bad42da5f03f3030883b205"
+    },
+    {
+      "image": "library/postgres:17.11-alpine",
+      "digest": "sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b",
+      "cached": true,
+      "imageId": "sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b"
+    },
+    {
+      "image": "library/python:3.12.13-slim",
+      "digest": "sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36",
+      "cached": true,
+      "imageId": "sha256:229a2c5bfa27522db7815ea81f9bed70af17ccb9de9fc7ad142b1877b5830d36"
+    }
+  ],
+  "reviewedCacheCandidate": {
+    "candidate": "mcr.microsoft.com/playwright@sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea",
+    "imageId": "sha256:47b510dd9230bf0b9bfc9b20102241e577ea7a99334ab4c3ca19f19770e9b8ea",
+    "reportedImageBytes": 958166845,
+    "currentContainerReferences": 0,
+    "originalContainerDirectReferences": 0,
+    "reproduciblePublicCache": true,
+    "privateEvidenceLocation": "Host qualification ledgers retained separately; image contains pinned public tool distribution.",
+    "reviewStatus": "candidate-only; no image removed",
+    "dependencyImpact": "Later Linux browser checks would need the same pinned image again."
+  },
+  "toolchain": {
+    "node": "26.13.0",
+    "npm": "12.2.1",
+    "dockerCompose": "5.1.3"
+  },
+  "qualificationHandling": {
+    "strictSourceStatus": "blocked",
+    "strictReason": "GATE_REQUIRED:performance",
+    "latencyOverhead": 0.16286853807153645,
+    "ownerOptimizationWorkStatus": "done; current result accepted",
+    "policyOverrideImplemented": false,
+    "activationAuthorized": false,
+    "note": "QualificationRepository records evidence and never automatically enrolls runtime work. Explicit Temporal enrollment, native admission and a covering owner run record remain separate."
+  },
+  "remaining": [
+    "Owner target and exact provider/model selections are pending in the two active questions.",
+    "Complete the named installation/preflight record, including finite model-call/token/time limits, before model activity.",
+    "For a new local target, provision/verify the pinned Temporal server and separate persistence roles; the server pin is not cached locally.",
+    "Verify actual-target migrations, disabled-execution inspection, keys, role/egress isolation, observation, restart and paired restore.",
+    "Resolve build/storage capacity for the selected setup; assess sustained resident memory against the2CPU/about2.83GiB Docker VM without changing existing services.",
+    "Verify the selected real provider and accounting under its bounded preflight.",
+    "Prepare the exact finite experiment profile and stop/backup conditions; no game run is started by this preparation."
+  ],
+  "evidenceDigests": {
+    "baseline-readiness.json": "55c8f7420ea54d460be09841d3170da89f12aa75133f80f693788ed5a791698a",
+    "pinned-image-cache-audit.json": "323ca88e51bfd40524e96caf540a539e9abebe841ef85b7e91410be65f5ff717",
+    "artifact-readiness.json": "d562adacd46195e59ab50a9cc8129d7e317c7095466e6e6c9bea6421d6297ec2",
+    "cache-headroom-candidate.json": "672b7a9fa8ac659a9c3f01cc6919f89e9548224935328bd4a9b0d497e3936b47"
+  },
+  "performed": {
+    "existingServiceChanges": false,
+    "cacheRemoval": false,
+    "imagePull": false,
+    "targetMigration": false,
+    "applicationDeployment": false,
+    "providerCall": false,
+    "gameCall": false,
+    "unknownUsageReview": false,
+    "push": false
+  }
+}
