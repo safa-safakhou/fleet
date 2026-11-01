@@ -1,0 +1,48 @@
+{
+  "schemaVersion": "fleet.owner-work-closure/v1",
+  "date": "2026-11-01",
+  "workItem": "Q3 recording latency optimization / hybrid-storage requalification",
+  "workStatus": "done",
+  "decision": "owner-accepted-current-result",
+  "furtherLatencyOptimization": "deferred-by-owner",
+  "sourceCommit": "bf51a69",
+  "sourceDigest": "09fabc6219a317f29cd24434810f73426b20e7782efe6c577c9ee468b2083bab",
+  "lockDigest": "74ae0befe5de6c0edc90790522b905ae7b8a65a04bc9aceb97a0beee0c3467ca",
+  "image": "sha256:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+  "acceptedMeasurement": {
+    "latencyOverhead": 0.16286853807153645,
+    "rssOverhead": 0.12716049382716044,
+    "meanP95ServiceMs": {
+      "disabled": 54.51381160000037,
+      "enabled": 63.3923963999996
+    }
+  },
+  "strictQualification": {
+    "status": "blocked",
+    "reasons": ["GATE_REQUIRED:performance"],
+    "numericLatencyLimit": 0.1,
+    "numericRssLimit": 0.15,
+    "sub10LatencyAchieved": false,
+    "performanceGateBypassImplemented": false,
+    "activationAuthorized": false
+  },
+  "remainingLiveReadiness": [
+    "Resolve strict automated performance qualification for the selected target; this work closure is not a machine-usable gate exception.",
+    "Select and validate the actual target release, installation, roles, persistence, recording/inspection path and restore/isolation checks for the chosen recipe.",
+    "Complete a specifically authorized bounded real-provider/model preflight with actual capacity, quotas, deadlines and accounting.",
+    "Approve the finite live run scope: world, participants, provider, budgets, duration, stop conditions, backup/preservation and exact commands."
+  ],
+  "notLivePrerequisites": [
+    "Strategic/behavioral effectiveness acceptance needs live evidence and is an outcome of the bounded experiment, not an earlier synthetic prerequisite.",
+    "Every optional backend or real embedding weight set need not be activated unless the selected profile requires it."
+  ],
+  "buildHeadroom": {
+    "lastObservedHostFreeGiB": 13.56,
+    "lastObservedDockerFreeGiB": 5.11,
+    "freshQualificationBuildMinimumHostGiB": 8,
+    "freshQualificationBuildMinimumDockerGiB": 6,
+    "dockerHeadroomSufficientForFreshQualificationBuild": false,
+    "measurementScope": "read-only capacity observation at closure; cached candidate remains retained"
+  },
+  "authorityBoundary": "Documentation and work-status closure only; no runtime policy change, qualification override, deployment, inference, game run, unknown-usage review, push or blanket performance waiver."
+}

@@ -1,5 +1,7 @@
 # Q3 hybrid-storage requalification —1 November2026
 
+**Subsequent owner decision:** [Q3 optimization work is closed as accepted at the current result](q3-owner-closure-20261101.md); further optimization is deferred. The measurements, failed10% gate and strict qualification decision below remain the original evidence.
+
 **The requested sub10% result has not been achieved.** The approved storage change is implemented and committed, all eleven non-performance fixture gates pass, and the unchanged performance gate remains blocked. [Machine-readable receipt](hybrid-requalification-20261101.json) records the strict assembler decision, exact provenance, samples and evidence digests. [Previous requalification](requalification-20261101.md) remains historical evidence.
 
 ## Current measured result

@@ -1,6 +1,6 @@
 # Research source release and package
 
-**Current qualification remains blocked by recording latency overhead (16.29% against10%); RSS overhead12.72% passes15%.** All eleven non-performance gates pass on the exact hybrid-storage candidate; see [current requalification and limits](hybrid-requalification-20261101.md). Production installation remains separate.
+**Q3 optimization work is DONE by [owner acceptance](q3-owner-closure-20261101.md) at16.29% latency/12.72% RSS.** The [strict requalification](hybrid-requalification-20261101.md) remains blocked by its unchanged10% latency gate; all eleven non-performance gates pass. The work closure does not qualify or activate a release. Actual-target installation/provider checks and a new bounded live-run record remain outstanding.
 
 This is a source release with a separate compiled inspection entry point, `dist/server/research/package.js`. It starts no worker, enrollment, task pump, Temporal activity, model call or game call. Live/worker/Temporal activation settings are refused. Login/logout and authenticated GET/HEAD inspection remain available; other API mutations return `RESEARCH_PACKAGE_READ_ONLY`. Normal execution still requires the separately authorized controller/worker entry points and a scoped run grant.
 

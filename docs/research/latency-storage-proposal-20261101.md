@@ -1,12 +1,12 @@
 # Q3 storage-path decision — 1 November 2026
 
-**Approved and implemented1 November2026; latency acceptance remains blocked.** The owner selected “Use your judgment and proceed with a validated storage change.” See the [actual requalification](hybrid-requalification-20261101.md):16.29% latency/12.72% RSS, eleven non-performance gate passes; the sub10% objective is still open. The owner requires recording overhead below10% without losing observation, validation or existing data. The last packaged qualification still fails latency at21.10%; memory passes at13.69%. Current diagnostic timings differ from that older run, so new source needs its own exact packaged qualification.
+**Approved, implemented and closed by owner acceptance1 November2026.** The owner accepted the current16.29% latency/12.72% RSS result and deferred further optimization; see [closure](q3-owner-closure-20261101.md) and [unchanged measurements](hybrid-requalification-20261101.md). The original sub10% target was not achieved, and the strict automated performance gate still fails. The rationale below records the pre-implementation choices; it does not authorize deployment or another run.
 
 ## Work already completed
 
 Commits `7e4e5b8` and `b7bed20` add migration055 and its inspection-readiness checks. One-parent validation formerly scanned5002 event rows in a5000-row unrelated-history fixture. Primary-key lookups now satisfy the bounded-read regression, retaining identity, parent-scope, immutable ordering, duplicate detection and copy-digest checks. Locked copies still use `SKIP LOCKED` and remain available to restart reconciliation.100 research integration checks, types/style/build/boundaries pass. Existing nonblocking warnings remain.
 
-The group-commit experiment passed its21 targeted correctness checks but increased measured latency. Its product changes were discarded and are retained only as private diagnostic evidence. Neither migration056 nor a group-commit writer is installed or committed.
+The group-commit experiment passed its21 targeted correctness checks but increased measured latency. Its product changes were discarded and are retained only as private diagnostic evidence. No group-commit migration or writer from that experiment was committed. Current migration056 belongs to the separate approved hybrid-storage change.
 
 ## Approaches for the next change
 

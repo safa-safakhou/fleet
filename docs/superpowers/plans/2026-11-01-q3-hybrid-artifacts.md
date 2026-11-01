@@ -10,7 +10,7 @@
 
 **Spec:** [Approved storage proposal](../../research/latency-storage-proposal-20261101.md), owner approval1 November2026.
 
-**Execution checkpoint:** Runtime committed through `bf51a69`; [actual requalification](../../research/hybrid-requalification-20261101.md). All non-performance checks pass; Q3 remains open at16.29% latency, so this plan is not fully accepted.
+**Work status: DONE by owner acceptance1 November2026.** Runtime is committed through `bf51a69`; the owner accepted16.29% latency/12.72% RSS and deferred further optimization. [Closure and remaining live-readiness work](../../research/q3-owner-closure-20261101.md); [unchanged requalification](../../research/hybrid-requalification-20261101.md). The original numerical10% target was not achieved; the strict automated gate still fails. This plan is closed as accepted work with that variance, not as a measured10% pass.
 
 ## Global Constraints
 
@@ -48,7 +48,7 @@
 - [x] Add mixed legacy/new-tier SQL/chunk restore and archive assertions; expected RED if either tier loses bytes or IDs.
 - [x] Preserve the filesystem side of mixed-tier restore fixtures, add mixed-tier restore payloads, retain full row-hash comparisons.
 - [x] Run migration/archive/retention/fault checks and unchanged benchmark. Expected exact4004events/2000artifacts/1000calls, zero pending filesystem copies, readable canonical bodies; thresholds unchanged.
-- [ ] Measure diagnostics, address proven bottlenecks without weakening guards, commit verified changes.
+- [x] Measure diagnostics, address proven bottlenecks without weakening guards, commit verified changes. Further latency reduction is deferred under the owner closure; the10% gate and failed evidence remain intact.
 
 ### Task3: Exact-source qualification and preservation handoff
 
@@ -59,4 +59,4 @@
 - [x] Preserve old raw receipts, build exact-source package using only owned-image cleanup if needed; run all qualification gates, macOS/Linux browsers and backend resource sampling.
 - [x] Verify67 original containers/115 volumes/three services, disk health/headroom and clean trees.
 - [x] Review the full diff in a separate author self-review pass (delegation forbidden by AGENTS); fix meaningful findings with RED/GREEN coverage.
-- [x] Record actual limits, failures/retries and results; mark Q3 accepted only if unchanged gates pass. Commit reports and hand off source versus live acceptance distinctly.
+- [x] Record actual limits, failures/retries and results; keep the measured gate decision intact and record the owner work acceptance separately. Commit reports and hand off source versus live acceptance distinctly.

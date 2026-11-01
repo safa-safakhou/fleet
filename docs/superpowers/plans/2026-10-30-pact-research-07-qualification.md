@@ -10,7 +10,7 @@
 
 **Spec:** [Design §§4–11](../specs/2026-10-30-pact-research-engine-design.md); [master constraints](2026-10-30-pact-research-engine.md). Depends on all preceding packages.
 
-**Execution status — 1 November 2026:** source deliverables and recording repairs are implemented inline on master. [Current requalification](../../research/requalification-20261101.md) supersedes the recording measurements in the [earlier acceptance](../../research/acceptance-20261101.md); protected Docker recovery remains valid. All qualification commands and current macOS/Linux visual checks executed. All eleven non-performance gates pass after explicit strict reruns; original failed attempts remain retained. Q3 latency overhead is21.10% against unchanged10%, so acceptance remains blocked; RSS overhead13.69% now passes15%. No installed runtime, real-provider or behavioral acceptance/activation is implied. The sequence below retains its original implementation checkboxes; this dated status and linked evidence distinguish completed checks from remaining latency acceptance. Q3 is not complete.
+**Execution status —1 November2026:** source deliverables, recording repairs and requalification checks are complete. The owner [closed Q3 optimization work at the current measured result](../../research/q3-owner-closure-20261101.md) and deferred further optimization. [Exact current requalification](../../research/hybrid-requalification-20261101.md) records16.29% latency (FAIL10%),12.72% RSS (PASS15%) and eleven non-performance gate passes; all original failures and reruns remain retained. This is accepted work with a documented performance variance, not a machine-generated qualification pass. Installation, real-provider and behavioral acceptance/activation remain separate; the dated status distinguishes source completion from those operational gates.
 
 ## Global Constraints
 
@@ -66,6 +66,8 @@ Qualification artifacts store exact versions/manifests/capability fingerprints, 
 
 ## Q3 — Demonstrate the full product and measure overhead
 
+**Work status: DONE — owner accepted16.29% latency/12.72% RSS and deferred further optimization.** [Closure](../../research/q3-owner-closure-20261101.md); the original10% automated gate remains failed and unchanged.
+
 **Files:** Create `scripts/qualify-research.ts`, `scripts/benchmark-research.ts`, `tests/acceptance/research-engine.test.ts`, `tests/browser/research/walkthrough.spec.ts`, `docs/research/qualification.md`; add `benchmark:research` script and extend `qualify:research`.
 
 **Consumes:** All instrumented recipes, archive/verifier, A1/A2 independent metrics, A3/A4 tool integrations, U1–U4 actual studio and Q1/Q2 evidence.
@@ -73,10 +75,10 @@ Qualification artifacts store exact versions/manifests/capability fingerprints, 
 **Produces:** Reproducible fixture qualification bundle and measured `ResearchBenchmarkReport`; no live strategic-success claim. Bundle includes a successful task, valid safe stop, uncertainty/recovery incident, retrieval/context explanation, and baseline-versus-candidate comparison that can honestly show no improvement.
 
 - [x] Write `researcher_can_reconstruct_and_compare`: follow an objective from authorized observation through context/memory/tool/model/state/proposal to actual fixture receipt/completion; reconstruct a lost-response incident and compare independent sessions with missingness/usage correctly displayed. Assert every expected call/action/event and retained artifact count/digest reconciles, with zero hidden helper calls and all seven mandatory view families usable.
-- [ ] Run `npx vitest run tests/acceptance/research-engine.test.ts` and `npx playwright test --config playwright.research.config.ts tests/browser/research/walkthrough.spec.ts`; expect RED until integration is complete.
-- [ ] Implement acceptance orchestration only over owned fixtures. Benchmark enabled/disabled recording on 1,000 operations with a 50 ms fake provider and concurrency 4, one warm-up then five recorded repetitions; record runner hardware/OS, exact limits and absolute timings. Target at most 10% p95 host service-time overhead and 15% host peak RSS increase; also report total CPU/RAM/disk/backend footprint so externalization cannot hide costs. Exercise 100,000 events/16 MiB artifact with U1 budgets.
-- [ ] Run both tests, `npm run qualify:research -- --fixture` and `npm run benchmark:research -- --fixture`; expect PASS or explicit performance blockers. Inspect synthetic screenshots at desktop/mobile widths, archive integrity, canonical metric values, CI skips and raw repetitions. Qualification is fixture-scoped and cannot imply a real model became more accurate.
-- [ ] Review/checkpoint Q3. Record failures/tradeoffs openly; do not relax a guardrail or alter held-out data simply to obtain a green report.
+- [x] Run `npx vitest run tests/acceptance/research-engine.test.ts` and `npx playwright test --config playwright.research.config.ts tests/browser/research/walkthrough.spec.ts`; expect RED until integration is complete.
+- [x] Implement acceptance orchestration only over owned fixtures. Benchmark enabled/disabled recording on 1,000 operations with a 50 ms fake provider and concurrency 4, one warm-up then five recorded repetitions; record runner hardware/OS, exact limits and absolute timings. Target at most 10% p95 host service-time overhead and 15% host peak RSS increase; also report total CPU/RAM/disk/backend footprint so externalization cannot hide costs. Exercise 100,000 events/16 MiB artifact with U1 budgets.
+- [x] Run both tests, `npm run qualify:research -- --fixture` and `npm run benchmark:research -- --fixture`; expect PASS or explicit performance blockers. Inspect synthetic screenshots at desktop/mobile widths, archive integrity, canonical metric values, CI skips and raw repetitions. Qualification is fixture-scoped and cannot imply a real model became more accurate.
+- [x] Review/checkpoint Q3. Record failures/tradeoffs openly; do not relax a guardrail or alter held-out data simply to obtain a green report.
 
 ## Q4 — Package, verify boundaries and hand off exact operational gates
 
