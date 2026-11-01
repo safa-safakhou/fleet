@@ -408,14 +408,14 @@ test("small canonical bodies survive flush and restart without filesystem public
   }
 });
 
-test.each(["cipher", "missing-digest"])(
+test.each(["cipher", "missing-digest", "missing-size"])(
   "canonical storage %s corruption rolls back request, quota and bytes before provider dispatch",
   async (fault) => {
     const f = await researchFixture(),
       root = await mkdtemp(join(tmpdir(), "fleet-canonical-corrupt-"));
     try {
       const scope = await scopeForTurn(f.store, f.claim.turn.id);
-      await f.pool.query(`CREATE FUNCTION fixture_corrupt_cipher() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN ${fault === "cipher" ? `NEW.inline_cipher='["corrupted"]'::jsonb;` : `NEW.chunks=jsonb_set(NEW.chunks,'{0,digest}','null'::jsonb);`} RETURN NEW; END $$;
+      await f.pool.query(`CREATE FUNCTION fixture_corrupt_cipher() RETURNS trigger LANGUAGE plpgsql AS $$ BEGIN ${fault === "cipher" ? `NEW.inline_cipher='["corrupted"]'::jsonb;` : fault === "missing-digest" ? `NEW.chunks=jsonb_set(NEW.chunks,'{0,digest}','null'::jsonb);` : `NEW.expected_bytes=NULL;`} RETURN NEW; END $$;
       CREATE TRIGGER fixture_corrupt_cipher BEFORE INSERT ON research_artifacts FOR EACH ROW EXECUTE FUNCTION fixture_corrupt_cipher()`);
       const capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
       let calls = 0;

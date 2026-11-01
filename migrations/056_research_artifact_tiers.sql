@@ -11,7 +11,7 @@ DECLARE a record; ch jsonb; cipher text; total_bytes bigint:=0; total_disk bigin
 BEGIN
  PERFORM research_verify_materialization(sc,artifact_id,expected_version,ref->>'ciphertextDigest',at_time);
  SELECT * INTO a FROM research_artifacts WHERE id=artifact_id AND run_id=sc->>'runId';
- IF a.storage_backend<>'postgres' OR a.inline_cipher IS NULL OR jsonb_typeof(a.inline_cipher)<>'array'
+ IF ref IS NULL OR jsonb_typeof(ref) IS DISTINCT FROM 'object' OR a.storage_backend<>'postgres' OR a.inline_cipher IS NULL OR jsonb_typeof(a.inline_cipher)<>'array'
  OR a.disk_bytes>65536 OR a.disk_bytes<0 OR jsonb_typeof(a.chunks)<>'array'
  OR jsonb_array_length(a.inline_cipher)<>jsonb_array_length(a.chunks)
  OR ref<>jsonb_build_object('id',a.id,'contentType',a.content_type,'bytes',a.bytes::text,
@@ -27,8 +27,8 @@ BEGIN
   total_bytes:=total_bytes+(ch->>'bytes')::bigint;
   total_disk:=total_disk+octet_length(cipher); joined:=joined||cipher; i:=i+1;
  END LOOP;
- IF total_bytes<>a.bytes OR total_disk<>a.disk_bytes OR a.expected_bytes<>a.bytes
- OR a.reserved_bytes<>a.bytes OR encode(sha256(convert_to(joined,'UTF8')),'hex')<>a.ciphertext_digest
+ IF NOT COALESCE(total_bytes=a.bytes AND total_disk=a.disk_bytes AND a.expected_bytes=a.bytes
+ AND a.reserved_bytes=a.bytes AND encode(sha256(convert_to(joined,'UTF8')),'hex')=a.ciphertext_digest,false)
  THEN RAISE EXCEPTION 'ARTIFACT_INTEGRITY'; END IF;
 END $$;
 
