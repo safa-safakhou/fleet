@@ -13,7 +13,7 @@
       "startsAtUtc": "2026-11-02T11:30:31.861Z",
       "endsAtUtc": "2026-11-02T12:30:31.861Z",
       "inspectionOrigin": "http://127.0.0.1:56829",
-      "status": "running; first advisory turn completed normally; hour pending",
+      "status": "closed at owner request; advisory passed; hour shortened",
       "model": {
         "route": "ollama",
         "model": "nemotron-3-nano:4b",
@@ -114,8 +114,190 @@
             "status": 2
           }
         ],
-        "note": "Advisory workflow completed; controller, rules and Temporal poller remain active within the finite observation window."
-      }
+        "note": "Closed run; execution poller/provider/rules stop verified separately."
+      },
+      "actualResult": {
+        "status": "closed",
+        "id": "nemotron-advisory-loop-20261102-9a72fb3e",
+        "reason": "OPERATOR_STOP",
+        "started": true,
+        "startsAt": 1793619031861,
+        "endsAt": 1793622631861,
+        "closedAt": 1793621785912,
+        "world": {
+          "status": "paused",
+          "tick": "45",
+          "gameTimeMs": 1793621580000
+        },
+        "ledger": [
+          {
+            "id": "915dbe2b-3f89-4357-83ff-557735207a6d",
+            "status": "reported",
+            "tokens": "40000",
+            "input_tokens": "5058",
+            "output_tokens": "283",
+            "request_metrics": {
+              "thinking": false,
+              "schemaBytes": 686,
+              "inboxOmitted": null,
+              "messageBytes": 19384,
+              "queueDelayMs": 35,
+              "requestBytes": 20070,
+              "inboxDelivered": null,
+              "inputLimitBytes": 24000,
+              "maxOutputTokens": 512,
+              "reasoningEffort": null,
+              "contextWindowTokens": 32768,
+              "decisionFeedbackCode": null,
+              "quotedOptionsOmitted": null,
+              "decisionFeedbackRetryable": null
+            },
+            "response_metrics": {
+              "elapsedMs": 16014,
+              "endToEndMs": 16049,
+              "elapsedScope": "provider",
+              "finishReason": null,
+              "generationMs": null,
+              "decisionError": null,
+              "finalTextChars": 885,
+              "firstContentMs": null,
+              "reasoningChars": null,
+              "providerExecutionMs": 16014
+            }
+          }
+        ],
+        "turns": [
+          {
+            "id": "1ca478df-8e08-48e4-8b89-37f0668eaacf",
+            "state": "finished",
+            "code": "WAIT",
+            "calls": 1,
+            "actions": 0,
+            "unknown_usage": false,
+            "started_at": "2026-11-02T11:30:39.244Z",
+            "finished_at": "2026-11-02T11:30:56.116Z"
+          }
+        ],
+        "coverage": [
+          {
+            "version": "fleet.coverage/v1",
+            "runId": "task:dda84db7-0625-44e5-8b3f-1d3416c3f56b",
+            "status": "complete",
+            "expected": 3,
+            "recorded": 3,
+            "missing": [],
+            "eventCount": 65,
+            "byteCoverage": {
+              "expected": "894148",
+              "recorded": "894148",
+              "status": "complete"
+            },
+            "reasons": []
+          }
+        ],
+        "commands": 0
+      },
+      "closureVerification": {
+        "status": "pass",
+        "restores": [
+          {
+            "database": "fleet_retry_9a72fb3e",
+            "restore": "loop_restore_fleet_9a72fb3e",
+            "tables": 117,
+            "canonicalMatch": true,
+            "dumpSha256": "dccca168bcd3f2ba40c258632fd9d7caa8db89b787799be8eeeb9dfe7dd07d28"
+          },
+          {
+            "database": "pact_retry_9a72fb3e",
+            "restore": "loop_restore_pact_9a72fb3e",
+            "tables": 167,
+            "canonicalMatch": true,
+            "dumpSha256": "af9f27eea9cfe2357fff0a36a6a8c3109658dbe898c78658e8a5a69377ad5515"
+          },
+          {
+            "database": "temporal",
+            "restore": "loop_restore_temporal_9a72fb3e",
+            "tables": 40,
+            "canonicalMatch": true,
+            "dumpSha256": "c1fd134ad8adb83790cff32e9a2a4b4b90b1debd21f0f00830719382274d8db5"
+          },
+          {
+            "database": "temporal_visibility",
+            "restore": "loop_restore_temporal_visibility_9a72fb3e",
+            "tables": 3,
+            "canonicalMatch": true,
+            "dumpSha256": "aa7196a0a8c5d04dd9f9a27db0d64925bd7b394f26f8a75f27916ddf7ff62b00"
+          }
+        ],
+        "world": {
+          "status": "paused",
+          "tick_sequence": "45"
+        },
+        "native": {
+          "runningTurns": 0,
+          "allocations": 1,
+          "unknowns": 0,
+          "capacityLeases": 0,
+          "activeWorkerSessions": 0,
+          "commands": 0
+        },
+        "stoppedProcesses": {
+          "controller": true,
+          "rules": true,
+          "provider": true,
+          "awake": true,
+          "watchdog": true
+        },
+        "stateTree": {
+          "files": 38,
+          "bytes": 1490098,
+          "sha256Match": true
+        },
+        "restoredEvidence": {
+          "artifactsVerified": 61,
+          "bytesVerified": 894148,
+          "coverage": {
+            "version": "fleet.coverage/v1",
+            "runId": "task:dda84db7-0625-44e5-8b3f-1d3416c3f56b",
+            "status": "complete",
+            "expected": 3,
+            "recorded": 3,
+            "missing": [],
+            "eventCount": 65,
+            "byteCoverage": {
+              "expected": "894148",
+              "recorded": "894148",
+              "status": "complete"
+            },
+            "reasons": []
+          }
+        },
+        "preservation": {
+          "at": "2026-11-02T12:18:56.081109+00:00",
+          "originalContainers": 67,
+          "containerConfigDifferences": [],
+          "originalVolumes": 115,
+          "originalVolumeDefinitionsMatch": true,
+          "services": [
+            {
+              "name": "fleet-mac-nemotron-db",
+              "state": "running",
+              "health": "healthy"
+            },
+            {
+              "name": "automated-traffic-service-db-1",
+              "state": "running",
+              "health": "healthy"
+            },
+            {
+              "name": "toolbox-document-worker",
+              "state": "running",
+              "health": "healthy"
+            }
+          ]
+        }
+      },
+      "closedAtUtc": "2026-11-02T12:16:25.912000+00:00"
     }
   ]
 }
