@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import { Connection } from "@temporalio/client";
+import { msToTs } from "@temporalio/common/time";
 import { expect, test } from "vitest";
 import { compileManifest } from "../../src/research/manifests/compiler.js";
 import { ManifestRepository } from "../../src/research/manifests/repository.js";
@@ -12,12 +13,13 @@ const address = process.env.FLEET_QUALIFICATION_TEMPORAL_ADDRESS;
 test.skipIf(!address)(
   "owned Temporal SDK closes after a waiting review and resumes only a new wake",
   async () => {
+    if (!address) throw new Error("QUALIFICATION_ADDRESS_REQUIRED");
     expect(address).toMatch(/^127\.0\.0\.1:\d+$/);
     const namespace = `fleet-synthetic-lifecycle-${randomUUID()}`;
     const connection = await Connection.connect({ address });
     await connection.workflowService.registerNamespace({
       namespace,
-      workflowExecutionRetentionPeriod: { seconds: 86400 },
+      workflowExecutionRetentionPeriod: msToTs("1 day"),
     });
     await connection.close();
     const f = await platformFixture(1);
@@ -75,7 +77,7 @@ test.skipIf(!address)(
           store: f.store,
           tasks: f.tasks,
           run: (claim) => host.host.run(claim),
-          address: address!,
+          address,
           namespace,
           manifestDigest: actor.digest,
           admissionOpen: () => true,
