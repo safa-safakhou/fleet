@@ -183,8 +183,10 @@ export function packPactObservation(observation: Observation, byteLimit: number)
     payload: { ...(requestedRead === undefined ? {} : { requestedRead }) } as Data,
     coverage: { ...observation.coverage, packed: true },
   };
-  const overhead = Buffer.byteLength(JSON.stringify(base));
-  const environment = compactEnvironment(compactFacts(facts), byteLimit - overhead - 64);
+  // Measure the actual wrapper, including a possible requested-read comma.
+  // A fixed reserve can falsely refuse a whole mandatory peer at the limit.
+  const overhead = Buffer.byteLength(JSON.stringify({ ...base, payload: { ...base.payload, environment: null } })) - 4;
+  const environment = compactEnvironment(compactFacts(facts), byteLimit - overhead, { compactCoverage: true });
   return { ...base, payload: { ...base.payload, environment } };
 }
 

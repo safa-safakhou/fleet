@@ -50,12 +50,23 @@ export function compactBriefingGuidance(value: unknown): Data {
   return { ...briefing, ...(omitted.length ? { guidanceOmitted: omitted } : {}) };
 }
 
-export function compactEnvironment(environment: Data, limit: number): Data {
+export function compactEnvironment(
+  environment: Data,
+  limit: number,
+  options: { compactCoverage?: boolean } = {},
+): Data {
   if (bytes(environment) <= limit) return environment;
   const output: Data = Object.fromEntries(core.filter((k) => k in environment).map((k) => [k, environment[k]]));
   Object.assign(output, compactCurrentFacts(output));
+  // Preserve every coverage row; measure the same reversible table delivered
+  // to the model while page selection continues to update its ordinary map.
+  const packedOutput = () =>
+    options.compactCoverage
+      ? { ...output, coverage: { ...object(output.coverage), pages: factTable(pageCoverage) } }
+      : output;
+  const outputBytes = () => bytes(packedOutput());
   const fitGuidance = (extra = 0) => {
-    if (bytes(output) + extra > limit && output.agentBriefing)
+    if (outputBytes() + extra > limit && output.agentBriefing)
       output.agentBriefing = compactBriefingGuidance(output.agentBriefing);
   };
   const coverage: Data = { complete: false, omittedFields: [], pages: {} };
@@ -100,7 +111,7 @@ export function compactEnvironment(environment: Data, limit: number): Data {
       };
     }
     fitGuidance();
-    if (bytes(output) > limit) throw new FleetError("CONTEXT_LIMIT");
+    if (outputBytes() > limit) throw new FleetError("CONTEXT_LIMIT");
   }
   const discovery = object(environment.publicDiscovery);
   const discovered = Array.isArray(discovery.players)
@@ -137,7 +148,7 @@ export function compactEnvironment(environment: Data, limit: number): Data {
     if (index >= 0) omitted.splice(index, 1);
   }
   fitGuidance(discovered.length ? bytes(discovered[0]) + 64 : 0);
-  if (bytes(output) > limit) throw new FleetError("CONTEXT_LIMIT");
+  if (outputBytes() > limit) throw new FleetError("CONTEXT_LIMIT");
   const candidates = pageKinds.map((key) => {
     const values =
       key === "publicDiscovery"
@@ -160,7 +171,7 @@ export function compactEnvironment(environment: Data, limit: number): Data {
       kept.push(values[n]);
       const prior = pageCoverage[key];
       pageCoverage[key] = { observed: values.length, retained: kept.length, omitted: values.length - kept.length };
-      if (bytes(output) > limit) {
+      if (outputBytes() > limit) {
         kept.pop();
         pageCoverage[key] = prior;
       }
@@ -178,7 +189,7 @@ export function compactEnvironment(environment: Data, limit: number): Data {
         delivered: kept.length,
         omittedFromThisInput: socialRecords.length - kept.length,
       };
-      if (bytes(output) > limit) {
+      if (outputBytes() > limit) {
         kept.pop();
         socialOut.coverage = {
           ...object(social.coverage),
@@ -200,12 +211,12 @@ export function compactEnvironment(environment: Data, limit: number): Data {
     output[key] = environment[key];
     const index = omitted.indexOf(key);
     if (index >= 0) omitted.splice(index, 1);
-    if (bytes(output) > limit) {
+    if (outputBytes() > limit) {
       delete output[key];
       omitted.push(key);
     }
   }
-  return output;
+  return packedOutput();
 }
 
 /** Reversible representation only; selection and coverage remain with each view policy. */

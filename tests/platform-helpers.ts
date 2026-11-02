@@ -22,7 +22,7 @@ export async function platformFixture(capacity = 2) {
     key = randomUUID();
   async function cohort(
     count = 2,
-    settings?: { model?: import("../src/domain.js").ModelSettings; concurrency?: number },
+    settings?: { model?: import("../src/domain.js").ModelSettings; concurrency?: number; deadlineAt?: string },
   ) {
     const { id } = await f.store.create({
       name: "Synthetic boards",
@@ -33,7 +33,11 @@ export async function platformFixture(capacity = 2) {
     });
     await f.store.configure(id, {
       model: settings?.model ?? { route: "ollama", model: "fake-model" },
-      budget: { ...budget, concurrency: settings?.concurrency ?? 4 },
+      budget: {
+        ...budget,
+        deadlineAt: settings?.deadlineAt ?? budget.deadlineAt,
+        concurrency: settings?.concurrency ?? 4,
+      },
     });
     await tasks.enroll(id, profile);
     const agents = (await f.pool.query("SELECT id FROM agents WHERE cohort_id=$1 ORDER BY ordinal", [id])).rows;

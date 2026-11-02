@@ -52,17 +52,25 @@ const profiles = [
   "specialist-coordinator@1",
   "autonomous-specialists@1",
 ];
+let boundedPopulationReady = false;
 const prerequisiteOwners: { kingdomId: string; token: string }[] = [];
 
 it.each(
   profiles.flatMap((profile) =>
     ["prerequisite", "introduction", "message"].flatMap((phase) =>
-      ["http-fixture", "codex-fixture"].map((provider) => ({ profile, phase, provider })),
+      ["http-fixture", "codex-fixture", ...(profile === "reactive-basic@1" ? ["bounded-ollama-fixture"] : [])].map(
+        (provider) => ({ profile, phase, provider }),
+      ),
     ),
   ),
 )(
   "$profile completes native $phase through real MCP and the durable host using $provider",
   async ({ profile, phase, provider }) => {
+    const bounded = provider === "bounded-ollama-fixture";
+    if (bounded && !boundedPopulationReady) {
+      for (let n = 0; n < 24; n++) await pact.addOwner();
+      boundedPopulationReady = true;
+    }
     const f = await fixture(),
       owner = await pact.addOwner();
     const cli = provider === "codex-fixture" ? await codexFixture("custom") : undefined;
@@ -142,9 +150,11 @@ it.each(
       ]);
     await store.configure(group.id, {
       model: {
-        ...(cli
-          ? { route: "codex-cli", model: "synthetic-model" }
-          : { route: "openai-compatible", provider: "vllm", model: "nemotron-4b", contextWindowTokens: 65536 }),
+        ...(bounded
+          ? { route: "ollama", model: "synthetic-nemotron-4b", thinking: false }
+          : cli
+            ? { route: "codex-cli", model: "synthetic-model" }
+            : { route: "openai-compatible", provider: "vllm", model: "nemotron-4b", contextWindowTokens: 65536 }),
         ...(id === "legacy-cognition" ? { cognition: "llm-centered-v1" } : {}),
       },
       budget: {
@@ -152,10 +162,10 @@ it.each(
         callLimit: 100,
         tokenLimit: 4000000,
         deadlineAt: new Date(Date.now() + 600000).toISOString(),
-        perCallTokenLimit: cli ? 40000 : 65536,
-        maxOutputTokens: 8192,
-        inputByteLimit: cli ? 64000 : 128000,
-        maxCallsPerTurn: 3,
+        perCallTokenLimit: bounded || cli ? 40000 : 65536,
+        maxOutputTokens: bounded ? 512 : 8192,
+        inputByteLimit: bounded ? 24000 : cli ? 64000 : 128000,
+        maxCallsPerTurn: bounded ? 2 : 3,
         maxActionsPerTurn: 1,
         concurrency: 1,
         executionAccountingAccepted: true,
@@ -211,6 +221,7 @@ it.each(
       ]);
     const preview = await pact.game(owner.token),
       nativeFacts = await pactAdapter.initial(preview, owner.kingdomId);
+    const expectedReadNames = (await preview.tools()).filter(pactAdapter.isRead).map((t) => t.name);
     await preview.close();
     if (phase === "prerequisite") expect(pactWaitSchema(nativeFacts)).toBeDefined();
     const targetAction: Data =
@@ -229,7 +240,7 @@ it.each(
             };
     let calls = 0,
       callsThisTurn = 0,
-      rejectedIdle = phase !== "prerequisite";
+      rejectedIdle = bounded || phase !== "prerequisite";
     const schemaFallbacks: Data[] = [];
     model = {
       decide: async (request) => {
@@ -238,7 +249,8 @@ it.each(
         expect(callsThisTurn).toBeLessThanOrEqual(3);
         expect(
           Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.schema)),
-        ).toBeLessThanOrEqual(128000);
+        ).toBeLessThanOrEqual(bounded ? 24000 : 128000);
+        if (bounded) expect(request.maxOutputTokens).toBe(512);
         collectedPackets.push({
           profile,
           phase,
@@ -255,6 +267,11 @@ it.each(
           }
         });
         const p = packets.find((p) => p.stage === "worker" || p.stage === "coordinator") ?? packets[0];
+        if (bounded) {
+          const expanded = object(expandFactTables(p));
+          expect((expanded.catalog as Data[]).map((t) => t.name)).toEqual(expectedReadNames);
+          expect((expanded.catalog as Data[]).every((t) => object(t.annotations).readOnlyHint === true)).toBe(true);
+        }
         let decision: Data;
         if (p.stage === "coordinator")
           decision = {

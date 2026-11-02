@@ -264,3 +264,33 @@ it("fits native PACT briefing tables without removing whole current facts", asyn
   await new ReactiveEngine().run(decisionProbe(ctx));
   expect(calls).toBe(1);
 });
+
+it("tests the smallest whole view when escaped-envelope correction overshoots its boundary", async () => {
+  let requests = 0;
+  const ctx = decisionProbe(
+    reactiveProbe(async (_claim, request) => {
+      requests++;
+      expect(
+        Buffer.byteLength(JSON.stringify(request.messages)) + Buffer.byteLength(JSON.stringify(request.schema)),
+      ).toBeLessThanOrEqual(24000);
+      expect(JSON.parse(request.messages[1].content).observation.payload.required).toBe('"'.repeat(4500));
+      return { decision: { kind: "wait", summary: "Current facts retained" }, inputTokens: 1, outputTokens: 1 };
+    }),
+  );
+  ctx.observation.payload = { original: "x".repeat(40000) };
+  let refused = false;
+  ctx.packObservation = (observation, limit) => {
+    if (limit < 12000) {
+      refused = true;
+      throw new FleetError("CONTEXT_LIMIT", true);
+    }
+    return {
+      ...observation,
+      payload: { required: '"'.repeat(4500), ...(limit >= 20000 ? { optionalHistory: '"'.repeat(4000) } : {}) },
+    };
+  };
+  await new BoundedDecisionStep().runContext(ctx);
+  expect(refused).toBe(true);
+  expect(requests).toBe(1);
+  expect(ctx.observation.payload).toEqual({ original: "x".repeat(40000) });
+});

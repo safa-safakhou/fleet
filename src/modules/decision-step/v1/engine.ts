@@ -1,6 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { z } from "zod";
 import { type Data, FleetError, object, type Tool } from "../../../domain.js";
+import { factTable } from "../../../fact-table.js";
 import { currentOwnerObjectiveInstruction } from "../../../owner-guidance.js";
 import type { ScopedOperation, ScopedServices } from "../../../platform/engine-context.js";
 import { shareGenerationSchema } from "../../generation-schema/v1.js";
@@ -163,7 +164,37 @@ export class BoundedDecisionStep {
             // Retry only a known packing failure after removing an optional
             // extension record. The original authorized observation never changes.
             if (!(error instanceof FleetError) || error.code !== "CONTEXT_LIMIT") throw error;
+            // The byte correction includes escaped JSON and a safety margin. It
+            // may step below the smallest whole-record view even though that
+            // view fits. Search that boundary before deleting optional context.
+            let lower = 1;
+            let upper = Buffer.byteLength(JSON.stringify(original));
+            let smallest: typeof observation | undefined;
+            while (lower <= upper) {
+              const middle = Math.floor((lower + upper) / 2);
+              try {
+                smallest = ctx.packObservation(original, middle);
+                upper = middle - 1;
+              } catch (packingError) {
+                if (!(packingError instanceof FleetError) || packingError.code !== "CONTEXT_LIMIT") throw packingError;
+                lower = middle + 1;
+              }
+            }
+            if (smallest) {
+              payload.observation = smallest;
+              if (fits()) break;
+            }
             if (this.reduceExtension(payload)) continue;
+            // Reclaim repeated capability metadata before refusing protected state.
+            // Whole-row encoding retains every name and read-only flag; no schema
+            // or authorization rule changes, and the final envelope is remeasured.
+            if (Array.isArray(payload.catalog)) {
+              const encoded = factTable(payload.catalog);
+              if (Buffer.byteLength(JSON.stringify(encoded)) < Buffer.byteLength(JSON.stringify(payload.catalog))) {
+                payload.catalog = encoded;
+                continue;
+              }
+            }
             // Trigger references explain scheduling; they do not replace the
             // authoritative current observation. Coalesced event bursts must
             // share the same envelope allowance as optional retained memory.

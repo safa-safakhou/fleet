@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import { fitMessages } from "../../src/context.js";
 import { decisionSchema } from "../../src/domain.js";
+import { expandFactTables } from "../../src/fact-table.js";
 import { boundedReads, narrowRead } from "../../src/games/pact/context.js";
 import { compactEnvironment } from "../../src/games/pact/environment.js";
 import { agentStatus } from "../../web/observe.js";
@@ -181,4 +182,19 @@ it("refuses to silently fit a populated world as an empty shortlist", () => {
     publicDiscovery: { players: [{ kingdomId: "observed-global", handle: "global", displayName: "界".repeat(4000) }] },
   };
   expect(() => compactEnvironment(source, 2000)).toThrow("CONTEXT_LIMIT");
+});
+
+it("keeps native packed page coverage reversible without changing legacy coverage shape", () => {
+  const packed = compactEnvironment(environment, 2400, { compactCoverage: true });
+  const decoded = expandFactTables(packed) as typeof packed;
+  const coverage = decoded.coverage as {
+    pages: Record<string, { observed: number; retained: number; omitted: number }>;
+  };
+  for (const key of ["contactRequests", "openSupplyOffers", "contracts"]) {
+    const row = coverage.pages[key];
+    expect(row.observed).toBe(environment[key as "contactRequests" | "contracts" | "openSupplyOffers"].length);
+    expect(row.retained + row.omitted).toBe(row.observed);
+  }
+  expect(Buffer.byteLength(JSON.stringify(packed))).toBeLessThanOrEqual(2400);
+  expect((compactEnvironment(environment, 2400).coverage as { pages: unknown }).pages).not.toHaveProperty("factTable");
 });
