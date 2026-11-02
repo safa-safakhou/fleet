@@ -67,7 +67,7 @@
   "watchdogSha256": "73d7459f8270449c76d972faab0f5f3f43a9c695c0c6f92633ec26cd1b10cdaa",
   "watchdogExecutableSha256": "26e421d533fc81b727d6463d3f8ce54ea60aadc8903092f7ea18ca877247a4ae",
   "inspectionOrigin": "http://127.0.0.1:61432",
-  "status": "sealed; launch authorized; awaiting controller",
+  "status": "closed early for operator waiting-state defect; safe closure independently verified",
   "ledger": ".superpowers/sdd/2026-11-02-kingdoms24/",
   "initialPackets": {
     "kingdoms": 24,
@@ -379,5 +379,51 @@
     "One exploratory shared world; two opportunities per kingdom; single inference slot.",
     "Initial request fit proven; future state/model decisions can still be refused by native guards.",
     "Owner-accepted historical16.29% latency still fails the original10% qualification gate."
-  ]
+  ],
+  "actual": {
+    "closedAtUtc": "2026-11-02T13:12:01.260000+00:00",
+    "reason": "OPERATOR_STOP:WORKER_STOP_PENDING:FLUSH_FAILED",
+    "world": {
+      "status": "paused",
+      "tick": "1",
+      "gameTimeMs": 1793623620000
+    },
+    "turns": 2,
+    "calls": 2,
+    "inputTokens": 11083,
+    "outputTokens": 499,
+    "commands": 0,
+    "coverageEvents": 136,
+    "coverageBytes": 2391735,
+    "restoredTables": 327,
+    "restoredArtifacts": 130,
+    "restoredStateFiles": 20,
+    "unknowns": 0,
+    "runningTurns": 0,
+    "capacityLeases": 0,
+    "stoppedProcesses": {
+      "controller": true,
+      "rules": true,
+      "provider": true,
+      "awake": true,
+      "watchdog": true
+    }
+  },
+  "cause": "Operator treated only completed as a finished opportunity; a valid WAIT with untilNextEvent projects to waiting and legitimately awaits a new source delivery. It stalled the round-robin despite successful native settlement.",
+  "closureFollowUp": {
+    "originalFlagsRetained": "OPERATOR_STOP:WORKER_STOP_PENDING:FLUSH_FAILED",
+    "evidenceAndTelemetryPostStop": {
+      "evidence": "pass",
+      "telemetry": "pass",
+      "pending": [
+        {
+          "state": "exported",
+          "n": 136
+        }
+      ],
+      "capacity": 0
+    },
+    "independentClosureVerification": "pass",
+    "note": "The initial close reported pending worker/flush stages. Independent process/native/evidence/restore checks resolve execution/data preservation; bounded telemetry drain corrected from invalid10000 to allowed500. Future release errors record stage and safe code instead of hiding the exception."
+  }
 }
