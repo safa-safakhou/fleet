@@ -146,7 +146,21 @@
     "minimumReserveGiB": 10,
     "nextPreparationThresholdGiB": 14,
     "swapUsage": "vm.swapusage: total = 14848.00M  used = 13841.62M  free = 1006.38M  (encrypted)",
-    "note": "Available space includes ongoing OS swap reclamation and installation consumption; cache cleanup total is not final net free-space gain. No swap files, personal media, model weights, Docker data or private evidence deleted."
+    "note": "Available space includes ongoing OS swap reclamation and installation consumption; cache cleanup total is not final net free-space gain. No swap files, personal media, model weights, Docker data or private evidence deleted.",
+    "latestResourceCheck": {
+      "at": "2026-11-02T18:06:47.418615+00:00",
+      "freeGiB": 5.12,
+      "reserveGiB": 10,
+      "resumeThresholdGiB": 14,
+      "swap": "vm.swapusage: total = 14848.00M  used = 13681.62M  free = 1166.38M  (encrypted)",
+      "monitor": {
+        "id": "watch-nemotron-advisory-retry",
+        "name": "Fleet vLLM storage readiness and fresh hour",
+        "status": "ACTIVE",
+        "rrule": "FREQ=MINUTELY;INTERVAL=5"
+      },
+      "liveGameRunning": false
+    }
   },
   "preservation": {
     "at": "2026-11-02T18:01:39.510407+00:00",

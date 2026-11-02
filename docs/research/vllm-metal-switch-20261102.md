@@ -29,3 +29,6 @@ Final measured availability and swap are in the linked JSON. macOS still holds r
 ## Upstream references
 
 [Official Metal installation](https://docs.vllm.ai/projects/vllm-metal/en/latest/installation/), [supported models](https://docs.vllm.ai/projects/vllm-metal/en/latest/supported_models/), [Nemotron GGUF exclusion](https://docs.vllm.ai/projects/vllm-metal/en/latest/gguf/), [pinned Metal planner source](https://github.com/vllm-project/vllm-metal/blob/v0.32.0/vllm_metal/v1/cache_policy.py), [pinned MLX checkpoint](https://huggingface.co/mlx-community/NVIDIA-Nemotron-3-Nano-4B-4bit/tree/c4d79ba1901d99806ef757642a552acebb851a35).
+
+
+Quiet follow-up `watch-nemotron-advisory-retry` is ACTIVE every5minutes. It checks storage/memory without starting a provider while free space is below14GiB; once headroom and memory return, it continues the selected repair qualification and fresh preparation. The latest resource sample is5.12GiB free, with13,681.62MiB used swap. It does not replace any future controller/watchdog, authorize replay/refund, or imply that the hour has started.
