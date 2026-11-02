@@ -1,5 +1,5 @@
 {
-  "status": "sealed",
+  "status": "closed_failed; full hour not completed",
   "world": "fleet-small-20261102-1479dd0f",
   "privateLedger": ".superpowers/sdd/2026-11-02-smaller-vllm-01",
   "kingdoms": 16,
@@ -19,11 +19,7 @@
   "limits": {
     "maxGlobalRequests": 8,
     "initialRequests": 2,
-    "ramp": [
-      2,
-      4,
-      8
-    ],
+    "ramp": [2, 4, 8],
     "sharedPool": 16,
     "manualTemporalWorkers": 16,
     "perKingdomCalls": 48,
@@ -59,11 +55,7 @@
     "focusedIntegrations": {
       "passed": 13,
       "files": 3,
-      "scope": [
-        "all-path evidence capture",
-        "binding ownership",
-        "specialist delivery"
-      ]
+      "scope": ["all-path evidence capture", "binding ownership", "specialist delivery"]
     },
     "preparationNativeCounts": {
       "turns": 0,
@@ -73,13 +65,16 @@
     },
     "sharedPacketMaxBytes": 42044,
     "packetScope": "common PACT observation baseline only; actual profile requests retain native dispatch guards",
-    "watchdogSelfTest": [
-      "normal",
-      "hard end",
-      "heartbeat loss",
-      "clock disagreement"
-    ],
-    "operatorSyntax": "pass"
+    "watchdogSelfTest": ["normal", "hard end", "heartbeat loss", "clock disagreement"],
+    "operatorSyntax": "pass",
+    "sourceFix": {
+      "rootUnitsPassed": 1294,
+      "rootUnitSkips": 23,
+      "focusedIntegrationsPassed": 14,
+      "typesStyleBuildBoundaries": "pass",
+      "redGreenRegression": "passed after reproducing absent model.request evidence",
+      "historicalLegacyBaseline": "original digest unchanged; exact reviewed rejection-capture exception only"
+    }
   },
   "operatorSha256": {
     "control.mjs": "58076a427bf9570ea7b75753b974f707f21884b573c4776e2d47a4840b9ac405",
@@ -125,5 +120,452 @@
     "11af33700a03c66693f3df3ff848bcc479de114a52ea3e81b3360d3309ef386b",
     "204ba3761155a4f15f071108eefc7f9e766653355e374a64cae326cdc751c245"
   ],
-  "providerPinsSha256": "bb45831df7cbb1341e4c71d99f89f510e9741fdcac1eee15a8eebdfb927417d0"
+  "providerPinsSha256": "bb45831df7cbb1341e4c71d99f89f510e9741fdcac1eee15a8eebdfb927417d0",
+  "sourceFix": {
+    "commit": "80b2be4",
+    "scope": "Capture allocated requests rejected before provider invocation in native/legacy paths",
+    "acceptance": "source verified only; no new inference, historical gaps/unknowns unchanged"
+  },
+  "result": {
+    "reason": "UNKNOWN_USAGE",
+    "closedAtUtc": "2026-11-02T20:58:44.444000+00:00",
+    "elapsedToClosureMs": 132488,
+    "world": {
+      "status": "paused",
+      "tick": "2",
+      "gameTimeMs": 1793651460000
+    },
+    "turns": 9,
+    "providerDispatchedCalls": 8,
+    "reportedCalls": 5,
+    "knownInputTokens": 37220,
+    "knownOutputTokens": 1092,
+    "unknownCalls": 3,
+    "unknownReservedTokens": 120000,
+    "notDispatched": 2,
+    "gameplayCommands": 0,
+    "peakNativeAllocations": 4,
+    "peakBindingGrants": 4,
+    "peakProviderRunning": 4,
+    "peakProviderWaiting": 2,
+    "providerFinalCounters": {
+      "running": 0,
+      "waiting": 0,
+      "preemptions": 0,
+      "promptTokens": 62281,
+      "outputTokens": 2374
+    },
+    "nativeFailureCodes": [
+      {
+        "code": "HOST_STOPPED",
+        "dispatched": true,
+        "allocationId": "b3376be8-7bd6-463b-9034-ea29e58e1fa8",
+        "fromAllocationToTurnFinishMs": 28482
+      },
+      {
+        "code": "MODEL_DEADLINE_EXCEEDED",
+        "dispatched": true,
+        "allocationId": "d775dd43-1a24-49c0-969a-bc39132a6d7a",
+        "fromAllocationToTurnFinishMs": 90392
+      },
+      {
+        "code": "MODEL_DEADLINE_EXCEEDED",
+        "dispatched": true,
+        "allocationId": "570277c4-8399-4641-af6f-332f7ba8be1f",
+        "fromAllocationToTurnFinishMs": 90395
+      }
+    ],
+    "timing": [
+      {
+        "code": "MODEL_ADMISSION_DEFERRED",
+        "notDispatched": true,
+        "elapsedMs": 3
+      },
+      {
+        "code": "MODEL_ADMISSION_DEFERRED",
+        "notDispatched": true,
+        "elapsedMs": 5
+      },
+      {
+        "code": "MODEL_DEADLINE_EXCEEDED",
+        "notDispatched": false,
+        "elapsedMs": 90113,
+        "progress": {
+          "firstContentMs": 43590.72533399999,
+          "elapsedMs": 90033.16704199999,
+          "contentChars": 1232,
+          "chunks": 546,
+          "maxWhitespaceRun": 0,
+          "finishReason": null,
+          "reasoningChars": 0,
+          "wireBytes": 131892
+        }
+      },
+      {
+        "code": "MODEL_DEADLINE_EXCEEDED",
+        "notDispatched": false,
+        "elapsedMs": 90106,
+        "progress": {
+          "firstContentMs": 42805.770583000005,
+          "elapsedMs": 90018.89166699999,
+          "contentChars": 1248,
+          "chunks": 548,
+          "maxWhitespaceRun": 0,
+          "finishReason": null,
+          "reasoningChars": 0,
+          "wireBytes": 132396
+        }
+      },
+      {
+        "code": "HOST_STOPPED",
+        "notDispatched": false,
+        "elapsedMs": 28361,
+        "progress": {
+          "firstContentMs": 21802.47445800004,
+          "elapsedMs": 28258.870832999994,
+          "contentChars": 715,
+          "chunks": 190,
+          "maxWhitespaceRun": 0,
+          "finishReason": null,
+          "reasoningChars": 0,
+          "wireBytes": 46197
+        }
+      }
+    ],
+    "minMemoryAvailabilityPercent": 43,
+    "peakDatabasePoolWaiting": 0,
+    "logicalQueueMs": {
+      "mean": 51065.11111111111,
+      "max": 127587,
+      "p95": 127587
+    },
+    "stageErrors": []
+  },
+  "kingdomResults": [
+    {
+      "index": 0,
+      "name": "legacy-loop-1-1",
+      "profile": "legacy-loop@1",
+      "trigger": "scheduled",
+      "turns": 1,
+      "reportedCalls": 1,
+      "unknownCalls": 0,
+      "notDispatched": 1,
+      "nativeCodes": ["MODEL_ADMISSION_DEFERRED"],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": 86957
+    },
+    {
+      "index": 1,
+      "name": "legacy-loop-1-2",
+      "profile": "legacy-loop@1",
+      "trigger": "scheduled",
+      "turns": 1,
+      "reportedCalls": 1,
+      "unknownCalls": 0,
+      "notDispatched": 1,
+      "nativeCodes": ["MODEL_ADMISSION_DEFERRED"],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": 36319
+    },
+    {
+      "index": 2,
+      "name": "legacy-cognition-1-1",
+      "profile": "legacy-cognition@1",
+      "trigger": "scheduled",
+      "turns": 1,
+      "reportedCalls": 0,
+      "unknownCalls": 0,
+      "notDispatched": 0,
+      "nativeCodes": ["CLAIM_FENCED"],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": 127587
+    },
+    {
+      "index": 3,
+      "name": "legacy-cognition-1-2",
+      "profile": "legacy-cognition@1",
+      "trigger": "scheduled",
+      "turns": 0,
+      "reportedCalls": 0,
+      "unknownCalls": 0,
+      "notDispatched": 0,
+      "nativeCodes": [],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": null
+    },
+    {
+      "index": 4,
+      "name": "reactive-basic-1-1",
+      "profile": "reactive-basic@1",
+      "trigger": "scheduled",
+      "turns": 1,
+      "reportedCalls": 0,
+      "unknownCalls": 1,
+      "notDispatched": 0,
+      "nativeCodes": ["HOST_STOPPED"],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": 99170
+    },
+    {
+      "index": 5,
+      "name": "reactive-basic-1-2",
+      "profile": "reactive-basic@1",
+      "trigger": "hybrid",
+      "turns": 0,
+      "reportedCalls": 0,
+      "unknownCalls": 0,
+      "notDispatched": 0,
+      "nativeCodes": [],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": null
+    },
+    {
+      "index": 6,
+      "name": "reactive-cognition-1-1",
+      "profile": "reactive-cognition@1",
+      "trigger": "scheduled",
+      "turns": 1,
+      "reportedCalls": 1,
+      "unknownCalls": 0,
+      "notDispatched": 0,
+      "nativeCodes": ["WAIT"],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": 298
+    },
+    {
+      "index": 7,
+      "name": "reactive-cognition-1-2",
+      "profile": "reactive-cognition@1",
+      "trigger": "hybrid",
+      "turns": 1,
+      "reportedCalls": 1,
+      "unknownCalls": 0,
+      "notDispatched": 0,
+      "nativeCodes": ["WAIT"],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": 36319
+    },
+    {
+      "index": 8,
+      "name": "reactive-cognition-2-1",
+      "profile": "reactive-cognition@2",
+      "trigger": "scheduled",
+      "turns": 0,
+      "reportedCalls": 0,
+      "unknownCalls": 0,
+      "notDispatched": 0,
+      "nativeCodes": [],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": null
+    },
+    {
+      "index": 9,
+      "name": "reactive-cognition-2-2",
+      "profile": "reactive-cognition@2",
+      "trigger": "hybrid",
+      "turns": 0,
+      "reportedCalls": 0,
+      "unknownCalls": 0,
+      "notDispatched": 0,
+      "nativeCodes": [],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": null
+    },
+    {
+      "index": 10,
+      "name": "reactive-cognition-1.1-1",
+      "profile": "reactive-cognition@1.1",
+      "trigger": "scheduled",
+      "turns": 1,
+      "reportedCalls": 1,
+      "unknownCalls": 0,
+      "notDispatched": 0,
+      "nativeCodes": ["WAIT"],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": 298
+    },
+    {
+      "index": 11,
+      "name": "reactive-cognition-1.1-2",
+      "profile": "reactive-cognition@1.1",
+      "trigger": "hybrid",
+      "turns": 0,
+      "reportedCalls": 0,
+      "unknownCalls": 0,
+      "notDispatched": 0,
+      "nativeCodes": [],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": null
+    },
+    {
+      "index": 12,
+      "name": "specialist-coordinator-1-1",
+      "profile": "specialist-coordinator@1",
+      "trigger": "scheduled",
+      "turns": 1,
+      "reportedCalls": 0,
+      "unknownCalls": 1,
+      "notDispatched": 0,
+      "nativeCodes": ["USAGE_UNKNOWN"],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": 36319
+    },
+    {
+      "index": 13,
+      "name": "specialist-coordinator-1-2",
+      "profile": "specialist-coordinator@1",
+      "trigger": "hybrid",
+      "turns": 1,
+      "reportedCalls": 0,
+      "unknownCalls": 1,
+      "notDispatched": 0,
+      "nativeCodes": ["USAGE_UNKNOWN"],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": 36319
+    },
+    {
+      "index": 14,
+      "name": "autonomous-specialists-1-1",
+      "profile": "autonomous-specialists@1",
+      "trigger": "scheduled",
+      "turns": 0,
+      "reportedCalls": 0,
+      "unknownCalls": 0,
+      "notDispatched": 0,
+      "nativeCodes": [],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": null
+    },
+    {
+      "index": 15,
+      "name": "autonomous-specialists-1-2",
+      "profile": "autonomous-specialists@1",
+      "trigger": "hybrid",
+      "turns": 0,
+      "reportedCalls": 0,
+      "unknownCalls": 0,
+      "notDispatched": 0,
+      "nativeCodes": [],
+      "gameplayCommands": 0,
+      "maxLogicalQueueMs": null
+    }
+  ],
+  "preservation": {
+    "status": "closed_preserved_but_qualification_failed",
+    "restores": [
+      {
+        "database": "fleet_retry_1479dd0f",
+        "restore": "fail_small_restore_fleet_1479dd0f",
+        "tables": 118,
+        "canonicalMatch": true,
+        "verification": "existing snapshot/restore rechecked; no repeated restore"
+      },
+      {
+        "database": "pact_retry_1479dd0f",
+        "restore": "fail_small_restore_pact_1479dd0f",
+        "tables": 167,
+        "canonicalMatch": true,
+        "verification": "existing snapshot/restore rechecked; no repeated restore"
+      },
+      {
+        "database": "temporal",
+        "restore": "fail_small_restore_temporal_1479dd0f",
+        "tables": 40,
+        "canonicalMatch": true,
+        "verification": "existing snapshot/restore rechecked; no repeated restore"
+      },
+      {
+        "database": "temporal_visibility",
+        "restore": "fail_small_restore_temporal_visibility_1479dd0f",
+        "tables": 3,
+        "canonicalMatch": true,
+        "verification": "existing snapshot/restore rechecked; no repeated restore"
+      }
+    ],
+    "restoredTables": 328,
+    "state": {
+      "files": 154,
+      "bytes": 27277154,
+      "sha256Match": true
+    },
+    "artifactReferencesVerified": 3229,
+    "artifactBytesVerified": 17795250,
+    "observer": {
+      "pages": 72,
+      "encryptedBytes": 110004,
+      "chainMatches": true,
+      "scopeConsentRetentionMatches": true
+    },
+    "native": {
+      "runningTurns": 0,
+      "allocations": 10,
+      "unknowns": 3,
+      "capacityLeases": 0,
+      "activeWorkerSessions": 0,
+      "commands": 0
+    },
+    "pendingCommands": 0,
+    "stoppedProcesses": {
+      "controller": true,
+      "rules": true,
+      "provider": true,
+      "providerGuard": true,
+      "awake": true,
+      "watchdog": true
+    },
+    "originalServices": {
+      "at": "2026-11-02T21:06:25.696729+00:00",
+      "originalContainers": 67,
+      "containerConfigDifferences": [],
+      "originalVolumes": 115,
+      "originalVolumeDefinitionsMatch": true,
+      "services": [
+        {
+          "name": "fleet-mac-nemotron-db",
+          "state": "running",
+          "health": "healthy"
+        },
+        {
+          "name": "automated-traffic-service-db-1",
+          "state": "running",
+          "health": "healthy"
+        },
+        {
+          "name": "toolbox-document-worker",
+          "state": "running",
+          "health": "healthy"
+        }
+      ]
+    },
+    "ownedGroups": {
+      "ownedProcessGroupsEmpty": {
+        "controller": [],
+        "provider": [],
+        "providerGuard": [],
+        "awake": [],
+        "watchdog": [],
+        "rules": []
+      },
+      "nativeEnginePidsStopped": [60108],
+      "freeHostGiB": 16.12
+    },
+    "allProtectedDockerAfterChecks": {
+      "at": "2026-11-02T21:16:43.721507+00:00",
+      "containers": 75,
+      "volumes": 121,
+      "substantiveDifferences": 0,
+      "mountOrderOnly": 1
+    }
+  },
+  "coverage": {
+    "status": "partial; qualification failed",
+    "completeScopes": 4,
+    "partialScopes": 5,
+    "unknownUsageScopes": 3,
+    "preInvocationBoundaryGapScopes": 2,
+    "recordedArtifactBytesMatchExpected": true,
+    "historicalGapsBackfilled": false
+  },
+  "next": "No fresh inference while the three new unknown allocations remain unresolved. Retain all reservations/null measurements; investigate provider per-request final accounting and qualify profile-specific serving latency before another ramp. No automatic live retry or deadline/validation relaxation."
 }
