@@ -683,6 +683,20 @@
       4,
       6
     ],
-    "requirement": "Explicit owner decision to preserve unresolved holds across a fresh independent experiment, or authoritative final usage resolution. Measure latency/memory before increasing actual inference concurrency. All old holds/tasks remain untouched."
+    "requirement": "Explicit owner decision to preserve unresolved holds across a fresh independent experiment, or authoritative final usage resolution. Measure latency/memory before increasing actual inference concurrency. All old holds/tasks remain untouched.",
+    "sourceCommit": "760a0bb",
+    "sourceValidation": {
+      "rootUnitPass": 1294,
+      "rootUnitSkipped": 23,
+      "routerTargetedPass": 7,
+      "typesStyleBuildBoundariesContracts": "pass; existing 405 warnings/83 infos and bundle warning retained",
+      "privateOperators": "syntax/watchdog self-tests pass; end-to-end qualification pending"
+    },
+    "postVerificationStorage": {
+      "freeHostGiB": 10.74,
+      "reserveGiB": 10,
+      "recordingHeadroomGiB": 0.74,
+      "status": "Requires prelaunch headroom assessment; full-hour storage not established"
+    }
   }
 }
