@@ -199,10 +199,7 @@
     "events": 24,
     "allocations": 0,
     "browserErrors": [],
-    "rendered": [
-      "actual rejected-turn timeline",
-      "actual rejected-turn causal graph"
-    ],
+    "rendered": ["actual rejected-turn timeline", "actual rejected-turn causal graph"],
     "workflowHistory": [
       {
         "workflowId": "fleet-task/97e7a26b-497d-4f24-9a8c-176764c33dda",

@@ -8,6 +8,7 @@ import { withEffectHooks } from "../../platform/effect-context.js";
 import type { ScopedServices } from "../../platform/engine-context.js";
 import type { TaskStore } from "../../platform/tasks.js";
 import type { Store } from "../../store.js";
+import { prepareObservedContext } from "../context/observed.js";
 import { preparePactContext } from "../context/pact.js";
 import { type BrokerResult, canonical, digest, type OperationKey, type RunScope } from "../contracts.js";
 import type { CaptureSession } from "../evidence/boundaries.js";
@@ -135,7 +136,7 @@ export class ResearchBroker {
       throw new FleetError("EVALUATION_PORT_REQUIRED", true);
     if (
       request.maxOutputTokens > Math.min(budget.maxOutputTokens, manifest.model.parameters.maxOutputTokens) ||
-      Buffer.byteLength(canonical(request)) > Math.min(budget.inputByteLimit, manifest.context.maxBytes)
+      Buffer.byteLength(canonical(request)) > 1048576
     )
       throw new FleetError("MODEL_REQUEST_NOT_ADMITTED", true);
     const requestBody = {
@@ -179,7 +180,39 @@ export class ResearchBroker {
                   ).vectors[0]
                 : undefined,
             )
-          : undefined;
+          : manifest.context.policy === "observed-pact@1"
+            ? await prepareObservedContext(
+                this.capture,
+                scope,
+                ctx.ports.observation,
+                ctx.ports.services.environment.packObservation,
+                request,
+                {
+                  maxBytes: Math.min(budget.inputByteLimit, manifest.context.maxBytes),
+                  maxTokens: manifest.context.maxTokens,
+                  nowMs: this.store.now().getTime(),
+                  maxObservationAgeMs: manifest.context.maxObservationAgeMs,
+                },
+              )
+            : undefined;
+      const finalRequest = { ...request, ...(packet ? { messages: packet.messages, schema: packet.schema } : {}) };
+      if (Buffer.byteLength(canonical(finalRequest)) > Math.min(budget.inputByteLimit, manifest.context.maxBytes)) {
+        await this.capture.emit(
+          scope,
+          "validation.result",
+          {
+            valid: false,
+            code: "MODEL_REQUEST_NOT_ADMITTED",
+            stage: "final-model-request",
+            bytes: Buffer.byteLength(canonical(finalRequest)),
+            maxBytes: Math.min(budget.inputByteLimit, manifest.context.maxBytes),
+            request: finalRequest,
+          },
+          {},
+          { required: true },
+        );
+        throw new FleetError("MODEL_REQUEST_NOT_ADMITTED", true);
+      }
       mark();
       const run = () =>
         decide(

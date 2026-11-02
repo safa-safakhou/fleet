@@ -146,3 +146,49 @@ test("scoped PACT worker opts into source-complete context while retaining nativ
     await f.close();
   }
 });
+
+test("domain-view source evidence failure refuses before publishing a model packet", async () => {
+  const f = await memoryFixture(false);
+  try {
+    const { prepareObservedContext } = await import("../../src/research/context/observed.js"),
+      { packPactObservation } = await import("../../src/games/pact/packing.js");
+    const observation = {
+      schemaId: "pact.observation.v1",
+      revision: "synthetic:1",
+      observedAt: f.now().toISOString(),
+      environmentTime: { clockId: "pact.game-time-ms", value: "0" },
+      sourceRefs: ["synthetic:source"],
+      payload: {
+        world: { balances: { iron: { ordinaryUnits: "9007199254740993600" } } },
+        guide: { developmentRules: { guidance: "Synthetic rule. ".repeat(3000) } },
+      },
+      coverage: {},
+    };
+    const request = {
+      messages: [{ role: "user" as const, content: JSON.stringify(observation) }],
+      schema: { type: "object" },
+      purpose: "decision" as const,
+      maxOutputTokens: 100,
+    };
+    const original = f.capture.emit.bind(f.capture);
+    f.capture.emit = async (...args: Parameters<typeof original>) => {
+      if (args[1] === "observation.record") throw Error("EVIDENCE_UNAVAILABLE");
+      return original(...args);
+    };
+    await expect(
+      prepareObservedContext(f.capture, f.scope, observation, packPactObservation, request, {
+        maxBytes: 24000,
+        maxTokens: 6000,
+        nowMs: f.now().getTime(),
+        maxObservationAgeMs: 5000,
+      }),
+    ).rejects.toThrow("EVIDENCE_UNAVAILABLE");
+    expect(
+      (await f.pool.query("SELECT count(*)::int n FROM research_events WHERE event->>'kind'='context.prepared'"))
+        .rows[0].n,
+    ).toBe(0);
+    expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger")).rows[0].n).toBe(0);
+  } finally {
+    await f.close();
+  }
+});

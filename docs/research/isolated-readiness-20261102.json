@@ -100,11 +100,7 @@
     "preflightEvents": 17,
     "prometheusProjectedEvents": 17,
     "tempoTraces": 1,
-    "rendered": [
-      "research timeline",
-      "research causal graph",
-      "Grafana Fleet Research v1"
-    ],
+    "rendered": ["research timeline", "research causal graph", "Grafana Fleet Research v1"],
     "browserErrors": []
   },
   "roleAndNetworkChecks": {
@@ -159,9 +155,7 @@
   "keyProof": {
     "status": "pass",
     "invalidProofRefused": true,
-    "reason": [
-      "ARTIFACT_KEY_UNAVAILABLE"
-    ],
+    "reason": ["ARTIFACT_KEY_UNAVAILABLE"],
     "exactProofRestored": true,
     "executionEnabled": false
   },
