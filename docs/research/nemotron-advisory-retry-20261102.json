@@ -11,7 +11,7 @@
   "startsAtUtc": "2026-11-02T11:05:09.641Z",
   "endsAtUtc": "2026-11-02T12:05:09.641Z",
   "inspectionOrigin": "http://127.0.0.1:57468",
-  "status": "sealed; activation pending",
+  "status": "stopped early; native TOOL_UNSUPPORTED; world paused",
   "model": {
     "route": "ollama",
     "model": "nemotron-3-nano:4b",
@@ -40,5 +40,217 @@
     "afterBytes": 19709,
     "modelCalls": 0
   },
-  "privateEvidenceLedger": ".superpowers/sdd/2026-11-02-nemotron-retry"
+  "privateEvidenceLedger": ".superpowers/sdd/2026-11-02-nemotron-retry",
+  "closedAtUtc": "2026-11-02T11:05:37.864000+00:00",
+  "stopReason": "NATIVE_TURN_FAILED",
+  "turns": [
+    {
+      "id": "63b5deab-5b25-4e32-9edf-21a35ee35fcd",
+      "state": "finished",
+      "code": "TOOL_UNSUPPORTED",
+      "calls": 1,
+      "actions": 0,
+      "unknown_usage": false,
+      "started_at": "2026-11-02T11:05:16.551Z",
+      "finished_at": "2026-11-02T11:05:37.074Z"
+    }
+  ],
+  "usage": [
+    {
+      "id": "bad6a05e-8b4f-4629-a872-f83c0a8a26c0",
+      "status": "reported",
+      "tokens": "40000",
+      "input_tokens": "5013",
+      "output_tokens": "506",
+      "request_metrics": {
+        "thinking": false,
+        "schemaBytes": 525,
+        "inboxOmitted": null,
+        "messageBytes": 19118,
+        "queueDelayMs": 33,
+        "requestBytes": 19643,
+        "inboxDelivered": null,
+        "inputLimitBytes": 24000,
+        "maxOutputTokens": 512,
+        "reasoningEffort": null,
+        "contextWindowTokens": 32768,
+        "decisionFeedbackCode": null,
+        "quotedOptionsOmitted": null,
+        "decisionFeedbackRetryable": null
+      },
+      "response_metrics": {
+        "elapsedMs": 19766,
+        "endToEndMs": 19799,
+        "elapsedScope": "provider",
+        "finishReason": null,
+        "generationMs": null,
+        "decisionError": null,
+        "finalTextChars": 923,
+        "firstContentMs": null,
+        "reasoningChars": null,
+        "providerExecutionMs": 19766
+      }
+    }
+  ],
+  "commands": 0,
+  "coverage": [
+    {
+      "version": "fleet.coverage/v1",
+      "runId": "task:0b8d4e04-1fea-4149-a52f-d6f782628a89",
+      "status": "complete",
+      "expected": 3,
+      "recorded": 3,
+      "missing": [],
+      "eventCount": 59,
+      "byteCoverage": {
+        "expected": "889467",
+        "recorded": "889467",
+        "status": "complete"
+      },
+      "reasons": []
+    }
+  ],
+  "worldFinal": {
+    "status": "paused",
+    "tick": "0",
+    "gameTimeMs": 1793617020000
+  },
+  "actualModelPacket": {
+    "canonicalRequestBytes": 19709,
+    "maxBytes": 24000,
+    "modelRequestLineageRecorded": true,
+    "kind": "read",
+    "tool": "pact_observer_guide_v1",
+    "allReturnedSourceRefsAuthorized": false,
+    "preconditionClockMatches": false
+  },
+  "closureVerification": {
+    "status": "pass",
+    "restores": [
+      {
+        "database": "fleet_retry_8986da6d",
+        "restore": "retry_restore_fleet_8986da6d",
+        "tables": 117,
+        "canonicalMatch": true,
+        "dumpSha256": "3a1ae3b79b00b7a8cc929eff6074b56e5ee5ddc61f05504fab926d15852ed761"
+      },
+      {
+        "database": "pact_retry_8986da6d",
+        "restore": "retry_restore_pact_8986da6d",
+        "tables": 167,
+        "canonicalMatch": true,
+        "dumpSha256": "39b809154b28296a7be7f6edd01459cc8e0958cd03482efcf2b6ccc2f1169d4c"
+      },
+      {
+        "database": "temporal",
+        "restore": "retry_restore_temporal_8986da6d",
+        "tables": 40,
+        "canonicalMatch": true,
+        "dumpSha256": "f2b4c5359efc9b4b0170c4da9e21fca56d083af62ebb765996eec8d665e72a3a"
+      },
+      {
+        "database": "temporal_visibility",
+        "restore": "retry_restore_temporal_visibility_8986da6d",
+        "tables": 3,
+        "canonicalMatch": true,
+        "dumpSha256": "c2478381f0c7b07f3c056a627fa3bb317f8d0d19453c4af515b79841f4c3acf0"
+      }
+    ],
+    "world": {
+      "status": "paused",
+      "tick_sequence": "0"
+    },
+    "native": {
+      "runningTurns": 0,
+      "allocations": 1,
+      "unknowns": 0,
+      "capacityLeases": 0,
+      "activeWorkerSessions": 0,
+      "commands": 0
+    },
+    "stoppedProcesses": {
+      "controller": true,
+      "rules": true,
+      "provider": true,
+      "awake": true,
+      "watchdog": true
+    },
+    "stateTree": {
+      "files": 36,
+      "bytes": 1482848,
+      "sha256Match": true
+    },
+    "restoredEvidence": {
+      "artifactsVerified": 55,
+      "bytesVerified": 889467,
+      "coverage": {
+        "version": "fleet.coverage/v1",
+        "runId": "task:0b8d4e04-1fea-4149-a52f-d6f782628a89",
+        "status": "complete",
+        "expected": 3,
+        "recorded": 3,
+        "missing": [],
+        "eventCount": 59,
+        "byteCoverage": {
+          "expected": "889467",
+          "recorded": "889467",
+          "status": "complete"
+        },
+        "reasons": []
+      }
+    },
+    "preservation": {
+      "at": "2026-11-02T11:07:50.467745+00:00",
+      "originalContainers": 67,
+      "containerConfigDifferences": [],
+      "originalVolumes": 115,
+      "originalVolumeDefinitionsMatch": true,
+      "services": [
+        {
+          "name": "fleet-mac-nemotron-db",
+          "state": "running",
+          "health": "healthy"
+        },
+        {
+          "name": "automated-traffic-service-db-1",
+          "state": "running",
+          "health": "healthy"
+        },
+        {
+          "name": "toolbox-document-worker",
+          "state": "running",
+          "health": "healthy"
+        }
+      ]
+    }
+  },
+  "previousFailedAttemptPreserved": {
+    "turns": 1,
+    "allocations": 0,
+    "owner": {
+      "phase": "awaiting_reconciliation",
+      "stop_id": null
+    },
+    "world": {
+      "status": "paused",
+      "tick_sequence": "0"
+    }
+  },
+  "visualization": {
+    "status": "pass",
+    "url": "http://127.0.0.1:57468/#research/run/task%3A0b8d4e04-1fea-4149-a52f-d6f782628a89",
+    "coverage": "complete",
+    "events": 59,
+    "allocations": 1,
+    "browserErrors": [],
+    "rendered": ["actual advisory retry timeline", "actual advisory retry causal graph"],
+    "workflowHistory": [
+      {
+        "workflowId": "fleet-task/0b8d4e04-1fea-4149-a52f-d6f782628a89",
+        "status": 1
+      }
+    ],
+    "note": "Parked Temporal history retained; no polling worker or agent execution is running."
+  },
+  "followUp": "Paused after early closure; no further real attempt started"
 }
