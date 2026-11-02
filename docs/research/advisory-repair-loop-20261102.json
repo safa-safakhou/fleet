@@ -1,0 +1,45 @@
+{
+  "authorization": "Owner explicitly authorizes diagnosis, validated fixes and fresh bounded retries until this advisory test completes.",
+  "attempts": [
+    {
+      "id": "nemotron-advisory-loop-20261102-9a72fb3e",
+      "world": "fleet-loop-20261102-9a72fb3e",
+      "cohortId": "0a794f4f-9ead-4dcc-9a61-db22082093ce",
+      "agentId": "57f5b9e5-07d4-4fd5-881c-9244628539f4",
+      "bindingId": "83d30b7c-7545-42c2-acec-35c7b78c657a",
+      "taskId": "dda84db7-0625-44e5-8b3f-1d3416c3f56b",
+      "manifestDigest": "bc039a7dc58b9d09ec6a34d992d7b9654cfab963148de4ad7606b87c9d3959f1",
+      "sourceCommit": "e1805c4d92b7c463b0c64220996a1c7768075c87",
+      "startsAtUtc": "2026-11-02T11:30:31.861Z",
+      "endsAtUtc": "2026-11-02T12:30:31.861Z",
+      "inspectionOrigin": "http://127.0.0.1:56829",
+      "status": "sealed; activation pending",
+      "model": {
+        "route": "ollama",
+        "model": "nemotron-3-nano:4b",
+        "thinking": false,
+        "temperature": 0,
+        "topP": 1
+      },
+      "budget": {
+        "mode": "finite",
+        "callLimit": 2,
+        "tokenLimit": 80000,
+        "deadlineAt": "2026-11-02T12:30:31.861Z",
+        "perCallTokenLimit": 40000,
+        "maxOutputTokens": 512,
+        "inputByteLimit": 24000,
+        "maxCallsPerTurn": 1,
+        "maxActionsPerTurn": 1,
+        "concurrency": 1
+      },
+      "preflight": {
+        "rawBytes": 33592,
+        "finalBytes": 20136,
+        "limit": 24000,
+        "modelCalls": 0
+      },
+      "privateLedger": ".superpowers/sdd/2026-11-02-advisory-loop-01"
+    }
+  ]
+}

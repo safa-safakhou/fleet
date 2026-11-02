@@ -1,0 +1,19 @@
+# Advisory repair loop — 2 November 2026
+
+The owner explicitly authorizes investigating errors, applying tested fixes and retrying after each fix. Current scope remains a bounded local PACT advisory experiment; historical worlds/tasks and unknown allocations remain protected. [Plan and verification](../superpowers/plans/2026-11-02-advisory-repair-loop.md), [machine-readable attempts](advisory-repair-loop-20261102.json).
+
+## Diagnosed interface defects
+
+The previous response invented a read tool, source identifiers and clock. A generic free-text decision schema did not represent the sealed advisory role or the fact that a one-step turn cannot read and then use the answer. That made an avoidable model error possible even though server-side refusal worked correctly. Source `e1805c4d92b7c463b0c64220996a1c7768075c87` gives both TypeScript and Python workers an exact terminal advisory contract for this configuration: advisory/wait, bounded text, delivered source choices and empty non-action preconditions. Worker and native provider validation remain independent. Existing multi-step reads and actor paths remain available; no gameplay permission is added.
+
+The optional generated worker-input field carries the selected schema. Unit/native regressions verify schema-ignoring fake-provider refusal with settled usage, no hidden retry or read, Python parity, existing conformance and raw/view dispatch lineage. Checks pass: **1,275 root tests / 23 platform skips**, **15 native integrations**, **23 Python tests / four platform skips** plus four focused follow-ups; types, style, build, boundaries and generated contract checks. Packaged Python workers must be rebuilt and explicitly selected to support the new field; no image fallback or implicit upgrade.
+
+## Attempt 01
+
+Fresh world `fleet-loop-20261102-9a72fb3e`, task `dda84db7-0625-44e5-8b3f-1d3416c3f56b`, manifest `bc039a7dc58b9d09ec6a34d992d7b9654cfab963148de4ad7606b87c9d3959f1`. Its complete actual packet fits **20136 / 24,000 bytes**, versus 33592 raw, with zero preflight model calls. Fresh application roles have no administrative privileges, four prepared-state backups are encrypted, and the owned viewer is read-only. Manifest validation precedes the final budget/task creation, avoiding the prior consumed-deadline setup mistake.
+
+Sealed one-hour window: **2026-11-02T11:30:31.861Z–2026-11-02T12:30:31.861Z**. Native budget has the same absolute end. Nemotron4B only, non-thinking, calls<=2 / reserved tokens<=80,000, output512, context32,768, concurrency1. One-step advisory profile, one participant, 60-minute cadence, world/inbox reads, zero spending/troops/gameplay commands. A call ceiling does not promise two calls or continuous model activity. No task polling or inference starts until the explicit controller invocation.
+
+[Authenticated read-only studio](http://127.0.0.1:56829/#research/run/task%3Adda84db7-0625-44e5-8b3f-1d3416c3f56b). Full private evidence is retained in `.superpowers/sdd/2026-11-02-advisory-loop-01/`. The controller and independent watchdog retain all native-failure, unknown-usage, capture, command, clock, heartbeat, service-exit and disk-reserve stops. After a failure, close and preserve; make a diagnosed, tested, committed fix before a fresh trial. Never replay the consumed task, clear uncertainty or relax limits.
+
+Status at this commit: sealed, awaiting activation. No claim of hour completion, useful advice or universal reliability. The historical owner-accepted 16.29% recording overhead remains a strict 10% qualification failure. No push or historical task recovery.
