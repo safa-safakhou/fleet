@@ -20,9 +20,23 @@ Fresh verification at06:04UTC compares all67 original container configurations/m
 
 Only public tool caches with zero container references were retired, without force: Playwright, PostgreSQL18.6, Go1.26.6, Python3.13 and Temurin25. The first removal raised Docker free space from about5.11 to8.4GiB; subsequent pulls/initialization and shared-layer effects leave about8.2GiB. Reported image sizes are not reclaimed-byte measurements. Later use of retired tool distributions requires the same pinned image again. No global prune was used.
 
+## Provider and recovery checkpoint
+
+The exact cached `nemotron-3-nano:4b` catalog digest is `6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197`. All referenced model/config/license/parameter blobs were hashed and matched their manifests. The existing native macOS Ollama0.40.11 executable hash is `653dac8da3e2bc1a8e981ee9bd95d21456ae41a16f27f8c8140baec23045bc27`; this is a separately observed local provider, not the historical WSL0.35.1 qualification.
+
+Exactly one synthetic call ran through native reservation, dispatch, validation, accounting and encrypted observation: a40,000-token ceiling,90-second deadline,32,768 context,512 maximum output, thinking disabled, temperature0/top-p1. It returned the requested JSON acknowledgment in1,430ms provider time, with49 input/6 output tokens reported. All17 events and3,476 artifact bytes reconcile complete, with no missing units, commands or unknown allocations. Seventeen sanitized events were projected to telemetry and one trace was retrieved. The provider is stopped; no second call was made.
+
+Two preparation/report issues are retained privately: the isolated preflight database initially lacked the vector extension; after that was installed, the report script failed after known usage settlement. The stored encrypted response was independently validated without another call. Native stop semantics left its synthetic turn `cancelled` after the cohort was paused; this terminal result was preserved. The model contract check passes; the original reporting script did not finish normally. This establishes a small JSON/usage check, not PACT decision quality or an end-to-end research gameplay run.
+
+Coherent backups were taken with only the owned new application/Temporal processes stopped. All five separately owned restored databases match every canonical public-table count/hash: Fleet117 tables, PACT167, Temporal40, visibility3 and preflight118 (**445 table projections**). SQL backups are additionally encrypted with private key references. Both state trees match their file hashes. An explicitly separate synthetic chunk sentinel verifies atomic writes on the actual host-backed device, restored authenticated decryption and refusal of corrupt ciphertext; it is not presented as model/game evidence or a large-artifact gameplay result. Native preflight model artifacts keep their actual PostgreSQL canonical tier.
+
+A Colima host-forwarding stall blocked the first UI/backup verifiers even while guest-local service health passed. Those incomplete verifiers were stopped, and the owned endpoints now use a separate loopback-only SSH tunnel to the Docker guest. No Colima restart or original service configuration change was needed. Later checks must use the current private tunnel ledger rather than the initial auto-forwarded ports.
+
+After restart, Temporal retains namespace ID `18c65632-ceb6-445e-8bcb-0988d5f90b62`, version1.32.1 and zero workflows. Five cross-database credential checks refuse access; the index role cannot read raw memory/artifact/accounting tables, and inspection direct external TCP is denied. PACT remains paused at tick0 with zero kingdoms. Fresh preservation checks still match67 original containers/115 volumes, with three healthy services.
+
 ## Still being verified
 
-Authenticated inspection and negative boundaries; restart and paired SQL/artifact restore; mandatory visualization/telemetry access; exact Nemotron artifacts and the single bounded synthetic provider preflight; final capacity/preservation and finite future-test record. No installation-complete or live-readiness claim is made at this checkpoint.
+Final visualization assertions after the forwarding repair, negative key proof, final capacity and future finite-test record. Authenticated inspection and mutation refusal already pass; the timeline and causal graph have rendered. No live gameplay test has started.
 
 The owner-accepted16.29% latency overhead remains a strict source qualification failure against10%; the optimization work is closed. These operations neither rewrite qualification nor grant live gameplay authority. No push, retained-world model call, uncertainty review or gameplay activation occurred.
 
