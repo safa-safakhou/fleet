@@ -1,0 +1,38 @@
+{
+  "id": "nemotron-advisory-hour-20261102-e8cfb2c8",
+  "world": "fleet-ready-20261102-6bce0141",
+  "cohortId": "9bf00386-4b66-4e9d-8c7f-18f52ec308c1",
+  "agentId": "ee827c8b-c510-4158-8587-8edfbd140a7f",
+  "bindingId": "59feb210-50ea-4c99-adef-b14dd2d80381",
+  "taskId": "97e7a26b-497d-4f24-9a8c-176764c33dda",
+  "manifestDigest": "7b84726d54605a7089292dddb2a5b7fed5e4d601452496246b2c8ec9370e126d",
+  "capabilityDigest": "c0b8a6773c3af2d0da96a1d9b411b502b17377a01c2f41fa059189748743ee05",
+  "startsAtUtc": "2026-11-02T09:58:31.244Z",
+  "endsAtUtc": "2026-11-02T10:58:31.244Z",
+  "modelCallsCeiling": 2,
+  "tokenCeiling": 80000,
+  "durationMs": 3600000,
+  "gameplayCommandAuthority": false,
+  "status": "authorized; launch invocation pending",
+  "cadenceMinutes": 60,
+  "scope": "one fresh advisory participant; zero gameplay commands; earlier safety stop possible",
+  "model": {
+    "route": "ollama",
+    "model": "nemotron-3-nano:4b",
+    "thinking": false,
+    "temperature": 0,
+    "topP": 1
+  },
+  "budget": {
+    "mode": "finite",
+    "callLimit": 2,
+    "tokenLimit": 80000,
+    "deadlineAt": "2026-11-02T10:58:31.244Z",
+    "perCallTokenLimit": 40000,
+    "maxOutputTokens": 512,
+    "inputByteLimit": 24000,
+    "maxCallsPerTurn": 1,
+    "maxActionsPerTurn": 1,
+    "concurrency": 1
+  }
+}
