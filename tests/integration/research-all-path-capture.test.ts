@@ -1,7 +1,7 @@
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expect, test } from "vitest";
+import { expect, test, vi } from "vitest";
 import { CaptureSession } from "../../src/research/evidence/boundaries.js";
 import { CoverageService } from "../../src/research/evidence/coverage.js";
 import { ArtifactFilesystem } from "../../src/research/evidence/filesystem.js";
@@ -171,6 +171,52 @@ test("corrections retain their own allocation and purpose", async () => {
           },
         },
       );
+  } finally {
+    await rm(root, { recursive: true, force: true });
+  }
+});
+
+test("allocated calls rejected before provider invocation retain request and failure evidence", async () => {
+  const root = await mkdtemp(join(tmpdir(), "fleet-admission-capture-"));
+  try {
+    for (const id of ["legacy-loop", "reactive-basic"]) {
+      const transcript = await captureArchitectureTranscript(
+        { id, version: "1" },
+        {
+          scenario: "action",
+          onStore: async (store) => {
+            store.observation = new CaptureSession(store, new ArtifactFilesystem(join(root, id)));
+            const reserve = store.reserveCall.bind(store);
+            store.reserveCall = async (...args) => {
+              const allocation = await reserve(...args);
+              // Emulate elapsed preparation crossing the latest safe admission time after reservation.
+              const nearDeadline = new Date(args[0].deadline.getTime() - 10000);
+              vi.spyOn(store, "now").mockReturnValue(nearDeadline);
+              return allocation;
+            };
+          },
+          afterRun: async (store, claim) => {
+            const scope = await scopeForTurn(store, claim.id);
+            const page = await new EvidenceRepository(store).page(scope, {});
+            const ledger = (
+              await store.pool.query("SELECT id,status,tokens::text FROM compute_ledger WHERE turn_id=$1", [claim.id])
+            ).rows;
+            expect(ledger).toHaveLength(1);
+            expect(ledger[0]).toMatchObject({ status: "not_dispatched", tokens: "40000" });
+            expect(page.events.filter((e) => e.kind === "model.dispatched")).toEqual([]);
+            expect(page.events.filter((e) => e.kind === "model.request").map((e) => e.attributes.allocationId)).toEqual(
+              [ledger[0].id],
+            );
+            expect(page.events.filter((e) => e.kind === "model.failed").map((e) => e.attributes.allocationId)).toEqual([
+              ledger[0].id,
+            ]);
+            expect((await new CoverageService(store).reconcile(scope.runId)).missing).toEqual([]);
+          },
+        },
+      );
+      expect(transcript.modelPackets).toEqual([]);
+      expect(transcript.commands).toEqual([]);
+    }
   } finally {
     await rm(root, { recursive: true, force: true });
   }

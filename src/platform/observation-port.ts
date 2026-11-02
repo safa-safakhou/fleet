@@ -11,6 +11,13 @@ export interface ObservationPort {
     allocationId?: string,
     purpose?: "decision" | "helper" | "correction",
   ): ReturnType<ModelPort["decide"]>;
+  modelRejected?(
+    claim: ObservationClaim,
+    input: Parameters<ModelPort["decide"]>[0],
+    allocationId: string,
+    code: string,
+    purpose?: "decision" | "helper" | "correction",
+  ): Promise<void>;
   game(agentId: string, port: GamePort): GamePort;
   usage(allocationId: string, status: string, input: number | null, output: number | null): Promise<void>;
   expire(): Promise<void>;

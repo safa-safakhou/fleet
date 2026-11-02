@@ -592,8 +592,17 @@ export class ModelAdmission {
             !invoked ||
             (error instanceof FleetError && error.notDispatched) ||
             Boolean(this.provider.tracksDispatch && !dispatched);
-          if (notDispatched) await this.store.notDispatched(allocation);
-          else await this.store.recordUsage(allocation, null, null);
+          if (notDispatched) {
+            await this.store.notDispatched(allocation);
+            if (!invoked)
+              await this.store.observation?.modelRejected?.(
+                turn,
+                request,
+                allocation,
+                safeCode(error),
+                correction ? "correction" : stage?.kind === "worker" ? "helper" : "decision",
+              );
+          } else await this.store.recordUsage(allocation, null, null);
           await observation
             .recordDebug(turn, "thinking", "Model execution failed", {
               execution,

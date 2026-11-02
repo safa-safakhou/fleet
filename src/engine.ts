@@ -654,7 +654,6 @@ export class Engine {
         );
         await this.store.phase(claim, this.model.tracksDispatch ? "model_reserved_tracked" : "model_reserved");
         await observation.record(claim, "thinking", "Waiting for the model decision", { execution: n + 1 });
-        if (this.stopping) throw new FleetError("CLAIM_FENCED");
         const controller = new AbortController();
         this.controllers.add(controller);
         const guard = setInterval(() => {
@@ -662,8 +661,10 @@ export class Engine {
         }, 500);
         let response: Awaited<ReturnType<ModelPort["decide"]>>;
         let deadline: ReturnType<typeof modelDeadline> | undefined;
+        let invoked = false;
         const modelStartedAt = this.store.now().getTime();
         try {
+          if (this.stopping) throw new FleetError("CLAIM_FENCED", true);
           const request = {
             model: m,
             messages,
@@ -674,6 +675,7 @@ export class Engine {
           };
           deadline = modelDeadline(request, claim.deadline, this.store.now, Boolean(this.model.tracksDispatch));
           const prepared = { ...request, signal: deadline.signal, onDispatch: deadline.onDispatch };
+          invoked = true;
           response = this.store.observation
             ? await this.store.observation.model(
                 claim,
@@ -684,7 +686,23 @@ export class Engine {
               )
             : await this.model.decide(prepared);
         } catch (error) {
-          if (error instanceof FleetError && error.notDispatched) await this.store.notDispatched(reservation);
+          if (error instanceof FleetError && error.notDispatched) {
+            await this.store.notDispatched(reservation);
+            if (!invoked)
+              await this.store.observation?.modelRejected?.(
+                claim,
+                {
+                  model: m,
+                  messages,
+                  schema: outputSchema,
+                  maxOutputTokens: b.maxOutputTokens,
+                  signal: controller.signal,
+                },
+                reservation,
+                safeCode(error),
+                decisionFeedback.length ? "correction" : "decision",
+              );
+          }
           await observation.recordDebug(claim, "thinking", "Model execution failed", {
             execution: n + 1,
             code: safeCode(error),

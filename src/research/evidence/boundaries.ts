@@ -466,6 +466,49 @@ export class CaptureSession implements ObservationPort {
       .wrapModel(port)
       .decide(input);
   }
+  /** Native admission can reject an allocated attempt before the provider wrapper is entered. */
+  async modelRejected(
+    claim: ObservationClaim,
+    input: Parameters<ModelPort["decide"]>[0],
+    allocationId: string,
+    code: string,
+    purpose: "decision" | "helper" | "correction" = "decision",
+  ) {
+    const scope = await this.scope(claim);
+    const allocation = (
+      await this.store.pool.query("SELECT status FROM compute_ledger WHERE id=$1 AND turn_id=$2", [
+        allocationId,
+        scope.turnId,
+      ])
+    ).rows[0];
+    if (allocation?.status !== "not_dispatched") throw new FleetError("EVIDENCE_SCOPE_MISMATCH", true);
+    const context = this.inputForModel();
+    if (context && digest({ messages: input.messages, schema: input.schema }) !== context.digest)
+      throw new FleetError("CONTEXT_INPUT_MISMATCH", true);
+    const attributes = {
+      allocationId,
+      purpose: this.resourcePurpose.getStore() ?? purpose,
+      outcome: "not_dispatched" as const,
+    };
+    const request = await this.emit(
+      scope,
+      "model.request",
+      {
+        model: input.model,
+        messages: input.messages,
+        schema: input.schema,
+        outputContract: input.outputContract ?? null,
+        maxOutputTokens: input.maxOutputTokens,
+        ...(context ? { contextLineageRef: context.lineage.artifact, packetDigest: context.digest } : {}),
+      },
+      attributes,
+      { required: true, parents: context?.eventId ? [context.eventId] : [] },
+    );
+    await this.emit(scope, "model.failed", { code, dispatched: false }, attributes, {
+      required: true,
+      parents: request ? [request.id] : [],
+    });
+  }
   game(agentId: string, port: GamePort) {
     let previous: RunScope | undefined;
     return new ObservedPorts(this, async (method, args) => {

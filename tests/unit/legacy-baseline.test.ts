@@ -10,6 +10,27 @@ it("preserves the recorded controller except explicit context, owner, proposal a
   // any other controller drift still fails against the original source digest.
   let historical = source.toString();
   const reviewed: [string, string][] = [
+    // Reviewed pre-invocation rejection capture; preserve the original artifact digest and deadlines.
+    [
+      "        let deadline: ReturnType<typeof modelDeadline> | undefined;\n        let invoked = false;",
+      "        let deadline: ReturnType<typeof modelDeadline> | undefined;",
+    ],
+    [
+      '        try {\n          if (this.stopping) throw new FleetError("CLAIM_FENCED", true);\n          const request = {',
+      "        try {\n          const request = {",
+    ],
+    [
+      "          const prepared = { ...request, signal: deadline.signal, onDispatch: deadline.onDispatch };\n          invoked = true;",
+      "          const prepared = { ...request, signal: deadline.signal, onDispatch: deadline.onDispatch };",
+    ],
+    [
+      '          if (error instanceof FleetError && error.notDispatched) {\n            await this.store.notDispatched(reservation);\n            if (!invoked)\n              await this.store.observation?.modelRejected?.(\n                claim,\n                {\n                  model: m,\n                  messages,\n                  schema: outputSchema,\n                  maxOutputTokens: b.maxOutputTokens,\n                  signal: controller.signal,\n                },\n                reservation,\n                safeCode(error),\n                decisionFeedback.length ? "correction" : "decision",\n              );\n          }\n',
+      "          if (error instanceof FleetError && error.notDispatched) await this.store.notDispatched(reservation);\n",
+    ],
+    [
+      '        await observation.record(claim, "thinking", "Waiting for the model decision", { execution: n + 1 });\n        const controller = new AbortController();',
+      '        await observation.record(claim, "thinking", "Waiting for the model decision", { execution: n + 1 });\n        if (this.stopping) throw new FleetError("CLAIM_FENCED");\n        const controller = new AbortController();',
+    ],
     // Authorized O3 capture port; reverse only this wrapper, retain the original historical digest.
     [
       '          const prepared = { ...request, signal: deadline.signal, onDispatch: deadline.onDispatch };\n          response = this.store.observation\n            ? await this.store.observation.model(\n                claim,\n                prepared,\n                this.model,\n                reservation,\n                decisionFeedback.length ? "correction" : "decision",\n              )\n            : await this.model.decide(prepared);',
