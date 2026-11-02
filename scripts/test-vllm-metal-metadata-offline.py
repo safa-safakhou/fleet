@@ -14,6 +14,8 @@ class MetadataTests(unittest.TestCase):
         self.exported = []
         initialized, exported = self.initialized, self.exported
         class Worker:
+            def determine_available_memory(self):
+                return getattr(self, 'synthetic_available', 30 * 1024 ** 3)
             def initialize_from_config(self, kv):
                 if getattr(kv, 'fail', False):
                     raise RuntimeError('SYNTHETIC_ALLOCATION_FAILURE')
@@ -54,6 +56,22 @@ class MetadataTests(unittest.TestCase):
         self.assertIs(self.exported[0][0], config)
         self.assertIs(self.exported[0][1], kv)
         self.assertEqual(self.exported[0][2]['instance_id'], 'synthetic-metal')
+
+    def test_caps_scheduler_budget_before_native_cache_allocation(self):
+        w = self.cls()
+        w.cache_config = SimpleNamespace(kv_cache_memory_bytes=4 * 1024 ** 3)
+        w.model_runner = SimpleNamespace(scheduler_memory_reporting_mode=lambda: 'paged_attention_layout_budget')
+        self.assertEqual(w.determine_available_memory(), 4 * 1024 ** 3)
+        w.synthetic_available = 2 * 1024 ** 3
+        self.assertEqual(w.determine_available_memory(), 2 * 1024 ** 3)
+
+    def test_requires_explicit_budget_and_deferred_native_allocation(self):
+        for budget, mode in [(None, 'paged_attention_layout_budget'), (0, 'paged_attention_layout_budget'), (True, 'paged_attention_layout_budget'), (4 * 1024 ** 3, 'paged_attention_capacity')]:
+            w = self.cls()
+            w.cache_config = SimpleNamespace(kv_cache_memory_bytes=budget)
+            w.model_runner = SimpleNamespace(scheduler_memory_reporting_mode=lambda: mode)
+            with self.assertRaisesRegex(ValueError, 'UNSUPPORTED_METAL_CACHE_BUDGET'):
+                w.determine_available_memory()
 
     def test_refuses_reinitialization_of_an_attested_instance(self):
         w = self.cls()
