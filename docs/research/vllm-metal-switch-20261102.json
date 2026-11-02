@@ -1,0 +1,202 @@
+{
+  "at": "2026-11-02T18:03:17.488195+00:00",
+  "status": "BLOCKED_STORAGE; no generation requests or fresh game launch",
+  "selectedProvider": {
+    "corePackage": "0.32.0+cpu",
+    "coreModuleVersion": "0.32.0",
+    "metal": "0.32.0",
+    "mlx": "0.32.2",
+    "python": "3.12.13",
+    "device": "Apple Metal GPU",
+    "lockfile": "../../research/vllm-metal/requirements.lock"
+  },
+  "model": {
+    "repository": "mlx-community/NVIDIA-Nemotron-3-Nano-4B-4bit",
+    "revision": "c4d79ba1901d99806ef757642a552acebb851a35",
+    "precision": "MLX affine4bit/group64; distinct from historical GGUF Q4_K_M",
+    "files": [
+      {
+        "name": "README.md",
+        "bytes": 1633,
+        "sha256": "6273bb57b1f445ebb20229fdf9c8c161b81e72209a90b1992d930ff318e67b12",
+        "upstreamLfsSha256": null
+      },
+      {
+        "name": "chat_template.jinja",
+        "bytes": 10504,
+        "sha256": "ab7813c3abdd9cb655905a410728b26c7884eca45ddfab8d9f931553485a7862",
+        "upstreamLfsSha256": null
+      },
+      {
+        "name": "config.json",
+        "bytes": 1772,
+        "sha256": "8ce56fadc46e425aa3a7350cd8faa32f8aaf12b3d99bd395b44040c20010cf85",
+        "upstreamLfsSha256": null
+      },
+      {
+        "name": "configuration_nemotron_h.py",
+        "bytes": 12119,
+        "sha256": "07fa66e5b3da7e6a71c1a263e3dd68da11c8afa9178b47c49510ba628746fcff",
+        "upstreamLfsSha256": null
+      },
+      {
+        "name": "generation_config.json",
+        "bytes": 188,
+        "sha256": "676822c7918b11500095f25dd35405ed73ef77020d0941458c91ee8ef7ef60ad",
+        "upstreamLfsSha256": null
+      },
+      {
+        "name": "model.safetensors.index.json",
+        "bytes": 31344,
+        "sha256": "42c5a9e03e377104a4c63c6833bbc53569bb771c440ac86337b17e0de5ad887f",
+        "upstreamLfsSha256": null
+      },
+      {
+        "name": "tokenizer.json",
+        "bytes": 17077484,
+        "sha256": "623c34567aebb18582765289fbe23d901c62704d6518d71866e0e58db892b5b7",
+        "upstreamLfsSha256": "623c34567aebb18582765289fbe23d901c62704d6518d71866e0e58db892b5b7"
+      },
+      {
+        "name": "tokenizer_config.json",
+        "bytes": 372,
+        "sha256": "2440a4b36fd030f0c610c75bc8f5563af193e73c1da5130471300f4ff277b99d",
+        "upstreamLfsSha256": null
+      },
+      {
+        "name": "model.safetensors",
+        "bytes": 2237078664,
+        "sha256": "8750133f3cbe7a0f3eeffbdd3b0a4ba5287d1abca86b5d9afbd8e827373dfe29",
+        "upstreamLfsSha256": "8750133f3cbe7a0f3eeffbdd3b0a4ba5287d1abca86b5d9afbd8e827373dfe29"
+      }
+    ],
+    "totalBytes": 2254214080
+  },
+  "firstStartup": {
+    "status": "successful model load and authenticated native cache metadata; owner-stopped",
+    "generationRequests": 0,
+    "promptTokens": 0,
+    "outputTokens": 0,
+    "poolBlocks": 689,
+    "admissionBlocks": 687,
+    "maxSequences": 8,
+    "contextTokens": 32768,
+    "groups": [
+      {
+        "kind": "mamba",
+        "mode": "none",
+        "blocksPerRequest": 1
+      },
+      {
+        "kind": "mamba",
+        "mode": "none",
+        "blocksPerRequest": 1
+      },
+      {
+        "kind": "mamba",
+        "mode": "none",
+        "blocksPerRequest": 1
+      },
+      {
+        "kind": "mamba",
+        "mode": "none",
+        "blocksPerRequest": 1
+      },
+      {
+        "kind": "mamba",
+        "mode": "none",
+        "blocksPerRequest": 1
+      },
+      {
+        "kind": "mamba",
+        "mode": "none",
+        "blocksPerRequest": 1
+      },
+      {
+        "kind": "full-attention",
+        "blockTokens": 976
+      }
+    ],
+    "actualCacheBackingGiB": 10.26
+  },
+  "secondStartup": {
+    "status": "stopped safely before API ready; HOST_ARTIFACT_RESERVE",
+    "generationRequests": 0,
+    "requestedCacheGiB": 4,
+    "actualCacheBackingGiB": 28.34,
+    "cause": "Pinned Metal hybrid planner ignores kv_cache_memory_bytes and derives budget from gpu_memory_utilization/free-memory probing; oversized allocation drove macOS swap.",
+    "processes": "Both complete owned process groups verified absent."
+  },
+  "repair": {
+    "commit": "6def3ed",
+    "behavior": "Require explicit positive byte limit and deferred hybrid allocation path, preserve native profiling, cap scheduler-visible available memory before upstream allocation; preserve actual cache topology export. Never increase a smaller upstream budget.",
+    "offlineTests": {
+      "metadataBridgeAndBudget": 5,
+      "nativeCacheExporter": 3,
+      "existingProviderGuards": 15,
+      "typeStyleCheck": "pass; existing405warnings/83infos"
+    },
+    "hardwareRequalification": "pending; no retry while below reserve"
+  },
+  "storage": {
+    "initialCleanupFreedGiB": 5.71,
+    "additionalCleanupFreedGiB": 1.33,
+    "totalMeasuredCleanupNetGiB": 7.04,
+    "currentFreeGiB": 5.17,
+    "minimumReserveGiB": 10,
+    "nextPreparationThresholdGiB": 14,
+    "swapUsage": "vm.swapusage: total = 14848.00M  used = 13841.62M  free = 1006.38M  (encrypted)",
+    "note": "Available space includes ongoing OS swap reclamation and installation consumption; cache cleanup total is not final net free-space gain. No swap files, personal media, model weights, Docker data or private evidence deleted."
+  },
+  "preservation": {
+    "at": "2026-11-02T18:01:39.510407+00:00",
+    "originalContainers": 67,
+    "containerConfigDifferences": [],
+    "originalVolumes": 115,
+    "originalVolumeDefinitionsMatch": true,
+    "services": [
+      {
+        "name": "fleet-mac-nemotron-db",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "automated-traffic-service-db-1",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "toolbox-document-worker",
+        "state": "running",
+        "health": "healthy"
+      }
+    ]
+  },
+  "historicalUnknownUsage": {
+    "at": "2026-11-02T17:59:59.111Z",
+    "status": "preserved",
+    "ledger": [
+      {
+        "status": "reported",
+        "n": 5,
+        "held": "200000"
+      },
+      {
+        "status": "unknown",
+        "n": 3,
+        "held": "120000"
+      }
+    ],
+    "unknown": {
+      "n": 3,
+      "held": "120000",
+      "inputreports": 0,
+      "outputreports": 0
+    },
+    "world": {
+      "status": "paused",
+      "tick_sequence": "2"
+    }
+  },
+  "next": "Wait for >=14GiB free and adequate resident memory, then qualify a new metadata-only server using the repaired worker and an explicit6GiB cache cap. Verify actual allocation, authenticated profile and tokenizer/schema/resource/stop checks. Only then finish wholly fresh24-kingdom preparation and finite one-hour launch. All old worlds/tasks/holds stay preserved."
+}

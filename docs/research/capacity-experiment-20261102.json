@@ -69,7 +69,7 @@
   "inspectionOrigin": "http://127.0.0.1:50342",
   "dispatchTieBreak": "eligible_at_then_task_uuid_with_fair_actor_rotation",
   "coalescing": "waiting tasks require a source revision newer than the latest native claim; older wakes retained without redelivery",
-  "status": "stopped safely: UNKNOWN_USAGE; real replica retry blocked pending usage decision",
+  "status": "stopped safely: UNKNOWN_USAGE; Ollama replica successor superseded by owner-selected vLLM migration",
   "ledger": ".superpowers/sdd/2026-11-02-capacity-02/",
   "maxParallel": 8,
   "triggerModes": {
@@ -656,7 +656,7 @@
     "usageCoverage": "Five complete runs; three partial solely because usage remains unknown. All expected artifact bytes retained."
   },
   "successorProposal": {
-    "status": "source repair and design; not launched or sealed",
+    "status": "superseded; see vllm-metal-switch-20261102.json",
     "providerReplicas": 6,
     "ramp": [2, 4, 6],
     "requirement": "Explicit owner decision to preserve unresolved holds across a fresh independent experiment, or authoritative final usage resolution. Measure latency/memory before increasing actual inference concurrency. All old holds/tasks remain untouched.",
@@ -674,5 +674,6 @@
       "recordingHeadroomGiB": 0.74,
       "status": "Requires prelaunch headroom assessment; full-hour storage not established"
     }
-  }
+  },
+  "currentFollowup": "vllm-metal-switch-20261102.json"
 }

@@ -20,8 +20,8 @@
 ## Tasks
 
 - [x] Measure/clean selected public package/compiler/download caches; record actual recovered bytes, preserve original Docker/services/data. Commit cleanup report.
-- [ ] Check upstream release/model support and metadata without inference. Pin release, artifact hashes/model revision and isolated dependency lock. Install only after sufficient headroom; keep global toolchains intact.
-- [ ] Inspect exact Metal cache topology, worker extension support and stream/schema/tokenizer behavior against Fleet's existing route. Add only necessary synthetic regressions and narrow changes. Verify affected checks and commit.
+- [x] Check upstream release/model support and metadata without inference. Pin release, artifact hashes/model revision and isolated dependency lock. Install only after sufficient headroom; keep global toolchains intact.
+- [x] Inspect exact Metal cache topology, worker extension support and stream/schema/tokenizer behavior against Fleet's existing route. Add only necessary synthetic regressions and narrow changes. Verify affected checks and commit.
 - [ ] Qualify the pinned local server with bounded synthetic calls/usage/evidence and measured concurrent slots. Preserve any dispatched uncertainty and stop on failed guards. Record actual compatibility, latency, resource limits and cleanup.
 - [ ] If supported, provision wholly fresh24kingdom identities/manifests/namespace/budgets and one-hour absolute window. Reuse goals/triggers/cadence and48calls/1920000tokens each; aggregate1152/46080000, max3calls/one accepted action perturn, one turn/binding, maximum8concurrent pending requests with measured admission. Keep final3minute cutoff, controller/watchdog and all recording. Launch only after the concrete short checks and pinned configuration are complete.
 - [ ] Commit accurate running or blocked result/current-state. Maintain the quiet monitor only for an actual active run. Report exact bottlenecks, freed space and source versus live results.
@@ -29,3 +29,8 @@
 ## Sources inspected
 
 [Official Metal repository](https://github.com/vllm-project/vllm-metal), [installation](https://docs.vllm.ai/projects/vllm-metal/en/latest/installation/), [model matrix](https://docs.vllm.ai/projects/vllm-metal/en/latest/supported_models/), [GGUF exclusions](https://docs.vllm.ai/projects/vllm-metal/en/latest/gguf/). Stable release v0.32.0 published21October2026. Nemotron-H support is experimental with prefix caching disabled. The supported-family example is not proof that this exact4Bcheckpoint works. Local hardware is Apple M4 Pro/48GiB/macOS26.6.2.
+
+
+## Current result
+
+[Exact stopped startup and repair](../../research/vllm-metal-switch-20261102.md). The first startup proved actual model loading and authenticated native cache export with zero generation requests. The second exposed the ignored explicit cache-byte budget and caused swap pressure; it closed on the unchanged disk guard with all original services preserved. The new worker cap is source-tested but awaits hardware requalification. Approximately7.04GiB caches recovered; retained OS swap keeps free space below10GiB. Do not launch while below reserve, delete swap files or restart original services to make space. Quiet follow-up may recheck storage and continue this existing owner-authorized task after14GiB free and adequate memory, with a fresh metadata-only provider and the repaired cap before any game/model request. No old world/task/unknown hold is reusable.

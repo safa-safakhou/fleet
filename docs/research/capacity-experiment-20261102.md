@@ -1,5 +1,7 @@
 # 24-kingdom capacity experiment: stopped with unknown usage
 
+The owner subsequently selected vLLM; the six-replica Ollama proposal below is superseded. [Current switch, measured startup failure, repair and storage condition](vllm-metal-switch-20261102.md). Historical usage/effects and closure proofs remain unchanged.
+
 The higher-capacity attempt launched at **14:36:01 UTC on 2 November 2026** and closed at **14:38:23 UTC**, with its world paused at tick 2. The hour did not complete. [Exact record and per-kingdom outcomes](capacity-experiment-20261102.json), [preserved attempt record](capacity-attempt02-20261102.json).
 
 Eight native turns started: five finished with validated WAIT decisions and fully reported usage; one reached its model deadline and two other dispatched calls were interrupted by safety closure. The latter three have unknown final usage. Their **120,000 reserved tokens remain held**, with null measured usage. The five reported calls consumed 52,980 input and 1,221 output tokens. There were **zero gameplay commands**. Sixteen kingdoms had no native turn before closure.
