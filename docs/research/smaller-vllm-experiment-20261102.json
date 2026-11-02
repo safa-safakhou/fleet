@@ -1,0 +1,106 @@
+{
+  "status": "prepared",
+  "world": "fleet-small-20261102-1479dd0f",
+  "privateLedger": ".superpowers/sdd/2026-11-02-smaller-vllm-01",
+  "kingdoms": 16,
+  "profiles": {
+    "legacy-loop@1": 2,
+    "legacy-cognition@1": 2,
+    "reactive-basic@1": 2,
+    "reactive-cognition@1": 2,
+    "reactive-cognition@2": 2,
+    "reactive-cognition@1.1": 2,
+    "specialist-coordinator@1": 2,
+    "autonomous-specialists@1": 2
+  },
+  "durationMs": 3600000,
+  "sourceCommit": "81d9d8f551a3f43028262ec4ebb0a7b98771dc83",
+  "pactSourceCommit": "df6b6e82deaaade0de98795dbd0cc9882c299be0",
+  "limits": {
+    "maxGlobalRequests": 8,
+    "initialRequests": 2,
+    "ramp": [
+      2,
+      4,
+      8
+    ],
+    "sharedPool": 16,
+    "manualTemporalWorkers": 16,
+    "perKingdomCalls": 48,
+    "perKingdomReservedTokens": 1920000,
+    "aggregateCalls": 768,
+    "aggregateReservedTokens": 30720000,
+    "perTurnCalls": 3,
+    "perTurnAcceptedActions": 1,
+    "inputBytes": 48000,
+    "outputTokens": 1024,
+    "contextTokens": 32768,
+    "noNewDispatchFinalMs": 180000,
+    "hostReserveGiB": 10
+  },
+  "provider": {
+    "kind": "vllm-metal",
+    "version": "0.32.0",
+    "mlx": "0.32.2",
+    "python": "3.12.13",
+    "model": "mlx-community/NVIDIA-Nemotron-3-Nano-4B-4bit",
+    "revision": "c4d79ba1901d99806ef757642a552acebb851a35",
+    "precision": "MLX affine 4-bit/group64; different conversion from historical GGUF",
+    "instance": "fleet-metal-731bcdef",
+    "cacheCapBytes": 6442450944,
+    "nativeBackingGiBRounded": 5.99,
+    "physicalBlocks": 402,
+    "admissionBlocks": 400,
+    "eightFullContextBlocks": 320,
+    "cacheFingerprint": "fce31a93ab423e26d801bae3ed82e975806fde714dbbd8a741a1dfbd3df73be9",
+    "generationQualification": "pending accounted native experiment"
+  },
+  "verification": {
+    "focusedIntegrations": {
+      "passed": 13,
+      "files": 3,
+      "scope": [
+        "all-path evidence capture",
+        "binding ownership",
+        "specialist delivery"
+      ]
+    },
+    "preparationNativeCounts": {
+      "turns": 0,
+      "compute_ledger": 0,
+      "platform_tasks": 0,
+      "platform_commands": 0
+    },
+    "sharedPacketMaxBytes": 42044,
+    "packetScope": "common PACT observation baseline only; actual profile requests retain native dispatch guards",
+    "watchdogSelfTest": [
+      "normal",
+      "hard end",
+      "heartbeat loss",
+      "clock disagreement"
+    ],
+    "operatorSyntax": "pass"
+  },
+  "operatorSha256": {
+    "control.mjs": "58076a427bf9570ea7b75753b974f707f21884b573c4776e2d47a4840b9ac405",
+    "seal.mjs": "8c692a97698eb6c555187955c7c1b06c26bddafb5f3eef825e9fdc208ab12465",
+    "launch.mjs": "9fd84ebf70cab09b7ea57f6e49794de1c40b35deb43b5f1dc6398a0cf701ec07",
+    "watchdog.py": "48af476ae30327799aef819306f339fd0425c21fe5e9f6263b94af97880ae648",
+    "stop-world.mjs": "1fd5705629ff0668fd3c38c77503ecc844015b5e02e1ad0356e11fd9397d3e07",
+    "verify-observer.mjs": "6d2614ddfa506c6f04ea944b34875da133ecba135100751b5fe888322f78fde3",
+    "verify-closure.mjs": "9acd91d639861778ea1b0562dc9f4b9bc5eaf6667ae0029c7ca0e52cfaa70fd4"
+  },
+  "historicalUnknownReservedTokensPreserved": 120000,
+  "historicalPerformanceFailure": {
+    "overheadPercent": 16.29,
+    "limitPercent": 10,
+    "acceptedException": true,
+    "thresholdPass": false
+  },
+  "limitations": [
+    "Exploratory single shared world, two replicas per profile; not causal architecture ranking.",
+    "Different model conversion and architecture mix from previous 24-agent reactive-basic trial.",
+    "Common packet checks and synthetic tests do not establish live correctness of all eight architectures.",
+    "Ramp depends on known native results, timing and resources; maximum eight is not a claim of eight observed concurrent inferences."
+  ]
+}
