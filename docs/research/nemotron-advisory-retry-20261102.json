@@ -1,0 +1,44 @@
+{
+  "id": "nemotron-advisory-retry-20261102-8986da6d",
+  "world": "fleet-retry-20261102-8986da6d",
+  "cohortId": "81a7e3bf-ec40-45a5-80d9-20e46bc11532",
+  "agentId": "1f9a2ebe-35a8-4db2-9c95-210e1916b908",
+  "bindingId": "45e3ea73-9f7e-43f1-8c26-9b518d7f91ff",
+  "taskId": "0b8d4e04-1fea-4149-a52f-d6f782628a89",
+  "manifestDigest": "80a40ad053f55bddee9a132879a2535a2f532c5573c7461d1f09ea8591da7a02",
+  "sourceCommit": "d7006f2e92d978d0dcb040f8578264ef0dc7f7db",
+  "pactSourceCommit": "4f64faf49f2e33ba45bc441d6f621ce8005a6dbe",
+  "startsAtUtc": "2026-11-02T11:05:09.641Z",
+  "endsAtUtc": "2026-11-02T12:05:09.641Z",
+  "inspectionOrigin": "http://127.0.0.1:57468",
+  "status": "sealed; activation pending",
+  "model": {
+    "route": "ollama",
+    "model": "nemotron-3-nano:4b",
+    "thinking": false,
+    "temperature": 0,
+    "topP": 1
+  },
+  "budget": {
+    "mode": "finite",
+    "callLimit": 2,
+    "deadlineAt": "2026-11-02T12:03:08.000Z",
+    "tokenLimit": 80000,
+    "concurrency": 1,
+    "inputByteLimit": 24000,
+    "maxCallsPerTurn": 1,
+    "maxOutputTokens": 512,
+    "maxActionsPerTurn": 1,
+    "perCallTokenLimit": 40000
+  },
+  "contextLimitBytes": 24000,
+  "outputLimitTokens": 512,
+  "contextWindowTokens": 32768,
+  "gameplayCommandAuthority": false,
+  "preparedRequest": {
+    "beforeBytes": 33165,
+    "afterBytes": 19709,
+    "modelCalls": 0
+  },
+  "privateEvidenceLedger": ".superpowers/sdd/2026-11-02-nemotron-retry"
+}
