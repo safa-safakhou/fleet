@@ -95,6 +95,26 @@
         "automationId": "watch-nemotron-advisory-retry",
         "status": "ACTIVE",
         "purpose": "Quiet monitoring; diagnose/fix and retry on a meaningful new failure; final result on closure"
+      },
+      "visualization": {
+        "status": "pass",
+        "url": "http://127.0.0.1:56829/#research/run/task%3Adda84db7-0625-44e5-8b3f-1d3416c3f56b",
+        "coverage": "complete",
+        "events": 65,
+        "allocations": 1,
+        "browserErrors": [],
+        "rendered": [
+          "actual advisory repair loop timeline",
+          "actual advisory repair loop context/lineage",
+          "actual advisory repair loop causal graph"
+        ],
+        "workflowHistory": [
+          {
+            "workflowId": "fleet-task/dda84db7-0625-44e5-8b3f-1d3416c3f56b",
+            "status": 2
+          }
+        ],
+        "note": "Advisory workflow completed; controller, rules and Temporal poller remain active within the finite observation window."
       }
     }
   ]
