@@ -20,3 +20,7 @@ The owner accepted the 16.29% recording latency result; the strict 10% qualifica
 ## Acceptance
 
 Installation/provider/readiness results must be reported separately from source qualification and future live behavioral acceptance. Readiness requires measured checks, not merely running containers. If a dependency cannot be safely installed or verified, record the precise remaining prerequisite; do not relax limits or claim a live test ran. The later finite gameplay grant remains unstarted and requires its own exact activation record.
+
+## Verified result
+
+The six preparation steps are complete within the stated scope. See [installed acceptance](../../research/isolated-readiness-20261102.md) and [machine-readable checks](../../research/isolated-readiness-20261102.json). The provider made exactly one synthetic call; the live game test remains unstarted. The [finite test envelope](../../research/isolated-test-envelope-20261102.json) is a validated proposal, with activation identities, absolute times and manifests deliberately ungranted. Formal qualification still records the owner-accepted performance failure.

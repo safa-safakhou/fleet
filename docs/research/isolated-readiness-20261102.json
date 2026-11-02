@@ -1,0 +1,377 @@
+{
+  "schemaVersion": "fleet.local-installation-acceptance/v1",
+  "at": "2026-11-02T06:33:46.022Z",
+  "status": "installation-and-bounded-provider-prerequisites-verified",
+  "scope": "new isolated empty local PACT instance; TypeScript advisory path; no live gameplay",
+  "worldIncarnation": "fleet-ready-20261102-6bce0141",
+  "runtimeSource": "bf51a69",
+  "runtimeImage": "sha256:0d78a0ac7bdffb8f0a231caebe049d5c032a5190595eed5ed44781e282077ae5",
+  "pactSource": "4f64faf49f2e33ba45bc441d6f621ce8005a6dbe",
+  "executionEnabled": false,
+  "liveTestStarted": false,
+  "taskWorkersStarted": false,
+  "capacity": {
+    "hostFreeBytes": 14280323072,
+    "dockerFreeBytes": 8713768960,
+    "hostArtifactReserveBytes": 10737418240,
+    "hostBuildMinimumBytes": 8589934592,
+    "dockerBuildMinimumBytes": 6442450944,
+    "limitsUnchanged": true,
+    "sharedMountStatfs": "virtual value is not authoritative; future native TS executor checks actual host filesystem"
+  },
+  "world": {
+    "status": "paused",
+    "tick_sequence": "0",
+    "suspension_reason": "ISOLATED_READINESS_NO_LIVE_GRANT",
+    "kingdoms": 0
+  },
+  "temporal": {
+    "namespace": "fleet-ready-20261102-6bce0141",
+    "id": "18c65632-ceb6-445e-8bcb-0988d5f90b62",
+    "workflows": 0,
+    "retentionSeconds": "2592000"
+  },
+  "providerPreflight": {
+    "scope": "one synthetic real-provider contract; no gameplay",
+    "status": "pass",
+    "provider": "Ollama 0.40.11",
+    "model": "nemotron-3-nano:4b",
+    "modelDigest": "6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197",
+    "thinking": false,
+    "contextWindow": 32768,
+    "maxOutputTokens": 512,
+    "temperature": 0,
+    "topP": 1,
+    "calls": 1,
+    "reservationCeiling": "40000",
+    "inputTokens": 49,
+    "outputTokens": 6,
+    "elapsedMs": 1430,
+    "contractValid": true,
+    "runId": "64c11609-6a31-4d54-8f4d-221f04b657a4",
+    "coverage": {
+      "version": "fleet.coverage/v1",
+      "runId": "64c11609-6a31-4d54-8f4d-221f04b657a4",
+      "status": "complete",
+      "expected": 3,
+      "recorded": 3,
+      "missing": [],
+      "eventCount": 17,
+      "byteCoverage": {
+        "expected": "3476",
+        "recorded": "3476",
+        "status": "complete"
+      },
+      "reasons": []
+    },
+    "telemetryEvents": 17,
+    "commands": 0,
+    "runningTurns": 0,
+    "unknownAllocations": 0,
+    "turnState": "cancelled",
+    "harnessLimit": "Initial preparation lacked vector extension; later report-script failure after known usage. Independent retained-response validation, no second call.",
+    "gameplayStarted": false
+  },
+  "providerStopped": true,
+  "localEntry": {
+    "guestEntryReady": true,
+    "guestSession": false,
+    "scope": "fresh loopback-only instance; no join/identity/gameplay request",
+    "worldClockChanged": false,
+    "modelCallsAdded": 0
+  },
+  "inspectionAndVisualization": {
+    "status": "pass",
+    "inspection": [
+      {
+        "base": "http://127.0.0.1:64366",
+        "unauthenticatedDenied": true,
+        "authenticatedRead": true,
+        "enrollmentDenied": true
+      },
+      {
+        "base": "http://127.0.0.1:60366",
+        "unauthenticatedDenied": true,
+        "authenticatedRead": true,
+        "enrollmentDenied": true
+      }
+    ],
+    "preflightSnapshotCoverage": "complete",
+    "preflightEvents": 17,
+    "prometheusProjectedEvents": 17,
+    "tempoTraces": 1,
+    "rendered": [
+      "research timeline",
+      "research causal graph",
+      "Grafana Fleet Research v1"
+    ],
+    "browserErrors": []
+  },
+  "roleAndNetworkChecks": {
+    "crossDatabase": [
+      {
+        "role": "fleet_owner",
+        "database": "temporal",
+        "denied": true
+      },
+      {
+        "role": "fleet_owner",
+        "database": "pact",
+        "denied": true
+      },
+      {
+        "role": "temporal_owner",
+        "database": "fleet",
+        "denied": true
+      },
+      {
+        "role": "visibility_owner",
+        "database": "temporal",
+        "denied": true
+      },
+      {
+        "role": "pact_owner",
+        "database": "fleet",
+        "denied": true
+      }
+    ],
+    "indexRole": [
+      {
+        "table": "compute_ledger",
+        "denied": true
+      },
+      {
+        "table": "research_artifacts",
+        "denied": true
+      },
+      {
+        "table": "research_memory_sources",
+        "denied": true
+      },
+      {
+        "table": "research_memory_projections",
+        "scopedProjectionReadable": true
+      }
+    ],
+    "egress": "inspection direct external TCP denied",
+    "status": "pass"
+  },
+  "keyProof": {
+    "status": "pass",
+    "invalidProofRefused": true,
+    "reason": [
+      "ARTIFACT_KEY_UNAVAILABLE"
+    ],
+    "exactProofRestored": true,
+    "executionEnabled": false
+  },
+  "pairedRestore": {
+    "status": "pass",
+    "databases": [
+      {
+        "source": "fleet",
+        "restore": "fleet_restore",
+        "tables": 117,
+        "rows": 2,
+        "dumpBytes": 323210,
+        "dumpSha256": "75f1f7bcfff9043ff13e7b008c4a15c789689552254c35751447513d300ea9ca",
+        "canonicalMatch": true
+      },
+      {
+        "source": "pact",
+        "restore": "pact_restore",
+        "tables": 167,
+        "rows": 75,
+        "dumpBytes": 428110,
+        "dumpSha256": "820dd5dd51041e66e3c8da08b20336117c47c1180136f8f0ca446c6ac49c5e76",
+        "canonicalMatch": true
+      },
+      {
+        "source": "temporal",
+        "restore": "temporal_restore",
+        "tables": 40,
+        "rows": 149,
+        "dumpBytes": 59027,
+        "dumpSha256": "a2d32fcc3f81556d75a635b826d817718cecb9fdbbca3bc6cea6754a057d6635",
+        "canonicalMatch": true
+      },
+      {
+        "source": "temporal_visibility",
+        "restore": "visibility_restore",
+        "tables": 3,
+        "rows": 19,
+        "dumpBytes": 46404,
+        "dumpSha256": "b69510d967b5e6ba5a60f0a4517d3d2df9f6dcc2072b386a819a7eb6232edd79",
+        "canonicalMatch": true
+      },
+      {
+        "source": "fleet_test",
+        "restore": "preflight_restore",
+        "tables": 118,
+        "rows": 87,
+        "dumpBytes": 344507,
+        "dumpSha256": "6e49efb0cad8e9c43f95949ac5759555f625e0b2548e86c8776cea3a1f9eefb5",
+        "canonicalMatch": true
+      }
+    ],
+    "artifactTrees": [
+      {
+        "label": "target",
+        "files": 0,
+        "bytes": 0,
+        "match": true
+      },
+      {
+        "label": "preflight",
+        "files": 6,
+        "bytes": 201210,
+        "match": true
+      }
+    ],
+    "originalWorldsAccessed": false,
+    "chunkIntegrity": {
+      "atomicDeviceWrite": true,
+      "restoredDecryption": true,
+      "corruptionRefused": true,
+      "scope": "separate labeled synthetic sentinel; model artifacts remain their actual SQL tier"
+    }
+  },
+  "preservation": {
+    "at": "2026-11-02T06:33:40.652290+00:00",
+    "originalContainers": 67,
+    "containerConfigDifferences": [],
+    "originalVolumes": 115,
+    "originalVolumeDefinitionsMatch": true,
+    "services": [
+      {
+        "name": "fleet-mac-nemotron-db",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "automated-traffic-service-db-1",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "toolbox-document-worker",
+        "state": "running",
+        "health": "healthy"
+      }
+    ]
+  },
+  "ownedServiceState": [
+    {
+      "name": "fleet-ready-20261102-6bce0141-inspection",
+      "running": true,
+      "oomKilled": false,
+      "restarts": 0
+    },
+    {
+      "name": "fleet-ready-20261102-6bce0141-temporal",
+      "running": true,
+      "oomKilled": false,
+      "restarts": 0
+    },
+    {
+      "name": "fleet-ready-20261102-6bce0141-ingress",
+      "running": true,
+      "oomKilled": false,
+      "restarts": 0
+    },
+    {
+      "name": "fleet-ready-20261102-6bce0141-obs-collector-1",
+      "running": true,
+      "oomKilled": false,
+      "restarts": 0
+    },
+    {
+      "name": "fleet-ready-20261102-6bce0141-obs-tempo-1",
+      "running": true,
+      "oomKilled": false,
+      "restarts": 0
+    },
+    {
+      "name": "fleet-ready-20261102-6bce0141-obs-prometheus-1",
+      "running": true,
+      "oomKilled": false,
+      "restarts": 0
+    },
+    {
+      "name": "fleet-ready-20261102-6bce0141-obs-grafana-1",
+      "running": true,
+      "oomKilled": false,
+      "restarts": 0
+    }
+  ],
+  "endpoints": {
+    "inspection": "http://127.0.0.1:64366",
+    "preflightViewer": "http://127.0.0.1:60366",
+    "grafana": "http://127.0.0.1:64368",
+    "prometheus": "http://127.0.0.1:64369",
+    "tempo": "http://127.0.0.1:64370"
+  },
+  "dockerSpaceCategories": [
+    {
+      "Active": "24",
+      "Reclaimable": "8.907GB (11%)",
+      "Size": "79.17GB",
+      "TotalCount": "210",
+      "Type": "Images"
+    },
+    {
+      "Active": "11",
+      "Reclaimable": "1.422GB (99%)",
+      "Size": "1.423GB",
+      "TotalCount": "75",
+      "Type": "Containers"
+    },
+    {
+      "Active": "14",
+      "Reclaimable": "10.24GB (87%)",
+      "Size": "11.69GB",
+      "TotalCount": "121",
+      "Type": "Local Volumes"
+    },
+    {
+      "Active": "0",
+      "Reclaimable": "0B",
+      "Size": "0B",
+      "TotalCount": "0",
+      "Type": "Build Cache"
+    }
+  ],
+  "futureTestEnvelope": "isolated-test-envelope-20261102.json",
+  "remainingActivationWork": [
+    "Later instruction to start a finite experiment; no gameplay authority granted now.",
+    "Create named participants, finalize absolute clocks and seal matching capability/run manifests under that later instruction.",
+    "Explicitly assign Temporal task ownership and start only the authorized worker/window; no existing task, cohort or command is implicitly resumed."
+  ],
+  "qualification": {
+    "strictStatus": "blocked",
+    "reason": "GATE_REQUIRED:performance",
+    "latencyOverhead": 0.16286853807153645,
+    "threshold": 0.1,
+    "ownerOptimizationWork": "closed; current result accepted",
+    "gateRewritten": false,
+    "automaticActivationAuthorized": false,
+    "historicalE4KQ1": "unchanged; not certified by this local preparation"
+  },
+  "limits": [
+    "Provider check covers one non-thinking synthetic JSON response at output512/context32768, not game reasoning or all architectures.",
+    "Trusted native Node executor selected for actual host filesystem reserve checks; inspection shared-mount virtual statfs cannot establish capacity.",
+    "Local Temporal uses loopback ingress and owned SSH tunnel; shared/public production hosting is not accepted.",
+    "Restores cover new owned state only; original preservation compares resource configuration and service health, not a business-data hash audit.",
+    "Source qualification and live behavioral acceptance remain separate."
+  ],
+  "evidenceDigests": {
+    "provider-preflight-result.json": "9b0bdce62d1e802d0b7a17aeb9085bad4c759523b31d3329d75707d91f05b24d",
+    "inspection-visualization.json": "a041f057394bce4b737309aae3f8334b46655b18e75bb53cd085c7f9dbf719c6",
+    "role-network-boundaries.json": "c208ccc51d2a43858e6874f55c54498a51bb8be7540000f27047036da7d62239",
+    "paired-restore.json": "5d36b7187ec895a706361ba43945da4737fc3aebf27e6ac8f5679244796a692b",
+    "installed-key-proof.json": "500f3c0f8bb9518b1dc73ead9673d633ae89e1c9ce11ade3aa7c20d45dd7c174",
+    "preservation-final.json": "276656c1f6b10bb37afe289a23e9814352a7f48ab4bdca95b06f2766e33248b9",
+    "local-entry-readiness.json": "aa618dc6bb73f3f8ac43c65f08fedd463a818534db7de8631f7b6c17dfad7936",
+    "final-audit.json": "f6515400c3f740df9fa5fc8a98bb3cb3d37fed02e1f1bf6917d630999d0b0eb8"
+  }
+}

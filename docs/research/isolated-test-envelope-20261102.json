@@ -1,0 +1,80 @@
+{
+  "schemaVersion": "fleet.proposed-local-test/v1",
+  "status": "prepared-proposal; activation-ungranted",
+  "worldIncarnation": "fleet-ready-20261102-6bce0141",
+  "profile": { "id": "pact-research-advisory", "version": "1" },
+  "architectureConfig": {
+    "worker": "typescript-reference@1",
+    "policy": "pact-reference@1",
+    "memoryNamespace": "pact-research",
+    "contextPolicy": "observed-pact@1",
+    "maxSteps": 1,
+    "scriptedAction": ""
+  },
+  "executionPlacement": "trusted native Node 26 TypeScript host; actual host filesystem reserve; no Python worker selected",
+  "participants": 1,
+  "authority": "advisory; no gameplay commands",
+  "scheduler": { "owner": "temporal", "namespace": "fleet-ready-20261102-6bce0141" },
+  "model": {
+    "route": "ollama",
+    "model": "nemotron-3-nano:4b",
+    "digest": "6cc467f054393a55e98a74098abde0c762ffb6d1d8cd64becf30458f38886197",
+    "thinking": false,
+    "temperature": 0,
+    "topP": 1,
+    "contextWindow": 32768,
+    "maxOutputTokens": 512,
+    "fallback": false
+  },
+  "finiteLimits": {
+    "durationMs": 900000,
+    "calls": 2,
+    "tokens": 80000,
+    "perCallTokenLimit": 40000,
+    "perCallDeadlineMs": 90000,
+    "inputByteLimit": 24000,
+    "concurrency": 1
+  },
+  "evidence": {
+    "required": true,
+    "consentRequired": true,
+    "retentionDays": 30,
+    "artifactQuotaBytes": "1073741824",
+    "minimumHostArtifactFreeBytes": "10737418240",
+    "minimumDockerBuildFreeBytes": "6442450944",
+    "indexPolicy": "disabled",
+    "embeddings": "not selected; no model download or indexing grant"
+  },
+  "metrics": [
+    "full native event and artifact-byte coverage; no omitted failures",
+    "reported/unknown/not-dispatched allocation census and reserved versus measured tokens",
+    "proposal contract validity across every dispatched response",
+    "queue, provider and end-to-end duration when measured; missing timings remain unavailable",
+    "worker/lease/fencing/error/stop reasons and resident memory",
+    "advisory output groundedness from independently reviewed delivered PACT sources",
+    "zero gameplay commands expected from this advisory profile"
+  ],
+  "stops": [
+    "absolute authorized end time or finite call/token exhaustion",
+    "any unknown usage, uncertain command, identity/permission/lease/fencing failure",
+    "evidence gap, integrity/consent/quota failure or storage reserve breach",
+    "invalid proposal, provider/schema error or provider deadline",
+    "service, tunnel, clock or supervisor health failure; no automatic restart of execution"
+  ],
+  "activationRecord": {
+    "authorized": false,
+    "startsAt": null,
+    "endsAt": null,
+    "cohortIds": [],
+    "bindingIds": [],
+    "participantIds": [],
+    "sealedManifestDigest": null,
+    "executionCommands": [],
+    "backupAndStopCommands": "private installation ledger; final identities assembled under the later finite run instruction"
+  },
+  "inferenceLimit": "One world/participant is a readiness experiment, not independent evidence of strategic improvement or an architecture comparison.",
+  "qualification": {
+    "strictPerformanceGate": "failed; owner-accepted 16.29% latency overhead against unchanged 10% threshold",
+    "automaticActivation": false
+  }
+}
