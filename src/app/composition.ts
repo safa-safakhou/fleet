@@ -68,7 +68,7 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
       "legacy-loop@1": (services) => legacyRuntime("legacy-loop", services),
       "legacy-cognition@1": (services) => legacyRuntime("legacy-cognition", services),
     }),
-    pool = connect(settings.databaseUrl),
+    pool = connect(settings.databaseUrl, settings.databasePoolMax),
     store = new Store(pool, new Vault(settings.vaultKey), undefined, architectures);
   const evidence = new CaptureSession(
     store,

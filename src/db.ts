@@ -2,10 +2,11 @@ import { readFile } from "node:fs/promises";
 import { resolve } from "node:path";
 import type { PoolClient } from "pg";
 import pg from "pg";
-export function connect(url: string) {
+export function connect(url: string, max = 8) {
+  if (!Number.isInteger(max) || max < 1 || max > 32) throw new Error("DATABASE_POOL_LIMIT");
   const pool = new pg.Pool({
     connectionString: url,
-    max: 8,
+    max,
     connectionTimeoutMillis: 5000,
     statement_timeout: 20000,
     lock_timeout: 5000,
@@ -96,5 +97,6 @@ export async function migrate(pool: Pool) {
     await c.query(await readFile(resolve("migrations/057_research_atomic_dispatch.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/058_research_pending_copy_index.sql"), "utf8"));
     await c.query(await readFile(resolve("migrations/059_research_resolved_capture.sql"), "utf8"));
+    await c.query(await readFile(resolve("migrations/060_research_binding_ownership.sql"), "utf8"));
   });
 }

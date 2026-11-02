@@ -15,8 +15,12 @@ export async function startTaskRuntime(options: {
   namespace: string;
   manifestDigest: string;
   admissionOpen: () => boolean;
+  /** Manual mode leaves durable wakes pending until an operator grants capacity. */
+  delivery?: "automatic" | "manual";
   stop?: (taskId: string) => Promise<void>;
 }) {
+  if (options.delivery !== undefined && !["automatic", "manual"].includes(options.delivery))
+    throw new Error("INVALID_TASK_DELIVERY_MODE");
   const transport = await TemporalClient.connect(options.address, options.namespace),
     connection = await NativeConnection.connect({ address: options.address }).catch(async (error) => {
       await transport.connection.close();
@@ -56,28 +60,31 @@ export async function startTaskRuntime(options: {
   void running.catch(() => {});
   let busy = false;
   let delivery: Promise<void> | undefined;
-  const timer = setInterval(() => {
-    if (busy) return;
-    busy = true;
-    delivery = (async () => {
-      const rows = (
-        await options.store.pool.query(
-          "SELECT o.id FROM research_task_outbox o JOIN research_task_owners t ON t.task_id=o.task_id WHERE o.delivered_at IS NULL AND t.manifest_digest=$1 ORDER BY o.created_at,o.id LIMIT 10",
-          [options.manifestDigest],
-        )
-      ).rows;
-      for (const row of rows) await owner.deliver(row.id);
-    })()
-      .catch(() => {})
-      .finally(() => {
-        busy = false;
-      });
-  }, 2000);
+  const timer =
+    options.delivery === "manual"
+      ? undefined
+      : setInterval(() => {
+          if (busy) return;
+          busy = true;
+          delivery = (async () => {
+            const rows = (
+              await options.store.pool.query(
+                "SELECT o.id FROM research_task_outbox o JOIN research_task_owners t ON t.task_id=o.task_id WHERE o.delivered_at IS NULL AND t.manifest_digest=$1 ORDER BY o.created_at,o.id LIMIT 10",
+                [options.manifestDigest],
+              )
+            ).rows;
+            for (const row of rows) await owner.deliver(row.id);
+          })()
+            .catch(() => {})
+            .finally(() => {
+              busy = false;
+            });
+        }, 2000);
   return {
     owner,
     running,
     close: async () => {
-      clearInterval(timer);
+      if (timer) clearInterval(timer);
       worker.shutdown();
       try {
         await running;

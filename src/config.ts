@@ -29,6 +29,12 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
     observabilityEndpoint: env.FLEET_OBSERVABILITY_OTLP_URL,
     pactFactRequests: parsePactFactRequests(env.FLEET_PACT_FACT_REQUESTS),
     databaseUrl,
+    databasePoolMax: z.coerce
+      .number()
+      .int()
+      .min(1)
+      .max(32)
+      .parse(env.FLEET_DATABASE_POOL_MAX ?? 8),
     operatorSecret,
     vaultKey,
     origin,

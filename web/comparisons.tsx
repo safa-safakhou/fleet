@@ -143,7 +143,7 @@ export function ComparisonWorkspace({
               <label>
                 Turn interval
                 <select value={intervalMinutes} onChange={(e) => setIntervalMinutes(Number(e.target.value))}>
-                  {[5, 10, 15, 30, 60].map((n) => (
+                  {[2, 5, 10, 15, 30, 60].map((n) => (
                     <option key={n} value={n}>
                       {n} minutes
                     </option>

@@ -10,9 +10,9 @@ import { capability, manifestInput } from "../fixtures/research/manifest.js";
 import { platformFixture } from "../platform-helpers.js";
 
 const address = process.env.FLEET_QUALIFICATION_TEMPORAL_ADDRESS;
-test.skipIf(!address)(
-  "owned Temporal SDK closes after a waiting review and resumes only a new wake",
-  async () => {
+test.skipIf(!address).each(["automatic", "manual"] as const)(
+  "owned Temporal SDK closes waiting reviews and resumes only a new wake with %s delivery",
+  async (delivery) => {
     if (!address) throw new Error("QUALIFICATION_ADDRESS_REQUIRED");
     expect(address).toMatch(/^127\.0\.0\.1:\d+$/);
     const namespace = `fleet-synthetic-lifecycle-${randomUUID()}`;
@@ -80,8 +80,21 @@ test.skipIf(!address)(
           address,
           namespace,
           manifestDigest: actor.digest,
+          delivery,
           admissionOpen: () => true,
         });
+        if (delivery === "manual") {
+          await new Promise((resolve) => setTimeout(resolve, 2500));
+          expect(calls).toBe(before);
+          const row = (
+            await f.pool.query(
+              "SELECT id FROM research_task_outbox WHERE task_id=$1 AND delivered_at IS NULL ORDER BY created_at,id LIMIT 1",
+              [actor.taskId],
+            )
+          ).rows[0];
+          expect(row).toBeDefined();
+          await runtime.owner.deliver(row.id);
+        }
         let settled = false;
         for (let n = 0; n < 200; n++) {
           const row = (

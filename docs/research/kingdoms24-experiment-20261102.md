@@ -1,6 +1,6 @@
 # Fresh24-kingdom gameplay experiment — attempt02
 
-The fresh attempt is active; native progression and actual visual evidence are verified. Final hour acceptance remains pending. [Exact current record](kingdoms24-experiment-20261102.json). World `fleet-24-20261102-dada8668`; source `6f0bf1b` contains the verified native packet fix from `b17f21a`. Typed lifecycle test follow-up `a813970` changes no production source/build/dependency. No push.
+The owner stopped this serialized attempt early to replace its capacity envelope. [Verified closed result](kingdoms24-attempt02-20261102.md). Historical early-live checkpoints below remain dated evidence; the planned hour did not complete. [Exact current record](kingdoms24-experiment-20261102.json). World `fleet-24-20261102-dada8668`; source `6f0bf1b` contains the verified native packet fix from `b17f21a`. Typed lifecycle test follow-up `a813970` changes no production source/build/dependency. No push.
 
 **Window: 2026-11-02T13:22:39.433Z through 2026-11-02T14:22:39.433Z —14:22:39 to15:22:39 Berlin.**24fresh kingdoms share one isolated world:8guardian/8merchant/8diplomat native owner goals. Native `reactive-basic@1` gameplay uses independent sealed manifests and Temporal ownership, encrypted full-path evidence, OTel and authenticated read-only visualization. Two opportunities each at0/+30minutes, recorded seeded order then reverse order, one shared Nemotron4B inference slot. Logical queue delay is recorded before native claim.
 

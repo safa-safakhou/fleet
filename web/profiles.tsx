@@ -217,7 +217,7 @@ export function ProfileWorkspace({
               <label>
                 Timed review
                 <select value={interval} onChange={(e) => setInterval(Number(e.target.value))}>
-                  {[5, 10, 15, 30, 60].map((n) => (
+                  {[2, 5, 10, 15, 30, 60].map((n) => (
                     <option key={n} value={n}>
                       {n} minutes
                     </option>

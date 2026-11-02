@@ -12,12 +12,12 @@ import { TaskStore } from "../src/platform/tasks.js";
 import { boardEnvironment, boardRef } from "./fixtures/environments/board.js";
 import { budget, fixture } from "./helpers.js";
 export const profile = { id: "fixture-loop", version: "1" };
-export async function platformFixture(capacity = 2) {
+export async function platformFixture(capacity = 2, workerCapacity = 4) {
   const f = await fixture(),
     bindings = new Bindings(f.store, boardRef),
     board = boardEnvironment(),
     environments = new EnvironmentRegistry([board.adapter], boardRef),
-    tasks = new TaskStore(f.store, bindings, 4, environments);
+    tasks = new TaskStore(f.store, bindings, workerCapacity, environments);
   const route = new RouteCapacity(f.store, () => ({ key: `fixture:${key}`, capacity })),
     key = randomUUID();
   async function cohort(

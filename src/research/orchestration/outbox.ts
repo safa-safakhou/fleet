@@ -14,6 +14,59 @@ export class TemporalTaskOwner {
     private admissionOpen: () => boolean = () => true,
     private stopWork: (taskId: string) => Promise<void> = async () => {},
   ) {}
+  /** Trusted preparation only: bind all future task keys before this binding is consumed. */
+  async enrollBinding(bindingId: string, manifestDigest: string) {
+    const manifest = await new ManifestRepository(this.store.pool).load(manifestDigest);
+    await transaction(this.store.pool, async (db) => {
+      const row = (
+        await db.query(
+          "SELECT b.id,b.state binding_state,a.cohort_id,c.state cohort_state,p.profile_id,p.profile_version FROM environment_bindings b JOIN agents a ON a.id=b.agent_id JOIN cohorts c ON c.id=a.cohort_id JOIN cohort_engine_profiles p ON p.cohort_id=c.id WHERE b.id=$1 FOR UPDATE OF b,c",
+          [bindingId],
+        )
+      ).rows[0];
+      if (!row) throw new FleetError("BINDING_NOT_FOUND", true);
+      if (
+        manifest.environment.bindingId !== bindingId ||
+        manifest.profile.id !== row.profile_id ||
+        manifest.profile.version !== row.profile_version
+      )
+        throw new FleetError("OPERATION_SCOPE_MISMATCH", true);
+      const old = (await db.query("SELECT * FROM research_binding_routes WHERE binding_id=$1", [bindingId])).rows[0];
+      if (old) {
+        if (
+          old.manifest_digest !== manifestDigest ||
+          old.profile_id !== row.profile_id ||
+          old.profile_version !== row.profile_version
+        )
+          throw new FleetError("RESEARCH_ROUTE_PROFILE_MISMATCH", true);
+        return;
+      }
+      if (
+        row.binding_state !== "active" ||
+        !["draft", "paused"].includes(row.cohort_state) ||
+        (
+          await db.query(
+            "SELECT 1 FROM platform_tasks WHERE binding_id=$1 UNION ALL SELECT 1 FROM turns WHERE cohort_id=$2 LIMIT 1",
+            [bindingId, row.cohort_id],
+          )
+        ).rowCount
+      )
+        throw new FleetError("CONSUMED_PROFILE_IMMUTABLE", true);
+      if (
+        (
+          await db.query(
+            "SELECT 1 FROM research_task_routes WHERE binding_id=$1 AND (manifest_digest<>$2 OR profile_id<>$3 OR profile_version<>$4) LIMIT 1",
+            [bindingId, manifestDigest, row.profile_id, row.profile_version],
+          )
+        ).rowCount
+      )
+        throw new FleetError("RESEARCH_ROUTE_PROFILE_MISMATCH", true);
+      await db.query(
+        "INSERT INTO research_binding_routes(binding_id,profile_id,profile_version,manifest_digest,created_at) VALUES($1,$2,$3,$4,$5)",
+        [bindingId, row.profile_id, row.profile_version, manifestDigest, this.store.now()],
+      );
+    });
+  }
   async enroll(taskId: string, manifestDigest: string) {
     const manifest = await new ManifestRepository(this.store.pool).load(manifestDigest);
     await transaction(this.store.pool, async (db) => {
