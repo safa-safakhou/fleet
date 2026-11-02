@@ -1,0 +1,48 @@
+{
+  "at": "2026-11-02T17:40:10.944983+00:00",
+  "status": "selected disposable-cache cleanup complete; vLLM installation in progress",
+  "beforeFreeGiB": 10.64,
+  "afterCleanupFreeGiB": 16.12,
+  "netFreedGiB": 5.71,
+  "removedCategories": [
+    "uv download/build cache through uv cache clean",
+    "pip HTTP/wheel caches",
+    "Xcode module/SDK/symbol caches",
+    "Go and TypeScript compiler/index caches",
+    "unused downloaded application update packages",
+    "Chrome HTTP and compiled-code caches only"
+  ],
+  "preserved": [
+    "all retained worlds, private evidence, restores, grants, identities, counters, mandates, unknown allocations and commands",
+    "all Docker containers, volumes and service configurations",
+    "model weights, pinned toolchains and installed environments",
+    "browser sessions, cookies, history, settings and Storage",
+    "Xcode products, archives, user documents and unsaved work",
+    "JetBrains local/file history and application data"
+  ],
+  "preservation": {
+    "at": "2026-11-02T17:38:51.422870+00:00",
+    "originalContainers": 67,
+    "containerConfigDifferences": [],
+    "originalVolumes": 115,
+    "originalVolumeDefinitionsMatch": true,
+    "services": [
+      {
+        "name": "fleet-mac-nemotron-db",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "automated-traffic-service-db-1",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "toolbox-document-worker",
+        "state": "running",
+        "health": "healthy"
+      }
+    ]
+  },
+  "note": "Net filesystem availability was measured after each step, not estimated from logical directory sizes. Installation consumes some recovered space; report final space separately."
+}
