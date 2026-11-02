@@ -61,7 +61,11 @@
     "mode": "agent_decides",
     "allowedKingdomIds": []
   },
-  "capacityRamp": [2, 4, 8],
+  "capacityRamp": [
+    2,
+    4,
+    8
+  ],
   "rampHeadroomMs": 60000,
   "scheduleIntervalMs": 120000,
   "controllerSha256": "d32bfa75b34730c3431ba73caf9eff6b60aff1817a7c1c5d477d8f42dbf7a9eb",
@@ -69,7 +73,7 @@
   "inspectionOrigin": "http://127.0.0.1:50342",
   "dispatchTieBreak": "eligible_at_then_task_uuid_with_fair_actor_rotation",
   "coalescing": "waiting tasks require a source revision newer than the latest native claim; older wakes retained without redelivery",
-  "status": "sealed; controller launch next",
+  "status": "stopped safely: UNKNOWN_USAGE; real replica retry blocked pending usage decision",
   "ledger": ".superpowers/sdd/2026-11-02-capacity-02/",
   "maxParallel": 8,
   "triggerModes": {
@@ -100,7 +104,15 @@
       "bindingId": "52e718e3-984b-4080-aab2-432a6f32c573",
       "kingdomId": "0528a462-4b65-488a-a87f-084dc6d43086",
       "taskId": "7d2545f0-040f-4033-8f7b-030f83e82ca2",
-      "manifestDigest": "7cbe541c68bbb7afdb59453dea0889dd97bd74d5a7f55bc936b5bc34c4511520"
+      "manifestDigest": "7cbe541c68bbb7afdb59453dea0889dd97bd74d5a7f55bc936b5bc34c4511520",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 1,
@@ -112,7 +124,17 @@
       "bindingId": "f300c1ee-6c6c-4560-a586-4f530dfb6042",
       "kingdomId": "45ba5cb8-da17-48fa-add0-d541dfbee91c",
       "taskId": "21779701-bc39-42c5-ac31-f704e8814ea2",
-      "manifestDigest": "934e7c3b809140f53de3fd95937ccce2037b50d02e2977e96f9ca360243a3850"
+      "manifestDigest": "934e7c3b809140f53de3fd95937ccce2037b50d02e2977e96f9ca360243a3850",
+      "actual": {
+        "turns": 1,
+        "codes": [
+          "MODEL_DEADLINE_EXCEEDED"
+        ],
+        "reportedCalls": 0,
+        "unknownCalls": 1,
+        "actions": 0,
+        "outcome": "awaiting owner: usage unknown"
+      }
     },
     {
       "index": 2,
@@ -124,7 +146,17 @@
       "bindingId": "33256dba-f442-4874-a193-6f28826b6c8e",
       "kingdomId": "dc9551db-f102-48d5-a848-78f1428eee91",
       "taskId": "3638a050-d8ec-4ad1-9cb2-0065fa458e4d",
-      "manifestDigest": "8489af4dc1e5b84dfdbad24f0f49dbe0c50ee7a0e11d43dc708513e84ef6d706"
+      "manifestDigest": "8489af4dc1e5b84dfdbad24f0f49dbe0c50ee7a0e11d43dc708513e84ef6d706",
+      "actual": {
+        "turns": 1,
+        "codes": [
+          "HOST_STOPPED"
+        ],
+        "reportedCalls": 0,
+        "unknownCalls": 1,
+        "actions": 0,
+        "outcome": "awaiting owner: usage unknown"
+      }
     },
     {
       "index": 3,
@@ -136,7 +168,15 @@
       "bindingId": "cbc05fc8-41bd-43fe-a629-22f1a0f48603",
       "kingdomId": "fe599cac-c75b-4648-9923-768ad5d422b3",
       "taskId": "ef56a61b-6dd4-4b71-99fb-be207215ceb7",
-      "manifestDigest": "c07fb8ba87a18a476d087ab45e3b499415d9569ddb8273d80c1d33757330237d"
+      "manifestDigest": "c07fb8ba87a18a476d087ab45e3b499415d9569ddb8273d80c1d33757330237d",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 4,
@@ -148,7 +188,15 @@
       "bindingId": "9d147f66-2df3-4e56-9124-f404e1e3774a",
       "kingdomId": "272bff26-c924-47aa-8c0e-dfd1c47c809a",
       "taskId": "83228454-c058-4518-904f-e0b05781c83a",
-      "manifestDigest": "253abc70bd3e953c653ff78ce3fca339333f66d8fbb4ed44f08a1cf03dde01cd"
+      "manifestDigest": "253abc70bd3e953c653ff78ce3fca339333f66d8fbb4ed44f08a1cf03dde01cd",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 5,
@@ -160,7 +208,15 @@
       "bindingId": "9df5caae-67f6-4266-8eb5-c1ae8d58dd7f",
       "kingdomId": "eec9da22-82ab-44b1-bfcb-4441e8f9f022",
       "taskId": "4f526f54-5136-457f-9d53-247f6bb4667c",
-      "manifestDigest": "f3a0653809def11c9e9eb8f9c18644e8fe2b64cae6868e3535114b5caf12f54a"
+      "manifestDigest": "f3a0653809def11c9e9eb8f9c18644e8fe2b64cae6868e3535114b5caf12f54a",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 6,
@@ -172,7 +228,15 @@
       "bindingId": "ff1b945d-c0f3-41b3-80c9-a253f51225ce",
       "kingdomId": "0720206f-0c88-414e-ba04-9fe4a06e62d2",
       "taskId": "82b4b60d-2457-4d3a-a3f9-b1290b9d6787",
-      "manifestDigest": "eee991334f5d9bff05f57bd8f03055b4ac53e2e9339f3e387f855e95c155e2ef"
+      "manifestDigest": "eee991334f5d9bff05f57bd8f03055b4ac53e2e9339f3e387f855e95c155e2ef",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 7,
@@ -184,7 +248,15 @@
       "bindingId": "0156ca7c-dbbf-46b1-bd7b-0c1b7b5bf2d5",
       "kingdomId": "174204d8-15d1-436d-86ea-e25f098b391a",
       "taskId": "e435d5e3-f59c-4247-903c-34a89116c211",
-      "manifestDigest": "eb55c10a09174cbf3af967bc7a3b36f7de7adfed09be749c1f25456dd2b03cdb"
+      "manifestDigest": "eb55c10a09174cbf3af967bc7a3b36f7de7adfed09be749c1f25456dd2b03cdb",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 8,
@@ -196,7 +268,15 @@
       "bindingId": "42af2c56-839b-4d22-bfad-b2f35713b4a0",
       "kingdomId": "c1987351-b201-4ac2-abb7-f53bba23b60b",
       "taskId": "d3562b73-8265-412f-b024-144b7876f8f2",
-      "manifestDigest": "5f815cf27c3da6958652231b75488894610c14a192882a9ed41230bec2a14d2e"
+      "manifestDigest": "5f815cf27c3da6958652231b75488894610c14a192882a9ed41230bec2a14d2e",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 9,
@@ -208,7 +288,17 @@
       "bindingId": "3537f1f2-1ff4-434f-ad73-9c6da5b67dd4",
       "kingdomId": "ed264b56-3be1-408c-8b1f-80511460442f",
       "taskId": "1925b7e0-526f-465e-af61-d099d4026ba4",
-      "manifestDigest": "cca56e8dd02bf7d2445a7495ec80b2aea9a594b256610ff1abb32534525490bb"
+      "manifestDigest": "cca56e8dd02bf7d2445a7495ec80b2aea9a594b256610ff1abb32534525490bb",
+      "actual": {
+        "turns": 1,
+        "codes": [
+          "WAIT"
+        ],
+        "reportedCalls": 1,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "validated WAIT"
+      }
     },
     {
       "index": 10,
@@ -220,7 +310,15 @@
       "bindingId": "ef8a8358-c8cc-432f-8cb0-5f4b2d725b8a",
       "kingdomId": "afb99385-dc70-4958-849c-061d37d5fc72",
       "taskId": "a7ffbd20-6688-439c-a3fc-d28cdfcf21df",
-      "manifestDigest": "d4575718ce40896d61969c2e6617376136632200f7e88f48e91b141962bc1317"
+      "manifestDigest": "d4575718ce40896d61969c2e6617376136632200f7e88f48e91b141962bc1317",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 11,
@@ -232,7 +330,15 @@
       "bindingId": "ab028f36-af38-4122-bc47-e37dcfc24b0c",
       "kingdomId": "e98c48b0-feb5-4ecc-ad96-c26acfab9bbb",
       "taskId": "61262826-53ed-4969-b2ac-ed6c439e83e0",
-      "manifestDigest": "1888fc125a7a08a9aad363019f66b628f36d9cc61771da388ee75aa2ab6dac43"
+      "manifestDigest": "1888fc125a7a08a9aad363019f66b628f36d9cc61771da388ee75aa2ab6dac43",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 12,
@@ -244,7 +350,15 @@
       "bindingId": "26b4a6b0-8c46-47fd-86e7-a25e3d440dd7",
       "kingdomId": "5612f4b7-61e1-4e01-8347-77e53901a260",
       "taskId": "8b5a65dc-a459-47c3-aaa5-68cd80f2c3b2",
-      "manifestDigest": "0d1ffb22cfa87d74fea648f7945c810aad4330134cb2a97621342a4cf90fc4f0"
+      "manifestDigest": "0d1ffb22cfa87d74fea648f7945c810aad4330134cb2a97621342a4cf90fc4f0",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 13,
@@ -256,7 +370,15 @@
       "bindingId": "b7292db3-55ee-41cc-9f4c-1526d666f91b",
       "kingdomId": "4c43e014-bc55-41e5-b91c-0e9181d5c67f",
       "taskId": "e8361811-b6c8-4010-8192-9c186c7d1838",
-      "manifestDigest": "4be16f639a62baebb141eff192eeaa5e0d218bca59637a7b3595dc3dd8f5960b"
+      "manifestDigest": "4be16f639a62baebb141eff192eeaa5e0d218bca59637a7b3595dc3dd8f5960b",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 14,
@@ -268,7 +390,15 @@
       "bindingId": "0fdd01f4-042e-42ce-814f-b885a4be1354",
       "kingdomId": "f6217578-5c2d-4419-8ac3-5b51c4838f93",
       "taskId": "d6733028-589f-420e-86bc-4f4fbaff2027",
-      "manifestDigest": "7fcab8f69bc692722654f5830d9718f69b96d9a46662c9f6415cd773faee97cb"
+      "manifestDigest": "7fcab8f69bc692722654f5830d9718f69b96d9a46662c9f6415cd773faee97cb",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 15,
@@ -280,7 +410,17 @@
       "bindingId": "80e95cc9-4061-4019-bb1a-6d8db31f2ef8",
       "kingdomId": "23e7058a-1101-4f33-b06b-b788f7079847",
       "taskId": "083e592d-63be-4403-8566-08bcdb52e53a",
-      "manifestDigest": "9f9a5e6def20eedaf553c5be0418b58f64840a93fea51a22addfbeb413069e34"
+      "manifestDigest": "9f9a5e6def20eedaf553c5be0418b58f64840a93fea51a22addfbeb413069e34",
+      "actual": {
+        "turns": 1,
+        "codes": [
+          "WAIT"
+        ],
+        "reportedCalls": 1,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "validated WAIT"
+      }
     },
     {
       "index": 16,
@@ -292,7 +432,15 @@
       "bindingId": "e4e0414c-38e2-4727-99bd-b8020afe1e91",
       "kingdomId": "97fd559d-2493-4d7d-a995-a8086bb008b3",
       "taskId": "52891af4-29b4-47cd-bae2-3839cd7a947e",
-      "manifestDigest": "82342fac20d7c4c7b05ae14aa500f234d0a25ebe8df45a183bc594683c8526e5"
+      "manifestDigest": "82342fac20d7c4c7b05ae14aa500f234d0a25ebe8df45a183bc594683c8526e5",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 17,
@@ -304,7 +452,17 @@
       "bindingId": "13821f8d-8f0c-46ef-9976-5b0be9b9e309",
       "kingdomId": "2c312f52-f754-4fe3-a5fc-69ca04cf8325",
       "taskId": "266503dd-58f0-44c9-aa1d-7abc6acad564",
-      "manifestDigest": "e89c4cbdca3a7b0eacabe1960f80b39c46d685d90954d236f2c52bf8cec75b4c"
+      "manifestDigest": "e89c4cbdca3a7b0eacabe1960f80b39c46d685d90954d236f2c52bf8cec75b4c",
+      "actual": {
+        "turns": 1,
+        "codes": [
+          "WAIT"
+        ],
+        "reportedCalls": 1,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "validated WAIT"
+      }
     },
     {
       "index": 18,
@@ -316,7 +474,17 @@
       "bindingId": "9c6d805b-8d8b-45f7-bb3a-6fe3ba3916e7",
       "kingdomId": "d3af7094-8e2f-4d1f-986e-99c7de18f9c1",
       "taskId": "0c6e478e-5fda-41c3-916c-ad90499ee3df",
-      "manifestDigest": "d2c5a67706a0a16fd76d9bdf07ca44aa905e913de22cdd6a3c66d8938a54aae5"
+      "manifestDigest": "d2c5a67706a0a16fd76d9bdf07ca44aa905e913de22cdd6a3c66d8938a54aae5",
+      "actual": {
+        "turns": 1,
+        "codes": [
+          "WAIT"
+        ],
+        "reportedCalls": 1,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "validated WAIT"
+      }
     },
     {
       "index": 19,
@@ -328,7 +496,15 @@
       "bindingId": "f51edd7d-be34-4771-90a4-be3f106645ef",
       "kingdomId": "ba7ba692-9056-4df3-9d9d-278ad09e6aaa",
       "taskId": "584f52c8-be5b-49b4-a752-670a86d3715e",
-      "manifestDigest": "3993696bba8e4ac18ade2e63b69efd4d1f57eb2281f99d3c894442783d2954d4"
+      "manifestDigest": "3993696bba8e4ac18ade2e63b69efd4d1f57eb2281f99d3c894442783d2954d4",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 20,
@@ -340,7 +516,17 @@
       "bindingId": "3a358b2f-5089-4dab-83ca-5b4c093d0271",
       "kingdomId": "ca84c133-af03-4420-a05e-61cf4b38162a",
       "taskId": "1aa8a3f2-5290-4ca2-bee4-d02c7e50d3d6",
-      "manifestDigest": "52986b495564f9f1c3a3fd794713b12c5d089147a2bf03d497f5b29259e2493b"
+      "manifestDigest": "52986b495564f9f1c3a3fd794713b12c5d089147a2bf03d497f5b29259e2493b",
+      "actual": {
+        "turns": 1,
+        "codes": [
+          "WAIT"
+        ],
+        "reportedCalls": 1,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "validated WAIT"
+      }
     },
     {
       "index": 21,
@@ -352,7 +538,15 @@
       "bindingId": "4de8750c-21b6-46c7-9de6-67a4630c1219",
       "kingdomId": "651d1465-370e-4466-9ff1-c1d8afb759df",
       "taskId": "6914ade8-fca4-472a-bee0-488dfe22240c",
-      "manifestDigest": "54e77834b8837c6ccbd6846c0e35d356683724ed850e33be697f34d14f1a2578"
+      "manifestDigest": "54e77834b8837c6ccbd6846c0e35d356683724ed850e33be697f34d14f1a2578",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     },
     {
       "index": 22,
@@ -364,7 +558,17 @@
       "bindingId": "5373c2dc-0319-4be0-acbf-b0688fd5cd3c",
       "kingdomId": "da73a067-bcb5-4a1f-b5d5-ec74f186b4e6",
       "taskId": "4bfd8966-133c-4e1b-90c4-a335d422a18a",
-      "manifestDigest": "16ed085a4087a1e82a5a1a89b595d138562649be81191dac5a2bfe2667921b3c"
+      "manifestDigest": "16ed085a4087a1e82a5a1a89b595d138562649be81191dac5a2bfe2667921b3c",
+      "actual": {
+        "turns": 1,
+        "codes": [
+          "HOST_STOPPED"
+        ],
+        "reportedCalls": 0,
+        "unknownCalls": 1,
+        "actions": 0,
+        "outcome": "awaiting owner: usage unknown"
+      }
     },
     {
       "index": 23,
@@ -376,7 +580,15 @@
       "bindingId": "d34121be-ed07-42db-9715-b62ab6fe1f13",
       "kingdomId": "f677acb1-8e20-4380-8052-6342cf17268d",
       "taskId": "80e0113d-b845-4b07-8616-453555bb5ab5",
-      "manifestDigest": "5a8168fab31b41846485b3066c60976caad0b9ea5a839f37c45e3e92633e1290"
+      "manifestDigest": "5a8168fab31b41846485b3066c60976caad0b9ea5a839f37c45e3e92633e1290",
+      "actual": {
+        "turns": 0,
+        "codes": [],
+        "reportedCalls": 0,
+        "unknownCalls": 0,
+        "actions": 0,
+        "outcome": "not dispatched before stop"
+      }
     }
   ],
   "qualification": {
@@ -388,5 +600,89 @@
     "typeStyleBuildBoundariesGeneratedContracts": "pass; existing warnings",
     "realCapacity": "pending"
   },
-  "previousPreparedInstance": "capacity-prepared01-20261102.json"
+  "previousPreparedInstance": "capacity-prepared01-20261102.json",
+  "actual": {
+    "closedAtUtc": "2026-11-02T14:38:23.665Z",
+    "reason": "UNKNOWN_USAGE",
+    "world": {
+      "status": "paused",
+      "tick": "2",
+      "gameTimeMs": 1793629980000
+    },
+    "nativeTurns": 8,
+    "allocations": 8,
+    "reportedCalls": 5,
+    "unknownCalls": 3,
+    "unknownReservedTokens": 120000,
+    "knownInputTokens": 52980,
+    "knownOutputTokens": 1221,
+    "gameplayCommands": 0,
+    "peakNativeAllocations": 4,
+    "peakGrants": 4,
+    "actualBackendInferenceSlots": 1,
+    "stageErrors": []
+  },
+  "cause": {
+    "provider": "Ollama 0.40.11",
+    "architecture": "nemotron_h",
+    "warning": "model architecture does not currently support parallel requests",
+    "configuredParallel": 8,
+    "actualSlots": 1,
+    "effect": "Four native allocations overlapped but queued inside one inference slot. One model deadline caused closure; two other dispatched calls were interrupted during closure. All three missing final usage reports retain full reservations."
+  },
+  "closureVerification": {
+    "restoredDatabases": 4,
+    "tableProjections": 328,
+    "canonicalMatches": true,
+    "artifactsVerified": 623,
+    "artifactPlaintextBytes": 15223120,
+    "stateFiles": 135,
+    "stateStoredBytes": 24089739,
+    "stateHashesMatch": true,
+    "stoppedProcesses": {
+      "controller": true,
+      "rules": true,
+      "provider": true,
+      "awake": true,
+      "watchdog": true
+    },
+    "observer": {
+      "pages": 208,
+      "encryptedBytes": 311472,
+      "chainMatches": true,
+      "scopeConsentRetentionMatches": true
+    },
+    "originalContainers": 67,
+    "originalVolumes": 115,
+    "containerConfigDifferences": [],
+    "originalVolumeDefinitionsMatch": true,
+    "services": [
+      {
+        "name": "fleet-mac-nemotron-db",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "automated-traffic-service-db-1",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "toolbox-document-worker",
+        "state": "running",
+        "health": "healthy"
+      }
+    ],
+    "usageCoverage": "Five complete runs; three partial solely because usage remains unknown. All expected artifact bytes retained."
+  },
+  "successorProposal": {
+    "status": "source repair and design; not launched or sealed",
+    "providerReplicas": 6,
+    "ramp": [
+      2,
+      4,
+      6
+    ],
+    "requirement": "Explicit owner decision to preserve unresolved holds across a fresh independent experiment, or authoritative final usage resolution. Measure latency/memory before increasing actual inference concurrency. All old holds/tasks remain untouched."
+  }
 }
