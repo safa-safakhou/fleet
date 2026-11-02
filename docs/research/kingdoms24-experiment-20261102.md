@@ -1,6 +1,6 @@
 # Fresh24-kingdom gameplay experiment — attempt02
 
-Controller and independently owned watchdog are ready; awaiting sealed opening. [Exact current record](kingdoms24-experiment-20261102.json). World `fleet-24-20261102-dada8668`; source `6f0bf1b` contains the verified native packet fix from `b17f21a`. Typed lifecycle test follow-up `a813970` changes no production source/build/dependency. No push.
+The fresh attempt is active; native progression and actual visual evidence are verified. Final hour acceptance remains pending. [Exact current record](kingdoms24-experiment-20261102.json). World `fleet-24-20261102-dada8668`; source `6f0bf1b` contains the verified native packet fix from `b17f21a`. Typed lifecycle test follow-up `a813970` changes no production source/build/dependency. No push.
 
 **Window: 2026-11-02T13:22:39.433Z through 2026-11-02T14:22:39.433Z —14:22:39 to15:22:39 Berlin.**24fresh kingdoms share one isolated world:8guardian/8merchant/8diplomat native owner goals. Native `reactive-basic@1` gameplay uses independent sealed manifests and Temporal ownership, encrypted full-path evidence, OTel and authenticated read-only visualization. Two opportunities each at0/+30minutes, recorded seeded order then reverse order, one shared Nemotron4B inference slot. Logical queue delay is recorded before native claim.
 
@@ -13,3 +13,9 @@ The first24-kingdom attempt stopped early after two successful native waits beca
 The earlier one-kingdom advisory trial is closed at the owner's request with complete evidence and four matching restores: [actual report](advisory-repair-loop-20261102.md).
 
 This is one exploratory configuration/coexistence trial with two opportunities per kingdom, not continuous24-way inference, an eight-architecture comparison or a statistical model-accuracy claim. Complete hour acceptance requires actual receipt/usage/evidence reviews, snapshots/restores, original-data preservation, rendered timeline/context/causality and per-kingdom outcome/queue metrics. The accepted historical16.29% latency failure against10% is unchanged.
+
+## Early live checkpoint
+
+At2026-11-02T13:27:29.322Z, all24cohorts are running and the world is active at tick4. Native turn counts: `{"finished:WAIT": 15, "running:None": 1}`;15reported calls/1in flight,0commands, zero unknown allocations/capture failures. These are measured early results, not an hour completion or gameplay-achievement claim. The operator has advanced past both completed and event-waiting reviews.
+
+At2026-11-02T13:26:48.235Z, all13settled research runs reconcile complete: 887events/15,549,478plaintext artifact bytes. Actual native timeline, loaded provider-request artifact/context inspector and explicit causal graph rendered without browser errors. The render uses stream-local sequence rather than global ingestion ordinal; screenshots remain private. Final evidence/restore/per-kingdom review will follow closure.

@@ -67,7 +67,7 @@
   "watchdogSha256": "73d7459f8270449c76d972faab0f5f3f43a9c695c0c6f92633ec26cd1b10cdaa",
   "watchdogExecutableSha256": "26e421d533fc81b727d6463d3f8ce54ea60aadc8903092f7ea18ca877247a4ae",
   "inspectionOrigin": "http://127.0.0.1:60052",
-  "status": "controller ready; awaiting sealed opening",
+  "status": "active; early native progression and visualization verified; hour acceptance pending",
   "attempt": 2,
   "ledger": ".superpowers/sdd/2026-11-02-kingdoms24-02/",
   "verificationCommit": "a81397021c7db8d7fdf6159a278d67dc5d9920e1",
@@ -385,5 +385,56 @@
     "A scheduled new event may legitimately resume a waiting task with a new turn; no failed/completed task is reset.",
     "Initial packet fit proven; future states/model outputs can still be refused.",
     "Historical16.29% latency remains a failure against the10% qualification gate."
-  ]
+  ],
+  "liveCheckpoint": {
+    "atUtc": "2026-11-02T13:27:29.322Z",
+    "world": {
+      "status": "active",
+      "tick_sequence": "4"
+    },
+    "kingdoms": 24,
+    "cohorts": [
+      {
+        "state": "running",
+        "n": 24
+      }
+    ],
+    "turnCounts": {
+      "finished:WAIT": 15,
+      "running:None": 1
+    },
+    "reportedCalls": 15,
+    "inFlightAllocations": 1,
+    "commands": 0,
+    "unknownUsage": 0,
+    "evidenceFailed": 0,
+    "events": 1076,
+    "taskStates": {
+      "ready": 8,
+      "completed": 6,
+      "waiting": 9,
+      "running": 1
+    }
+  },
+  "liveEvidenceCheckpoint": {
+    "at": "2026-11-02T13:26:48.235Z",
+    "status": "pass",
+    "settledRuns": 13,
+    "events": 887,
+    "plaintextBytes": 15549478
+  },
+  "visualization": {
+    "status": "pass",
+    "url": "http://127.0.0.1:60052/#research/run/task%3A42285561-559f-4b79-b99b-7d015fb822d9",
+    "coverage": "complete",
+    "events": 69,
+    "contextKind": "model.request",
+    "browserErrors": [],
+    "rendered": [
+      "actual native gameplay timeline",
+      "actual native gameplay context/lineage",
+      "actual native gameplay causal graph"
+    ],
+    "note": "Early live render only; final hour acceptance pending; controller/rules/selected Temporal poller remain within the finite window."
+  }
 }
