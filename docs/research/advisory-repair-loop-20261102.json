@@ -13,7 +13,7 @@
       "startsAtUtc": "2026-11-02T11:30:31.861Z",
       "endsAtUtc": "2026-11-02T12:30:31.861Z",
       "inspectionOrigin": "http://127.0.0.1:56829",
-      "status": "sealed; activation pending",
+      "status": "running; first advisory turn completed normally; hour pending",
       "model": {
         "route": "ollama",
         "model": "nemotron-3-nano:4b",
@@ -39,7 +39,63 @@
         "limit": 24000,
         "modelCalls": 0
       },
-      "privateLedger": ".superpowers/sdd/2026-11-02-advisory-loop-01"
+      "privateLedger": ".superpowers/sdd/2026-11-02-advisory-loop-01",
+      "initialTurns": [
+        {
+          "id": "1ca478df-8e08-48e4-8b89-37f0668eaacf",
+          "state": "finished",
+          "code": "WAIT",
+          "calls": 1,
+          "actions": 0,
+          "unknown_usage": false,
+          "started_at": "2026-11-02T11:30:39.244Z",
+          "finished_at": "2026-11-02T11:30:56.116Z"
+        }
+      ],
+      "initialUsage": [
+        {
+          "id": "915dbe2b-3f89-4357-83ff-557735207a6d",
+          "status": "reported",
+          "tokens": "40000",
+          "input_tokens": "5058",
+          "output_tokens": "283"
+        }
+      ],
+      "initialCoverage": [
+        {
+          "version": "fleet.coverage/v1",
+          "runId": "task:dda84db7-0625-44e5-8b3f-1d3416c3f56b",
+          "status": "complete",
+          "expected": 3,
+          "recorded": 3,
+          "missing": [],
+          "eventCount": 65,
+          "byteCoverage": {
+            "expected": "894148",
+            "recorded": "894148",
+            "status": "complete"
+          },
+          "reasons": []
+        }
+      ],
+      "responseReview": {
+        "status": "contract-and-grounding-pass",
+        "kind": "advisory",
+        "adviceCharacters": 600,
+        "allSourceRefsMatch": true,
+        "emptyPreconditions": true,
+        "canonicalRequestBytes": 20136,
+        "maxBytes": 24000,
+        "inputTokens": 5058,
+        "outputTokens": 283,
+        "semanticAccuracy": "not established by schema or reference validity alone; no model text published",
+        "runId": "nemotron-advisory-loop-20261102-9a72fb3e"
+      },
+      "followUp": {
+        "automationId": "watch-nemotron-advisory-retry",
+        "status": "ACTIVE",
+        "purpose": "Quiet monitoring; diagnose/fix and retry on a meaningful new failure; final result on closure"
+      }
     }
   ]
 }
