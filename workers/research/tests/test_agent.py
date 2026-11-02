@@ -1,6 +1,8 @@
 import pytest
 from fleet_research.agent import make_agent
 from fleet_research.worker import run_operation
+from pydantic import ValidationError
+from pydantic_ai.exceptions import UnexpectedModelBehavior
 
 
 class Broker:
@@ -82,7 +84,7 @@ async def test_invalid_output_does_not_trigger_hidden_model_repair():
             }
 
     broker = Invalid()
-    with pytest.raises(Exception):
+    with pytest.raises(UnexpectedModelBehavior):
         await make_agent(broker).run("synthetic")
     assert len(broker.calls) == 1
 
@@ -90,3 +92,85 @@ async def test_invalid_output_does_not_trigger_hidden_model_repair():
 @pytest.fixture
 def anyio_backend():
     return "asyncio"
+
+
+@pytest.mark.anyio
+async def test_scoped_advisory_contract_forbids_tool_requests_without_hidden_retry():
+    broker = Broker()
+    schema = {
+        "$id": "fleet.one-step-advisory@1",
+        "type": "object",
+        "properties": {
+            "kind": {"type": "string", "enum": ["advisory", "wait"]},
+            "payload": {
+                "type": "object",
+                "properties": {
+                    "text": {"type": "string", "minLength": 1, "maxLength": 600}
+                },
+                "required": ["text"],
+                "additionalProperties": False,
+            },
+            "sourceRefs": {
+                "type": "array",
+                "items": {"type": "string", "enum": ["fixture:source"]},
+                "minItems": 1,
+                "maxItems": 1000,
+            },
+            "preconditions": {"type": "object", "additionalProperties": False},
+        },
+        "required": ["kind", "payload", "sourceRefs", "preconditions"],
+        "additionalProperties": False,
+    }
+    with pytest.raises(ValidationError):
+        await run_operation(
+            broker,
+            {
+                "instructions": "One final advisory decision",
+                "observation": {},
+                "maxSteps": 1,
+                "workerVersion": "python-pydantic@1",
+                "policyVersion": "pact-reference@1",
+                "outputSchema": schema,
+            },
+        )
+    assert len(broker.calls) == 1
+    assert broker.calls[0]["schema"] == schema
+    assert broker.reads == []
+    assert broker.proposals == []
+
+
+def test_scoped_advisory_output_validates_exact_references_and_empty_preconditions():
+    from fleet_research.agent import scoped_advisory_output
+
+    output = scoped_advisory_output(
+        {
+            "$id": "fleet.one-step-advisory@1",
+            "properties": {"sourceRefs": {"items": {"enum": ["fixture:木材"]}}},
+        }
+    )
+    valid = {
+        "kind": "advisory",
+        "payload": {"text": "Observed evidence only"},
+        "sourceRefs": ["fixture:木材"],
+        "preconditions": {},
+    }
+    assert output.model_validate(valid).model_dump() == valid
+    for invalid in [
+        {**valid, "kind": "read"},
+        {**valid, "kind": "action"},
+        {**valid, "sourceRefs": ["invented"]},
+        {**valid, "sourceRefs": []},
+        {**valid, "preconditions": {"clockId": "invented"}},
+        {**valid, "payload": {"text": "x" * 601}},
+    ]:
+        with pytest.raises(ValidationError):
+            output.model_validate(invalid)
+    empty = scoped_advisory_output(
+        {
+            "$id": "fleet.one-step-advisory@1",
+            "properties": {"sourceRefs": {"items": {}}},
+        }
+    )
+    assert empty.model_validate({**valid, "sourceRefs": []}).sourceRefs == []
+    with pytest.raises(ValidationError):
+        empty.model_validate(valid)

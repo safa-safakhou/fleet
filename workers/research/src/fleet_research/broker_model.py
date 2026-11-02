@@ -2,6 +2,7 @@
 
 import json
 from copy import deepcopy
+
 from pydantic_ai.messages import ModelResponse, TextPart, ToolCallPart
 from pydantic_ai.models import Model
 from pydantic_ai.profiles import ModelProfile
@@ -9,11 +10,13 @@ from pydantic_ai.usage import RequestUsage
 
 
 class BrokerModel(Model):
-    def __init__(self, broker):
+    def __init__(self, broker, output_schema=None, output_type=None):
         super().__init__(
             profile=ModelProfile(supports_json_schema_output=True, supports_tools=True)
         )
         self.broker = broker
+        self.output_schema = output_schema
+        self.output_type = output_type
 
     @property
     def model_name(self):
@@ -90,6 +93,8 @@ class BrokerModel(Model):
         schema = {"type": "object", "anyOf": branches}
         if definitions:
             schema["$defs"] = definitions
+        if self.output_schema is not None:
+            schema = deepcopy(self.output_schema)
         value = await self.broker.model(
             {
                 "messages": prepared,
@@ -102,6 +107,8 @@ class BrokerModel(Model):
         if usage.get("inputTokens") is None or usage.get("outputTokens") is None:
             raise ValueError("USAGE_UNKNOWN")
         decision = value["decision"]
+        if self.output_type is not None:
+            self.output_type.model_validate(decision)
         if decision.get("kind") == "read":
             parts = [ToolCallPart("read_game", decision.get("payload", {}))]
         else:

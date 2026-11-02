@@ -5,7 +5,9 @@ import asyncio
 import json
 import sys
 from datetime import datetime
+
 from google.protobuf.json_format import ParseDict
+
 from .client import BrokerClient
 from .generated.fleet.v1 import worker_pb2 as w
 from .worker import run_operation
@@ -15,7 +17,7 @@ async def execute(control):
     value = control["input"]
     ParseDict(value, w.WorkerInput())  # reject unknown wire fields
     deadline = datetime.fromisoformat(
-        value["deadlineUtc"].replace("Z", "+00:00")
+        value["deadlineUtc"].replace("Z", "+00:00")  # noqa: FURB162 -- retain the existing wire parser
     ).timestamp()
     broker = BrokerClient(control["socket"], control["token"], value["scope"], deadline)
     try:
@@ -34,6 +36,11 @@ async def execute(control):
                     "observation": json.loads(value["observationJson"]),
                     "maxSteps": value["maxSteps"],
                     "maxOutputTokens": value.get("maxOutputTokens", 100),
+                    **(
+                        {"outputSchema": json.loads(value["outputSchemaJson"])}
+                        if value.get("outputSchemaJson")
+                        else {}
+                    ),
                 },
             )
         return ParseDict(
@@ -65,6 +72,6 @@ def main():
         if len(control) > 4 * 1024 * 1024:
             raise ValueError("INPUT_TOO_LARGE")
         sys.stdout.buffer.write(asyncio.run(execute(json.loads(control))))
-    except Exception:
+    except Exception:  # noqa: BLE001 -- raw framework errors can contain private payloads
         print("WORKER_EXECUTION_FAILED", file=sys.stderr)
         raise SystemExit(1) from None

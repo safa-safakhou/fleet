@@ -11,6 +11,7 @@ import { ManifestRepository } from "../manifests/repository.js";
 import { checkpointScriptedPolicy } from "../policies/pact-scripted.js";
 import { type PythonExecutor, runPythonWorker } from "../workers/python.js";
 import { ReferenceBrokerClient, runReferenceWorker } from "../workers/reference.js";
+import { oneStepAdvisorySchema } from "./advisory-contract.js";
 import { RecipeConfig, validateRecipe } from "./pact-reference.js";
 /** Kernel-composed runtime for explicitly enrolled fresh PACT tasks only. */
 export async function runPactRecipe(
@@ -49,12 +50,18 @@ export async function runPactRecipe(
     const checkpoint = await broker.loadCheckpoint(session, scope),
       steps = await broker.stepMap(session, scope),
       blocked = steps.some((s) => s.result.status !== "completed" || !s.result.resultRef);
-    const instructions = `${services.configuration.instructions ?? ""}\nUse only the supplied authorized PACT observation. Available read tools: ${JSON.stringify(manifest.tools)}. A read decision has kind read and payload {tool, arguments}. Return sourceRefs from delivered evidence. Actions use a delivered native quoted payload and exact revision/clock preconditions. You cannot claim success; Fleet validates and submits. No implicit repairs.`;
+    const oneStepAdvisory = role.authority === "advisory" && config.maxSteps === 1;
+    const outputSchema = oneStepAdvisory ? oneStepAdvisorySchema(operation.observation.sourceRefs) : undefined;
+    const guidance = oneStepAdvisory
+      ? "You are an advisory agent with no gameplay command authority and one final decision. Return advisory or wait with payload {text}, exact sourceRefs selected from the observation, and empty preconditions {}. Do not request another read or an action; there is no remaining reasoning step. Distinguish observed facts from inference and missing information."
+      : "Actions use a delivered native quoted payload and exact revision/clock preconditions.";
+    const instructions = `${services.configuration.instructions ?? ""}\nUse only the supplied authorized PACT observation. Available read tools: ${JSON.stringify(manifest.tools)}. A read decision has kind read and payload {tool, arguments}. Return sourceRefs from delivered evidence. ${guidance} You cannot claim success; Fleet validates and submits. No implicit repairs.`;
     const input = {
       instructions,
       observation: operation.observation,
       maxSteps: config.maxSteps,
       maxOutputTokens: manifest.model.parameters.maxOutputTokens,
+      ...(outputSchema ? { outputSchema } : {}),
       workerVersion: config.worker,
       policyVersion: config.policy,
       checkpoint,
@@ -146,6 +153,7 @@ export async function runPactRecipe(
             roleId: role.id,
             instructions,
             observationJson: JSON.stringify(operation.observation),
+            ...(outputSchema ? { outputSchemaJson: JSON.stringify(outputSchema) } : {}),
             maxSteps: config.maxSteps,
             maxOutputTokens: manifest.model.parameters.maxOutputTokens,
             deadlineUtc: new Date(turn.deadline_at).toISOString(),

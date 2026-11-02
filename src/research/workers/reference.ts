@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { FleetError } from "../../domain.js";
+import { compileGenerationSchema } from "../../model-schema.js";
 import type { CheckpointState } from "../broker/checkpoints.js";
 import { ProposalSchema } from "../broker/model.js";
 import type { DecisionProposal, ResearchBroker, ResearchModelRequest } from "../broker/server.js";
@@ -83,6 +84,7 @@ export async function runReferenceWorker(
   input: {
     instructions: string;
     observation: unknown;
+    outputSchema?: Record<string, unknown>;
     maxSteps: number;
     maxOutputTokens?: number;
     workerVersion: string;
@@ -105,15 +107,18 @@ export async function runReferenceWorker(
     { role: "system" as const, content: input.instructions },
     { role: "user" as const, content: JSON.stringify(input.observation) },
   ];
+  const schema = input.outputSchema ?? OutputSchema,
+    validate = compileGenerationSchema(schema);
   for (let n = 0; n < input.maxSteps; n++) {
     const result = await broker.model({
       messages,
-      schema: OutputSchema,
+      schema,
       maxOutputTokens: input.maxOutputTokens ?? 100,
       purpose: "decision",
     });
     if (result.usage?.inputTokens == null || result.usage?.outputTokens == null)
       throw new FleetError("USAGE_UNKNOWN", true);
+    if (!validate(result.decision)) throw new FleetError("PROPOSAL_CONTRACT_INVALID", true);
     const proposal = ProposalSchema.parse(result.decision);
     if (proposal.kind === "read") {
       const read = z

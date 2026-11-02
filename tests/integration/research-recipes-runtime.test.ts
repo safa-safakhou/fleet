@@ -5,6 +5,7 @@ import { expect, test } from "vitest";
 import { builtinArchitectures } from "../../src/app/builtins.js";
 import { createScopedServices, scopedOperationFor } from "../../src/app/host-services.js";
 import { packPactObservation } from "../../src/games/pact/packing.js";
+import { compileGenerationSchema } from "../../src/model-schema.js";
 import { ResearchBroker } from "../../src/research/broker/server.js";
 import { StepJournal } from "../../src/research/broker/steps.js";
 import { canonical } from "../../src/research/contracts.js";
@@ -25,6 +26,8 @@ test.each([
   ["pact-research-deliberative", "python-pydantic@1", "small"],
   ["pact-research-scripted", "typescript-reference@1", "small"],
   ["pact-research-advisory", "typescript-reference@1", "large-pact"],
+  ["pact-research-advisory", "python-pydantic@1", "small"],
+  ["pact-research-advisory", "typescript-reference@1", "invalid-advisory"],
 ])("explicitly enrolled recipe executes %s with %s (%s)", async (id, worker, scenario) => {
   await assertOwnedFixture(process.env.FLEET_TEST_DATABASE_URL ?? "", process.env.FLEET_ARCHITECTURE_NONCE ?? "");
   const f = await platformFixture(),
@@ -42,7 +45,7 @@ test.each([
     ]);
     await f.store.consent(f.group.id, true);
     const profile = { id, version: "1" },
-      config = { ...recipeDefaults(id), worker },
+      config = { ...recipeDefaults(id), worker, ...(id === "pact-research-advisory" ? { maxSteps: 1 } : {}) },
       definition = builtinArchitectures().resolve(profile);
     await f.tasks.enroll(f.group.id, profile);
     await f.pool.query("UPDATE cohort_engine_profiles SET architecture_config=$2 WHERE cohort_id=$1", [
@@ -97,6 +100,17 @@ test.each([
     const h = f.host({
       ...(scenario === "large-pact" ? { tracksDispatch: true } : {}),
       decide: async (request) => {
+        if (id === "pact-research-advisory") {
+          const validate = compileGenerationSchema(request.schema);
+          expect(validate(corpus.replies[1].decision)).toBe(true);
+          expect(validate(corpus.replies[0].decision)).toBe(false);
+          expect(validate({ ...corpus.replies[1].decision, sourceRefs: ["invented:source"] })).toBe(false);
+          expect(
+            request.messages.some(
+              (m) => m.role === "system" && m.content.includes("advisory") && m.content.includes("one"),
+            ),
+          ).toBe(true);
+        }
         if (scenario === "large-pact") {
           expect(
             Buffer.byteLength(
@@ -116,7 +130,11 @@ test.each([
           await request.onDispatch?.();
         }
         calls++;
-        return { decision: corpus.replies[1].decision, inputTokens: 7, outputTokens: 8 };
+        return {
+          decision: corpus.replies[scenario === "invalid-advisory" ? 0 : 1].decision,
+          inputTokens: 7,
+          outputTokens: 8,
+        };
       },
     });
     const owner = new TemporalTaskOwner(f.store, f.tasks, { send: async () => {} }, async (claim) => {
@@ -185,6 +203,13 @@ test.each([
       (await f.pool.query("SELECT id FROM research_task_outbox WHERE kind='wake'")).rows[0].id,
     );
     await owner.execute(ref);
+    if (scenario === "invalid-advisory") {
+      expect(failure).toMatchObject({ code: "PROPOSAL_CONTRACT_INVALID" });
+      expect(calls).toBe(1);
+      expect((await f.pool.query("SELECT status FROM compute_ledger")).rows).toEqual([{ status: "reported" }]);
+      expect(f.board.executions).toBe(0);
+      return;
+    }
     expect(failure).toBeUndefined();
     expect((await owner.inspect(ref)).phase).toBe("completed");
     expect((await f.pool.query("SELECT count(*)::int n FROM research_worker_checkpoints")).rows[0].n).toBe(1);

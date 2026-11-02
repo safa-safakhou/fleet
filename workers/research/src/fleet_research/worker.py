@@ -1,7 +1,9 @@
 """Single bounded execution. Partial operations require kernel reconciliation."""
 
 import json
+
 from pydantic_ai.usage import UsageLimits
+
 from .agent import make_agent
 
 
@@ -29,7 +31,12 @@ async def run_operation(broker, input):
     limit = input["maxSteps"]
     if not isinstance(limit, int) or not 1 <= limit <= 100:
         raise ValueError("INVALID_STEP_LIMIT")
-    agent = make_agent(broker, input["instructions"], input.get("maxOutputTokens", 100))
+    agent = make_agent(
+        broker,
+        input["instructions"],
+        input.get("maxOutputTokens", 100),
+        input.get("outputSchema"),
+    )
     result = await agent.run(
         json.dumps(input["observation"], separators=(",", ":")),
         usage_limits=UsageLimits(request_limit=limit, tool_calls_limit=limit),
