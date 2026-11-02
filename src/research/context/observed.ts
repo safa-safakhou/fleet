@@ -31,6 +31,7 @@ export function fitObservedRequest(
   pack: Packer | undefined,
   limits: Limits,
 ) {
+  observation = definedFields(observation) as Observation | undefined;
   if (observation) {
     const at = Date.parse(observation.observedAt);
     if (!Number.isFinite(at) || at > limits.nowMs || limits.nowMs - at > limits.maxObservationAgeMs)
@@ -78,6 +79,7 @@ export async function prepareObservedContext(
   request: ResearchModelRequest,
   limits: Limits,
 ): Promise<ContextPacket | undefined> {
+  observation = definedFields(observation) as Observation | undefined;
   const fitted = fitObservedRequest(request, observation, pack, limits);
   if (!fitted.view || !observation) return undefined;
   const source = await capture.emit(

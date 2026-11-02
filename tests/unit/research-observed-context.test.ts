@@ -119,3 +119,12 @@ test.each(["invalid", "2026-11-02T09:59:54.999Z", "2026-11-02T10:00:00.001Z"])(
     ).toThrow("OBSERVATION_STALE");
   },
 );
+
+test("native optional object fields match their unchanged serialized worker observation", () => {
+  const f = fixture();
+  f.observation.payload.optionalNativeField = undefined;
+  f.request.messages[1].content = JSON.stringify(f.observation);
+  const fitted = fitObservedRequest(f.request, f.observation, packPactObservation, f.limits);
+  expect(Buffer.byteLength(canonical(fitted.request))).toBeLessThanOrEqual(24000);
+  expect(JSON.stringify(f.observation.payload)).not.toContain("optionalNativeField");
+});
