@@ -1,5 +1,7 @@
 # Isolated local readiness — 2 November 2026
 
+**Live-readiness conclusion superseded:** the [subsequent real recipe launch](nemotron-advisory-hour-20261102.md) stopped before model dispatch because the full PACT request exceeded the unchanged byte budget. The installation/preflight checks below remain their timestamped results; they did not cover this complete request shape.
+
 **Installation and bounded provider prerequisites verified. No live gameplay test started.** The new empty world is paused at tick 0, Fleet execution is disabled, Fleet task workers are stopped, and the preflight provider has stopped. [Machine-readable results](isolated-readiness-20261102.json), [execution plan](../superpowers/plans/2026-11-02-pact-live-readiness.md), [proposed finite test settings](isolated-test-envelope-20261102.json).
 
 The remaining activation work is deliberate: the owner must instruct the later finite experiment; its participant identities, absolute clocks and matching sealed manifests are then assembled before explicit Temporal enrollment and worker startup. Nothing in this preparation resumes a retained world or grants gameplay authority. Formal source qualification still records the owner-accepted performance variance below.

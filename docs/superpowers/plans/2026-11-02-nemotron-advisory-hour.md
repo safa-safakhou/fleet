@@ -11,3 +11,7 @@ The duration becomes 3,600,000 ms. Keep the proposed single TypeScript advisory 
 5. At closure, stop owned execution/provider processes, preserve all known/unknown outcomes, pause the world and record final metrics/evidence/paired recovery. Report actual results; one world is not evidence of strategic improvement. Commit verified operational records as work proceeds.
 
 Strict source performance qualification remains failed at the owner-accepted 16.29% overhead against the unchanged 10% threshold. This is an explicitly authorized experimental run, not automatic qualification or a production promotion.
+
+## Actual outcome
+
+The authorized attempt closed early on `MODEL_REQUEST_NOT_ADMITTED`, before a model allocation or gameplay command. The one-hour duration was not achieved. Full observations and native failure evidence were preserved, all execution stopped, the world paused and separate post-stop restore checks passed. [Exact result and required repair](../../research/nemotron-advisory-hour-20261102.md). Do not resume this consumed task or reuse its allowance; another trial requires a repaired/validated candidate and fresh finite activation.

@@ -1,6 +1,10 @@
 {
   "id": "nemotron-advisory-hour-20261102-e8cfb2c8",
-  "world": "fleet-ready-20261102-6bce0141",
+  "world": {
+    "status": "paused",
+    "tick": "0",
+    "gameTimeMs": 1793599200000
+  },
   "cohortId": "9bf00386-4b66-4e9d-8c7f-18f52ec308c1",
   "agentId": "ee827c8b-c510-4158-8587-8edfbd140a7f",
   "bindingId": "59feb210-50ea-4c99-adef-b14dd2d80381",
@@ -13,7 +17,7 @@
   "tokenCeiling": 80000,
   "durationMs": 3600000,
   "gameplayCommandAuthority": false,
-  "status": "authorized; launch invocation pending",
+  "status": "closed-early; blocked before model dispatch",
   "cadenceMinutes": 60,
   "scope": "one fresh advisory participant; zero gameplay commands; earlier safety stop possible",
   "model": {
@@ -34,5 +38,216 @@
     "maxCallsPerTurn": 1,
     "maxActionsPerTurn": 1,
     "concurrency": 1
+  },
+  "hourCompleted": false,
+  "actualNativeTurn": {
+    "id": "34625107-83fb-49ff-81b2-e1898a7bab1a",
+    "state": "finished",
+    "code": "MODEL_REQUEST_NOT_ADMITTED",
+    "calls": 0,
+    "actions": 0,
+    "unknown_usage": false,
+    "started_at": "2026-11-02T10:02:23.533Z",
+    "finished_at": "2026-11-02T10:02:23.867Z"
+  },
+  "closedAtUtc": "2026-11-02T10:02:24.559000+00:00",
+  "stopReason": "NATIVE_TURN_FAILED",
+  "providerCalls": 0,
+  "modelAllocations": 0,
+  "gameplayCommands": 0,
+  "coverage": {
+    "version": "fleet.coverage/v1",
+    "runId": "task:97e7a26b-497d-4f24-9a8c-176764c33dda",
+    "status": "complete",
+    "expected": 0,
+    "recorded": 0,
+    "missing": [],
+    "eventCount": 24,
+    "byteCoverage": {
+      "expected": "453013",
+      "recorded": "453013",
+      "status": "complete"
+    },
+    "reasons": []
+  },
+  "diagnosis": {
+    "reason": "MODEL_REQUEST_NOT_ADMITTED",
+    "measurement": "deterministic reconstruction from retained delivered observation and unchanged candidate request builder",
+    "observationBytes": 28645,
+    "systemInstructionBytes": 1071,
+    "schemaBytes": 525,
+    "canonicalRequestBytes": 33143,
+    "requestLimitBytes": 24000,
+    "overLimitBytes": 9143,
+    "outputRequested": 512,
+    "outputLimit": 512,
+    "nativeTurns": 1,
+    "allocations": 0,
+    "steps": 0,
+    "owner": [
+      {
+        "phase": "awaiting_reconciliation",
+        "stop_id": null
+      }
+    ]
+  },
+  "closureVerification": {
+    "status": "pass",
+    "restores": [
+      {
+        "database": "fleet",
+        "restore": "hour_fleet_e8cfb2c8",
+        "tables": 117,
+        "canonicalMatch": true,
+        "dumpSha256": "0122f2ec8187f350d5736bd413a43c87889f778cd784c173614b12e83b6d9916"
+      },
+      {
+        "database": "pact",
+        "restore": "hour_pact_e8cfb2c8",
+        "tables": 167,
+        "canonicalMatch": true,
+        "dumpSha256": "64c06c8bee4edacb6e0c7af7afc5d8a4a3431be51b3a3c6dc70d2baf2e160050"
+      },
+      {
+        "database": "temporal",
+        "restore": "hour_temporal_e8cfb2c8",
+        "tables": 40,
+        "canonicalMatch": true,
+        "dumpSha256": "6891629d81a5d3e51c001cfe5da96959ae16e10210110161eb611e4b1ae501f2"
+      },
+      {
+        "database": "temporal_visibility",
+        "restore": "hour_temporal_visibility_e8cfb2c8",
+        "tables": 3,
+        "canonicalMatch": true,
+        "dumpSha256": "f594bb450773d8184742ff69943b1bf471946640fc9a13bb451f289b7286d886"
+      }
+    ],
+    "source": "explicit post-stop snapshots of new owned databases only",
+    "world": {
+      "status": "paused",
+      "tick_sequence": "0"
+    },
+    "native": {
+      "runningTurns": 0,
+      "allocations": 0,
+      "capacityLeases": 0,
+      "activeWorkerSessions": 0,
+      "commands": 0,
+      "owner": [
+        {
+          "phase": "awaiting_reconciliation",
+          "stop_id": null
+        }
+      ]
+    },
+    "executionProcessesStopped": true,
+    "allAdmissionLatchesClosed": true,
+    "stateTree": {
+      "files": 3,
+      "bytes": 705319,
+      "sha256Match": true
+    },
+    "restoredEvidence": {
+      "artifactsVerified": 22,
+      "bytesVerified": 453013,
+      "coverage": {
+        "version": "fleet.coverage/v1",
+        "runId": "task:97e7a26b-497d-4f24-9a8c-176764c33dda",
+        "status": "complete",
+        "expected": 0,
+        "recorded": 0,
+        "missing": [],
+        "eventCount": 24,
+        "byteCoverage": {
+          "expected": "453013",
+          "recorded": "453013",
+          "status": "complete"
+        },
+        "reasons": []
+      }
+    },
+    "preservation": {
+      "at": "2026-11-02T10:09:51.013244+00:00",
+      "originalContainers": 67,
+      "containerConfigDifferences": [],
+      "originalVolumes": 115,
+      "originalVolumeDefinitionsMatch": true,
+      "services": [
+        {
+          "name": "fleet-mac-nemotron-db",
+          "state": "running",
+          "health": "healthy"
+        },
+        {
+          "name": "automated-traffic-service-db-1",
+          "state": "running",
+          "health": "healthy"
+        },
+        {
+          "name": "toolbox-document-worker",
+          "state": "running",
+          "health": "healthy"
+        }
+      ]
+    }
+  },
+  "visualization": {
+    "status": "pass",
+    "url": "http://127.0.0.1:64366/#research/run/task%3A97e7a26b-497d-4f24-9a8c-176764c33dda",
+    "coverage": "complete",
+    "events": 24,
+    "allocations": 0,
+    "browserErrors": [],
+    "rendered": [
+      "actual rejected-turn timeline",
+      "actual rejected-turn causal graph"
+    ],
+    "workflowHistory": [
+      {
+        "workflowId": "fleet-task/97e7a26b-497d-4f24-9a8c-176764c33dda",
+        "status": 1
+      }
+    ],
+    "note": "Parked Temporal history retained; no polling worker or agent execution is running."
+  },
+  "startupRefusals": [
+    {
+      "invocation": 1,
+      "reason": "operator monitoring query used nonexistent cohort_id on platform_commands",
+      "nativeTurns": 0,
+      "allocations": 0,
+      "workflows": 0
+    },
+    {
+      "invocation": 2,
+      "reason": "startup grace measured from nominal window rather than actual activation",
+      "nativeTurns": 0,
+      "allocations": 0,
+      "workflows": 0
+    }
+  ],
+  "controllerCorrections": [
+    "command census joins through turns.cohort_id; queries verified on owned target",
+    "startup grace uses actual activation; original absolute end never extended",
+    "Docker binary and socket endpoint explicit under isolated process HOME"
+  ],
+  "qualificationChange": false,
+  "runtimeSourceChanged": false,
+  "newLiveRunAuthorized": false,
+  "nextRequiredWork": "Repair bounded model-context construction and add an actual-shaped PACT packet-fit regression without increasing the 24,000-byte limit or dropping raw evidence. Revalidate a successor candidate before a fresh finite activation.",
+  "observabilityLimit": "Coverage is complete for captured native units. The rejected request never reached dispatch capture; exact size is reconstructed from retained observation and unchanged candidate request-building code.",
+  "evidenceDigests": {
+    "result.json": "16406fa138782b704d52985feed79cb60dd71a8eb355e5ffb7b6a6c83ec95814",
+    "attempt2-result.json": "f144b6241e34fb310eefc5061eb3bc9fa68fb7ea8869fe3ac9bcac736cd7a35f",
+    "attempt3-result.json": "e30e1c1a0515d9725f5b49c4b0130cfe9cd428a9e19aebcff46481cbebc8aa61",
+    "request-size-diagnosis.json": "6451a0d939f98ff22072c7acea6907a61d7664542ebdb9aa58b6e2ef6e3bee54",
+    "closure-verification.json": "0e72492963e815be043040aa48a440b17bef9b9f598742287da066fe4b59af1a",
+    "actual-visualization.json": "b8a156cf33a8a13e7e4d2a62b76a47bc1705a4504b2150bffd0036ce48953032",
+    "prepared-backup-report.json": "0fa50ce7954a769c53b8730e25d51daf0c0b9fa0237f20d3af6cffa324a110d3",
+    "supervisor-self-test.json": "28d6a08d4cf40cc9c09385a8ee21917e2fbb0bf4fcc3a104fe292b84618b3c98",
+    "stop-checks.log": "3ebbfe55c0c2221e27be420d898ab2f805375d1d09bbe6ea18774b498a57630f",
+    "startup-ruling.json": "5d6df4e0842520f17edcef5ad6592d3c7b4177b2c166005a851bf4a0c6bf2861",
+    "controller-setup-corrections.json": "05a0c2e1c497724b44d26d04bb83daba7339a0756d69ccb9f576e05fccaea5a4"
   }
 }
