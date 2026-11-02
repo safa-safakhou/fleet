@@ -1,6 +1,6 @@
 # Parallel24-kingdom capacity experiment
 
-Sealed; controller launch next. [Exact record](capacity-experiment-20261102.json). New world `fleet-capacity-20261102-210cd5f1`, source `84c4ed4`. Window **2026-11-02T14:26:38.088Z–2026-11-02T15:26:38.088Z**,15:26:38–16:26:38Berlin.
+Sealed; controller launch next. [Exact record](capacity-experiment-20261102.json). New world `fleet-capacity-20261102-df71d34f`, source `84c4ed4`. Window **2026-11-02T14:36:01.271Z–2026-11-02T15:36:01.271Z**,15:36:01–16:36:01Berlin.
 
 24long-lived manual Temporal workers share one Fleet runtime/DB pool16 and one Nemotron4B provider configured for8parallel requests. Pre-claim admission increases2→4→8 after known successful reviews with60second timing headroom. Per-binding exclusion, native authority/validation/clock/usage/evidence rules remain enforced. All24actual initial packets fit: max42,047/48,000bytes, zero preflight model calls.
 
@@ -13,3 +13,6 @@ Native event polling retains its10second policy; encrypted observer pages preser
 The owner-stopped [serial result](kingdoms24-attempt02-20261102.md) remains recoverable:24validated waits/zero commands, worst queue424.587seconds, four matching restores and original services/data preserved. [Design](../superpowers/specs/2026-11-02-capacity-experiment-design.md), [plan](../superpowers/plans/2026-11-02-capacity-experiment.md). [Ollama's concurrency documentation](https://docs.ollama.com/faq#how-does-ollama-handle-concurrent-requests) explains why parallel context allocation must be measured.
 
 A completed hour requires actual per-kingdom effects/usage/deadline/event/queue analysis, complete evidence/observer audits, four snapshot restores, original preservation and actual timeline/context/causal rendering. Configured slots are not proof of GPU throughput. The accepted historical16.29% latency failure against10% remains unchanged.
+
+
+The initial prepared instance was refused by its pre-start guard before any native turn/model call. Its sealed budgets/tasks/world remain preserved; the new instance uses fresh identities and a newly committed window, not a retimed consumed task.

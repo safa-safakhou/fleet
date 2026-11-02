@@ -1,6 +1,6 @@
 # Fleet current state
 
-**Fresh parallel capacity experiment SEALED —2November2026.** [Exact new envelope and qualification](research/capacity-experiment-20261102.md):24long-lived workers, bounded2→4→8concurrent calls,8scheduled/8event/8hybrid agents,2minute periodic cadence; new1152aggregate call ceiling/input48KB/output1024.15:26:38–16:26:38Berlin window; real capacity acceptance pending. Serialized02is safely closed/restored with original services/data preserved. No old task/budget reset, provider fallback, push or qualification override.
+**Fresh parallel capacity experiment SEALED —2November2026.** [Exact new envelope and qualification](research/capacity-experiment-20261102.md):24long-lived workers, bounded2→4→8concurrent calls,8scheduled/8event/8hybrid agents,2minute periodic cadence; new1152aggregate call ceiling/input48KB/output1024.15:36:01–16:36:01Berlin window; real capacity acceptance pending. Serialized02is safely closed/restored with original services/data preserved. No old task/budget reset, provider fallback, push or qualification override.
 
 **One-kingdom smoke test closed at owner request — 2 November 2026; preparing fresh 24 kingdoms.** [Actual result and verification](research/advisory-repair-loop-20261102.md). Native closure reason `OPERATOR_STOP`; owned world paused, execution processes stopped, no commands/unknown usage and complete recoverable evidence. All historical task/world data preserved. See report for exact scope, source checks, restore results and remaining limitations; no push or qualification override.
 
