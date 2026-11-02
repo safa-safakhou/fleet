@@ -1,6 +1,6 @@
 # Smaller native-architecture experiment — 2 November 2026
 
-Status: **prepared**. Fresh world `fleet-small-20261102-1479dd0f`, sixteen kingdoms, two per original native profile, one hour. [Exact configuration and verification](smaller-vllm-experiment-20261102.json). [Plan](../superpowers/plans/2026-11-02-smaller-vllm-experiment.md).
+Status: **sealed**. Fresh world `fleet-small-20261102-1479dd0f`, sixteen kingdoms, two per original native profile, one hour. Window: **2026-11-02T20:56:31.956Z through 2026-11-02T21:56:31.956Z**. [Exact configuration and verification](smaller-vllm-experiment-20261102.json). [Plan](../superpowers/plans/2026-11-02-smaller-vllm-experiment.md).
 
 | Profile | Kingdoms |
 | --- | --- |

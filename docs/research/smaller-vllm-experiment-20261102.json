@@ -1,5 +1,5 @@
 {
-  "status": "prepared",
+  "status": "sealed",
   "world": "fleet-small-20261102-1479dd0f",
   "privateLedger": ".superpowers/sdd/2026-11-02-smaller-vllm-01",
   "kingdoms": 16,
@@ -14,7 +14,7 @@
     "autonomous-specialists@1": 2
   },
   "durationMs": 3600000,
-  "sourceCommit": "81d9d8f551a3f43028262ec4ebb0a7b98771dc83",
+  "sourceCommit": "b7efced14b6c8e94cbda3d4f2a33e14a5e122262",
   "pactSourceCommit": "df6b6e82deaaade0de98795dbd0cc9882c299be0",
   "limits": {
     "maxGlobalRequests": 8,
@@ -102,5 +102,28 @@
     "Different model conversion and architecture mix from previous 24-agent reactive-basic trial.",
     "Common packet checks and synthetic tests do not establish live correctness of all eight architectures.",
     "Ramp depends on known native results, timing and resources; maximum eight is not a claim of eight observed concurrent inferences."
-  ]
+  ],
+  "startsAtUtc": "2026-11-02T20:56:31.956Z",
+  "endsAtUtc": "2026-11-02T21:56:31.956Z",
+  "sourceHash": "534596257c5751b547df3bda36ef53ae8a0bbc43b0e827e227aeb86e325d8659",
+  "buildHash": "8f55e740133549a1866144341538b8d9168314759d6d17a3a9d6de1317c7403a",
+  "manifestDigests": [
+    "c717b48d05af184413b3ad8c4b7d1ff6c1246c1e01e4876d68d00af13cf0f684",
+    "09c3a2dababd75184ce1da4db23e0e5d147d47b86b01041de7c297bf2934d337",
+    "b6b74a52aad97f015a0b2da696b8083ac4b71456d1c12b7d86ccca5b7a482bae",
+    "1e200f940f952f4e707a6c8a714827eb4d66b1f87961162652a06f1e48d53485",
+    "e354c668259de2402ea6ec29fcc06a1ad4e63a98477c8ff2eb90f140b3fd0074",
+    "3f72183d45fc5a2865cf6b20c9c6919f8ffa9318f7e25e06ed3bd810a55ef13a",
+    "ece10636eebf322c8a37a17914fe964e7c0c2fb36a8dbf2410dabb7a5f1dda64",
+    "d4c7b282f7affb0ee040fe01f5cc893fbcbbc11e0e7e54f5108487c40e506e31",
+    "61a67de69178709a2768373a79066d61721fb4f8f3f16bc86799bd836b6ca72c",
+    "8522ed9dafcaae6ad21a3b3225eaddafb443a4ba9716069fbf6362e1608b5dde",
+    "c835458cb6103c0d0e11fc8626fe09e1b4e616b5c1ed2ef0ec29c6ef2973966a",
+    "ad746cae3f41e8d03162069c78da0dd2dc2344d4ffefe86d6a559b8aeb5421ad",
+    "69c8b72507217746b90b3c45de460d8eb0a40e570caf1aab29c84e4b0e526785",
+    "bff75800eb85f8c742ebf230fe454c15753a5d8f4527c201106ee915a2acdc8f",
+    "11af33700a03c66693f3df3ff848bcc479de114a52ea3e81b3360d3309ef386b",
+    "204ba3761155a4f15f071108eefc7f9e766653355e374a64cae326cdc751c245"
+  ],
+  "providerPinsSha256": "bb45831df7cbb1341e4c71d99f89f510e9741fdcac1eee15a8eebdfb927417d0"
 }
