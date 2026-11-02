@@ -61,11 +61,7 @@
     "mode": "agent_decides",
     "allowedKingdomIds": []
   },
-  "capacityRamp": [
-    2,
-    4,
-    8
-  ],
+  "capacityRamp": [2, 4, 8],
   "rampHeadroomMs": 60000,
   "scheduleIntervalMs": 120000,
   "controllerSha256": "d32bfa75b34730c3431ba73caf9eff6b60aff1817a7c1c5d477d8f42dbf7a9eb",
@@ -127,9 +123,7 @@
       "manifestDigest": "934e7c3b809140f53de3fd95937ccce2037b50d02e2977e96f9ca360243a3850",
       "actual": {
         "turns": 1,
-        "codes": [
-          "MODEL_DEADLINE_EXCEEDED"
-        ],
+        "codes": ["MODEL_DEADLINE_EXCEEDED"],
         "reportedCalls": 0,
         "unknownCalls": 1,
         "actions": 0,
@@ -149,9 +143,7 @@
       "manifestDigest": "8489af4dc1e5b84dfdbad24f0f49dbe0c50ee7a0e11d43dc708513e84ef6d706",
       "actual": {
         "turns": 1,
-        "codes": [
-          "HOST_STOPPED"
-        ],
+        "codes": ["HOST_STOPPED"],
         "reportedCalls": 0,
         "unknownCalls": 1,
         "actions": 0,
@@ -291,9 +283,7 @@
       "manifestDigest": "cca56e8dd02bf7d2445a7495ec80b2aea9a594b256610ff1abb32534525490bb",
       "actual": {
         "turns": 1,
-        "codes": [
-          "WAIT"
-        ],
+        "codes": ["WAIT"],
         "reportedCalls": 1,
         "unknownCalls": 0,
         "actions": 0,
@@ -413,9 +403,7 @@
       "manifestDigest": "9f9a5e6def20eedaf553c5be0418b58f64840a93fea51a22addfbeb413069e34",
       "actual": {
         "turns": 1,
-        "codes": [
-          "WAIT"
-        ],
+        "codes": ["WAIT"],
         "reportedCalls": 1,
         "unknownCalls": 0,
         "actions": 0,
@@ -455,9 +443,7 @@
       "manifestDigest": "e89c4cbdca3a7b0eacabe1960f80b39c46d685d90954d236f2c52bf8cec75b4c",
       "actual": {
         "turns": 1,
-        "codes": [
-          "WAIT"
-        ],
+        "codes": ["WAIT"],
         "reportedCalls": 1,
         "unknownCalls": 0,
         "actions": 0,
@@ -477,9 +463,7 @@
       "manifestDigest": "d2c5a67706a0a16fd76d9bdf07ca44aa905e913de22cdd6a3c66d8938a54aae5",
       "actual": {
         "turns": 1,
-        "codes": [
-          "WAIT"
-        ],
+        "codes": ["WAIT"],
         "reportedCalls": 1,
         "unknownCalls": 0,
         "actions": 0,
@@ -519,9 +503,7 @@
       "manifestDigest": "52986b495564f9f1c3a3fd794713b12c5d089147a2bf03d497f5b29259e2493b",
       "actual": {
         "turns": 1,
-        "codes": [
-          "WAIT"
-        ],
+        "codes": ["WAIT"],
         "reportedCalls": 1,
         "unknownCalls": 0,
         "actions": 0,
@@ -561,9 +543,7 @@
       "manifestDigest": "16ed085a4087a1e82a5a1a89b595d138562649be81191dac5a2bfe2667921b3c",
       "actual": {
         "turns": 1,
-        "codes": [
-          "HOST_STOPPED"
-        ],
+        "codes": ["HOST_STOPPED"],
         "reportedCalls": 0,
         "unknownCalls": 1,
         "actions": 0,
@@ -678,11 +658,7 @@
   "successorProposal": {
     "status": "source repair and design; not launched or sealed",
     "providerReplicas": 6,
-    "ramp": [
-      2,
-      4,
-      6
-    ],
+    "ramp": [2, 4, 6],
     "requirement": "Explicit owner decision to preserve unresolved holds across a fresh independent experiment, or authoritative final usage resolution. Measure latency/memory before increasing actual inference concurrency. All old holds/tasks remain untouched."
   }
 }
