@@ -1,0 +1,47 @@
+{
+  "at": "2026-11-02T20:24:15.934817+00:00",
+  "reviewedCandidates": 956,
+  "removedExactImagesAndIntermediateRecords": 956,
+  "refused": 0,
+  "beforeFreeGiB": 9.16,
+  "afterFreeGiB": 17.48,
+  "preservation": {
+    "containers": 75,
+    "volumeDefinitions": 121,
+    "configImageHostConfigAndMountObjectsExact": true,
+    "mountOrderNormalizationVerified": true
+  },
+  "originalPreservation": {
+    "at": "2026-11-02T20:24:15.901755+00:00",
+    "originalContainers": 67,
+    "containerConfigDifferences": [],
+    "originalVolumes": 115,
+    "originalVolumeDefinitionsMatch": true,
+    "services": [
+      {
+        "name": "fleet-mac-nemotron-db",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "automated-traffic-service-db-1",
+        "state": "running",
+        "health": "healthy"
+      },
+      {
+        "name": "toolbox-document-worker",
+        "state": "running",
+        "health": "healthy"
+      }
+    ]
+  },
+  "afterDiscardHostFreeGiB": 17.48,
+  "discardUnusedGuestBytes": 66010370048,
+  "guestFilesystemUsedGiB": 36,
+  "guestFilesystemFreeGiB": 58,
+  "imageRecordsBefore": 210,
+  "imageRecordsAfter": 42,
+  "imageLayersBeforeDecimalGB": 79.17,
+  "imageLayersAfterDecimalGB": 25.29,
+  "status": "cleanup verified; original services/data and all current containers/volumes preserved"
+}
