@@ -1,0 +1,463 @@
+{
+  "id": "nemotron-24-kingdoms-20261102-dada8668",
+  "world": "fleet-24-20261102-dada8668",
+  "namespace": "fleet-24-20261102-dada8668",
+  "sourceCommit": "6f0bf1bf8bbcd728eb5bcbe650826e032a707134",
+  "pactSourceCommit": "4f64faf49f2e33ba45bc441d6f621ce8005a6dbe",
+  "sourceHash": "e36601b4ac914257f408faf0391cd713c20b99bbfe2cc73e02b843217ee35373",
+  "buildHash": "bd7a21cfc5936dcb19f1160559b02d86f1d39c296ef7bcb8ba8a2dc0db3a7a89",
+  "dependenciesHash": "74ae0befe5de6c0edc90790522b905ae7b8a65a04bc9aceb97a0beee0c3467ca",
+  "startsAtUtc": "2026-11-02T13:22:39.433Z",
+  "endsAtUtc": "2026-11-02T14:22:39.433Z",
+  "kingdomCount": 24,
+  "roundOffsetsMs": [0, 1800000],
+  "modelCallsCeiling": 96,
+  "tokenCeiling": 3840000,
+  "profile": {
+    "id": "reactive-basic",
+    "version": "1"
+  },
+  "model": {
+    "route": "ollama",
+    "model": "nemotron-3-nano:4b",
+    "thinking": false,
+    "temperature": 0,
+    "topP": 1
+  },
+  "budget": {
+    "mode": "finite",
+    "callLimit": 4,
+    "tokenLimit": 160000,
+    "deadlineAt": "2026-11-02T14:22:39.433Z",
+    "perCallTokenLimit": 40000,
+    "maxOutputTokens": 512,
+    "inputByteLimit": 24000,
+    "maxCallsPerTurn": 2,
+    "maxActionsPerTurn": 1,
+    "concurrency": 1
+  },
+  "mandate": {
+    "allowedActions": [
+      "world.read",
+      "inbox.read",
+      "building.queue",
+      "contact.request",
+      "contact.answer",
+      "message.send.contact",
+      "supply.offer",
+      "supply.counter",
+      "supply.sign",
+      "supply.withdraw"
+    ],
+    "resourceLimits": {
+      "iron": "600000",
+      "silver": "600000",
+      "grain": "600000"
+    },
+    "reserveFloors": {},
+    "troopLimit": 0,
+    "sessionLimit": 1
+  },
+  "social": {
+    "mode": "agent_decides",
+    "allowedKingdomIds": []
+  },
+  "order": [22, 19, 17, 8, 20, 21, 11, 2, 13, 6, 12, 0, 10, 23, 16, 7, 14, 9, 18, 5, 3, 1, 15, 4],
+  "controllerSha256": "2727a4a40f9019e71904e9f5b31c127e96a8665006e63ece855f95981ce4a5a0",
+  "watchdogSha256": "73d7459f8270449c76d972faab0f5f3f43a9c695c0c6f92633ec26cd1b10cdaa",
+  "watchdogExecutableSha256": "26e421d533fc81b727d6463d3f8ce54ea60aadc8903092f7ea18ca877247a4ae",
+  "inspectionOrigin": "http://127.0.0.1:60052",
+  "status": "owner-stopped and independently restored; superseded by higher-capacity experiment",
+  "attempt": 2,
+  "ledger": ".superpowers/sdd/2026-11-02-kingdoms24-02/",
+  "verificationCommit": "a81397021c7db8d7fdf6159a278d67dc5d9920e1",
+  "previousAttempt": "kingdoms24-attempt01-20261102.json",
+  "initialPackets": {
+    "kingdoms": 24,
+    "providerCalls": 0,
+    "maxInputBytes": 23749,
+    "byteLimit": 24000
+  },
+  "actors": [
+    {
+      "index": 0,
+      "name": "guardian-01",
+      "strategy": "guardian",
+      "cohortId": "43824e20-fa69-4b8a-9554-4826d02732b5",
+      "agentId": "035bbb13-f2f4-4e78-9b40-21a6e0451ac3",
+      "bindingId": "17a755b7-d77f-45af-b71d-5eff56caf509",
+      "kingdomId": "841aa299-3bd8-425a-a38f-c7eeedb7f63e",
+      "taskId": "3346b121-5027-4327-a476-5fe649b0f97a",
+      "manifestDigest": "2790fec0a239734b4275da46afd2a8127c3111c3bb0145b50d4f37bff33b24f3",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 1,
+      "name": "merchant-01",
+      "strategy": "merchant",
+      "cohortId": "10aadcc3-4024-47d8-bc42-ab94c55e4fd4",
+      "agentId": "f2127fe5-4cd7-47e0-acab-0bc5c5a85a8f",
+      "bindingId": "ab083dbc-0099-4f8b-a961-3bb375b1350a",
+      "kingdomId": "82828be7-8203-494a-a564-f493f8951d45",
+      "taskId": "336b61f1-5a7b-4687-ab25-eb87c6af10f9",
+      "manifestDigest": "dd38d07b624d6265b2e49fc53f3af1b4ea14151e655ea1b26b44442b8737689e",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 2,
+      "name": "diplomat-01",
+      "strategy": "diplomat",
+      "cohortId": "adcc025b-0e34-42ed-aa72-353ac0d3d3ca",
+      "agentId": "ef6d00f0-384d-4e78-be24-b01536245944",
+      "bindingId": "ac45571c-40d6-4950-809a-a1809bf33094",
+      "kingdomId": "f20c21dd-d6a1-4fa8-8407-3082d8509ede",
+      "taskId": "49063c0c-a4fd-4dff-92fa-9348e6a63a9a",
+      "manifestDigest": "5343fe00e5ad1065e8a90e42cc55030d1cffba225c651d0ac8f2cd9003b04f2f",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 3,
+      "name": "guardian-02",
+      "strategy": "guardian",
+      "cohortId": "14918605-4b6c-478e-a42b-fb9f312a0410",
+      "agentId": "42a9ea0c-f3cd-40b7-a0aa-724b3032021a",
+      "bindingId": "8f1f632b-a9cd-4c2a-b3f2-a553ab273b59",
+      "kingdomId": "031959b9-b7c4-429a-89b5-ffda731926db",
+      "taskId": "ce9f6853-df13-4f65-98ec-a025c7bf9e80",
+      "manifestDigest": "332d2c4b5d38a7e8654fded238ae1926a291cf8c757e99f45b9b21fb622c7f05",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 4,
+      "name": "merchant-02",
+      "strategy": "merchant",
+      "cohortId": "868f502d-f652-440f-9b42-8b7c6108630a",
+      "agentId": "ed22ec46-4688-4e22-8443-a6df519c4feb",
+      "bindingId": "890ed421-5e4f-4f99-abdb-04d6b7800964",
+      "kingdomId": "d22aa12e-ce16-47da-bba5-baa30e1a089d",
+      "taskId": "bbe21327-8773-4663-9175-8862d9356b43",
+      "manifestDigest": "1d0c90c07460156914ff31307c1accf33347470b1bb5958995eb4ad9616f50f5",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 5,
+      "name": "diplomat-02",
+      "strategy": "diplomat",
+      "cohortId": "d95ef636-f174-4599-8ad0-a2002fb8537e",
+      "agentId": "ed428167-1a67-4759-8114-2578e52e9ead",
+      "bindingId": "26c2f707-5b60-41c0-b265-978df55fec3b",
+      "kingdomId": "fd897fbc-53d0-4e36-bc54-a07c43df1823",
+      "taskId": "29268311-01e8-407f-af74-ddcc21f0099f",
+      "manifestDigest": "9fb2cd23f94f4521fcfe5a2322921ef9f87d650fe503763694c4ad540c332509",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 6,
+      "name": "guardian-03",
+      "strategy": "guardian",
+      "cohortId": "ddebe8a8-684b-4d22-805e-7acb82df69bc",
+      "agentId": "2d18712b-9d90-41b3-b68c-f008b557ab7a",
+      "bindingId": "5577ec4c-f84c-493b-b7fb-8e43f531e884",
+      "kingdomId": "f8e419ac-0f29-4d8e-879c-a1a24195b442",
+      "taskId": "8a376faf-757f-4f41-8c81-60dd56162d5f",
+      "manifestDigest": "9ed46ee9c055bf905e615510a9ed253ffea78742038282b086b6ce8e75d3c084",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 7,
+      "name": "merchant-03",
+      "strategy": "merchant",
+      "cohortId": "01c57565-d266-4ab4-acf7-3c4ec2b6ce05",
+      "agentId": "2d6412e5-27fb-4662-80c8-401ac65020b1",
+      "bindingId": "e5773b97-7d8b-49bc-9760-580e0dab3738",
+      "kingdomId": "1af2b247-d920-42c6-b451-4a3b69cbff15",
+      "taskId": "2a54c3ed-7e54-4327-b315-2d417703efd4",
+      "manifestDigest": "7030c12b941a8aa305a7fcdaf51a5c39098f208d8633a14bf9fc8c682d88ba27",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 8,
+      "name": "diplomat-03",
+      "strategy": "diplomat",
+      "cohortId": "78cc38ec-df2e-4758-a36c-e7d5b675740a",
+      "agentId": "344ab558-2d08-4fb9-a8d8-1788f35d289d",
+      "bindingId": "57281929-6174-4c15-91aa-78a3f5d81dda",
+      "kingdomId": "dfea6115-2018-4312-9b07-4cb292292d61",
+      "taskId": "9b199689-c585-461c-b49f-0aae69858028",
+      "manifestDigest": "f562221f961ae89ae32a3075d174b2baa79f9b8940e8de98298f5912ac3bd2cf",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 9,
+      "name": "guardian-04",
+      "strategy": "guardian",
+      "cohortId": "741e2932-3b57-4de3-a750-566a9415e6e2",
+      "agentId": "97d93717-801c-437f-9b9e-cef41cfc0b03",
+      "bindingId": "9e535900-63bc-4f7d-9da8-7b57a3b75586",
+      "kingdomId": "f9b15058-d01a-41f0-9813-7bf6b0c7c99f",
+      "taskId": "d94bed67-c9ae-4539-9801-0800a5e25052",
+      "manifestDigest": "67282789b6bb33aba7474c8878cfaacdf2b94e69cfe450cce9673542344661ac",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 10,
+      "name": "merchant-04",
+      "strategy": "merchant",
+      "cohortId": "9f75e2da-f0ad-4276-9f83-7686758aee1c",
+      "agentId": "799105e2-c993-4bab-b6ff-c08bde14b5e1",
+      "bindingId": "e4e6fc08-66f0-45c4-a7bf-02ca914faf55",
+      "kingdomId": "e6268a95-27b4-4bd5-8420-f0a7e701588c",
+      "taskId": "5ad464a9-1f0c-439c-a409-1a6c9d1a32dd",
+      "manifestDigest": "041da51627106678b6adb0dd0d0152ccd7527107c3a1252e6854e3e391d62587",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 11,
+      "name": "diplomat-04",
+      "strategy": "diplomat",
+      "cohortId": "e74171a1-993a-49eb-a5f2-29b616834520",
+      "agentId": "9e875e2b-23e9-445a-9ac7-f8916a9c25bf",
+      "bindingId": "24bf3583-af94-4c8e-bc91-ce60f6a0925e",
+      "kingdomId": "81080c77-ba7d-4c4a-8b90-a5f32786f444",
+      "taskId": "5bbbb7b1-a5ed-4e17-bd19-b7f5ba73498a",
+      "manifestDigest": "e192c46071da981cf041809abf8aca3fa7cbc8028dc1622fb46841f0299e0c9b",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 12,
+      "name": "guardian-05",
+      "strategy": "guardian",
+      "cohortId": "2fbfa1fd-08d1-4450-b3d2-1442af416006",
+      "agentId": "8536a998-e7ae-4e4f-8df1-c7ebb2ae7039",
+      "bindingId": "2cc8d2ed-f099-4ec1-8a0d-e3539df926b7",
+      "kingdomId": "01950195-42ff-4a23-b4d8-85700fb54e68",
+      "taskId": "20596364-2603-4aed-8e37-6022ea4a9a1b",
+      "manifestDigest": "757e4819aabeab81d47b9c1617f517c8cafb1c745b2494f64d04d28f5c3a5a8b",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 13,
+      "name": "merchant-05",
+      "strategy": "merchant",
+      "cohortId": "86e964d3-2d1d-4160-aa7a-90735388554c",
+      "agentId": "2582d507-dca7-4d31-8e82-1bdd039e955b",
+      "bindingId": "b157cab7-da8a-48c8-adbe-4227c1e1c7e7",
+      "kingdomId": "2e517e0d-9ea0-4e8e-8660-9491d32a4490",
+      "taskId": "88a06dc8-b599-44c9-8f10-d3d3f3f8bd54",
+      "manifestDigest": "6e740e6b722d0581519ec2245219365a87eb1492d68289f509f5bda4aea21159",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 14,
+      "name": "diplomat-05",
+      "strategy": "diplomat",
+      "cohortId": "312306ba-f28f-4f70-9323-5277bce7afc4",
+      "agentId": "f47a8ffe-5aa3-4e4d-b06f-2b98c9474af5",
+      "bindingId": "4c0f2e67-5ad5-421d-bbd7-109e723c5522",
+      "kingdomId": "1dca4812-5393-4d8b-8d98-8e5617c735ae",
+      "taskId": "1a0c76cb-0591-4aa7-b21a-12aa09d1336a",
+      "manifestDigest": "1f0ddd44c88c9cabd686ed73357301e8d61f9bd852e52e58e1582c33692d5522",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 15,
+      "name": "guardian-06",
+      "strategy": "guardian",
+      "cohortId": "390c96f2-28a0-4765-a298-c11c1417d0a6",
+      "agentId": "1f017e40-6050-49c0-842a-ace5f5dfc8ac",
+      "bindingId": "43d43ad4-0000-4ec9-b244-882ca617dad3",
+      "kingdomId": "12f106ed-50bb-4e08-b2c9-c2b8980ac657",
+      "taskId": "855b7af9-5af3-4c30-b95e-ff775ebf8eb9",
+      "manifestDigest": "79064d04b950b791f0b920e6df019133cc069422da273fe772bc59b319683a2a",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 16,
+      "name": "merchant-06",
+      "strategy": "merchant",
+      "cohortId": "73d0a913-7e7a-4ad7-b821-2ce64617d52e",
+      "agentId": "af0c8294-fcbc-4621-b4e6-d1c48d82443b",
+      "bindingId": "fc902367-8d32-4b42-a796-2566e95a1ea5",
+      "kingdomId": "18e7e412-f975-4acc-9d11-871785896362",
+      "taskId": "4e209d73-7950-45ae-8f9a-562d2966435f",
+      "manifestDigest": "6ec79540d21e669d48fbdae59f7d9e7f295f5353d4d2352e47e354bb757c9ff7",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 17,
+      "name": "diplomat-06",
+      "strategy": "diplomat",
+      "cohortId": "d5438512-67d6-4d47-8948-356b429cbba8",
+      "agentId": "dcb82065-faf2-4e03-996a-6c98fe5fa49b",
+      "bindingId": "87a24ded-7436-46b6-9359-89b339a62428",
+      "kingdomId": "f98e0787-ad6d-4230-b1e5-3c1872358d12",
+      "taskId": "9fc55c0f-a19e-4168-af2d-69bdbe330b90",
+      "manifestDigest": "48e741616cd234b08e27fd48b21903fc253387e1f65d7edee0d6f3ee6a6fddb9",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 18,
+      "name": "guardian-07",
+      "strategy": "guardian",
+      "cohortId": "41707edc-698b-4f31-9598-c1c0b7de5228",
+      "agentId": "21d61070-b616-4a67-972f-b90cf8baa47e",
+      "bindingId": "35671719-9223-4638-a27b-48d141c04bef",
+      "kingdomId": "a9a252b4-2a38-4d1e-ac2f-4a948bd18fa6",
+      "taskId": "b183337e-585b-4a14-b069-dbb0eb66eea6",
+      "manifestDigest": "b8f47c8c3cb9f1f7e64a65bbbc895ffbbd0c3e3aaeb615ccdd1cf029418f0420",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 19,
+      "name": "merchant-07",
+      "strategy": "merchant",
+      "cohortId": "a656241e-b383-486d-b27e-a12f5b7299d0",
+      "agentId": "cfb65c16-87e0-4489-a4e0-6a07f7b284f8",
+      "bindingId": "cc17e7d6-8a79-4ba1-87ee-8b0af46ba7d4",
+      "kingdomId": "6c63d55e-dedf-48ab-b3ae-1f88a15be984",
+      "taskId": "5868a0d4-87dd-4924-a803-eb59216ae354",
+      "manifestDigest": "20666f34368510aaab62c6944586d3bae744d3c34a10e8b1cf0a8d775628812e",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 20,
+      "name": "diplomat-07",
+      "strategy": "diplomat",
+      "cohortId": "430a5aef-39e1-4b17-9403-c0b86855944e",
+      "agentId": "d65e576f-4601-4ff5-ad43-a859cfd9e9e7",
+      "bindingId": "f48db892-4b9e-4e37-94e1-ddbf179fe57f",
+      "kingdomId": "32dd6bc6-9c9a-4491-9ce5-75c4eac5cfbf",
+      "taskId": "2592109c-3781-4160-8aaf-c53571acf272",
+      "manifestDigest": "8b1804ad4d3271153f3035efd8e285a96cb25cd2288b280cbe78c4ad421beb37",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 21,
+      "name": "guardian-08",
+      "strategy": "guardian",
+      "cohortId": "f6dc8153-4b8c-4ba5-9486-bb1efb062e4d",
+      "agentId": "2b1e9428-c00d-4d4c-974d-8fc086b96d53",
+      "bindingId": "7b156b28-491e-45fe-9f14-85e64001cd29",
+      "kingdomId": "625b2520-15cf-4d80-a7c6-6d9e30b69aa5",
+      "taskId": "93ac107a-0dc4-47d0-8970-45fa7c17e4d1",
+      "manifestDigest": "a4ce39b5aff5996abb7e7e1b666bd4fb94c2252c2b66bc14ff5b914c1c31fad5",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 22,
+      "name": "merchant-08",
+      "strategy": "merchant",
+      "cohortId": "14549fc5-0711-4495-ae43-b79b1f946b25",
+      "agentId": "d71a13d9-00e4-4067-875e-11b0133cde18",
+      "bindingId": "e85c633c-6478-411b-a5f8-054149cfd687",
+      "kingdomId": "b18a6c24-114d-4635-827e-c41efffca8d0",
+      "taskId": "42285561-559f-4b79-b99b-7d015fb822d9",
+      "manifestDigest": "eec15803421f1b74f52a3bdbf607551d65bde47488d7c623bde110c33267def6",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    },
+    {
+      "index": 23,
+      "name": "diplomat-08",
+      "strategy": "diplomat",
+      "cohortId": "d0ed884d-b23c-484a-ad10-047f3e17dcec",
+      "agentId": "f50c64a5-d897-49ca-aa80-c3e5df86713f",
+      "bindingId": "a8e9da05-8aa3-42ad-825c-32fc09413755",
+      "kingdomId": "77fc7226-d502-47ba-a69d-9ba391e754c9",
+      "taskId": "6105e0d6-2b74-40bc-aa75-d6244b044d06",
+      "manifestDigest": "9b1d974bda3e9339feedd68b563993552ffe7fe8124c22eab4d59bf862dfaf79",
+      "capabilityDigest": "e4a1427256172ee0bcbe6718f90016c88b5b280887897ba42ad2f61517db6426"
+    }
+  ],
+  "checks": {
+    "unitPassed": 1277,
+    "unitSkipped": 23,
+    "crowdedNativeWorkflowsPassed": 3,
+    "twoCycleMixedCompletedWaiting24Bindings": "pass",
+    "realTemporalSdkLifecycle": "pass; fresh synthetic DB and namespace, fake provider only",
+    "captureTestsPassed": 5,
+    "typeStyleBuildBoundariesGeneratedContracts": "pass; existing405warnings/83infos and bundle warning retained",
+    "originalContainers": 67,
+    "originalVolumes": 115,
+    "originalServicesHealthy": 3
+  },
+  "limitations": [
+    "One exploratory world; two opportunities per kingdom; shared inference concurrency1.",
+    "A scheduled new event may legitimately resume a waiting task with a new turn; no failed/completed task is reset.",
+    "Initial packet fit proven; future states/model outputs can still be refused.",
+    "Historical16.29% latency remains a failure against the10% qualification gate."
+  ],
+  "liveCheckpoint": {
+    "atUtc": "2026-11-02T13:27:29.322Z",
+    "world": {
+      "status": "active",
+      "tick_sequence": "4"
+    },
+    "kingdoms": 24,
+    "cohorts": [
+      {
+        "state": "running",
+        "n": 24
+      }
+    ],
+    "turnCounts": {
+      "finished:WAIT": 15,
+      "running:None": 1
+    },
+    "reportedCalls": 15,
+    "inFlightAllocations": 1,
+    "commands": 0,
+    "unknownUsage": 0,
+    "evidenceFailed": 0,
+    "events": 1076,
+    "taskStates": {
+      "ready": 8,
+      "completed": 6,
+      "waiting": 9,
+      "running": 1
+    }
+  },
+  "liveEvidenceCheckpoint": {
+    "at": "2026-11-02T13:26:48.235Z",
+    "status": "pass",
+    "settledRuns": 13,
+    "events": 887,
+    "plaintextBytes": 15549478
+  },
+  "visualization": {
+    "status": "pass",
+    "url": "http://127.0.0.1:60052/#research/run/task%3A42285561-559f-4b79-b99b-7d015fb822d9",
+    "coverage": "complete",
+    "events": 69,
+    "contextKind": "model.request",
+    "browserErrors": [],
+    "rendered": [
+      "actual native gameplay timeline",
+      "actual native gameplay context/lineage",
+      "actual native gameplay causal graph"
+    ],
+    "note": "Early live render only; final hour acceptance pending; controller/rules/selected Temporal poller remain within the finite window."
+  },
+  "closure": {
+    "reason": "OPERATOR_STOP",
+    "world": {
+      "status": "paused",
+      "tick": "14",
+      "gameTimeMs": 1793626200000
+    },
+    "startsAt": 1793625759433,
+    "endsAt": 1793629359433,
+    "closedAt": 1793626640033,
+    "closureVerification": "pass",
+    "actualCalls": 24,
+    "inputTokens": 133464,
+    "outputTokens": 5036,
+    "commands": 0,
+    "restoredTables": 327,
+    "artifacts": 1566,
+    "plaintextBytes": 28707361,
+    "originalContainers": 67,
+    "originalVolumes": 115,
+    "unknowns": 0,
+    "maxQueueSeconds": 424.587
+  }
+}

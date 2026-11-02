@@ -67,7 +67,7 @@
   "watchdogSha256": "73d7459f8270449c76d972faab0f5f3f43a9c695c0c6f92633ec26cd1b10cdaa",
   "watchdogExecutableSha256": "26e421d533fc81b727d6463d3f8ce54ea60aadc8903092f7ea18ca877247a4ae",
   "inspectionOrigin": "http://127.0.0.1:60052",
-  "status": "active; early native progression and visualization verified; hour acceptance pending",
+  "status": "owner-stopped and independently restored; superseded by higher-capacity experiment",
   "attempt": 2,
   "ledger": ".superpowers/sdd/2026-11-02-kingdoms24-02/",
   "verificationCommit": "a81397021c7db8d7fdf6159a278d67dc5d9920e1",
@@ -436,5 +436,28 @@
       "actual native gameplay causal graph"
     ],
     "note": "Early live render only; final hour acceptance pending; controller/rules/selected Temporal poller remain within the finite window."
+  },
+  "closure": {
+    "reason": "OPERATOR_STOP",
+    "world": {
+      "status": "paused",
+      "tick": "14",
+      "gameTimeMs": 1793626200000
+    },
+    "startsAt": 1793625759433,
+    "endsAt": 1793629359433,
+    "closedAt": 1793626640033,
+    "closureVerification": "pass",
+    "actualCalls": 24,
+    "inputTokens": 133464,
+    "outputTokens": 5036,
+    "commands": 0,
+    "restoredTables": 327,
+    "artifacts": 1566,
+    "plaintextBytes": 28707361,
+    "originalContainers": 67,
+    "originalVolumes": 115,
+    "unknowns": 0,
+    "maxQueueSeconds": 424.587
   }
 }
