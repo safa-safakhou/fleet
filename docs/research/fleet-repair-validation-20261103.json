@@ -1,6 +1,6 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "preparing; no generation yet",
+  "status": "round1 sealed; controller/watchdog ready; awaiting start",
   "sourceRepairs": [
     "aa55459",
     "bb80aee",
@@ -11,12 +11,21 @@
   "rounds": [
     {
       "round": 1,
-      "status": "prepared; not sealed",
+      "status": "sealed; controller/watchdog ready",
       "world": "fleet-repair-20261103-ef7cb300",
       "namespace": "fleet-repair-20261103-ef7cb300",
       "privateLedger": ".superpowers/sdd/2026-11-03-repair-round-01",
       "provider": "fleet-metal-5aa1e00f",
-      "generationCalls": 0
+      "generationCalls": 0,
+      "id": "nemotron-repair-20261103-ef7cb300",
+      "sourceCommit": "ad2d740ff92ce8c409e4cfaf67aa9ac167ca36b1",
+      "startsAtUtc": "2026-11-03T10:15:24.347Z",
+      "endsAtUtc": "2026-11-03T10:35:24.347Z",
+      "controllerSha256": "fef9f102b01b8e3f37cf99006916c525f5aa215e5d29bde60c22c6e48bbfbf2a",
+      "watchdogSha256": "d6a785336a49497aa75fe92f40cd6d94bd4ec997ace7e647f68fcd4a987e2a0a",
+      "providerIdentitySha256": "7fcd80469b2085696a41d155e9456c5e1c7c15a5f4b04b57db1fc6e7180b71b6",
+      "providerPinsSha256": "4e9003eaf8cdb4f1e6e737acd3d7668947e6a45ef045488e7657622208c5c2ab",
+      "manualTemporalWorkers": 16
     },
     {
       "round": 2,

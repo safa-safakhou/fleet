@@ -1,6 +1,6 @@
 # Fleet repair validation —3November2026
 
-Status: source repairs verified and committed; first fresh16kingdom trial prepared, not yet sealed or launched. Second independently fresh trial remains pending. [Exact configuration and results ledger](fleet-repair-validation-20261103.json). [Implementation and acceptance plan](../superpowers/plans/2026-11-03-fleet-repair-and-validation.md).
+Status: source repairs verified and committed; first fresh16kingdom trial sealed, with controller/watchdog and16manual Temporal workers ready. Its finite window is10:15:24–10:35:24UTC (11:15–11:35Berlin). It may close earlier after its bounded initial reviews settle. Second independently fresh trial remains pending. [Exact configuration and results ledger](fleet-repair-validation-20261103.json). [Implementation and acceptance plan](../superpowers/plans/2026-11-03-fleet-repair-and-validation.md).
 
 The repairs add explicitly shorter model deadlines with workflow-envelope checks, a native command census covering legacy and platform paths, optional prefill admission waves, conservative profile/phase capacity qualification, and authenticated native abort/final-usage accounting. Exact matching waiting projections and known completed deferrals are recognized without resetting or replaying tasks. Atomic journal or identity failures retain unknown usage. Aborted or recovered-accounting-only answers cannot execute commands.
 
