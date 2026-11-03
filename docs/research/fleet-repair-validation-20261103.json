@@ -1,12 +1,21 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "diagnostic03 closed and audited; participant-wake/optional-prose fixes verified; two full post-fix trials pending",
+  "status": "post-fix full-roster trial04 armed; actual acceptance pending",
   "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
     {
       "round": 1,
-      "status": "pending full post-fix attempt04"
+      "attempt": "04",
+      "status": "armed; native results pending",
+      "world": "fleet-repair-20261103-ffe40e6e",
+      "source": "ff09a953adfab75a2f0447fb796e872f35ae6945",
+      "provider": "fleet-metal-b2e9cefe",
+      "startsAtUtc": "2026-11-03T11:34:32.652Z",
+      "endsAtUtc": "2026-11-03T11:49:32.652Z",
+      "prefillBatchTokens": 2048,
+      "maximumParallel": 2,
+      "initialTaskCount": 18
     },
     {
       "round": 2,
