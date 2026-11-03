@@ -80,7 +80,13 @@ export function composeRuntime(settings: ReturnType<typeof config>) {
   const broker = new CredentialBroker(store, settings.gameBase, settings.origin, settings.liveAllowed),
     model = runWindow.model(
       new RoutedModel(
-        new HttpModel(settings.routes, settings.apiKey, settings.ollamaOptions, settings.vllmCacheProfile),
+        new HttpModel(
+          settings.routes,
+          settings.apiKey,
+          settings.ollamaOptions,
+          settings.vllmCacheProfile,
+          settings.vllmTerminalAccounting,
+        ),
         new CodexModel(settings.codex),
       ),
     ),

@@ -20,6 +20,7 @@ export class HttpModel implements ModelPort {
       keepAliveSeconds: 0,
     },
     private cacheProfile?: CacheProfile,
+    private terminalAccounting = false,
   ) {}
   async estimateInputTokens(input: {
     model: import("./domain.js").ModelSettings;
@@ -132,6 +133,21 @@ export class HttpModel implements ModelPort {
       await input.onEvidence?.({ kind: "prepared", body });
       await input.onDispatch?.();
     }
+    if (input.model.provider === "vllm" && this.terminalAccounting) {
+      if (!this.cacheProfile || !this.apiKey) throw new FleetError("PROVIDER_TERMINAL_CONFIGURATION_REQUIRED", true);
+      const { data } = await jsonRequest(
+        `${base.replace(/\/v1\/?$/, "")}/fleet/terminal-accounting`,
+        { headers: { authorization: `Bearer ${this.apiKey}` } },
+        input.signal,
+      );
+      if (
+        data.schemaVersion !== "fleet.vllm-terminal-capabilities.v1" ||
+        data.instanceId !== this.cacheProfile.instanceId ||
+        data.nativeAbort !== true ||
+        data.atomicTerminalJournal !== true
+      )
+        throw new FleetError("PROVIDER_TERMINAL_CAPABILITY_REQUIRED", true);
+    }
     const response =
       input.model.provider === "vllm"
         ? await vllmCompletion(
@@ -141,6 +157,7 @@ export class HttpModel implements ModelPort {
             input.signal,
             input.onEvidence,
             input.onDispatch,
+            this.terminalAccounting && this.cacheProfile ? { instanceId: this.cacheProfile.instanceId } : undefined,
           )
         : await jsonRequest(
             `${base}${ollama ? "/api/chat" : "/chat/completions"}`,
@@ -154,7 +171,7 @@ export class HttpModel implements ModelPort {
             },
             input.signal,
           );
-    const { data } = response;
+    const data = object(response.data);
     if (input.model.provider !== "vllm") await input.onEvidence?.({ kind: "packet", body: data });
     const choices = Array.isArray(data.choices) ? data.choices : [];
     const message = ollama ? object(data.message) : object(object(choices[0]).message);
@@ -189,6 +206,10 @@ export class HttpModel implements ModelPort {
               providerMetadata?.thinkingChars
             ? "MODEL_THINKING_WITHOUT_FINAL"
             : "INVALID_MODEL_OUTPUT";
+    }
+    if (input.model.provider === "vllm" && (object(choices[0]).finish_reason === "abort" || input.signal.aborted)) {
+      decision = null;
+      decisionError = "MODEL_ABORTED";
     }
     // Preserve the engine's specific evidence errors for correction feedback.
     // A successfully verified answer must still pass the generation contract below.

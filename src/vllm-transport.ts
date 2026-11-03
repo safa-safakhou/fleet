@@ -3,6 +3,7 @@ import { type Data, FleetError, object, safeCode } from "./domain.js";
 import { readJSONResponse } from "./http.js";
 import { modelAbortCode } from "./model-deadline.js";
 import { type GenerationProgress, ModelTransportError } from "./model-progress.js";
+import { terminalControl } from "./vllm-terminal.js";
 export async function vllmCompletion(
   url: string,
   body: Data,
@@ -10,6 +11,7 @@ export async function vllmCompletion(
   signal: AbortSignal,
   onEvidence?: (event: { kind: "prepared" | "packet" | "unavailable"; body: unknown }) => Promise<void>,
   onDispatch?: () => Promise<void>,
+  terminalAccounting?: { instanceId: string },
 ) {
   const started = performance.now();
   // SSE repeats protocol metadata for each token. Bound transport overhead separately
@@ -28,18 +30,55 @@ export async function vllmCompletion(
     reasoningChars: 0,
     wireBytes: 0,
   };
+  const clientRequestId = progress.requestId;
+  const transport = new AbortController();
+  let drainTimer: ReturnType<typeof setTimeout> | undefined;
+  let abortOperation: Promise<unknown> | undefined;
+  let terminalRead = false;
+  let accountingUntil: number | undefined;
+  let abortControlFailed = false;
+  const accountingSignal = () => {
+    accountingUntil ??= performance.now() + 1000;
+    const remaining = Math.floor(accountingUntil - performance.now());
+    if (remaining <= 0) throw new FleetError(modelAbortCode(signal.reason));
+    return AbortSignal.timeout(remaining);
+  };
+  const transportAbort = () => {
+    if (!terminalAccounting) {
+      transport.abort(signal.reason);
+      return;
+    }
+    if (terminalRead || abortOperation) return;
+    // Stop native generation immediately; retain the response solely for final accounting.
+    const drain = accountingSignal();
+    abortOperation = terminalControl(
+      url,
+      key,
+      clientRequestId,
+      "abort",
+      terminalAccounting.instanceId,
+      drain,
+      onEvidence,
+    ).catch(() => {
+      abortControlFailed = true;
+    });
+    drainTimer = setTimeout(() => transport.abort(signal.reason), 1000);
+  };
   let dispatched = false;
   let reader: ReadableStreamDefaultReader<Uint8Array> | undefined;
   let abortRead: (() => void) | undefined;
   try {
     const prepared = { ...body, request_id: progress.requestId, stream: true, stream_options: { include_usage: true } };
     await onEvidence?.({ kind: "prepared", body: prepared });
+    if (signal.aborted) throw new FleetError(modelAbortCode(signal.reason), true);
     await onDispatch?.();
+    signal.addEventListener("abort", transportAbort, { once: true });
+    if (signal.aborted) transportAbort();
     dispatched = true;
     const response = await fetch(url, {
       method: "POST",
       redirect: "error",
-      signal,
+      signal: transport.signal,
       headers: {
         "content-type": "application/json",
         authorization: `Bearer ${key}`,
@@ -55,6 +94,7 @@ export async function vllmCompletion(
         kind: response.ok ? "packet" : "unavailable",
         body: response.ok ? data : { code: "PROVIDER_ERROR_PAYLOAD_WITHHELD" },
       });
+      if (terminalAccounting) throw new FleetError("PROVIDER_TERMINAL_PROTOCOL_REQUIRED");
       progress.elapsedMs = performance.now() - started;
       return { data, execution: progress };
     }
@@ -62,8 +102,8 @@ export async function vllmCompletion(
     reader = response.body.getReader();
     const aborted = new Promise<never>((_, reject) => {
       abortRead = () => reject(new FleetError(modelAbortCode(signal.reason)));
-      signal.addEventListener("abort", abortRead, { once: true });
-      if (signal.aborted) abortRead();
+      transport.signal.addEventListener("abort", abortRead, { once: true });
+      if (transport.signal.aborted) abortRead();
     });
     const decoder = new TextDecoder("utf-8", { fatal: true });
     let pending = "",
@@ -175,17 +215,74 @@ export async function vllmCompletion(
       if (Buffer.byteLength(pending) > 1000000) throw new FleetError("RESPONSE_TOO_LARGE");
     }
     if (pending.trim() || !done || !progress.finishReason) throw new FleetError("MODEL_STREAM_INCOMPLETE");
+    if (terminalAccounting) {
+      terminalRead = true;
+      await abortOperation;
+      if (abortControlFailed) throw new FleetError("PROVIDER_ABORT_CONTROL_UNAVAILABLE");
+      // The provider journals before emitting DONE. Read and verify that exact terminal record.
+      const receipt = await terminalControl(
+        url,
+        key,
+        clientRequestId,
+        "terminal",
+        terminalAccounting.instanceId,
+        accountingSignal(),
+        onEvidence,
+      );
+      const finalUsage = object(receipt.usage);
+      if (
+        receipt.nativeRequestId !== serverId ||
+        receipt.finishReason !== progress.finishReason ||
+        finalUsage.prompt_tokens !== usage?.prompt_tokens ||
+        finalUsage.completion_tokens !== usage?.completion_tokens
+      )
+        throw new FleetError("PROVIDER_TERMINAL_IDENTITY_MISMATCH");
+    }
     progress.elapsedMs = performance.now() - started;
     return {
+      cancelledCode: signal.aborted ? modelAbortCode(signal.reason) : undefined,
       data: { choices: [{ message: { content: text }, finish_reason: progress.finishReason }], usage: usage ?? {} },
       execution: progress,
     };
   } catch (error) {
     if (!dispatched && error instanceof FleetError && error.notDispatched) throw error;
+    // A severed stream may have a durable final native record, but no usable decision.
+    if (terminalAccounting && dispatched && !terminalRead && !abortControlFailed) {
+      try {
+        terminalRead = true;
+        await abortOperation;
+        if (abortControlFailed) throw error;
+        const receipt = await terminalControl(
+          url,
+          key,
+          clientRequestId,
+          "terminal",
+          terminalAccounting.instanceId,
+          accountingSignal(),
+          onEvidence,
+        );
+        if (progress.requestId !== clientRequestId && receipt.nativeRequestId !== progress.requestId) throw error;
+        progress.finishReason = String(receipt.finishReason);
+        progress.elapsedMs = performance.now() - started;
+        return {
+          accountingOnly: true,
+          cancelledCode: signal.aborted ? modelAbortCode(signal.reason) : undefined,
+          data: {
+            choices: [{ message: { content: "" }, finish_reason: receipt.finishReason }],
+            usage: object(receipt.usage),
+          },
+          execution: progress,
+        };
+      } catch {
+        /* No authoritative terminal receipt: retain unknown usage. */
+      }
+    }
     progress.elapsedMs = performance.now() - started;
-    throw new ModelTransportError(safeCode(error), progress);
+    throw new ModelTransportError(signal.aborted ? modelAbortCode(signal.reason) : safeCode(error), progress);
   } finally {
-    if (abortRead) signal.removeEventListener("abort", abortRead);
+    signal.removeEventListener("abort", transportAbort);
+    if (drainTimer) clearTimeout(drainTimer);
+    if (abortRead) transport.signal.removeEventListener("abort", abortRead);
     // A protocol-complete answer already carries authoritative usage. Socket cleanup
     // must not delay its accounting past the turn lease. Partial streams remain unknown.
     void reader?.cancel().catch(() => {});
