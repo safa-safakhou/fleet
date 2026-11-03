@@ -1,0 +1,89 @@
+{
+  "schemaVersion": "fleet.repair-validation.v1",
+  "status": "preparing; no generation yet",
+  "sourceRepairs": [
+    "aa55459",
+    "bb80aee",
+    "6711a27",
+    "6d0053c"
+  ],
+  "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
+  "rounds": [
+    {
+      "round": 1,
+      "status": "prepared; not sealed",
+      "world": "fleet-repair-20261103-ef7cb300",
+      "namespace": "fleet-repair-20261103-ef7cb300",
+      "privateLedger": ".superpowers/sdd/2026-11-03-repair-round-01",
+      "provider": "fleet-metal-5aa1e00f",
+      "generationCalls": 0
+    },
+    {
+      "round": 2,
+      "status": "pending fresh independent preparation"
+    }
+  ],
+  "configuration": {
+    "kingdomsPerRound": 16,
+    "replicasPerProfile": 2,
+    "profiles": [
+      "legacy-loop@1",
+      "legacy-cognition@1",
+      "reactive-basic@1",
+      "reactive-cognition@1",
+      "reactive-cognition@2",
+      "reactive-cognition@1.1",
+      "specialist-coordinator@1",
+      "autonomous-specialists@1"
+    ],
+    "maximumRoundMs": 1200000,
+    "callsPerKingdom": 12,
+    "reservedTokensPerKingdom": 480000,
+    "maximumCallsPerRound": 192,
+    "maximumReservedTokensPerRound": 7680000,
+    "maxCallsPerTurn": 3,
+    "maxActionsPerTurn": 1,
+    "callTimeoutMs": 35000,
+    "nativeTurnCeilingMs": 120000,
+    "inputBytes": 48000,
+    "outputTokens": 1024,
+    "contextTokens": 32768,
+    "parallelCalls": 2,
+    "providerMaxSequences": 8,
+    "cacheCapBytes": 6442450944,
+    "prefillBatchTokens": 1024,
+    "admissionWaveMs": 250,
+    "terminalAccounting": "authenticated native abort plus atomic final journal; bounded1000ms drain"
+  },
+  "qualification": {
+    "cacheAdmissionBlocks": 400,
+    "blocksPerFullContext": 40,
+    "actualCacheBackingGiBRounded": 5.99,
+    "metadataGenerationCalls": 0,
+    "commonPackets": 16,
+    "largestCommonPacketBytes": 42045,
+    "wholeArchitectureGenerationAcceptance": "pending actual accounted native turns"
+  },
+  "protectedHistory": {
+    "recentUnknownAllocations": 6,
+    "reservedUnknownTokens": 240000,
+    "historicalQ3OverheadPercent": 16.29,
+    "historicalQ3LimitPercent": 10,
+    "q3AcceptedExceptionStillFailsLimit": true
+  },
+  "prerequisites": {
+    "freshDockerFixtureForwarding": "host auto forwarding refused fresh ports; owned SSH fixture tunnel passed32integration checks without changing original services",
+    "temporal": "research server OOM-killed2026-11-03T07:11:39Z; encrypted snapshots retained; pinned service restarted with unchanged768MiB container/600MiB Go limits;254MiB sampled after restart;650MiB trial drain threshold"
+  },
+  "validation": {
+    "rootUnitPasses": 1302,
+    "platformUnitSkips": 23,
+    "matchedWaitingFocusedTests": 4,
+    "transportModelFocusedTests": 31,
+    "ownedPoolAndWaveTests": 32,
+    "ownedCaptureCensusTests": 7,
+    "ownedAbortAccountingTests": 1,
+    "pythonAsgiTests": 3,
+    "typesStyleBuildBoundariesContracts": "pass; baseline405warnings/83infos"
+  }
+}

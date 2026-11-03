@@ -66,10 +66,10 @@ Interfaces: authenticated capabilities/abort/terminal lookup bound to native ASG
 
 ### Task4: Integrate and review every finding offline
 
-- [ ] Recheck previously repaired pre-invocation capture regression and complete command census across source/native handlers.
-- [ ] Run full root units, affected owned integrations, Python bridge tests, types/style/build/boundaries/contracts and synthetic cancellation/deadline/failure checks. Read failures and correct narrowly with RED→GREEN.
-- [ ] Review all changes separately. Self-review only: AGENTS.md prohibits delegation. Record decisions/limitations; preserve private ledgers rather than skill scratch cleanup.
-- [ ] Commit exact source configuration and verify original services/held history before any real request.
+- [x] Recheck previously repaired pre-invocation capture regression and complete command census across source/native handlers.
+- [x] Run full root units, affected owned integrations, Python bridge tests, types/style/build/boundaries/contracts and synthetic cancellation/deadline/failure checks. Read failures and correct narrowly with RED→GREEN.
+- [x] Review all changes separately. Self-review only: AGENTS.md prohibits delegation. Record decisions/limitations; preserve private ledgers rather than skill scratch cleanup.
+- [x] Commit exact source configuration and verify original services/held history before any real request.
 
 ### Task5: Two fresh validation rounds and honest acceptance
 
