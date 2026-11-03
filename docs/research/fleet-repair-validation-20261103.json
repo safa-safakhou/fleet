@@ -1,12 +1,25 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "two preparations safely closed before all native claims;15minute native-gate preflight passed; actual validation rounds pending",
+  "status": "native-supported15minute attempt03 sealed; first actual round awaiting start",
   "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
     {
       "round": 1,
-      "status": "pending fully fresh attempt03 with native-supported15minute gate",
+      "attempt": 3,
+      "id": "nemotron-repair-20261103-17eb1c3f",
+      "status": "sealed; awaiting start",
+      "world": "fleet-repair-20261103-17eb1c3f",
+      "namespace": "fleet-repair-20261103-17eb1c3f",
+      "privateLedger": ".superpowers/sdd/2026-11-03-repair-round-03",
+      "provider": "fleet-metal-b591d646",
+      "sourceCommit": "4f56d83f623b63d2951fd0ac2c99d1c4ea04eec8",
+      "startsAtUtc": "2026-11-03T10:44:18.742Z",
+      "endsAtUtc": "2026-11-03T10:59:18.742Z",
+      "controllerSha256": "6c655a0c8f8e9526bfd84dace92c8467b7d02997f3096acc1bc924165b69276d",
+      "watchdogSha256": "a20c48460c3146e612fb5c2e3200d98f06a2d558439d433411edb31ac6886129",
+      "providerPinsSha256": "6385244dbc67f2fde33592e2510953d1afdaa2fd665c42258122e07d41899c70",
+      "nativeWindowSmoke": "pass with exact sealed bounds/all16models before task publication",
       "generationCalls": 0
     },
     {
