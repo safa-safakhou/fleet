@@ -1,6 +1,7 @@
 import { expect, it } from "vitest";
 import { FleetError, type ModelPort } from "../../src/domain.js";
 import { runDecisionFeedback } from "../../src/platform/decision-feedback.js";
+import { SettledModelAttemptFailure } from "../../src/platform/model-attempt-failure.js";
 
 const request = {
   model: { route: "openai-compatible" as const, provider: "vllm" as const, model: "nemotron-4b", thinking: false },
@@ -235,4 +236,40 @@ it("rejects malformed output and allows correction without trusting its factual 
   });
   expect(r.stopReason).toBe("accepted");
   expect(r.metrics.recovered).toBe(true);
+});
+
+it("retains exact known failed-attempt usage and the original error without retrying", async () => {
+  let calls = 0;
+  const result = await runDecisionFeedback(request, {
+    ...policy,
+    attempt: async () => {
+      calls++;
+      if (calls === 1) return answer(110);
+      throw new SettledModelAttemptFailure("MODEL_DEADLINE_EXCEEDED", {
+        allocationId: "00000000-0000-4000-8000-000000000001",
+        inputTokens: 17,
+        outputTokens: 3,
+      });
+    },
+  });
+  expect(calls).toBe(2);
+  expect(result.stopReason).toBe("attempt_error");
+  expect(result.error).toBe("MODEL_DEADLINE_EXCEEDED");
+  expect(result.metrics).toMatchObject({
+    attempts: 2,
+    finalValid: false,
+    unknownUsageCalls: 0,
+    inputTokens: 27,
+    outputTokens: 8,
+  });
+});
+
+it("does not infer known settlement from untrusted error-shaped metadata", async () => {
+  const result = await runDecisionFeedback(request, {
+    ...policy,
+    attempt: async () => {
+      throw { code: "MODEL_DEADLINE_EXCEEDED", usage: { inputTokens: 17, outputTokens: 3 } };
+    },
+  });
+  expect(result.metrics).toMatchObject({ attempts: 1, unknownUsageCalls: 1, inputTokens: null, outputTokens: null });
 });

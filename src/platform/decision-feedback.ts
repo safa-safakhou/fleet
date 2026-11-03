@@ -3,6 +3,7 @@ import { isDeepStrictEqual } from "node:util";
 import { Ajv } from "ajv";
 import { FleetError, type ModelPort, safeCode } from "../domain.js";
 import { compileGenerationSchema } from "../model-schema.js";
+import { SettledModelAttemptFailure } from "./model-attempt-failure.js";
 
 type Request = Parameters<ModelPort["decide"]>[0];
 type Result = Awaited<ReturnType<ModelPort["decide"]>>;
@@ -91,7 +92,10 @@ export async function runDecisionFeedback(request: Request, policy: FeedbackPoli
       result = await policy.attempt(input, n);
     } catch (error) {
       // The caller retains reservations/uncertainty. Never reinterpret a thrown failure as a safe retry.
-      if (!(error instanceof FleetError && error.notDispatched)) {
+      if (error instanceof SettledModelAttemptFailure) {
+        metrics.inputTokens = (metrics.inputTokens ?? 0) + error.usage.inputTokens;
+        metrics.outputTokens = (metrics.outputTokens ?? 0) + error.usage.outputTokens;
+      } else if (!(error instanceof FleetError && error.notDispatched)) {
         metrics.unknownUsageCalls++;
         metrics.inputTokens = metrics.outputTokens = null;
       }

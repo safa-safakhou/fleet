@@ -96,3 +96,15 @@ test("turn-wave draining still reports expired work and rechecks deadlines befor
     "CAPACITY_DISPATCH_POLICY",
   );
 });
+
+test("declared exclusive workloads keep their fair position and run alone inside opt-in turn waves", () => {
+  const heavy = { ...candidate("heavy", "heavy", { lastDispatchAt: 1 }), exclusive: true };
+  const light = candidate("light", "light", { lastDispatchAt: 2 });
+  const wave = { ...options, capacity: 2, dispatchPolicy: "turn-wave" as const };
+  expect(selectCapacityWork([heavy, light], wave).selected.map((x) => x.taskId)).toEqual(["heavy"]);
+  expect(selectCapacityWork([light, { ...heavy, lastDispatchAt: 3 }], wave).selected.map((x) => x.taskId)).toEqual([
+    "light",
+  ]);
+  expect(selectCapacityWork([heavy, light], { ...wave, activeBindings: new Set(["active"]) }).selected).toEqual([]);
+  expect(selectCapacityWork([heavy], options).refused).toEqual([{ taskId: "heavy", reason: "invalid_record" }]);
+});

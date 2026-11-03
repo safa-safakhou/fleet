@@ -12,6 +12,7 @@ import { Observability } from "../observability.js";
 import type { Claim, Store } from "../store.js";
 import type { CapacityDemand, CapacityResource } from "./cache-profile.js";
 import { type FeedbackPolicy, runDecisionFeedback } from "./decision-feedback.js";
+import { SettledModelAttemptFailure } from "./model-attempt-failure.js";
 import type { TaskClaim, TaskStore } from "./tasks.js";
 export type ModelResult = Awaited<ReturnType<ModelPort["decide"]>> & { allocationId?: string };
 export class RouteCapacity {
@@ -629,7 +630,25 @@ export class ModelAdmission {
               generationProgress: modelFailureProgress(error),
             })
             .catch(() => {});
-          throw error;
+          // A terminal result may already have settled before a deadline/fence check threw.
+          // Read the exact ledger fact; late observations on an unknown hold are not settlement.
+          const reported = await this.store.pool
+            .query(
+              "SELECT input_tokens,output_tokens FROM compute_ledger WHERE id=$1 AND turn_id=$2 AND status='reported'",
+              [allocation, turn.id],
+            )
+            .then(
+              (result) => result.rows[0],
+              () => undefined,
+            );
+          if (reported && reported.input_tokens !== null && reported.output_tokens !== null)
+            throw new SettledModelAttemptFailure(safeCode(error), {
+              allocationId: allocation,
+              inputTokens: Number(reported.input_tokens),
+              outputTokens: Number(reported.output_tokens),
+            });
+          // Provider-thrown wrappers cannot assert native settlement on their own.
+          throw error instanceof SettledModelAttemptFailure ? new FleetError(error.code, error.notDispatched) : error;
         } finally {
           deadline?.close();
         }

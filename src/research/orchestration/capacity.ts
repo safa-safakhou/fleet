@@ -4,6 +4,8 @@ export interface CapacityCandidate {
   eligibleAt: number;
   lastDispatchAt: number | null;
   event: boolean;
+  /** Opt-in measured workload lane, valid only with turn-wave dispatch. */
+  exclusive?: boolean;
   deadline?: { clockId: string; value: string };
 }
 type Refusal = { taskId: string; reason: "expired" | "unknown_deadline_clock" | "invalid_record" };
@@ -37,6 +39,8 @@ export function selectCapacityWork(
     if (
       !item.taskId ||
       !item.bindingId ||
+      (item.exclusive !== undefined && typeof item.exclusive !== "boolean") ||
+      (item.exclusive === true && options.dispatchPolicy !== "turn-wave") ||
       !Number.isSafeInteger(item.eligibleAt) ||
       (item.lastDispatchAt !== null && !Number.isSafeInteger(item.lastDispatchAt))
     ) {
@@ -101,7 +105,15 @@ export function selectCapacityWork(
       rows.splice(rows.indexOf(aged), 1);
     }
     rows.sort((a, b) => compareDeadline(a, b) || rotation(a, b));
-    selected.push(...rows.slice(0, free - selected.length).map((x) => x.item));
+    if (!selected[0]?.exclusive) {
+      for (const row of rows) {
+        if (selected.length >= free) break;
+        // Do not bypass an exclusive actor to backfill with later light work.
+        if (row.item.exclusive && selected.length) break;
+        selected.push(row.item);
+        if (row.item.exclusive) break;
+      }
+    }
   }
   return { selected, refused };
 }
