@@ -39,9 +39,19 @@
     "substantiveDifferences": 0
   },
   "retained": [
-    "One confirmed-stopped root/data pre-repair Colima recovery pair; approximately97GiB apparent allocation, shared extents",
     "Inactive Docker Desktop virtual disk, approximately20.5GiB; contents not proven redundant",
     "All service containers/volumes, model weights, toolchains, installed environments and private experiment evidence"
   ],
-  "remainingDecision": "Retire the final pre-repair VM rollback copy only with owner choice; it covers unrelated Docker services as well as Fleet. No exact exclusive reclaimable-byte claim."
+  "remainingDecision": "Final pre-repair Colima recovery pair deleted under explicit owner authorization. Legacy Docker Desktop disk remains unverified/protected; no deletion authorized for it.",
+  "finalRecoveryPairRemoval": {
+    "ownerAuthorized": true,
+    "filesDeleted": ["root.stopped.raw", "data.stopped.raw"],
+    "beforeFreeGiB": 19.66761016845703,
+    "afterFreeGiB": 83.71997833251953,
+    "netFreeIncreaseGiB": 64.0523681640625,
+    "remainingRecoveryFiles": ["checkpoint.json", "colima.yaml", "lima.yaml", "stopped-checkpoint.json"],
+    "containersPreserved": 75,
+    "volumeDefinitionsPreserved": 121,
+    "originalServicesHealthy": true
+  }
 }
