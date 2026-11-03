@@ -107,9 +107,18 @@ export function closedDecisionSchema(input: {
   continuationLookup?: boolean;
   continuationSchema?: Data;
   waitSchema?: Data;
+  maxOutputTokens?: number;
 }): Data {
   const base = object(inline(decisionSchema)),
     branches = (base.oneOf ?? base.anyOf) as Data[];
+  if (input.maxOutputTokens !== undefined) {
+    if (!Number.isSafeInteger(input.maxOutputTokens) || input.maxOutputTokens < 1)
+      throw new FleetError("INVALID_OUTPUT_BUDGET", true);
+    // Optional prose must leave headroom for the actual structured decision.
+    // This is a character bound, not a token estimate; native output caps still apply.
+    const notesLimit = Math.min(4000, Math.floor(input.maxOutputTokens / 4));
+    for (const b of branches) object(object(b.properties).notes).maxLength = notesLimit;
+  }
   const branch = (kind: string) => branches.find((b) => object(object(b.properties).kind).const === kind) ?? {};
   const wait = branch("wait"),
     read = branch("read"),

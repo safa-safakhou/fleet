@@ -430,6 +430,7 @@ export class Engine {
                 .map((entry) => String(object(entry.args).name))
             : [...selectedReads];
           return closedDecisionSchema({
+            maxOutputTokens: b.maxOutputTokens,
             actionKinds: capability?.kinds ?? actionKinds,
             actionSchemas: pageOptional
               ? actionShapes.filter(

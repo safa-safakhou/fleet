@@ -10,6 +10,11 @@ it("preserves the recorded controller except explicit context, owner, proposal a
   // any other controller drift still fails against the original source digest.
   let historical = source.toString();
   const reviewed: [string, string][] = [
+    // Budget-aware optional notes; preserve the original controller pin and action rules.
+    [
+      "          return closedDecisionSchema({\n            maxOutputTokens: b.maxOutputTokens,",
+      "          return closedDecisionSchema({",
+    ],
     // Reviewed pre-invocation rejection capture; preserve the original artifact digest and deadlines.
     [
       "        let deadline: ReturnType<typeof modelDeadline> | undefined;\n        let invoked = false;",

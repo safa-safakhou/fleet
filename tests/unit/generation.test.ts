@@ -116,3 +116,24 @@ it("makes every grammar union branch self-contained so converters cannot drop th
 it("retains archived fingerprints separately from the explicit generation contract correction", () => {
   expect(correction.cases.map((c) => c.priorModelInputDigest)).toEqual(archived.cases.map((c) => c.modelInputDigest));
 });
+it("reserves output headroom by bounding optional legacy notes to the declared output allowance", () => {
+  const input = {
+    actionKinds: kinds,
+    actionSchemas: kinds.map(pactAdapter.actionSchema),
+    reads: [],
+    selectedReadNames: [],
+    memory: false,
+    maxOutputTokens: 1024,
+  };
+  const compact = closedDecisionSchema(input),
+    check = new Ajv({ strict: false, validateFormats: false }).compile(compact);
+  expect(check({ ...valid, notes: "n".repeat(256) })).toBe(true);
+  expect(check({ ...valid, notes: "n".repeat(257) })).toBe(false);
+  expect(check({ ...valid, action: { ...valid.action, targetLevel: -1 } })).toBe(false);
+  const roomy = new Ajv({ strict: false, validateFormats: false }).compile(
+    closedDecisionSchema({ ...input, maxOutputTokens: 16384 }),
+  );
+  expect(roomy({ ...valid, notes: "n".repeat(4000) })).toBe(true);
+  const original = closedDecisionSchema({ ...input, maxOutputTokens: undefined });
+  expect(original).toEqual(closedDecisionSchema({ ...input, maxOutputTokens: undefined }));
+});
