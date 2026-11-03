@@ -1,6 +1,6 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "first final cycle09 accepted; fresh independent10 pending",
+  "status": "first final cycle09 accepted; second independent cycle10 armed with identical runtime files/build/policy",
   "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03", "c4479ed", "68c577f", "1776ceb"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
@@ -618,7 +618,17 @@
     },
     {
       "round": 2,
-      "status": "fresh10 independent repeat pending"
+      "attempt": "10",
+      "status": "armed; actual acceptance pending",
+      "world": "fleet-repair-20261103-1f37a01b",
+      "source": "bc652f771e9f25685ed9c26c1ba9a30778fb1dca",
+      "provider": "fleet-metal-b4005c71",
+      "startsAtUtc": "2026-11-03T13:57:35.241Z",
+      "endsAtUtc": "2026-11-03T14:12:35.241Z",
+      "turnDispatchPolicy": "turn-wave",
+      "exclusiveProfiles": ["specialist-coordinator@1"],
+      "maximumParallel": 2,
+      "initialTasks": 18
     }
   ],
   "configuration": {
@@ -1897,5 +1907,24 @@
     "onlyExactReportedAllocationAndTurnTrusted": true,
     "noRetryOnKnownFailure": true,
     "exclusivePolicyOptIn": true
+  },
+  "repeatRuntimeVerification": {
+    "status": "pass",
+    "equalRuntimePins": {
+      "buildHash": true,
+      "dependenciesHash": true,
+      "model": true,
+      "exclusiveProfiles": true,
+      "turnDispatchPolicy": true,
+      "maxParallel": true
+    },
+    "equalRuntimeFileTreesSha256": "ad314eca136d4331d4d60cd06187f52e88fb169342b69c2f2b31bc2e87829061",
+    "distinctWorldNamespace": true,
+    "sourceCommitsDifferOnlyOutsideRuntime": true,
+    "archiveSourceHashes": [
+      "d00736d2a41e05ff7e8042b10a9b01a4f595788bbaca585cee9b3cbf963127f0",
+      "bf03c824fdfee98fedc085e82da948ca1b06971e41e12641f75eeebff4998f12"
+    ],
+    "archiveHashesRetainedUnmodified": "git archive includes commit provenance/mtime; source file tree and executable build equality checked separately"
   }
 }
