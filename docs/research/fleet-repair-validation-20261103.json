@@ -1,12 +1,28 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "source fixes verified; trial07 aborted before any inference by actual clamshell sleep; preservation/readiness before fresh08/09",
+  "status": "first complete post-fix trial08 armed after verified sleep recovery; independent09 pending",
   "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03", "c4479ed", "68c577f"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
     {
       "round": 1,
-      "status": "fresh08 pending awake/clock and preservation checks"
+      "attempt": "08",
+      "status": "armed; native acceptance pending",
+      "world": "fleet-repair-20261103-622e6722",
+      "source": "eee50e7c9578ea977fdd64f0dfa88d5cdad2e045",
+      "provider": "fleet-metal-bdeaa51a",
+      "startsAtUtc": "2026-11-03T13:16:12.558Z",
+      "endsAtUtc": "2026-11-03T13:31:12.558Z",
+      "turnDispatchPolicy": "turn-wave",
+      "maximumParallel": 2,
+      "initialTasks": 18,
+      "hostAwakeReadiness": {
+        "status": "pass",
+        "samples": 61,
+        "maximumWallMonotonicDisagreementMs": 0.8909092284739017,
+        "lidOpenAllSamples": true,
+        "finishedAt": 1793711590.099904
+      }
     },
     {
       "round": 2,
