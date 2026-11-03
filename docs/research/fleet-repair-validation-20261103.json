@@ -630,5 +630,545 @@
     "rootUnitPasses": 1309,
     "platformSkips": 23,
     "typesStyleBuildBoundaries": "pass"
-  }
+  },
+  "earlierCompletedCycles": [
+    {
+      "round": 1,
+      "attempt": "04",
+      "status": "pass: complete bounded initial-task cycle; no capacity-promotion qualification",
+      "world": "fleet-repair-20261103-ffe40e6e",
+      "source": "ff09a953adfab75a2f0447fb796e872f35ae6945",
+      "provider": "fleet-metal-b2e9cefe",
+      "startsAtUtc": "2026-11-03T11:34:32.652Z",
+      "endsAtUtc": "2026-11-03T11:49:32.652Z",
+      "prefillBatchTokens": 2048,
+      "maximumParallel": 2,
+      "initialTaskCount": 18,
+      "closedAt": 1793706085742,
+      "closureReason": "BOUNDED_ROUND_COMPLETE",
+      "worldTick": "6",
+      "totals": {
+        "reportedCalls": 27,
+        "inputTokens": 192693,
+        "outputTokens": 5824,
+        "initialTasks": 18,
+        "visitedInitialTasks": 18
+      },
+      "unknowns": 0,
+      "modelErrors": 0,
+      "committedCommands": 4,
+      "matchingPactReceipts": 4,
+      "restores": 4,
+      "artifactsVerified": 8241,
+      "stateTree": {
+        "files": 424,
+        "bytes": 69597004,
+        "sha256Match": true
+      },
+      "observer": {
+        "pages": 228,
+        "encryptedBytes": 354660,
+        "chainMatches": true,
+        "scopeConsentRetentionMatches": true
+      },
+      "actualRendering": {
+        "status": "pass",
+        "events": 873,
+        "allocations": 3,
+        "browserErrors": []
+      },
+      "peakProviderRunning": 2,
+      "peakProviderWaiting": 1,
+      "perKingdom": [
+        {
+          "name": "legacy-loop-1-1",
+          "profile": {
+            "id": "legacy-loop",
+            "version": "1"
+          },
+          "bindingId": "44555eff-f5bb-4a91-8780-f4869c6e5010",
+          "calls": 3,
+          "turns": [
+            {
+              "code": "TURN_ACTION_LIMIT",
+              "actions": 1,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "05e2c598-3c3b-4b6d-be60-a0ae6c51e266",
+              "participantId": null,
+              "logicalQueueMs": 268,
+              "turnWallMs": 68392,
+              "completedAt": 1793705741312,
+              "nativeCode": "TURN_ACTION_LIMIT"
+            }
+          ],
+          "commands": [
+            {
+              "state": "confirmed",
+              "code": "COMMITTED",
+              "conflict": false
+            }
+          ]
+        },
+        {
+          "name": "legacy-loop-1-2",
+          "profile": {
+            "id": "legacy-loop",
+            "version": "1"
+          },
+          "bindingId": "5ea5c68d-4a4c-438e-9c0e-33fe7a4ae931",
+          "calls": 2,
+          "turns": [
+            {
+              "code": "TURN_ACTION_LIMIT",
+              "actions": 1,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "c36bed58-e486-4004-b2d9-9cee9a686219",
+              "participantId": null,
+              "logicalQueueMs": 318951,
+              "turnWallMs": 53541,
+              "completedAt": 1793706045144,
+              "nativeCode": "TURN_ACTION_LIMIT"
+            }
+          ],
+          "commands": [
+            {
+              "state": "confirmed",
+              "code": "COMMITTED",
+              "conflict": false
+            }
+          ]
+        },
+        {
+          "name": "legacy-cognition-1-1",
+          "profile": {
+            "id": "legacy-cognition",
+            "version": "1"
+          },
+          "bindingId": "1e331030-5580-4916-8ca7-03243db2dfce",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "907fbdd5-b083-4f35-8551-b1e01cb5be80",
+              "participantId": null,
+              "logicalQueueMs": 222316,
+              "turnWallMs": 26006,
+              "completedAt": 1793705920974,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "legacy-cognition-1-2",
+          "profile": {
+            "id": "legacy-cognition",
+            "version": "1"
+          },
+          "bindingId": "348558bc-a1ac-49b8-ab6e-03ee4e1c81ba",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "962539c2-89f1-43ca-bd33-a3c88c343435",
+              "participantId": null,
+              "logicalQueueMs": 234544,
+              "turnWallMs": 27064,
+              "completedAt": 1793705934260,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-basic-1-1",
+          "profile": {
+            "id": "reactive-basic",
+            "version": "1"
+          },
+          "bindingId": "92fa6350-d3b2-4706-b07c-182db88a8b74",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "2ea450de-fbeb-4e6b-9e38-09099451c698",
+              "participantId": null,
+              "logicalQueueMs": 128377,
+              "turnWallMs": 45628,
+              "completedAt": 1793705846657,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-basic-1-2",
+          "profile": {
+            "id": "reactive-basic",
+            "version": "1"
+          },
+          "bindingId": "8670cedb-b924-4794-b90b-8e42246ad7d7",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "a48ee6f4-9282-43a0-b626-8b464160ba4d",
+              "participantId": null,
+              "logicalQueueMs": 261613,
+              "turnWallMs": 45106,
+              "completedAt": 1793705979371,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-1-1",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "1"
+          },
+          "bindingId": "96ed0cb5-0436-4c7f-9d88-c39efc9a7b91",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "3c513157-e66a-4f46-952d-884b23a701a2",
+              "participantId": null,
+              "logicalQueueMs": 187256,
+              "turnWallMs": 35055,
+              "completedAt": 1793705894963,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-1-2",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "1"
+          },
+          "bindingId": "1f2cffa3-10d0-4bfe-9870-8403116a5d98",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "1812cd1b-ff6c-4f18-81bb-dcab37126def",
+              "participantId": null,
+              "logicalQueueMs": 68664,
+              "turnWallMs": 33586,
+              "completedAt": 1793705774902,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-2-1",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "2"
+          },
+          "bindingId": "92d7a00e-432b-47a2-a9b9-e1cf1e2506f8",
+          "calls": 3,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "a8e0fba4-e1cd-40bb-b320-2ab0529f52f7",
+              "participantId": null,
+              "logicalQueueMs": 306723,
+              "turnWallMs": 80608,
+              "completedAt": 1793706059983,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-2-2",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "2"
+          },
+          "bindingId": "f1cc270c-d1cf-469d-9bbf-f8c6d38c2ce7",
+          "calls": 3,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "12911ddf-af57-42cc-b9f5-70df61a46de3",
+              "participantId": null,
+              "logicalQueueMs": 41996,
+              "turnWallMs": 74717,
+              "completedAt": 1793705789365,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-1.1-1",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "1.1"
+          },
+          "bindingId": "82d0c127-ed11-4c09-b50d-37444edeedd0",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "08b4fa77-e463-4593-b922-ffb69ee1b6c2",
+              "participantId": null,
+              "logicalQueueMs": 268,
+              "turnWallMs": 41722,
+              "completedAt": 1793705714642,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-1.1-2",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "1.1"
+          },
+          "bindingId": "7bb7f8d4-f4ff-42bc-8a5d-b9920a5cc053",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "3086593a-2fc5-41d4-b32e-6823a5128bf1",
+              "participantId": null,
+              "logicalQueueMs": 174008,
+              "turnWallMs": 29704,
+              "completedAt": 1793705876364,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "specialist-coordinator-1-1",
+          "profile": {
+            "id": "specialist-coordinator",
+            "version": "1"
+          },
+          "bindingId": "4d426c94-ebd1-40a7-bfce-7d105688d361",
+          "calls": 2,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 1,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "9c5d1d9b-e316-419b-8ec4-97b3545133f4",
+              "participantId": null,
+              "logicalQueueMs": 248333,
+              "turnWallMs": 70610,
+              "completedAt": 1793705991595,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": [
+            {
+              "state": "confirmed",
+              "code": "COMMITTED",
+              "conflict": false
+            }
+          ]
+        },
+        {
+          "name": "specialist-coordinator-1-2",
+          "profile": {
+            "id": "specialist-coordinator",
+            "version": "1"
+          },
+          "bindingId": "fa1ec1d0-cb73-4fbb-a518-cabe5723d6e0",
+          "calls": 2,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 1,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "26742cc6-5571-445b-9a16-15578bbd7115",
+              "participantId": null,
+              "logicalQueueMs": 116717,
+              "turnWallMs": 70533,
+              "completedAt": 1793705859902,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": [
+            {
+              "state": "confirmed",
+              "code": "COMMITTED",
+              "conflict": false
+            }
+          ]
+        },
+        {
+          "name": "autonomous-specialists-1-1",
+          "profile": {
+            "id": "autonomous-specialists",
+            "version": "1"
+          },
+          "bindingId": "39804341-1162-447f-9f92-ed8eb8f145de",
+          "calls": 2,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            },
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "1989be7c-e409-4e46-a460-ce73bd1018bf",
+              "participantId": "resources",
+              "logicalQueueMs": 102260,
+              "turnWallMs": 26103,
+              "completedAt": 1793705801015,
+              "nativeCode": "WAIT"
+            },
+            {
+              "taskId": "cf1326c4-2742-4261-a77a-2c9562d650db",
+              "participantId": "diplomacy",
+              "logicalQueueMs": 372495,
+              "turnWallMs": 26630,
+              "completedAt": 1793706071777,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "autonomous-specialists-1-2",
+          "profile": {
+            "id": "autonomous-specialists",
+            "version": "1"
+          },
+          "bindingId": "0fb7b4ff-f427-49c1-839b-4f6602b3ef9d",
+          "calls": 2,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            },
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "57cb7310-c8cc-4c60-88a6-d0d5b71482a3",
+              "participantId": "resources",
+              "logicalQueueMs": 203720,
+              "turnWallMs": 30808,
+              "completedAt": 1793705907180,
+              "nativeCode": "WAIT"
+            },
+            {
+              "taskId": "d4c9bc15-4a40-4763-9ac4-b60c2fc2e7e5",
+              "participantId": "diplomacy",
+              "logicalQueueMs": 387336,
+              "turnWallMs": 24646,
+              "completedAt": 1793706084634,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        }
+      ],
+      "allServicesPreservation": {
+        "containers": 75,
+        "volumeDefinitions": 121,
+        "substantiveDifferences": 0,
+        "mountArrayOrderOnly": 3
+      }
+    }
+  ]
 }
