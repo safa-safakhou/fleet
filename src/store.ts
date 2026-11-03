@@ -16,7 +16,7 @@ import {
   supportsExtendedContextBudget,
 } from "./domain.js";
 import { legacyUndispatchedPhase } from "./engines/legacy/execution.js";
-import { modelTurnBound } from "./model-bounds.js";
+import { assertModelCallEnvelope, modelTurnBound } from "./model-bounds.js";
 import { Observability } from "./observability.js";
 import { ArchitectureRegistry } from "./platform/architecture.js";
 import { effectHooks } from "./platform/effect-context.js";
@@ -219,6 +219,7 @@ export class Store {
     const v = object(input),
       model = ModelConfig.parse(v.model),
       budget = Budget.parse(v.budget);
+    assertModelCallEnvelope(model, budget);
     if (model.decisionPolicy) throw new FleetError("VW_UNUSED");
     if (model.route === "codex-cli" && (!budget.executionAccountingAccepted || budget.concurrency !== 1))
       throw new FleetError("CODEX_EXECUTION_BUDGET_REQUIRED");

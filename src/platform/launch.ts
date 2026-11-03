@@ -2,6 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import type { PoolClient } from "pg";
 import { transaction } from "../db.js";
 import { Draft, FleetError, safeCode } from "../domain.js";
+import { assertModelCallEnvelope } from "../model-bounds.js";
 import type { Store } from "../store.js";
 import type { ArchitectureRegistry } from "./architecture.js";
 import { ArchitectureRefSchema } from "./architecture-schema.js";
@@ -164,6 +165,7 @@ export class LaunchService {
     }
     digest = launchDigest(spec);
     try {
+      assertModelCallEnvelope(spec.model, spec.budget);
       const definition = this.architectures.resolve(spec.architecture),
         issues = this.architectures.validate(spec.architecture, spec.architectureConfig, {
           model: spec.model,

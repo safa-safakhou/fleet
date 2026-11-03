@@ -30,6 +30,7 @@ export const ModelConfig = z
     reasoningEffort: z.enum(["low", "medium", "high", "xhigh", "max"]).optional(),
     contextWindowTokens: z.number().int().min(512).max(1050000).optional(),
     thinking: z.boolean().optional(),
+    callTimeoutMs: z.number().int().min(1000).max(180000).optional(),
     provider: z.literal("vllm").optional(),
     temperature: z.number().min(0).max(2).optional(),
     topP: z.number().gt(0).max(1).optional(),
@@ -39,6 +40,12 @@ export const ModelConfig = z
     recallAssist: z.enum(["laya-recall-v1"]).optional(),
   })
   .strict()
+  .refine(
+    (m) =>
+      m.callTimeoutMs === undefined ||
+      (m.route !== "codex-cli" && m.callTimeoutMs <= (m.thinking === true ? 180000 : 90000)),
+    "Declared call deadline must shorten an HTTP execution ceiling",
+  )
   .refine(
     (m) =>
       m.contextWindowTokens === undefined ||

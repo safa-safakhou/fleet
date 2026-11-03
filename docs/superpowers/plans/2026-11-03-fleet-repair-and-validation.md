@@ -37,10 +37,10 @@ Files: src/domain.ts, src/model-bounds.ts, native launch/config validation, new 
 
 Interfaces: produce validated ModelSettings.callTimeoutMs and nativeCommands(store,cohortIds) scoped union/deduplicated projection. Later controls consume the explicit deadline and census.
 
-- [ ] RED: optional call deadline accepts shorter values, refuses longer/invalid/CLI values; defaults keep historical90/180s behavior and admission tests. Verify a declared three-call time envelope fits120s without changing the maximum.
-- [ ] RED: native census includes legacy-only COMMITTED, modern-only, overlapping IDs and pending legacy turns; rejects or exposes projection conflicts; empty scope returns none.
-- [ ] GREEN: implement the minimal bounds/census and verify affected tests, type/style/boundary checks. Keep original historical source pins unchanged.
-- [ ] Commit verified changes and record evidence.
+- [x] RED: optional call deadline accepts shorter values, refuses longer/invalid/CLI values; defaults keep historical90/180s behavior and admission tests. Verify a declared three-call time envelope fits120s without changing the maximum.
+- [x] RED: native census includes legacy-only COMMITTED, modern-only, overlapping IDs and pending legacy turns; rejects or exposes projection conflicts; empty scope returns none.
+- [x] GREEN: implement the minimal bounds/census and verify affected tests, type/style/boundary checks. Keep original historical source pins unchanged.
+- [x] Commit verified changes and record evidence.
 
 ### Task2: Prefill waves and profile-aware capacity qualification
 
@@ -85,3 +85,5 @@ Task2→Task3: Wave leases cover the entire request including abort/final settle
 Task1→Task5: Command totals union modern commands, legacy resolutions and pending native turns, deduplicate exact IDs and report projection conflicts; never sum incompatible table counts.
 Task3→Task5: Provider must demonstrate authenticated native abort/final-usage behavior with fake tests before real qualification. Historical three/six unknown allocations cannot be recovered from fresh provider state and remain reserved/null.
 Task0: Ruling: The user accepted the investigation targets and explicitly requested implementation and two real rounds. Routine implementation choices are carried here, with no repeated permission request, no delegation, no push and no relaxation of retained-data/native limits.
+
+Task1: complete — explicit shorter HTTP call bounds and envelope validation preserve historical defaults/ceilings; scoped native command census unions/deduplicates platform, legacy and pending projections and exposes conflicts without resolving them. RED: shorter config rejected; legacy census returned zero instead of one. GREEN:19deadline/envelope units,7owned capture/census integrations, full1297unit passes/23platform skips, types/style and boundaries pass. No real inference or retained-state mutation.
