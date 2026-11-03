@@ -1,6 +1,6 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "round1 sealed; controller/watchdog ready; awaiting start",
+  "status": "first preparation attempt safely closed before inference; collector repair validated; fresh retry pending",
   "sourceRepairs": [
     "aa55459",
     "bb80aee",
@@ -11,7 +11,7 @@
   "rounds": [
     {
       "round": 1,
-      "status": "sealed; controller/watchdog ready",
+      "status": "failed resource observation before native dispatch; safely closed",
       "world": "fleet-repair-20261103-ef7cb300",
       "namespace": "fleet-repair-20261103-ef7cb300",
       "privateLedger": ".superpowers/sdd/2026-11-03-repair-round-01",
@@ -25,7 +25,15 @@
       "watchdogSha256": "d6a785336a49497aa75fe92f40cd6d94bd4ec997ace7e647f68fcd4a987e2a0a",
       "providerIdentitySha256": "7fcd80469b2085696a41d155e9456c5e1c7c15a5f4b04b57db1fc6e7180b71b6",
       "providerPinsSha256": "4e9003eaf8cdb4f1e6e737acd3d7668947e6a45ef045488e7657622208c5c2ab",
-      "manualTemporalWorkers": 16
+      "manualTemporalWorkers": 16,
+      "closedAtUtc": "2026-11-03T10:15:25.936Z",
+      "reason": "RESOURCE_OBSERVATION_FAILED",
+      "nativeTurns": 0,
+      "unknowns": 0,
+      "commands": 0,
+      "closureVerification": "pass",
+      "restores": 4,
+      "underlyingCause": "not recoverable from generic collector error; no precise attribution claimed"
     },
     {
       "round": 2,
@@ -94,5 +102,14 @@
     "ownedAbortAccountingTests": 1,
     "pythonAsgiTests": 3,
     "typesStyleBuildBoundariesContracts": "pass; baseline405warnings/83infos"
+  },
+  "collectorRepair": {
+    "typedDockerMemoryApi": "read-only exact-container Unix socket; one-shot bounded64KiB response, signal deadline; no CLI string parsing or synchronous one-second stats subprocess",
+    "unitTests": 3,
+    "actualMetadataReads": 20,
+    "maximumActualReadMs": 7.1,
+    "temporalMemoryMiB": 431.3125,
+    "nativeLimitMiB": 768,
+    "newObservationPolicy": "per-stage error/code retained; original fail-closed stop and650MiB drain unchanged"
   }
 }
