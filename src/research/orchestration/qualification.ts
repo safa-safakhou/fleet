@@ -84,12 +84,14 @@ export function canPromoteCapacity(raw: unknown): boolean {
 export function settledTurnDisposition(x: {
   state: string;
   ownerPhase: string;
+  taskState?: string;
   pendingCommand: string | null;
   unknownUsage: boolean;
   code: string | null;
 }): "completed" | "completed_deferral" | "review" {
-  if (x.state !== "finished" || x.ownerPhase !== "completed" || x.pendingCommand !== null || x.unknownUsage)
-    return "review";
+  if (x.state !== "finished" || x.pendingCommand !== null || x.unknownUsage) return "review";
+  if (x.ownerPhase === "waiting" && x.taskState === "waiting" && x.code === "WAIT") return "completed";
+  if (x.ownerPhase !== "completed" || (x.taskState !== undefined && x.taskState !== "completed")) return "review";
   if (["MODEL_ADMISSION_DEFERRED", "BUDGET_EXHAUSTED"].includes(x.code ?? "")) return "completed_deferral";
   return ["WAIT", "COMMITTED", "ALREADY_COMMITTED", "TURN_ACTION_LIMIT"].includes(x.code ?? "")
     ? "completed"

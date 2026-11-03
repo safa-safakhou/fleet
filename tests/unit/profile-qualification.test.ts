@@ -77,3 +77,16 @@ it("treats accounted completed deadline deferrals as completed outcomes, without
   expect(settledTurnDisposition({ ...turn, unknownUsage: true })).toBe("review");
   expect(settledTurnDisposition({ ...turn, ownerPhase: "awaiting_reconciliation" })).toBe("review");
 });
+it("recognizes only a matched native waiting projection for a valid WAIT", () => {
+  const x = {
+    state: "finished",
+    ownerPhase: "waiting",
+    taskState: "waiting",
+    pendingCommand: null,
+    unknownUsage: false,
+    code: "WAIT",
+  };
+  expect(settledTurnDisposition(x)).toBe("completed");
+  expect(settledTurnDisposition({ ...x, taskState: "ready" })).toBe("review");
+  expect(settledTurnDisposition({ ...x, code: "MODEL_ADMISSION_DEFERRED" })).toBe("review");
+});
