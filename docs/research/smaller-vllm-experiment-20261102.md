@@ -2,6 +2,8 @@
 
 Status: **closed failed; full hour did not complete**. Fresh world `fleet-small-20261102-1479dd0f` is paused at tick2; owned execution is stopped. Planned window20:56:31.956–21:56:31.956UTC; actual stop after approximately132.5seconds. [Exact configuration, per-kingdom outcomes and verification](smaller-vllm-experiment-20261102.json). [Plan](../superpowers/plans/2026-11-02-smaller-vllm-experiment.md).
 
+**Reporting correction —3November2026:** The original zero-gameplay-command count omitted legacy command_resolutions. Authoritative PACT receipts confirm one committed supply offer by legacy-loop-1-2, still open; zero signed contracts. [Full investigation and evidence](smaller-vllm-investigation-20261103.md). The timeouts, usage holds, historical private artifacts and failed full-hour qualification are unchanged.
+
 | Profile | Kingdoms |
 | --- | --- |
 | legacy-loop@1 | 2 |
@@ -31,7 +33,7 @@ This is one exploratory shared world with only two replicas per architecture, an
 
 ## Actual result and exact causes
 
-Nine native turns started across six profiles; eight requests reached vLLM. Five calls reported37,220input/1,092output tokens and three remain unknown with120,000fully retained reserved tokens/null usage. Three reactive turns returned valid native waits. Both legacy turns stopped on MODEL_ADMISSION_DEFERRED; the coordinator pair exceeded model time, a reactive-basic call was stopped during global closure, and one legacy-cognition turn was cancelled without a model call. Zero gameplay commands; the other selected profiles did not reach inference. This was not a full eight-architecture behavioral qualification.
+Nine native turns started across six profiles; eight requests reached vLLM. Five calls reported37,220input/1,092output tokens and three remain unknown with120,000fully retained reserved tokens/null usage. Three reactive turns returned valid native waits. Both legacy turns stopped on MODEL_ADMISSION_DEFERRED; the coordinator pair exceeded model time, a reactive-basic call was stopped during global closure, and one legacy-cognition turn was cancelled without a model call. One committed legacy supply offer (corrected3November); the other selected profiles did not reach inference. This was not a full eight-architecture behavioral qualification.
 
 The provider actually reached **four simultaneous running requests**, with peak waiting2, zero preemption, minimum observed memory availability46% and zero waiting database clients. Authenticated physical cache capacity held; that did not prove serving-latency headroom. Both coordinator calls produced their first content after42.8–43.6seconds, were still streaming at90seconds with no terminal finish/usage, and raised MODEL_DEADLINE_EXCEEDED. One other request was interrupted by the resulting host stop after28.4seconds. Native final usage never arrived for those three calls. Aggregate provider token counters cannot attribute exact usage to individual allocations and have not been used to clear them. This isolates the deadline trigger; it does not establish batching as the sole cause without a per-profile counterfactual.
 
@@ -50,7 +52,7 @@ The full-hour objective remains blocked by unresolved request accounting and ins
 | Kingdom | Profile | Reported / unknown / not dispatched | Native outcome |
 | --- | --- | --- | --- |
 | legacy-loop-1-1 | legacy-loop@1 | 1 / 0 / 1 | MODEL_ADMISSION_DEFERRED |
-| legacy-loop-1-2 | legacy-loop@1 | 1 / 0 / 1 | MODEL_ADMISSION_DEFERRED |
+| legacy-loop-1-2 | legacy-loop@1 | 1 / 0 / 1 | MODEL_ADMISSION_DEFERRED; one supply offer committed |
 | legacy-cognition-1-1 | legacy-cognition@1 | 0 / 0 / 0 | CLAIM_FENCED |
 | legacy-cognition-1-2 | legacy-cognition@1 | 0 / 0 / 0 | Not started |
 | reactive-basic-1-1 | reactive-basic@1 | 0 / 1 / 0 | HOST_STOPPED |

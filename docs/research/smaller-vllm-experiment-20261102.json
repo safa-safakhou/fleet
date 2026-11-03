@@ -143,7 +143,7 @@
     "unknownCalls": 3,
     "unknownReservedTokens": 120000,
     "notDispatched": 2,
-    "gameplayCommands": 0,
+    "gameplayCommands": 1,
     "peakNativeAllocations": 4,
     "peakBindingGrants": 4,
     "peakProviderRunning": 4,
@@ -239,7 +239,10 @@
       "max": 127587,
       "p95": 127587
     },
-    "stageErrors": []
+    "stageErrors": [],
+    "platformCommands": 0,
+    "legacyCommittedCommands": 1,
+    "commandCountScope": "Distinct native platform_commands UNION legacy command_resolutions, independently reconciled against PACT receipts"
   },
   "kingdomResults": [
     {
@@ -265,8 +268,9 @@
       "unknownCalls": 0,
       "notDispatched": 1,
       "nativeCodes": ["MODEL_ADMISSION_DEFERRED"],
-      "gameplayCommands": 0,
-      "maxLogicalQueueMs": 36319
+      "gameplayCommands": 1,
+      "maxLogicalQueueMs": 36319,
+      "committedEffect": "One supply offer, still open; no signed contract"
     },
     {
       "index": 2,
@@ -503,7 +507,8 @@
       "unknowns": 3,
       "capacityLeases": 0,
       "activeWorkerSessions": 0,
-      "commands": 0
+      "commands": 0,
+      "commandsScope": "Historical failure audit counted platform_commands only; one legacy resolution is verified in the Nov3 correction"
     },
     "pendingCommands": 0,
     "stoppedProcesses": {
@@ -567,5 +572,12 @@
     "recordedArtifactBytesMatchExpected": true,
     "historicalGapsBackfilled": false
   },
-  "next": "No fresh inference while the three new unknown allocations remain unresolved. Retain all reservations/null measurements; investigate provider per-request final accounting and qualify profile-specific serving latency before another ramp. No automatic live retry or deadline/validation relaxation."
+  "next": "No fresh inference while the three new unknown allocations remain unresolved. Retain all reservations/null measurements; investigate provider per-request final accounting and qualify profile-specific serving latency before another ramp. No automatic live retry or deadline/validation relaxation.",
+  "reportCorrection": {
+    "date": "2026-11-03",
+    "originalGameplayCommandCount": 0,
+    "correctedGameplayCommandCount": 1,
+    "source": "smaller-vllm-investigation-20261103.json",
+    "reason": "Prior controller census joined platform_commands only, omitting legacy command_resolutions. Authoritative PACT confirms one committed supply offer; no signed contract."
+  }
 }

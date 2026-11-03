@@ -1,0 +1,640 @@
+{
+  "date": "2026-11-03",
+  "scope": "forensic inspection and offline diagnostics only; no inference, world start, setting change, history backfill or usage settlement",
+  "world": "fleet-small-20261102-1479dd0f",
+  "sealedSource": "b7efced14b6c8e94cbda3d4f2a33e14a5e122262",
+  "recordingRepairCommit": "80b2be4",
+  "findings": [
+    {
+      "id": "unqualified-mixed-workload-ramp",
+      "confidence": "confirmed",
+      "evidence": "Two capacity2 reactive WAIT turns each settled in36018ms. The operator predicted72036ms for4, below75000, without per-profile/phase coverage."
+    },
+    {
+      "id": "shared-serving-stalls",
+      "confidence": "measured gaps; strong scheduling/prefill mechanism evidence; exact GPU/CPU attribution not fully profiled",
+      "evidence": "Coordinator first content42.8\u201343.6s, later synchronized30.3s packet gaps; new prompts coincide with6\u20139s pauses. Native mixed prefill/decode single forward pass and structured-output sync exist in the pinned backend."
+    },
+    {
+      "id": "deadline-phase-mismatch",
+      "confidence": "confirmed",
+      "evidence": "120000-90000-1000=29000ms latest next-call admission. Legacy attempts at40.2/62.4s correctly deferred. Worker admission reserved one worker plus coordinator and correction slot; only the first worker ran."
+    },
+    {
+      "id": "terminal-accounting-on-cancel",
+      "confidence": "confirmed",
+      "evidence": "include_usage true; unknown streams have no finish or usage packet. Two90s timeouts, then hard fail-closed stop interrupts a third call. Aggregate counters cannot settle per-request unknowns."
+    },
+    {
+      "id": "pre-invocation-capture-gap",
+      "confidence": "confirmed; source repair previously verified",
+      "evidence": "Reservation preceded modelDeadline, which rejected before observed wrapper; old typed request/failure units absent, debug retained;80b2be4 records future allocated rejections."
+    },
+    {
+      "id": "legacy-command-census-under-count",
+      "confidence": "confirmed",
+      "evidence": "Controller counted platform_commands only. One legacy command_resolutions COMMITTED receipt matches authoritative PACT command_receipts and open supply offer."
+    }
+  ],
+  "calls": [
+    {
+      "profile": {
+        "id": "reactive-cognition",
+        "version": "1"
+      },
+      "status": "reported",
+      "stage": null,
+      "requestBytes": 41115,
+      "schemaBytes": 12092,
+      "inputContextLineage": false,
+      "dispatchedAtMs": 1827,
+      "packets": 186,
+      "usagePackets": 1,
+      "finishPackets": 1,
+      "longGaps": [
+        {
+          "fromMs": 29839,
+          "toMs": 32214,
+          "gapMs": 2375
+        }
+      ],
+      "wireSettings": {
+        "temperature": 0,
+        "topP": 1,
+        "maxOutputTokens": 1024,
+        "thinking": false,
+        "includeUsage": true
+      },
+      "postInitialLongGapMs": 2375,
+      "firstContentMs": 28083.355332999985,
+      "providerExecutionMs": 34279
+    },
+    {
+      "profile": {
+        "id": "reactive-cognition",
+        "version": "1.1"
+      },
+      "status": "reported",
+      "stage": null,
+      "requestBytes": 38022,
+      "schemaBytes": 12092,
+      "inputContextLineage": false,
+      "dispatchedAtMs": 1829,
+      "packets": 185,
+      "usagePackets": 1,
+      "finishPackets": 1,
+      "longGaps": [],
+      "wireSettings": {
+        "temperature": 0,
+        "topP": 1,
+        "maxOutputTokens": 1024,
+        "thinking": false,
+        "includeUsage": true
+      },
+      "postInitialLongGapMs": 0,
+      "firstContentMs": 30467.1385,
+      "providerExecutionMs": 34276
+    },
+    {
+      "profile": {
+        "id": "legacy-loop",
+        "version": "1"
+      },
+      "status": "reported",
+      "stage": null,
+      "requestBytes": 29705,
+      "schemaBytes": 11089,
+      "inputContextLineage": false,
+      "dispatchedAtMs": 37496,
+      "packets": 276,
+      "usagePackets": 1,
+      "finishPackets": 1,
+      "longGaps": [
+        {
+          "fromMs": 56171,
+          "toMs": 62487,
+          "gapMs": 6316
+        },
+        {
+          "fromMs": 62487,
+          "toMs": 68805,
+          "gapMs": 6318
+        },
+        {
+          "fromMs": 68805,
+          "toMs": 75012,
+          "gapMs": 6207
+        },
+        {
+          "fromMs": 75012,
+          "toMs": 81343,
+          "gapMs": 6331
+        },
+        {
+          "fromMs": 87932,
+          "toMs": 94949,
+          "gapMs": 7017
+        },
+        {
+          "fromMs": 94949,
+          "toMs": 96565,
+          "gapMs": 1616
+        }
+      ],
+      "wireSettings": {
+        "temperature": 0,
+        "topP": 1,
+        "maxOutputTokens": 1024,
+        "thinking": false,
+        "includeUsage": true
+      },
+      "postInitialLongGapMs": 33805,
+      "firstContentMs": 18757.596250000002,
+      "providerExecutionMs": 60896
+    },
+    {
+      "profile": {
+        "id": "reactive-cognition",
+        "version": "1"
+      },
+      "status": "reported",
+      "stage": null,
+      "requestBytes": 41159,
+      "schemaBytes": 12092,
+      "inputContextLineage": false,
+      "dispatchedAtMs": 37983,
+      "packets": 163,
+      "usagePackets": 1,
+      "finishPackets": 1,
+      "longGaps": [
+        {
+          "fromMs": 68813,
+          "toMs": 75012,
+          "gapMs": 6199
+        },
+        {
+          "fromMs": 75012,
+          "toMs": 81343,
+          "gapMs": 6331
+        }
+      ],
+      "wireSettings": {
+        "temperature": 0,
+        "topP": 1,
+        "maxOutputTokens": 1024,
+        "thinking": false,
+        "includeUsage": true
+      },
+      "postInitialLongGapMs": 12530,
+      "firstContentMs": 30897.93091699999,
+      "providerExecutionMs": 48868
+    },
+    {
+      "profile": {
+        "id": "specialist-coordinator",
+        "version": "1"
+      },
+      "status": "unknown",
+      "stage": "worker",
+      "requestBytes": 25205,
+      "schemaBytes": 7445,
+      "inputContextLineage": false,
+      "dispatchedAtMs": 38564,
+      "packets": 546,
+      "usagePackets": 0,
+      "finishPackets": 0,
+      "longGaps": [
+        {
+          "fromMs": 87932,
+          "toMs": 94950,
+          "gapMs": 7018
+        },
+        {
+          "fromMs": 94950,
+          "toMs": 96566,
+          "gapMs": 1616
+        },
+        {
+          "fromMs": 100702,
+          "toMs": 108720,
+          "gapMs": 8018
+        },
+        {
+          "fromMs": 108720,
+          "toMs": 117463,
+          "gapMs": 8743
+        },
+        {
+          "fromMs": 117463,
+          "toMs": 122332,
+          "gapMs": 4869
+        }
+      ],
+      "wireSettings": {
+        "temperature": 0,
+        "topP": 1,
+        "maxOutputTokens": 1024,
+        "thinking": false,
+        "includeUsage": true
+      },
+      "postInitialLongGapMs": 30264,
+      "firstContentMs": 43590.72533399999,
+      "providerExecutionMs": null
+    },
+    {
+      "profile": {
+        "id": "specialist-coordinator",
+        "version": "1"
+      },
+      "status": "unknown",
+      "stage": "worker",
+      "requestBytes": 25219,
+      "schemaBytes": 7445,
+      "inputContextLineage": false,
+      "dispatchedAtMs": 38564,
+      "packets": 548,
+      "usagePackets": 0,
+      "finishPackets": 0,
+      "longGaps": [
+        {
+          "fromMs": 87932,
+          "toMs": 94949,
+          "gapMs": 7017
+        },
+        {
+          "fromMs": 94949,
+          "toMs": 96566,
+          "gapMs": 1617
+        },
+        {
+          "fromMs": 100701,
+          "toMs": 108719,
+          "gapMs": 8018
+        },
+        {
+          "fromMs": 108719,
+          "toMs": 117462,
+          "gapMs": 8743
+        },
+        {
+          "fromMs": 117462,
+          "toMs": 122332,
+          "gapMs": 4870
+        }
+      ],
+      "wireSettings": {
+        "temperature": 0,
+        "topP": 1,
+        "maxOutputTokens": 1024,
+        "thinking": false,
+        "includeUsage": true
+      },
+      "postInitialLongGapMs": 30265,
+      "firstContentMs": 42805.770583000005,
+      "providerExecutionMs": null
+    },
+    {
+      "profile": {
+        "id": "legacy-loop",
+        "version": "1"
+      },
+      "status": "reported",
+      "stage": null,
+      "requestBytes": 29750,
+      "schemaBytes": 11089,
+      "inputContextLineage": false,
+      "dispatchedAtMs": 87898,
+      "packets": 292,
+      "usagePackets": 1,
+      "finishPackets": 1,
+      "longGaps": [
+        {
+          "fromMs": 100702,
+          "toMs": 108720,
+          "gapMs": 8018
+        },
+        {
+          "fromMs": 108720,
+          "toMs": 117463,
+          "gapMs": 8743
+        },
+        {
+          "fromMs": 117463,
+          "toMs": 122332,
+          "gapMs": 4869
+        }
+      ],
+      "wireSettings": {
+        "temperature": 0,
+        "topP": 1,
+        "maxOutputTokens": 1024,
+        "thinking": false,
+        "includeUsage": true
+      },
+      "postInitialLongGapMs": 21630,
+      "firstContentMs": 8728.693667000043,
+      "providerExecutionMs": 39341
+    },
+    {
+      "profile": {
+        "id": "reactive-basic",
+        "version": "1"
+      },
+      "status": "unknown",
+      "stage": null,
+      "requestBytes": 42153,
+      "schemaBytes": 6833,
+      "inputContextLineage": false,
+      "dispatchedAtMs": 100640,
+      "packets": 190,
+      "usagePackets": 0,
+      "finishPackets": 0,
+      "longGaps": [],
+      "wireSettings": {
+        "temperature": 0,
+        "topP": 1,
+        "maxOutputTokens": 1024,
+        "thinking": false,
+        "includeUsage": true
+      },
+      "postInitialLongGapMs": 0,
+      "firstContentMs": 21802.47445800004,
+      "providerExecutionMs": null
+    }
+  ],
+  "providerWindowMetrics": [
+    {
+      "berlinTime": "21:57:05",
+      "promptTokensPerSecond": 1783.7,
+      "generationTokensPerSecond": 12.0,
+      "running": 2,
+      "waiting": 0,
+      "deferred": 0,
+      "cacheUsagePercent": 7.7
+    },
+    {
+      "berlinTime": "21:57:15",
+      "promptTokensPerSecond": 0.0,
+      "generationTokensPerSecond": 24.7,
+      "running": 1,
+      "waiting": 0,
+      "deferred": 0,
+      "cacheUsagePercent": 2.7
+    },
+    {
+      "berlinTime": "21:57:25",
+      "promptTokensPerSecond": 0.0,
+      "generationTokensPerSecond": 0.0,
+      "running": 2,
+      "waiting": 2,
+      "deferred": 2,
+      "cacheUsagePercent": 5.5
+    },
+    {
+      "berlinTime": "21:57:35",
+      "promptTokensPerSecond": 501.6,
+      "generationTokensPerSecond": 0.2,
+      "running": 3,
+      "waiting": 1,
+      "deferred": 1,
+      "cacheUsagePercent": 9.2
+    },
+    {
+      "berlinTime": "21:57:45",
+      "promptTokensPerSecond": 928.0,
+      "generationTokensPerSecond": 0.2,
+      "running": 3,
+      "waiting": 1,
+      "deferred": 1,
+      "cacheUsagePercent": 10.2
+    },
+    {
+      "berlinTime": "21:57:55",
+      "promptTokensPerSecond": 1474.9,
+      "generationTokensPerSecond": 19.2,
+      "running": 4,
+      "waiting": 0,
+      "deferred": 0,
+      "cacheUsagePercent": 14.0
+    },
+    {
+      "berlinTime": "21:58:05",
+      "promptTokensPerSecond": 0.0,
+      "generationTokensPerSecond": 59.7,
+      "running": 3,
+      "waiting": 0,
+      "deferred": 0,
+      "cacheUsagePercent": 10.0
+    },
+    {
+      "berlinTime": "21:58:15",
+      "promptTokensPerSecond": 508.2,
+      "generationTokensPerSecond": 52.9,
+      "running": 3,
+      "waiting": 1,
+      "deferred": 1,
+      "cacheUsagePercent": 10.0
+    },
+    {
+      "berlinTime": "21:58:25",
+      "promptTokensPerSecond": 0.0,
+      "generationTokensPerSecond": 0.3,
+      "running": 4,
+      "waiting": 0,
+      "deferred": 0,
+      "cacheUsagePercent": 12.7
+    },
+    {
+      "berlinTime": "21:58:35",
+      "promptTokensPerSecond": 1030.8,
+      "generationTokensPerSecond": 13.0,
+      "running": 4,
+      "waiting": 0,
+      "deferred": 0,
+      "cacheUsagePercent": 14.2
+    }
+  ],
+  "offlineCaptureBenchmark": {
+    "scope": "synthetic local packets, fresh owned database, same native capture; no inference/GPU load; shared run is a conservative SQL-sequence contention case",
+    "measurements": [
+      {
+        "concurrency": 1,
+        "worker": 0,
+        "packets": 550,
+        "callbackSumMs": 507.8788450000002,
+        "maxCallbackMs": 1.6226670000000922,
+        "p95CallbackMs": 1.059208000000126
+      },
+      {
+        "concurrency": 1,
+        "totalWallMs": 533.2682919999997
+      },
+      {
+        "concurrency": 4,
+        "worker": 0,
+        "packets": 550,
+        "callbackSumMs": 2023.6225050000185,
+        "maxCallbackMs": 15.729584000000614,
+        "p95CallbackMs": 6.166000000000167
+      },
+      {
+        "concurrency": 4,
+        "worker": 2,
+        "packets": 550,
+        "callbackSumMs": 2024.5135479999972,
+        "maxCallbackMs": 14.29516699999931,
+        "p95CallbackMs": 5.9053329999997
+      },
+      {
+        "concurrency": 4,
+        "worker": 1,
+        "packets": 550,
+        "callbackSumMs": 2042.098085000007,
+        "maxCallbackMs": 15.233333999999559,
+        "p95CallbackMs": 6.2135830000006536
+      },
+      {
+        "concurrency": 4,
+        "worker": 3,
+        "packets": 550,
+        "callbackSumMs": 2044.850714000002,
+        "maxCallbackMs": 16.70233299999927,
+        "p95CallbackMs": 6.363957999999911
+      },
+      {
+        "concurrency": 4,
+        "totalWallMs": 2071.230208
+      }
+    ],
+    "recordedPackets": 2750,
+    "realModelCalls": 0
+  },
+  "offlineGrammarBenchmark": {
+    "scope": "offline pinned GuidanceBackend, actual retained schemas, local tokenizer only; no weights/server/generation; no GPU-load counterfactual",
+    "importsMs": 22852.665667189285,
+    "tokenizerMs": 676.4433330390602,
+    "backendMs": 757.4909159447998,
+    "rows": [
+      {
+        "profile": "legacy-loop@1",
+        "schemaBytes": 11977,
+        "compileMs": 6.2358330469578505,
+        "firstMaskMs": 2.4474579840898514
+      },
+      {
+        "profile": "reactive-basic@1",
+        "schemaBytes": 7354,
+        "compileMs": 3.7491661496460438,
+        "firstMaskMs": 0.03858399577438831
+      },
+      {
+        "profile": "reactive-cognition@1",
+        "schemaBytes": 13108,
+        "compileMs": 4.335290985181928,
+        "firstMaskMs": 0.05725002847611904
+      },
+      {
+        "profile": "reactive-cognition@1.1",
+        "schemaBytes": 13108,
+        "compileMs": 4.265749827027321,
+        "firstMaskMs": 0.04058307968080044
+      },
+      {
+        "profile": "specialist-coordinator@1",
+        "schemaBytes": 7919,
+        "compileMs": 2.4168749805539846,
+        "firstMaskMs": 0.03966689109802246
+      }
+    ],
+    "modelCalls": 0
+  },
+  "commandAudit": {
+    "platformCommands": 0,
+    "allNativeDistinctCommands": 1,
+    "legacyCommittedCommands": [
+      {
+        "commandId": "91a271fc-0bff-4591-a7b3-6a220088a3c3",
+        "cohortId": "8f4ff132-469b-4c5e-aca6-e6979874e1c7",
+        "kingdom": "legacy-loop-1-2",
+        "kind": "game.supply.offer",
+        "nativeCode": "COMMITTED",
+        "authoritativePactCode": "COMMITTED",
+        "committedAt": "2026-11-02T20:58:10.454Z",
+        "receiptFields": [
+          "code",
+          "charged",
+          "commandId",
+          "committedAt",
+          "schemaVersion",
+          "recordVersions",
+          "committedEventIds"
+        ]
+      }
+    ],
+    "offers": [
+      {
+        "status": "open",
+        "n": 1
+      }
+    ],
+    "contracts": 0,
+    "pendingLegacyCommands": 0,
+    "correction": "Prior controller census joined platform_commands only, omitting legacy command_resolutions. Authoritative PACT confirms one committed supply offer; no signed contract."
+  },
+  "legacyClassification": {
+    "legacy": [
+      {
+        "name": "legacy-loop-1-2",
+        "kind": "action",
+        "tool": null,
+        "decisionError": null
+      },
+      {
+        "name": "legacy-loop-1-1",
+        "kind": "action",
+        "tool": null,
+        "decisionError": null
+      }
+    ],
+    "workerAdmission": [
+      {
+        "admittedWorkers": 1,
+        "remainingCallSlots": 3,
+        "coordinatorCallReservedLogically": true,
+        "parallelReasoning": false
+      },
+      {
+        "admittedWorkers": 1,
+        "remainingCallSlots": 3,
+        "coordinatorCallReservedLogically": true,
+        "parallelReasoning": false
+      }
+    ],
+    "unknownHoldsUnchanged": true
+  },
+  "unknownHoldsUnchanged": true,
+  "sourceSha256": {
+    "src/model-bounds.ts": "42a8580fa7730509db6065c3fa05114aeac0c496ded4bc5bb36ebc853fff267f",
+    "src/model-deadline.ts": "da38758fa292a9b78d2937fb80a7f5693f65cf86c9fad3b21362262f0ba5ed51",
+    "src/vllm-transport.ts": "c62287c2156dc5b4102dd95bf39d51cca4c4038ba7c4eb70c82a0a01ca7b9de9",
+    "src/platform/admission.ts": "acdb010ed53ca36ab07228b92e35e82f79c9599dd8391c939d77228d08e8b2d7",
+    "src/research/evidence/boundaries.ts": "816b1ea88337e03b6e1bab9e58650355f73da6a29b23ef599a2671b9ddb7053e",
+    "src/research/evidence/coverage.ts": "c4612580247fb891fc115b01207bf4e2b5e670f4836509e1a029e4707ad02282",
+    "src/store.ts": "322a80633ffdc3171629bf64e120ed5f7c92b4c0ac1125873c658619c9191bc6",
+    ".superpowers/sdd/2026-11-02-smaller-vllm-01/control.mjs": "58076a427bf9570ea7b75753b974f707f21884b573c4776e2d47a4840b9ac405",
+    ".tmp/vllm-metal-0.32.0/lib/python3.12/site-packages/vllm_metal/v1/model_runner.py": "8270a0a5bbbc2012c80a57229bbeb6e27002086b6600c241cae8294902116110",
+    ".tmp/vllm-metal-0.32.0/lib/python3.12/site-packages/vllm_metal/v1/structured_output.py": "d73f01fdac153383c3fa8acfbc72d831615b17e4bfcddd9bb3e5bcc4a0132482",
+    ".tmp/vllm-metal-0.32.0/lib/python3.12/site-packages/vllm_metal/v1/decode_pipeline.py": "a95705dce9902ef35732fcede58720e442405ef432a8934f03ec45c330abac83",
+    ".tmp/vllm-metal-0.32.0/lib/python3.12/site-packages/vllm/entrypoints/openai/chat_completion/serving.py": "5e619c0a6866758a247c76e7b8c472f6e008ddbc720f7efe47cc6776cb986d4f",
+    ".tmp/vllm-metal-0.32.0/lib/python3.12/site-packages/vllm/v1/engine/async_llm.py": "3491dde64ef226b9f65e4341c944615cf6ebd23de3210293dc66767c4c18365c",
+    ".tmp/vllm-metal-0.32.0/lib/python3.12/site-packages/vllm/v1/structured_output/backend_guidance.py": "5cb7e71ff816a33d0466e26f516cfcaaee73e9fb4d33c839050d4eb17a5b8db5"
+  },
+  "limits": [
+    "Packet timestamps are application observation times; synchronized gaps alone do not partition GPU kernel, CPU grammar-mask, scheduling and OS contention costs.",
+    "Offline capture test has no concurrent GPU/model workload and uses a shared run for conservative SQL sequence contention.",
+    "Offline grammar compilation/first-mask tests do not measure every-token CPU/Metal transfer or kernel work under live load.",
+    "No exact same coordinator workload at lower concurrency exists, so a successful two-way/full-hour counterfactual is not established.",
+    "Deferred scheduler counters combine multiple reasons; exact per-request deferred reasons were not retained.",
+    "Historical16.29percent overhead against10percent remains unchanged."
+  ]
+}
