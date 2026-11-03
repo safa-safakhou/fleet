@@ -31,6 +31,7 @@ test("a Temporal turn is first visible with its research scope; overlapping unsc
     root = await mkdtemp(join(tmpdir(), "claim-capture-"));
   try {
     const capture = new CaptureSession(f.store, new ArtifactFilesystem(root));
+    f.store.observation = capture;
     let checked = false;
     const owner = new TemporalTaskOwner(f.store, f.tasks, { send: async () => {} }, async (claim) => {
       const first = await scopeForTurn(f.store, claim.turn.id);
