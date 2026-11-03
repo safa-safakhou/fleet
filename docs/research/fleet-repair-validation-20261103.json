@@ -1,25 +1,16 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "atomic scope and turn-wave fixes committed/verified; complete post-fix trial07 armed, independent08 pending",
+  "status": "source fixes verified; trial07 aborted before any inference by actual clamshell sleep; preservation/readiness before fresh08/09",
   "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03", "c4479ed", "68c577f"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
     {
       "round": 1,
-      "attempt": "07",
-      "status": "armed; actual acceptance pending",
-      "world": "fleet-repair-20261103-fa5b6001",
-      "source": "68c577fe4d33a23210c4ee06157a5843e2314dec",
-      "provider": "fleet-metal-a3f4ae63",
-      "startsAtUtc": "2026-11-03T12:23:33.637Z",
-      "endsAtUtc": "2026-11-03T12:38:33.637Z",
-      "turnDispatchPolicy": "turn-wave",
-      "maximumParallel": 2,
-      "initialTasks": 18
+      "status": "fresh08 pending awake/clock and preservation checks"
     },
     {
       "round": 2,
-      "status": "fresh08 independent repeat pending"
+      "status": "fresh09 independent repeat pending"
     }
   ],
   "configuration": {
@@ -151,6 +142,44 @@
       "restores": 4,
       "parkedOwnerProjections": 2,
       "parkedOwnersRetained": true
+    },
+    {
+      "attempt": "07",
+      "world": "fleet-repair-20261103-fa5b6001",
+      "source": "68c577fe4d33a23210c4ee06157a5843e2314dec",
+      "startsAtUtc": "2026-11-03T12:23:33.637Z",
+      "endsAtUtc": "2026-11-03T12:38:33.637Z",
+      "nativeTurns": 0,
+      "modelCalls": 0,
+      "commands": 0,
+      "reason": "WATCHDOG_CLOCK_DISAGREEMENT after OS Clamshell Sleep",
+      "powerEvidenceBerlin": {
+        "lidClosed": "2026-11-03T13:22:29",
+        "clamshellSleep": "2026-11-03T13:22:34",
+        "darkWake": "2026-11-03T13:23:35",
+        "fullLidOpenWake": "2026-11-03T14:06:15"
+      },
+      "stageErrors": [
+        {
+          "stage": "final-provider-metrics",
+          "code": "Error",
+          "message": "RESOURCE_OBSERVATION_FAILED"
+        },
+        {
+          "stage": "final-backups",
+          "code": "ETIMEDOUT"
+        }
+      ],
+      "limitsUnchanged": true,
+      "worldState": {
+        "status": "paused",
+        "tick": "0",
+        "gameTimeMs": 1793708340000
+      },
+      "restoredDatabases": 4,
+      "preservationVerifiedAfterFullWake": true,
+      "allCurrentContainerConfigs": 75,
+      "allVolumeDefinitions": 121
     }
   ],
   "nativeGatePreflight": {
@@ -1210,5 +1239,10 @@
     "scopeValidationUnchanged": true,
     "claimAndScopeShareTransaction": true,
     "failedBindingRollsBackAdmission": true
+  },
+  "hostAwakeReadiness": {
+    "samples": 61,
+    "maximumClockDisagreementMs": 0.892,
+    "lidOpenAllSamples": true
   }
 }
