@@ -1,12 +1,21 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "trial06 safely stopped on precise session-close scope race; atomic claim/scope fix under synthetic validation; fresh07/08 pending",
-  "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03", "c4479ed"],
+  "status": "atomic scope and turn-wave fixes committed/verified; complete post-fix trial07 armed, independent08 pending",
+  "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03", "c4479ed", "68c577f"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
     {
       "round": 1,
-      "status": "fresh07 post-atomic-claim pending"
+      "attempt": "07",
+      "status": "armed; actual acceptance pending",
+      "world": "fleet-repair-20261103-fa5b6001",
+      "source": "68c577fe4d33a23210c4ee06157a5843e2314dec",
+      "provider": "fleet-metal-a3f4ae63",
+      "startsAtUtc": "2026-11-03T12:23:33.637Z",
+      "endsAtUtc": "2026-11-03T12:38:33.637Z",
+      "turnDispatchPolicy": "turn-wave",
+      "maximumParallel": 2,
+      "initialTasks": 18
     },
     {
       "round": 2,
