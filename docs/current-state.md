@@ -1,5 +1,7 @@
 # Fleet current state
 
+**Second post-fix round05 armed —3November2026.** [Live result ledger](research/fleet-repair-validation-20261103.json):fresh16kingdoms/18initial tasks, source `8aefb1e`, 2026-11-03T11:48:32.993Z–2026-11-03T12:03:32.993Z, same concurrency2/prefill2048 settings. First full round04 passed and stays closed; all75current container configurations/121volume definitions also match. Actual second-round acceptance pending; no push.
+
 **First full post-fix round passed —3November2026.** [Exact results/per-kingdom metrics](research/fleet-repair-validation-20261103.json):trial04 visited all16kingdoms/18initial tasks,27known calls,4PACT-confirmed effects, zero model errors/new unknowns. Four restores/8241artifact checks, observer chain, actual timeline/context/causal rendering and original services/data preservation pass. World paused tick6/owned execution stopped. Second independent round05 pending. Capacity stays2; up to387s logical queue delay is a limitation, not real-time qualification.
 
 **Post-fix full-roster trial04 armed —3November2026.** [Exact scope and live result ledger](research/fleet-repair-validation-20261103.md):16kingdoms/two per8profiles, source `ff09a95`, 2026-11-03T11:34:32.652Z–2026-11-03T11:49:32.652Z, concurrency2/prefill2048. Native exact15minute preflight,16common packets and12metadata-only collector cycles pass. Participant-wake and optional-prose fixes are committed; actual trial acceptance and a second fresh full trial remain pending. All historical holds/evidence protected, no push.
