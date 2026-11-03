@@ -7,7 +7,12 @@ import { transaction } from "../../src/db.js";
 import type { Data } from "../../src/domain.js";
 import { HttpModel } from "../../src/model.js";
 import { LaunchService } from "../../src/platform/launch.js";
+import { compileManifest } from "../../src/research/manifests/compiler.js";
+import { ManifestRepository } from "../../src/research/manifests/repository.js";
+import { TemporalTaskOwner } from "../../src/research/orchestration/outbox.js";
+import { pendingCapacityWork } from "../../src/research/orchestration/pending-work.js";
 import { enableBoardEffects } from "../fixtures/environments/specialist-board.js";
+import { capability, manifestInput } from "../fixtures/research/manifest.js";
 import { candidate } from "../fixtures/skills/candidate.js";
 import { platformFixture } from "../platform-helpers.js";
 
@@ -364,7 +369,16 @@ it("does not wake specialists for unrelated events and keeps unsupported environ
   expect((await f.pool.query("SELECT * FROM compute_ledger")).rowCount).toBe(0);
   const manifest = f.store.architectures.resolve({ id: "autonomous-specialists", version: "1" }).manifest;
   expect(manifest.requirements.capabilities.actionEffects).toBe(true);
-  expect(new Set(f.store.architectures.list().map((m) => m.ref.id)).size).toBe(6);
+  expect([...new Set(f.store.architectures.list().map((m) => m.ref.id))]).toEqual(
+    expect.arrayContaining([
+      "legacy-loop",
+      "legacy-cognition",
+      "reactive-basic",
+      "reactive-cognition",
+      "specialist-coordinator",
+      "autonomous-specialists",
+    ]),
+  );
 });
 it("routes scheduled reviews only to explicitly enrolled periodic roles", async () => {
   const f = await setup();
@@ -1733,4 +1747,51 @@ it("blocks an oversized oldest delivery without acknowledging it or reopening on
   expect((await f.pool.query("SELECT status FROM specialist_deliveries WHERE id=$1", [row.id])).rows[0].status).toBe(
     "pending",
   );
+});
+
+it("delivers native participant wakes through Temporal ownership and resumes WAIT only on a new source", async () => {
+  const f = await setup();
+  await f.store.setState(f.group.id, "paused", false);
+  const input = manifestInput();
+  input.environment.bindingId = f.binding.id;
+  input.profile = { id: "autonomous-specialists", version: "1" };
+  const manifest = compileManifest(input, capability);
+  await new ManifestRepository(f.pool).save(manifest.manifest);
+  let calls = 0;
+  const model = {
+    decide: async () => {
+      calls++;
+      return {
+        decision: {
+          decision: { kind: "wait", summary: "Await a new native source", untilNextEvent: true },
+          skills: {},
+        },
+        inputTokens: 10,
+        outputTokens: 10,
+      };
+    },
+  };
+  const native = f.host(model, undefined, {}, f.store.architectures);
+  const owner = new TemporalTaskOwner(f.store, f.tasks, { send: async () => {} }, (claim) => native.host.run(claim));
+  await owner.enrollBinding(f.binding.id, manifest.digest);
+  await f.store.setState(f.group.id, "running", true);
+  await f.enqueue("resource");
+  const [first] = await pendingCapacityWork(f.store, { cohortIds: [f.group.id], notBefore: 0 });
+  expect(first.participantId).toBe("resources");
+  await owner.deliver(first.deliveryId);
+  const ref = await owner.reference(first.deliveryId);
+  expect((await owner.execute(ref)).phase).toBe("waiting");
+  expect(calls).toBe(1);
+  await owner.execute(ref);
+  expect(calls).toBe(1);
+  await f.enqueue("resource");
+  const [next] = await pendingCapacityWork(f.store, { cohortIds: [f.group.id], notBefore: 0 });
+  expect(next.taskId).toBe(first.taskId);
+  expect(next.deliveryId).not.toBe(first.deliveryId);
+  await owner.deliver(next.deliveryId);
+  expect((await owner.execute(await owner.reference(next.deliveryId))).phase).toBe("waiting");
+  expect(calls).toBe(2);
+  expect((await f.pool.query("SELECT count(*)::int n FROM turns")).rows[0].n).toBe(2);
+  expect((await f.pool.query("SELECT count(*)::int n FROM compute_ledger WHERE status='reported'")).rows[0].n).toBe(2);
+  expect((await f.pool.query("SELECT 1 FROM platform_commands")).rowCount).toBe(0);
 });
