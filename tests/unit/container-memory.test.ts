@@ -44,7 +44,7 @@ it("rejects wrong identities and missing or invalid measurements without inventi
     { id, memory_stats: { usage: 1, limit: 0 } },
   ])
     await fixture(
-      (q, s) => s.end(JSON.stringify(data)),
+      (_q, s) => s.end(JSON.stringify(data)),
       async (socket) => {
         await expect(readContainerMemory(socket, id, AbortSignal.timeout(1000))).rejects.toMatchObject({
           code: "CONTAINER_MEMORY_INVALID",
@@ -62,7 +62,7 @@ it("records a typed timeout and bounds an oversized or unavailable response", as
     },
   );
   await fixture(
-    (q, s) => s.end("x".repeat(65537)),
+    (_q, s) => s.end("x".repeat(65537)),
     async (socket) => {
       await expect(readContainerMemory(socket, id, AbortSignal.timeout(1000))).rejects.toMatchObject({
         code: "CONTAINER_MEMORY_TOO_LARGE",
@@ -70,7 +70,7 @@ it("records a typed timeout and bounds an oversized or unavailable response", as
     },
   );
   await fixture(
-    (q, s) => {
+    (_q, s) => {
       s.statusCode = 500;
       s.end("private error withheld");
     },

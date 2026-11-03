@@ -1,12 +1,7 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
   "status": "first preparation attempt safely closed before inference; collector repair validated; fresh retry pending",
-  "sourceRepairs": [
-    "aa55459",
-    "bb80aee",
-    "6711a27",
-    "6d0053c"
-  ],
+  "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
     {
