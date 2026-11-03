@@ -1,34 +1,27 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "first preparation attempt safely closed before inference; collector repair validated; fresh retry pending",
+  "status": "first actual validation round sealed in fresh attempt02; controller/watchdog ready",
   "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
     {
       "round": 1,
-      "status": "failed resource observation before native dispatch; safely closed",
-      "world": "fleet-repair-20261103-ef7cb300",
-      "namespace": "fleet-repair-20261103-ef7cb300",
-      "privateLedger": ".superpowers/sdd/2026-11-03-repair-round-01",
-      "provider": "fleet-metal-5aa1e00f",
-      "generationCalls": 0,
-      "id": "nemotron-repair-20261103-ef7cb300",
-      "sourceCommit": "ad2d740ff92ce8c409e4cfaf67aa9ac167ca36b1",
-      "startsAtUtc": "2026-11-03T10:15:24.347Z",
-      "endsAtUtc": "2026-11-03T10:35:24.347Z",
-      "controllerSha256": "fef9f102b01b8e3f37cf99006916c525f5aa215e5d29bde60c22c6e48bbfbf2a",
+      "attempt": 2,
+      "id": "nemotron-repair-20261103-4ac5e384",
+      "status": "sealed; awaiting start",
+      "world": "fleet-repair-20261103-4ac5e384",
+      "namespace": "fleet-repair-20261103-4ac5e384",
+      "privateLedger": ".superpowers/sdd/2026-11-03-repair-round-02",
+      "provider": "fleet-metal-41cb3414",
+      "sourceCommit": "893898e9db346f98f7d45148ba0d303ab570c42b",
+      "startsAtUtc": "2026-11-03T10:28:36.351Z",
+      "endsAtUtc": "2026-11-03T10:48:36.351Z",
+      "controllerSha256": "338cff00e481b5c805950d33e8d1b5786d513f640fff609078834ee282447cef",
       "watchdogSha256": "d6a785336a49497aa75fe92f40cd6d94bd4ec997ace7e647f68fcd4a987e2a0a",
-      "providerIdentitySha256": "7fcd80469b2085696a41d155e9456c5e1c7c15a5f4b04b57db1fc6e7180b71b6",
-      "providerPinsSha256": "4e9003eaf8cdb4f1e6e737acd3d7668947e6a45ef045488e7657622208c5c2ab",
-      "manualTemporalWorkers": 16,
-      "closedAtUtc": "2026-11-03T10:15:25.936Z",
-      "reason": "RESOURCE_OBSERVATION_FAILED",
-      "nativeTurns": 0,
-      "unknowns": 0,
-      "commands": 0,
-      "closureVerification": "pass",
-      "restores": 4,
-      "underlyingCause": "not recoverable from generic collector error; no precise attribution claimed"
+      "providerIdentitySha256": "8c0628529b322153dc90e23c8164c7bc30da0391f00324c9eb23f18a39cfad2c",
+      "providerPinsSha256": "5f46929704be2006f6a2fe95e043c371e57c8f3c2a4b8f68d8c9fc809e8ce00f",
+      "generationCalls": 0,
+      "manualTemporalWorkers": 16
     },
     {
       "round": 2,
@@ -105,6 +98,35 @@
     "maximumActualReadMs": 7.1,
     "temporalMemoryMiB": 431.3125,
     "nativeLimitMiB": 768,
-    "newObservationPolicy": "per-stage error/code retained; original fail-closed stop and650MiB drain unchanged"
-  }
+    "newObservationPolicy": "per-stage error/code retained; original fail-closed stop and650MiB drain unchanged",
+    "fullMetadataOnlyCollectorCycles": 12
+  },
+  "preparationAttempts": [
+    {
+      "round": 1,
+      "status": "failed resource observation before native dispatch; safely closed",
+      "world": "fleet-repair-20261103-ef7cb300",
+      "namespace": "fleet-repair-20261103-ef7cb300",
+      "privateLedger": ".superpowers/sdd/2026-11-03-repair-round-01",
+      "provider": "fleet-metal-5aa1e00f",
+      "generationCalls": 0,
+      "id": "nemotron-repair-20261103-ef7cb300",
+      "sourceCommit": "ad2d740ff92ce8c409e4cfaf67aa9ac167ca36b1",
+      "startsAtUtc": "2026-11-03T10:15:24.347Z",
+      "endsAtUtc": "2026-11-03T10:35:24.347Z",
+      "controllerSha256": "fef9f102b01b8e3f37cf99006916c525f5aa215e5d29bde60c22c6e48bbfbf2a",
+      "watchdogSha256": "d6a785336a49497aa75fe92f40cd6d94bd4ec997ace7e647f68fcd4a987e2a0a",
+      "providerIdentitySha256": "7fcd80469b2085696a41d155e9456c5e1c7c15a5f4b04b57db1fc6e7180b71b6",
+      "providerPinsSha256": "4e9003eaf8cdb4f1e6e737acd3d7668947e6a45ef045488e7657622208c5c2ab",
+      "manualTemporalWorkers": 16,
+      "closedAtUtc": "2026-11-03T10:15:25.936Z",
+      "reason": "RESOURCE_OBSERVATION_FAILED",
+      "nativeTurns": 0,
+      "unknowns": 0,
+      "commands": 0,
+      "closureVerification": "pass",
+      "restores": 4,
+      "underlyingCause": "not recoverable from generic collector error; no precise attribution claimed"
+    }
+  ]
 }
