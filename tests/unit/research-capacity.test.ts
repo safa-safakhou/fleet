@@ -67,3 +67,32 @@ test("closed or occupied pools grant nothing and invalid capacities fail before 
   for (const capacity of [-1, 17, 1.5, Number.NaN])
     expect(() => selectCapacityWork([], { ...options, capacity })).toThrow("CAPACITY_LIMIT");
 });
+
+test("opt-in turn waves protect multi-call turns from replacement grants until every active binding drains", () => {
+  const rows = [candidate("multi"), candidate("short"), candidate("replacement")];
+  const wave = { ...options, capacity: 2, dispatchPolicy: "turn-wave" as const };
+  expect(selectCapacityWork(rows, wave).selected).toHaveLength(2);
+  // The short turn has finished, but the multi-call turn still needs provider capacity.
+  expect(selectCapacityWork(rows, { ...wave, activeBindings: new Set(["multi"]) }).selected).toEqual([]);
+  // Existing callers retain backfill behavior; changing it is an explicit experiment choice.
+  expect(
+    selectCapacityWork(rows, { ...options, capacity: 2, activeBindings: new Set(["multi"]) }).selected,
+  ).toHaveLength(1);
+  expect(selectCapacityWork(rows, wave).selected).toHaveLength(2);
+});
+
+test("turn-wave draining still reports expired work and rechecks deadlines before the next fair wave", () => {
+  const rows = [
+    candidate("expired", "expired", { deadline: { clockId: "pact.game-time-ms", value: "599999" } }),
+    candidate("aged"),
+    candidate("new", "new", { eligibleAt: 99999 }),
+  ];
+  const wave = { ...options, capacity: 1, dispatchPolicy: "turn-wave" as const };
+  const draining = selectCapacityWork(rows, { ...wave, activeBindings: new Set(["other"]) });
+  expect(draining.selected).toEqual([]);
+  expect(draining.refused).toEqual([{ taskId: "expired", reason: "expired" }]);
+  expect(selectCapacityWork(rows, wave).selected.map((x) => x.taskId)).toEqual(["aged"]);
+  expect(() => selectCapacityWork([], { ...options, dispatchPolicy: "invalid" as never })).toThrow(
+    "CAPACITY_DISPATCH_POLICY",
+  );
+});

@@ -15,6 +15,8 @@ export function selectCapacityWork(
     clocks: Record<string, string | number | bigint>;
     capacity: number;
     activeBindings: ReadonlySet<string>;
+    /** Opt-in experiment policy: preserve in-flight multi-call turns before replacing peers. */
+    dispatchPolicy?: "backfill" | "turn-wave";
   },
 ): { selected: CapacityCandidate[]; refused: Refusal[] } {
   if (
@@ -24,6 +26,8 @@ export function selectCapacityWork(
     !Number.isSafeInteger(options.now)
   )
     throw new Error("CAPACITY_LIMIT");
+  if (options.dispatchPolicy !== undefined && !["backfill", "turn-wave"].includes(options.dispatchPolicy))
+    throw new Error("CAPACITY_DISPATCH_POLICY");
   const refused: Refusal[] = [],
     seen = new Set<string>();
   const eligible: { item: CapacityCandidate; remaining?: bigint }[] = [];
@@ -83,7 +87,10 @@ export function selectCapacityWork(
   }
   const rotation = (a: (typeof eligible)[number], b: (typeof eligible)[number]) =>
     (a.item.lastDispatchAt ?? 0) - (b.item.lastDispatchAt ?? 0) || stable(a, b);
-  const free = Math.max(0, options.capacity - options.activeBindings.size);
+  const free =
+    options.dispatchPolicy === "turn-wave" && options.activeBindings.size > 0
+      ? 0
+      : Math.max(0, options.capacity - options.activeBindings.size);
   const selected: CapacityCandidate[] = [],
     rows = [...byBinding.values()];
   if (free) {

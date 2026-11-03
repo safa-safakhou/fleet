@@ -1,13 +1,13 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "first full post-fix trial04 passed; second independent trial05 armed",
+  "status": "trial05 safely closed; precise multi-call queue-backfill limitation reproduced; opt-in turn-wave follow-up under validation",
   "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
     {
       "round": 1,
       "attempt": "04",
-      "status": "pass: complete bounded initial-task cycle; no capacity-promotion qualification",
+      "status": "passed pre-turn-wave bounded cycle; retained as earlier result",
       "world": "fleet-repair-20261103-ffe40e6e",
       "source": "ff09a953adfab75a2f0447fb796e872f35ae6945",
       "provider": "fleet-metal-b2e9cefe",
@@ -544,16 +544,7 @@
     },
     {
       "round": 2,
-      "attempt": "05",
-      "status": "armed; native results pending",
-      "world": "fleet-repair-20261103-8f1525e8",
-      "source": "8aefb1e847ea424cf7998abf8aa8264f25863efe",
-      "provider": "fleet-metal-0e80f29f",
-      "startsAtUtc": "2026-11-03T11:48:32.993Z",
-      "endsAtUtc": "2026-11-03T12:03:32.993Z",
-      "prefillBatchTokens": 2048,
-      "maximumParallel": 2,
-      "initialTaskCount": 18
+      "status": "trial05 not accepted as complete-workflow repeat; fresh06/07 turn-wave cycles pending"
     }
   ],
   "configuration": {
@@ -587,7 +578,8 @@
     "prefillBatchTokens": 2048,
     "admissionWaveMs": 250,
     "terminalAccounting": "authenticated native abort plus atomic final journal; bounded1000ms drain",
-    "boundedCycle": "one delivery per initial native task; two native charter tasks for each autonomous binding; read/final phases stay within their native turns"
+    "boundedCycle": "one delivery per initial native task; two native charter tasks for each autonomous binding; read/final phases stay within their native turns",
+    "turnDispatchPolicy": "turn-wave (follow-up candidate; native per-call waves unchanged)"
   },
   "qualification": {
     "cacheAdmissionBlocks": 400,
@@ -596,7 +588,7 @@
     "metadataGenerationCalls": 0,
     "commonPackets": 16,
     "largestCommonPacketBytes": 42045,
-    "wholeArchitectureGenerationAcceptance": "all16profiles/18initial native tasks observed in trial04; second repeat pending; higher-capacity qualification not achieved"
+    "wholeArchitectureGenerationAcceptance": "trial04 complete; trial05 one native guard/reconciliation park; fresh turn-wave cycles pending"
   },
   "protectedHistory": {
     "recentUnknownAllocations": 6,
@@ -1118,10 +1110,38 @@
           "commands": []
         }
       ]
+    },
+    {
+      "attempt": "05",
+      "world": "fleet-repair-20261103-8f1525e8",
+      "source": "8aefb1e847ea424cf7998abf8aa8264f25863efe",
+      "startsAtUtc": "2026-11-03T11:48:32.993Z",
+      "endsAtUtc": "2026-11-03T12:03:32.993Z",
+      "calls": 26,
+      "reportedInputTokens": 185262,
+      "reportedOutputTokens": 5503,
+      "commands": 4,
+      "matchingPactReceipts": 4,
+      "unknowns": 0,
+      "modelResponseErrors": 0,
+      "nativeTurns": 18,
+      "normallyCompletedInitialTaskProjections": 17,
+      "guardParkedTasks": 1,
+      "guardCode": "MODEL_ADMISSION_DEFERRED",
+      "guardedProfile": "reactive-cognition@2",
+      "providerQueueMsBeforeFirstTwoCalls": [19833, 18424],
+      "providerGenerationMs": [15130.092375, 15182.214458],
+      "thirdCallDispatched": false,
+      "guardedTaskPreservedAwaitingReconciliation": true,
+      "restores": 4,
+      "artifactsVerified": 7862,
+      "allCurrentServiceConfigs": 75,
+      "allVolumeDefinitions": 121,
+      "preservationDifferences": 0
     }
   ],
-  "consumedCombinedCalls": 49,
-  "consumedCombinedReservedTokens": 1960000,
+  "consumedCombinedCalls": 75,
+  "consumedCombinedReservedTokens": 3000000,
   "followupValidation": {
     "rootUnitPasses": 1307,
     "platformUnitSkips": 23,
