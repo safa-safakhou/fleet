@@ -1,6 +1,6 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "first final cycle09 accepted; second independent cycle10 armed with identical runtime files/build/policy",
+  "status": "STOPPED at owner request; final09 accepted, final10 interrupted and not accepted; no further retries",
   "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03", "c4479ed", "68c577f", "1776ceb"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
@@ -619,7 +619,7 @@
     {
       "round": 2,
       "attempt": "10",
-      "status": "armed; actual acceptance pending",
+      "status": "stopped at owner request; incomplete, not accepted",
       "world": "fleet-repair-20261103-1f37a01b",
       "source": "bc652f771e9f25685ed9c26c1ba9a30778fb1dca",
       "provider": "fleet-metal-b4005c71",
@@ -628,7 +628,36 @@
       "turnDispatchPolicy": "turn-wave",
       "exclusiveProfiles": ["specialist-coordinator@1"],
       "maximumParallel": 2,
-      "initialTasks": 18
+      "initialTasks": 18,
+      "ownerStop": {
+        "status": "stopped at owner request; no retry authorized",
+        "at": "2026-11-03T14:48:11.475Z",
+        "world": {
+          "status": "paused",
+          "tick": "1",
+          "gameTimeMs": 1793713980000
+        },
+        "calls": 7,
+        "reportedCalls": 6,
+        "unknownCalls": 1,
+        "unknownReservedTokens": 40000,
+        "unknownMeasurementsNull": true,
+        "runningTurns": 0,
+        "capacityLeases": 0,
+        "activeWorkerSessions": 0,
+        "commands": [
+          {
+            "state": "confirmed",
+            "code": "COMMITTED"
+          }
+        ],
+        "stageErrors": [],
+        "automaticMonitorDeleted": true,
+        "secondFinalCycleComplete": false
+      },
+      "nativeClosureReason": "WINDOW_CLOSED",
+      "operatorLatchReason": "OWNER_STOP",
+      "automaticMonitorDeleted": true
     }
   ],
   "configuration": {
@@ -673,7 +702,7 @@
     "metadataGenerationCalls": 0,
     "commonPackets": 16,
     "largestCommonPacketBytes": 42045,
-    "wholeArchitectureGenerationAcceptance": "trial04 complete; trial05 one native guard/reconciliation park; fresh turn-wave cycles pending"
+    "wholeArchitectureGenerationAcceptance": "one final complete cycle09 accepted under coordinator1/othersmax2 policy; requested repeat10 stopped by owner, no two-cycle qualification"
   },
   "protectedHistory": {
     "recentUnknownAllocations": 6,
@@ -1324,8 +1353,8 @@
       "volumeDefinitions": 121
     }
   ],
-  "consumedCombinedCalls": 144,
-  "consumedCombinedReservedTokens": 5760000,
+  "consumedCombinedCalls": 151,
+  "consumedCombinedReservedTokens": 6040000,
   "followupValidation": {
     "rootUnitPasses": 1307,
     "platformUnitSkips": 23,
@@ -1926,5 +1955,7 @@
       "bf03c824fdfee98fedc085e82da948ca1b06971e41e12641f75eeebff4998f12"
     ],
     "archiveHashesRetainedUnmodified": "git archive includes commit provenance/mtime; source file tree and executable build equality checked separately"
-  }
+  },
+  "currentWorkUnknownAllocations": 1,
+  "currentWorkUnknownReservedTokens": 40000
 }
