@@ -3,6 +3,8 @@ import { transaction } from "../../db.js";
 import { FleetError } from "../../domain.js";
 import type { TaskClaim, TaskStore } from "../../platform/tasks.js";
 import type { Store } from "../../store.js";
+import { StepJournal } from "../broker/steps.js";
+import { EvidenceRepository } from "../evidence/repository.js";
 import { ManifestRepository } from "../manifests/repository.js";
 import { type TaskProjection, type TaskWorkflowClient, type WorkflowRef, WorkflowRefSchema } from "./types.js";
 export class TemporalTaskOwner {
@@ -197,7 +199,17 @@ export class TemporalTaskOwner {
     });
     if (!fresh) return this.inspect(ref);
     try {
-      const claim = await this.tasks.claimTemporal(`temporal:${ref.deliveryId}`, this.store.now(), ref);
+      const claim = await this.tasks.claimTemporal(
+        `temporal:${ref.deliveryId}`,
+        this.store.now(),
+        ref,
+        undefined,
+        async (claim, db) => {
+          const key = `task:${claim.taskId}`;
+          const scope = await new StepJournal(this.store, this.tasks).open(claim, key, key, ref.manifestDigest, db);
+          await new EvidenceRepository(this.store).bind(scope, db);
+        },
+      );
       if (!claim) {
         await this.park(ref);
         return this.inspect(ref);

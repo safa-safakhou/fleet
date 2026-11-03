@@ -7,7 +7,7 @@ import type { ResolvedRunManifest } from "./compiler.js";
 
 const validate = new Ajv({ strict: false }).compile(schema);
 export class ManifestRepository {
-  constructor(private pool: Pool) {}
+  constructor(private pool: Pick<Pool, "query">) {}
   async save(manifest: ResolvedRunManifest): Promise<string> {
     const { status, capabilityDigest, ...input } = manifest;
     if (

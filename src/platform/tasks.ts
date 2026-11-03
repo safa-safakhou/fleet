@@ -309,8 +309,9 @@ export class TaskStore {
     now: Date,
     reference: { taskId: string; deliveryId: string; manifestDigest: string },
     beforeAdmit?: (binding: BindingRef) => Promise<void>,
+    prepareClaim?: (claim: TaskClaim, db: PoolClient) => Promise<void>,
   ) {
-    return this.claimOwned(workerId, now, reference.taskId, beforeAdmit, reference);
+    return this.claimOwned(workerId, now, reference.taskId, beforeAdmit, reference, prepareClaim);
   }
   private async claimOwned(
     workerId: string,
@@ -318,6 +319,7 @@ export class TaskStore {
     selectedTaskId?: string,
     beforeAdmit?: (binding: BindingRef) => Promise<void>,
     reference?: { taskId: string; deliveryId: string; manifestDigest: string },
+    prepareClaim?: (claim: TaskClaim, db: PoolClient) => Promise<void>,
   ): Promise<TaskClaim | null> {
     await this.store.recoverExpired();
     await this.recover();
@@ -388,7 +390,7 @@ export class TaskStore {
           "INSERT INTO specialist_participant_admission VALUES($1,$2,$3,nextval('specialist_admission_ticket')) ON CONFLICT(instance_id,binding_id,specialist_id) DO UPDATE SET last_ticket=excluded.last_ticket",
           [candidate.architecture_instance_id, candidate.binding_id, candidate.participant_id],
         );
-      return {
+      const claim: TaskClaim = {
         turn,
         taskId: candidate.id,
         bindingId: candidate.binding_id,
@@ -396,6 +398,9 @@ export class TaskStore {
         fence,
         revision: Number(candidate.revision),
       };
+      // Database-only preparation must commit with admission before observers can see the turn.
+      await prepareClaim?.(claim, db);
+      return claim;
     });
   }
   async check(claim: TaskAuthority, db?: PoolClient, deadlines = true) {

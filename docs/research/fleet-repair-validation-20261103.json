@@ -1,25 +1,16 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "opt-in turn-wave source c4479ed verified; full post-policy trial06 armed, repeat07 pending",
+  "status": "trial06 safely stopped on precise session-close scope race; atomic claim/scope fix under synthetic validation; fresh07/08 pending",
   "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03", "c4479ed"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
     {
       "round": 1,
-      "attempt": "06",
-      "status": "armed; native acceptance pending",
-      "world": "fleet-repair-20261103-aad2f0e6",
-      "source": "c4479ed7a80411f915147cbc124e5ac29ec24a6e",
-      "provider": "fleet-metal-28cf7f6b",
-      "startsAtUtc": "2026-11-03T12:04:00.452Z",
-      "endsAtUtc": "2026-11-03T12:19:00.452Z",
-      "turnDispatchPolicy": "turn-wave",
-      "maximumParallel": 2,
-      "initialTasks": 18
+      "status": "fresh07 post-atomic-claim pending"
     },
     {
       "round": 2,
-      "status": "trial05 not accepted as complete-workflow repeat; fresh06/07 turn-wave cycles pending"
+      "status": "fresh08 independent repeat pending"
     }
   ],
   "configuration": {
@@ -613,10 +604,39 @@
       "allCurrentServiceConfigs": 75,
       "allVolumeDefinitions": 121,
       "preservationDifferences": 0
+    },
+    {
+      "attempt": "06",
+      "world": "fleet-repair-20261103-aad2f0e6",
+      "source": "c4479ed7a80411f915147cbc124e5ac29ec24a6e",
+      "closureReason": "EVIDENCE_FAILED",
+      "worldTick": 4,
+      "reportedCalls": 19,
+      "commands": 2,
+      "matchingPactReceipts": 2,
+      "unknowns": 0,
+      "reservedAllocations": 0,
+      "nativeTerminalRecordsMatched": 19,
+      "modelResponseErrors": 0,
+      "failedCompatibilityScope": "9baa3d0e-9343-471f-a4a5-0c91486b3a8f",
+      "exactBoundary": {
+        "method": "close",
+        "argumentCount": 0,
+        "writeDispatched": false
+      },
+      "exactCause": "background session close captured under compatibility scope between committed turn claim and later research-scope binding; existing scope rejected after authority switched",
+      "partialScopeRetained": true,
+      "captureFailureNotCleared": true,
+      "restores": 4,
+      "artifactsVerified": 5148,
+      "restoredPartialScopes": 1,
+      "allCurrentContainers": 75,
+      "allVolumeDefinitions": 121,
+      "preservationDifferences": 0
     }
   ],
-  "consumedCombinedCalls": 75,
-  "consumedCombinedReservedTokens": 3000000,
+  "consumedCombinedCalls": 94,
+  "consumedCombinedReservedTokens": 3760000,
   "followupValidation": {
     "rootUnitPasses": 1307,
     "platformUnitSkips": 23,
@@ -1170,5 +1190,16 @@
         "mountArrayOrderOnly": 3
       }
     }
-  ]
+  ],
+  "atomicClaimValidation": {
+    "exactCloseShapeRegressionPasses": 2,
+    "affectedOwnedIntegrationPasses": 109,
+    "affectedPlatformSkips": 1,
+    "rootUnitPasses": 1309,
+    "platformUnitSkips": 23,
+    "typesStyleBuildBoundariesGeneratedContracts": "pass",
+    "scopeValidationUnchanged": true,
+    "claimAndScopeShareTransaction": true,
+    "failedBindingRollsBackAdmission": true
+  }
 }

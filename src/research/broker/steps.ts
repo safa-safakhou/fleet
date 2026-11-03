@@ -23,41 +23,48 @@ export class StepJournal {
     private store: Store,
     private tasks: TaskStore,
   ) {}
-  async open(claim: TaskClaim, runId: string, operationId: string, manifestDigest: string): Promise<RunScope> {
-    const manifest = await new ManifestRepository(this.store.pool).load(manifestDigest);
-    if (
-      manifest.environment.bindingId !== claim.bindingId ||
-      manifest.profile.id !== claim.profile.id ||
-      manifest.profile.version !== claim.profile.version
-    )
-      fail("OPERATION_SCOPE_MISMATCH");
-    const participantId = (await this.tasks.get(claim.taskId)).participantId;
-    const scope = ScopeSchema.parse({
-      runId,
-      operationId,
-      manifestDigest,
-      agentId: claim.turn.agentId,
-      bindingId: claim.bindingId,
-      turnId: claim.turn.id,
-      taskId: claim.taskId,
-      operationEpoch: String(claim.fence),
-      ...(participantId ? { participantId } : {}),
-    });
-    const authority: TaskAuthority = {
-      taskId: claim.taskId,
-      bindingId: claim.bindingId,
-      profile: claim.profile,
-      fence: claim.fence,
-      turn: {
-        id: claim.turn.id,
+  async open(
+    claim: TaskClaim,
+    runId: string,
+    operationId: string,
+    manifestDigest: string,
+    client?: PoolClient,
+  ): Promise<RunScope> {
+    const prepare = async (db: PoolClient) => {
+      const manifest = await new ManifestRepository(db).load(manifestDigest);
+      if (
+        manifest.environment.bindingId !== claim.bindingId ||
+        manifest.profile.id !== claim.profile.id ||
+        manifest.profile.version !== claim.profile.version
+      )
+        fail("OPERATION_SCOPE_MISMATCH");
+      const participantId = (await db.query("SELECT participant_id FROM platform_tasks WHERE id=$1", [claim.taskId]))
+        .rows[0]?.participant_id;
+      const scope = ScopeSchema.parse({
+        runId,
+        operationId,
+        manifestDigest,
         agentId: claim.turn.agentId,
-        cohortId: claim.turn.cohortId,
-        generation: claim.turn.generation,
-        fence: claim.turn.fence,
-        worker: claim.turn.worker,
-      },
-    };
-    return transaction(this.store.pool, async (db) => {
+        bindingId: claim.bindingId,
+        turnId: claim.turn.id,
+        taskId: claim.taskId,
+        operationEpoch: String(claim.fence),
+        ...(participantId ? { participantId } : {}),
+      });
+      const authority: TaskAuthority = {
+        taskId: claim.taskId,
+        bindingId: claim.bindingId,
+        profile: claim.profile,
+        fence: claim.fence,
+        turn: {
+          id: claim.turn.id,
+          agentId: claim.turn.agentId,
+          cohortId: claim.turn.cohortId,
+          generation: claim.turn.generation,
+          fence: claim.turn.fence,
+          worker: claim.turn.worker,
+        },
+      };
       await this.tasks.check(authority, db);
       await db.query(
         "INSERT INTO research_operations(operation_id,task_id,scope,authority,manifest_digest) VALUES($1,$2,$3,$4,$5) ON CONFLICT(operation_id) DO NOTHING",
@@ -76,7 +83,8 @@ export class StepJournal {
         authority,
       ]);
       return scope;
-    });
+    };
+    return client ? prepare(client) : transaction(this.store.pool, prepare);
   }
   private async current(db: PoolClient, scope: RunScope): Promise<void> {
     ScopeSchema.parse(scope);
