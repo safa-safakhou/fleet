@@ -1,0 +1,11 @@
+# Storage cleanup — 3 November 2026
+
+Removed four fully byte-identical recovery duplicates (root/data hot and cold copies), retaining the confirmed-stopped pair and original checkpoint metadata. Full-file comparisons passed; a faster32MiB block comparison superseded the final redundant slow cmp process, whose interrupted result is retained separately. No sampled-only comparison was used to authorize deleting a duplicate. Each retained disk also matched its original checkpoint size/sample hashes. No deleted copy was open by another process.
+
+The removed files represented240GiB logical size, but shared APFS extents; this is not240GiB physically recovered. Python's uv download cache was cleaned with its native command (194.7MiB reported), preserving installed environments. A supported filesystem discard returned7.4GiB of already-unused Docker guest blocks; shared extents likewise limit host recovery.
+
+Host free space measured **18.49 → 19.67GiB**, a net **1.17GiB** during cleanup. These are live filesystem measurements, not an exclusive-byte attribution to each operation. [Exact result](storage-cleanup-20261103.json).
+
+Fresh Docker review found zero further safe image candidates after protecting every current/stopped/original container image and ancestor, plus required database images. Docker's reclaimable totals include retained service/world data and are not a deletion list. All75container identities/configurations/image/host-config/mount objects and121volume definitions match, allowing verified mount enumeration-order differences only. The three original services remain healthy. No containers, volumes, worlds, models, credentials, installed toolchains or private evidence were deleted; no service restart or inference occurred.
+
+The final pre-repair Colima recovery pair remains approximately97GiB in apparent allocation, with shared blocks. It covers all original Docker services and is the last retained pre-repair VM rollback point. The inactive Docker Desktop disk (approximately20.5GiB) is also retained because its contents have not been proved redundant. Retiring these unique recovery/data copies requires a separate owner choice; current service data would remain, but the rollback point would be permanently lost. Exact physical space reclaimable from those files is not established.

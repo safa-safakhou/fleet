@@ -1,0 +1,47 @@
+{
+  "date": "2026-11-03",
+  "removedRecoveryCopies": [
+    {
+      "file": "root.cold.raw",
+      "retained": "root.stopped.raw",
+      "comparison": "full-file byte identical",
+      "logicalBytes": 21474836480
+    },
+    {
+      "file": "root.hot.raw",
+      "retained": "root.stopped.raw",
+      "comparison": "full-file byte identical",
+      "logicalBytes": 21474836480
+    },
+    {
+      "file": "data.cold.raw",
+      "retained": "data.stopped.raw",
+      "comparison": "full-file byte identical",
+      "logicalBytes": 107374182400
+    },
+    {
+      "file": "data.hot.raw",
+      "retained": "data.stopped.raw",
+      "comparison": "full-file byte identical",
+      "logicalBytes": 107374182400
+    }
+  ],
+  "logicalDuplicateGiB": 240.0,
+  "pythonDownloadCacheRemovedMiB": 194.7,
+  "guestUnusedBytesTrimmed": 7961497600,
+  "hostFreeBeforeGiB": 18.494773864746094,
+  "hostFreeAfterGiB": 19.669647216796875,
+  "netHostFreeIncreaseGiB": 1.1748733520507812,
+  "docker": {
+    "additionalSafeImageCandidates": 0,
+    "containersPreserved": 75,
+    "volumeDefinitionsPreserved": 121,
+    "substantiveDifferences": 0
+  },
+  "retained": [
+    "One confirmed-stopped root/data pre-repair Colima recovery pair; approximately97GiB apparent allocation, shared extents",
+    "Inactive Docker Desktop virtual disk, approximately20.5GiB; contents not proven redundant",
+    "All service containers/volumes, model weights, toolchains, installed environments and private experiment evidence"
+  ],
+  "remainingDecision": "Retire the final pre-repair VM rollback copy only with owner choice; it covers unrelated Docker services as well as Fleet. No exact exclusive reclaimable-byte claim."
+}
