@@ -1,26 +1,12 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "native-supported15minute attempt03 sealed; first actual round awaiting start",
-  "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c"],
+  "status": "diagnostic03 closed and audited; participant-wake/optional-prose fixes verified; two full post-fix trials pending",
+  "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
     {
       "round": 1,
-      "attempt": 3,
-      "id": "nemotron-repair-20261103-17eb1c3f",
-      "status": "sealed; awaiting start",
-      "world": "fleet-repair-20261103-17eb1c3f",
-      "namespace": "fleet-repair-20261103-17eb1c3f",
-      "privateLedger": ".superpowers/sdd/2026-11-03-repair-round-03",
-      "provider": "fleet-metal-b591d646",
-      "sourceCommit": "4f56d83f623b63d2951fd0ac2c99d1c4ea04eec8",
-      "startsAtUtc": "2026-11-03T10:44:18.742Z",
-      "endsAtUtc": "2026-11-03T10:59:18.742Z",
-      "controllerSha256": "6c655a0c8f8e9526bfd84dace92c8467b7d02997f3096acc1bc924165b69276d",
-      "watchdogSha256": "a20c48460c3146e612fb5c2e3200d98f06a2d558439d433411edb31ac6886129",
-      "providerPinsSha256": "6385244dbc67f2fde33592e2510953d1afdaa2fd665c42258122e07d41899c70",
-      "nativeWindowSmoke": "pass with exact sealed bounds/all16models before task publication",
-      "generationCalls": 0
+      "status": "pending full post-fix attempt04"
     },
     {
       "round": 2,
@@ -55,9 +41,10 @@
     "parallelCalls": 2,
     "providerMaxSequences": 8,
     "cacheCapBytes": 6442450944,
-    "prefillBatchTokens": 1024,
+    "prefillBatchTokens": 2048,
     "admissionWaveMs": 250,
-    "terminalAccounting": "authenticated native abort plus atomic final journal; bounded1000ms drain"
+    "terminalAccounting": "authenticated native abort plus atomic final journal; bounded1000ms drain",
+    "boundedCycle": "one delivery per initial native task; two native charter tasks for each autonomous binding; read/final phases stay within their native turns"
   },
   "qualification": {
     "cacheAdmissionBlocks": 400,
@@ -168,5 +155,435 @@
     "baselineSchemas": 16,
     "nativeLlGuidanceGrammarValidation": "pass",
     "generationRequests": 0
+  },
+  "diagnosticRounds": [
+    {
+      "round": 1,
+      "attempt": 3,
+      "id": "nemotron-repair-20261103-17eb1c3f",
+      "status": "partial diagnostic; safely closed; not qualified",
+      "world": "fleet-repair-20261103-17eb1c3f",
+      "namespace": "fleet-repair-20261103-17eb1c3f",
+      "privateLedger": ".superpowers/sdd/2026-11-03-repair-round-03",
+      "provider": "fleet-metal-b591d646",
+      "sourceCommit": "4f56d83f623b63d2951fd0ac2c99d1c4ea04eec8",
+      "startsAtUtc": "2026-11-03T10:44:18.742Z",
+      "endsAtUtc": "2026-11-03T10:59:18.742Z",
+      "controllerSha256": "6c655a0c8f8e9526bfd84dace92c8467b7d02997f3096acc1bc924165b69276d",
+      "watchdogSha256": "a20c48460c3146e612fb5c2e3200d98f06a2d558439d433411edb31ac6886129",
+      "providerPinsSha256": "6385244dbc67f2fde33592e2510953d1afdaa2fd665c42258122e07d41899c70",
+      "nativeWindowSmoke": "pass with exact sealed bounds/all16models before task publication",
+      "generationCalls": 22,
+      "reason": "WINDOW_CLOSED",
+      "nativeTurns": 14,
+      "visitedKingdoms": 14,
+      "unvisitedKingdoms": 2,
+      "reportedAllocations": 22,
+      "unknowns": 0,
+      "nativeReportedInputTokens": 166311,
+      "nativeReportedOutputTokens": 6214,
+      "reservedTokensConsumed": 880000,
+      "committedCommands": 3,
+      "pactCommittedReceipts": 3,
+      "matchedNativeTerminalRecords": 22,
+      "prefillBatchTokens": 1024,
+      "failedResponses": {
+        "MODEL_DEADLINE_EXCEEDED": 2,
+        "MODEL_OUTPUT_TRUNCATED": 1
+      },
+      "closureVerification": "pass",
+      "restores": 4,
+      "artifactsVerified": 8190,
+      "actualRendering": ["timeline", "context/lineage", "causal graph"],
+      "browserErrors": 0,
+      "perKingdom": [
+        {
+          "name": "legacy-loop-1-1",
+          "profile": {
+            "id": "legacy-loop",
+            "version": "1"
+          },
+          "bindingId": "0950b3c6-3809-4c15-b88e-4d72fa6cfe67",
+          "calls": 3,
+          "turns": [
+            {
+              "code": "MODEL_OUTPUT_TRUNCATED",
+              "actions": 1,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 104677,
+              "completedAt": 1793702856952,
+              "nativeCode": "MODEL_OUTPUT_TRUNCATED"
+            }
+          ],
+          "commands": [
+            {
+              "state": "confirmed",
+              "code": "COMMITTED",
+              "conflict": false
+            }
+          ]
+        },
+        {
+          "name": "legacy-loop-1-2",
+          "profile": {
+            "id": "legacy-loop",
+            "version": "1"
+          },
+          "bindingId": "36035677-2961-4092-a1a0-83c77f3ec548",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "MODEL_DEADLINE_EXCEEDED",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 175,
+              "completedAt": 1793702695006,
+              "nativeCode": "MODEL_DEADLINE_EXCEEDED"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "legacy-cognition-1-1",
+          "profile": {
+            "id": "legacy-cognition",
+            "version": "1"
+          },
+          "bindingId": "96c8d076-6b3f-4c67-bdc4-e9e71f92d12d",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 198220,
+              "completedAt": 1793702896699,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "legacy-cognition-1-2",
+          "profile": {
+            "id": "legacy-cognition",
+            "version": "1"
+          },
+          "bindingId": "22741906-395f-4ed4-bd09-0eec9e6f3544",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 77549,
+              "completedAt": 1793702763417,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-basic-1-1",
+          "profile": {
+            "id": "reactive-basic",
+            "version": "1"
+          },
+          "bindingId": "aa741001-600e-49df-b5f8-f2e282311bc8",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 342733,
+              "completedAt": 1793703042672,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-basic-1-2",
+          "profile": {
+            "id": "reactive-basic",
+            "version": "1"
+          },
+          "bindingId": "3bb3e7ca-3a3f-4cde-8316-f8c31976e624",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 323135,
+              "completedAt": 1793703022060,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-1-1",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "1"
+          },
+          "bindingId": "bf9e2c84-6328-4286-a9f2-60e51b343421",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "MODEL_DEADLINE_EXCEEDED",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 119998,
+              "failedAt": 1793702827069
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-1-2",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "1"
+          },
+          "bindingId": "a78cb243-a0e5-4c32-ba97-23baf46eaed3",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 306249,
+              "completedAt": 1793703001472,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-2-1",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "2"
+          },
+          "bindingId": "77869aff-f593-4442-904d-8829e713470e",
+          "calls": 3,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 36267,
+              "completedAt": 1793702778734,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-2-2",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "2"
+          },
+          "bindingId": "993de714-c8ca-42b6-8c0c-db29e28529dd",
+          "calls": 3,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 175,
+              "completedAt": 1793702736282,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-1.1-1",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "1.1"
+          },
+          "bindingId": "a0d2d930-21a6-4d03-b91f-f1fd7516722b",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 293561,
+              "completedAt": 1793702981873,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-1.1-2",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "1.1"
+          },
+          "bindingId": "8475faaa-f478-49c5-9bb6-4e2cea605bda",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 251695,
+              "completedAt": 1793702952300,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "specialist-coordinator-1-1",
+          "profile": {
+            "id": "specialist-coordinator",
+            "version": "1"
+          },
+          "bindingId": "ef5b6b77-e0b6-4766-b693-6614b07564e8",
+          "calls": 2,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 1,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 168330,
+              "completedAt": 1793702910428,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": [
+            {
+              "state": "confirmed",
+              "code": "COMMITTED",
+              "conflict": false
+            }
+          ]
+        },
+        {
+          "name": "specialist-coordinator-1-2",
+          "profile": {
+            "id": "specialist-coordinator",
+            "version": "1"
+          },
+          "bindingId": "f0e76db6-8a92-4e42-8b62-8924da6fc996",
+          "calls": 2,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 1,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "logicalQueueMs": 237959,
+              "completedAt": 1793702964987,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": [
+            {
+              "state": "confirmed",
+              "code": "COMMITTED",
+              "conflict": false
+            }
+          ]
+        },
+        {
+          "name": "autonomous-specialists-1-1",
+          "profile": {
+            "id": "autonomous-specialists",
+            "version": "1"
+          },
+          "bindingId": "fcf69914-1873-4059-ae68-f480a2179b9a",
+          "calls": 0,
+          "turns": [],
+          "dispatches": [],
+          "commands": []
+        },
+        {
+          "name": "autonomous-specialists-1-2",
+          "profile": {
+            "id": "autonomous-specialists",
+            "version": "1"
+          },
+          "bindingId": "22c4ae75-1d4c-43c4-8e7c-f02af1a09733",
+          "calls": 0,
+          "turns": [],
+          "dispatches": [],
+          "commands": []
+        }
+      ]
+    }
+  ],
+  "consumedCombinedCalls": 22,
+  "consumedCombinedReservedTokens": 880000,
+  "followupValidation": {
+    "rootUnitPasses": 1307,
+    "platformUnitSkips": 23,
+    "ownedParticipantOwnershipAndAutonomousTests": 66,
+    "ownedCaptureAccountingTests": 7,
+    "typesStyleBuildBoundaries": "pass; original405warnings/83infos"
   }
 }
