@@ -5,7 +5,9 @@ import { assertCacheSelection, cacheResource } from "./cache-profile.js";
 export function providerCapacity(settings: ReturnType<typeof config>, model: ModelSettings) {
   if (
     model.provider === "vllm" &&
-    (settings.inferenceConcurrency["openai-compatible"] > 1 || model.contextWindowTokens !== undefined) &&
+    (settings.inferenceConcurrency["openai-compatible"] > 1 ||
+      model.contextWindowTokens !== undefined ||
+      settings.vllmWaveWindowMs !== undefined) &&
     !settings.vllmCacheProfile
   )
     throw new FleetError("PROVIDER_CACHE_PROFILE_REQUIRED", true);
@@ -25,6 +27,9 @@ export function providerCapacity(settings: ReturnType<typeof config>, model: Mod
         capacity: settings.inferenceConcurrency[model.route],
         ...(model.provider === "vllm" && settings.vllmCacheProfile
           ? { resource: cacheResource(settings.vllmCacheProfile) }
+          : {}),
+        ...(model.provider === "vllm" && settings.vllmWaveWindowMs !== undefined
+          ? { waveWindowMs: settings.vllmWaveWindowMs }
           : {}),
         ...(model.provider === "vllm" && settings.vllmTokenCapacity !== undefined
           ? { tokenCapacity: settings.vllmTokenCapacity }

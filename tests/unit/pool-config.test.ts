@@ -61,3 +61,12 @@ it("also requires verified cache metadata for an explicitly enlarged single-slot
     }),
   ).toThrow("PROVIDER_CACHE_PROFILE_REQUIRED");
 });
+it("requires verified vLLM cache metadata when opting into prefill waves", () => {
+  const settings = config({ ...base, FLEET_VLLM_WAVE_WINDOW_MS: "250" });
+  expect(() => providerCapacity(settings, { route: "openai-compatible", provider: "vllm", model: "fixture" })).toThrow(
+    "PROVIDER_CACHE_PROFILE_REQUIRED",
+  );
+  expect(providerCapacity(settings, { route: "ollama", model: "fixture" })).not.toHaveProperty("waveWindowMs");
+  for (const value of ["0", "9", "1001", "1.5", "no"])
+    expect(() => config({ ...base, FLEET_VLLM_WAVE_WINDOW_MS: value })).toThrow();
+});

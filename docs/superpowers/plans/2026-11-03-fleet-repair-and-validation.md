@@ -48,10 +48,10 @@ Files: additive migration061, src/platform/admission.ts, src/config.ts/provider 
 
 Interfaces: consumes Task1 deadline and exposes optional wave policy plus explicit profile/phase qualification. Route policy changes must reject mismatched existing route rows rather than opening a second capacity pool.
 
-- [ ] RED: default backfill unchanged; optional wave admits bounded initial batch, refuses mid-wave backfill, resumes next queued wave after settlement; counters/fairness/resource leases/fences unchanged.
-- [ ] RED: two reactive waits cannot qualify a coordinator/legacy/autonomous workload; require selected profiles and applicable phases, known native settlement, instance/config scope and latency/resource headroom.
-- [ ] GREEN: persist wave window/admission timestamps, wire explicit opt-in configuration, test rollback/restart/mismatch and source gates.
-- [ ] Commit verified changes.
+- [x] RED: default backfill unchanged; optional wave admits bounded initial batch, refuses mid-wave backfill, resumes next queued wave after settlement; counters/fairness/resource leases/fences unchanged.
+- [x] RED: two reactive waits cannot qualify a coordinator/legacy/autonomous workload; require selected profiles and applicable phases, known native settlement, instance/config scope and latency/resource headroom.
+- [x] GREEN: persist wave window/admission timestamps, wire explicit opt-in configuration, test rollback/restart/mismatch and source gates.
+- [x] Commit verified changes.
 
 ### Task3: Authoritative native abort/terminal accounting bridge
 
@@ -87,3 +87,5 @@ Task3→Task5: Provider must demonstrate authenticated native abort/final-usage 
 Task0: Ruling: The user accepted the investigation targets and explicitly requested implementation and two real rounds. Routine implementation choices are carried here, with no repeated permission request, no delegation, no push and no relaxation of retained-data/native limits.
 
 Task1: complete — explicit shorter HTTP call bounds and envelope validation preserve historical defaults/ceilings; scoped native command census unions/deduplicates platform, legacy and pending projections and exposes conflicts without resolving them. RED: shorter config rejected; legacy census returned zero instead of one. GREEN:19deadline/envelope units,7owned capture/census integrations, full1297unit passes/23platform skips, types/style and boundaries pass. No real inference or retained-state mutation.
+
+Task2: complete — opt-in250ms prefill waves retain route identity, accounting leases and fairness; exact profile/phase/replica scope gates refuse wait-only extrapolation and adverse outcomes. RED reproduces mid-wave backfill and cherry-picking; GREEN32owned integrations and16focused units, type/style/boundary checks. The additive migration is explicitly wired into the native migrator. Colima automatic host-port forwarding refused fresh ports; isolated owned SSH tunnels verified the fixtures without restarting original services. No real inference.

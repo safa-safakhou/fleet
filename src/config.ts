@@ -66,6 +66,7 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
       "openai-compatible": env.MODEL_BASE_URL ? endpoint(env.MODEL_BASE_URL, allowHttp) : undefined,
     },
     apiKey: env.MODEL_API_KEY,
+    vllmTerminalAccounting: z.enum(["0", "1"]).parse(env.FLEET_VLLM_TERMINAL_ACCOUNTING ?? "0") === "1",
     decisionEndpoint: env.FLEET_DECISION_URL ? decisionEndpoint(env.FLEET_DECISION_URL) : undefined,
     layaEndpoint: env.FLEET_LAYA_URL ? decisionEndpoint(env.FLEET_LAYA_URL) : undefined,
     codex: { executable: env.FLEET_CODEX_EXECUTABLE, home: env.FLEET_CODEX_HOME },
@@ -90,6 +91,10 @@ export function config(env: NodeJS.ProcessEnv = process.env) {
         .parse(env.FLEET_COMPATIBLE_CONCURRENCY ?? 1),
     },
     vllmCacheProfile: loadCacheProfile(env.FLEET_VLLM_CACHE_PROFILE),
+    vllmWaveWindowMs:
+      env.FLEET_VLLM_WAVE_WINDOW_MS === undefined
+        ? undefined
+        : z.coerce.number().int().min(10).max(1000).parse(env.FLEET_VLLM_WAVE_WINDOW_MS),
     vllmTokenCapacity:
       env.FLEET_VLLM_TOKEN_CAPACITY === undefined
         ? undefined

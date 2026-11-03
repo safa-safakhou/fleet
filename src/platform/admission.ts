@@ -21,6 +21,7 @@ export class RouteCapacity {
       key: string;
       capacity: number;
       tokenCapacity?: number;
+      waveWindowMs?: number;
       resource?: CapacityResource;
     },
     private demand?: (request: Parameters<ModelPort["decide"]>[0]) => Promise<CapacityDemand>,
@@ -44,6 +45,8 @@ export class RouteCapacity {
     const policy = this.policy(request.model),
       id = randomUUID();
     if (
+      (policy.waveWindowMs !== undefined &&
+        (!Number.isInteger(policy.waveWindowMs) || policy.waveWindowMs < 10 || policy.waveWindowMs > 1000)) ||
       !Number.isInteger(policy.capacity) ||
       policy.capacity < 1 ||
       policy.capacity > 16 ||
@@ -106,7 +109,7 @@ export class RouteCapacity {
       )
         throw new FleetError("TURN_MODEL_CALL_ACTIVE", true);
       await db.query(
-        "INSERT INTO model_capacity_routes(route_key,capacity,token_capacity,resource_unit,resource_capacity,resource_fingerprint) VALUES($1,$2,$3,$4,$5,$6) ON CONFLICT DO NOTHING",
+        "INSERT INTO model_capacity_routes(route_key,capacity,token_capacity,resource_unit,resource_capacity,resource_fingerprint,wave_window_ms) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT DO NOTHING",
         [
           policy.key,
           policy.capacity,
@@ -114,15 +117,17 @@ export class RouteCapacity {
           policy.resource?.unit ?? null,
           policy.resource?.capacity ?? null,
           policy.resource?.fingerprint ?? null,
+          policy.waveWindowMs ?? null,
         ],
       );
       const row = (
         await db.query(
-          "SELECT capacity,token_capacity,resource_unit,resource_capacity,resource_fingerprint FROM model_capacity_routes WHERE route_key=$1",
+          "SELECT capacity,token_capacity,resource_unit,resource_capacity,resource_fingerprint,wave_window_ms FROM model_capacity_routes WHERE route_key=$1",
           [policy.key],
         )
       ).rows[0];
       if (
+        (row.wave_window_ms ?? undefined) !== policy.waveWindowMs ||
         row.capacity !== policy.capacity ||
         (row.token_capacity === null ? undefined : Number(row.token_capacity)) !== policy.tokenCapacity ||
         (row.resource_unit ?? undefined) !== policy.resource?.unit ||
@@ -150,6 +155,7 @@ export class RouteCapacity {
       await observation.record(claim, "thinking", "Provider capacity queued", {
         route: request.model.route,
         capacity: policy.capacity,
+        waveWindowMs: policy.waveWindowMs,
         tokenCapacity: policy.tokenCapacity,
         tokenUnits,
         resource: policy.resource,
@@ -169,10 +175,17 @@ export class RouteCapacity {
           );
           const active = (
             await db.query(
-              "SELECT count(*)::int n,coalesce(sum(coalesce(token_units,$2)),0)::text tokens,coalesce(sum(coalesce(resource_units,$3)),0)::text resources FROM model_capacity_leases WHERE route_key=$1 AND state='active'",
+              "SELECT count(*)::int n,min(admitted_at) first_admitted_at,coalesce(sum(coalesce(token_units,$2)),0)::text tokens,coalesce(sum(coalesce(resource_units,$3)),0)::text resources FROM model_capacity_leases WHERE route_key=$1 AND state='active'",
               [policy.key, policy.tokenCapacity ?? 0, policy.resource?.capacity ?? 0],
             )
           ).rows[0];
+          if (
+            policy.waveWindowMs !== undefined &&
+            active.n > 0 &&
+            (active.first_admitted_at === null ||
+              this.store.now().getTime() - new Date(active.first_admitted_at).getTime() >= policy.waveWindowMs)
+          )
+            return false;
           const next = (
             await db.query(
               `WITH eligible AS (
@@ -218,9 +231,10 @@ export class RouteCapacity {
             [policy.key, next.sequence],
           );
           assertModelAdmission(request.model, claim.deadline, this.store.now());
-          await db.query("UPDATE model_capacity_leases SET state='active',expires_at=$2 WHERE id=$1", [
+          await db.query("UPDATE model_capacity_leases SET state='active',expires_at=$2,admitted_at=$3 WHERE id=$1", [
             id,
             claim.deadline,
+            this.store.now(),
           ]);
           return true;
         });
@@ -239,6 +253,7 @@ export class RouteCapacity {
       await observation.record(claim, "thinking", "Provider capacity admitted", {
         route: request.model.route,
         capacity: policy.capacity,
+        waveWindowMs: policy.waveWindowMs,
         tokenCapacity: policy.tokenCapacity,
         tokenUnits,
         resource: policy.resource,

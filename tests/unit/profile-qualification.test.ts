@@ -1,111 +1,79 @@
 import { expect, it } from "vitest";
-import { adapterDigest, qualifyProfile } from "../../src/qualification.js";
-import { boardEnvironment } from "../fixtures/environments/board.js";
-import { evidence } from "../fixtures/profile-evidence.js";
+import { canPromoteCapacity, settledTurnDisposition } from "../../src/research/orchestration/qualification.js";
 
-const profile = { id: "reactive-basic", version: "1" };
-function setup() {
-  const board = boardEnvironment();
-  board.adapter.capabilities.events = "poll";
-  return board;
-}
-it("separates offline and real-provider qualification without connecting or inferring", () => {
-  const b = setup(),
-    fake = evidence(b.adapter, profile),
-    real = evidence(b.adapter, profile, "real_provider");
-  expect(qualifyProfile(profile, b.adapter, [fake])).toMatchObject({
-    offlinePassed: true,
-    liveQualified: false,
-    missing: ["real_provider"],
-  });
-  expect(qualifyProfile(profile, b.adapter, [fake, real])).toMatchObject({
-    offlinePassed: true,
-    liveQualified: true,
-    missing: [],
-  });
-  expect(qualifyProfile(profile, b.adapter, [real]).liveQualified).toBe(false);
-  expect(b.connections).toBe(0);
-  expect(b.executions).toBe(0);
+const scope = "a".repeat(64),
+  requirements = [
+    { profile: "reactive@1", phases: ["decision"] },
+    { profile: "coordinator@1", phases: ["worker", "coordinator"] },
+  ];
+const sample = (profile: string, bindingId: string, phases: string[]) => ({
+  scope,
+  profile,
+  bindingId,
+  phases,
+  capacity: 2,
+  settled: true,
+  outcome: "complete",
+  longestCallMs: 15000,
+  callLimitMs: 35000,
+  usageKnown: true,
+  evidenceComplete: true,
+  elapsedMs: 50000,
+  turnLimitMs: 120000,
 });
-it("requires complete passing coverage, source refs and actual output validation, never passed alone", () => {
-  const b = setup(),
-    fake = evidence(b.adapter, profile);
-  for (const changed of [
-    { ...fake, passed: false },
-    { ...fake, sourceRefs: [] },
-    { ...fake, coverage: { ...fake.coverage, checks: {} } },
-    { ...fake, coverage: { ...fake.coverage, outputs: [] } },
-    {
-      ...fake,
-      coverage: {
-        ...fake.coverage,
-        outputs: [
-          {
-            schema: { type: "object", required: ["missing"] },
-            messages: [],
-            output: {},
-            expectedValid: true,
-            limit: 24000,
-          },
-        ],
-      },
-    },
-    {
-      ...fake,
-      coverage: {
-        ...fake.coverage,
-        outputs: [{ schema: { type: "invalid-type" }, messages: [], output: {}, expectedValid: true, limit: 24000 }],
-      },
-    },
-    {
-      ...fake,
-      coverage: {
-        ...fake.coverage,
-        outputs: [
-          { schema: { type: "object" }, messages: ["x".repeat(25000)], output: {}, expectedValid: false, limit: 24000 },
-        ],
-      },
-    },
-  ])
-    expect(qualifyProfile(profile, b.adapter, [changed]).offlinePassed).toBe(false);
-});
-it("rejects incompatible capabilities, unknown profiles, foreign adapter and stale descriptor evidence", () => {
-  const b = setup(),
-    fake = evidence(b.adapter, profile);
-  expect(qualifyProfile({ ...profile, version: "2" }, b.adapter, [fake]).missing).toContain("unsupported_profile");
+const samples = [
+  sample("reactive@1", "r1", ["decision"]),
+  sample("reactive@1", "r2", ["decision"]),
+  sample("coordinator@1", "c1", ["worker", "coordinator"]),
+  sample("coordinator@1", "c2", ["worker", "coordinator"]),
+];
+it("only qualifies a higher-capacity trial after full phase coverage from two distinct replicas per profile", () => {
   expect(
-    qualifyProfile(profile, b.adapter, [{ ...fake, environment: { ...fake.environment, id: "foreign" } }])
-      .offlinePassed,
-  ).toBe(false);
-  b.adapter.capabilities.events = "none";
-  expect(qualifyProfile(profile, b.adapter, [fake]).missing).toContain("UNSUPPORTED_CAPABILITY");
-  b.adapter.capabilities.events = "poll";
-  b.adapter.capabilities.social = true;
-  expect(qualifyProfile(profile, b.adapter, [fake]).missing).toContain("adapter_digest");
-});
-it("does not pool configurations, source revisions, instances, routes, failures or partial records", () => {
-  const b = setup(),
-    fake = evidence(b.adapter, profile),
-    real = evidence(b.adapter, profile, "real_provider");
-  for (const other of [
-    { ...real, environment: { ...real.environment, instanceId: "other" } },
-    { ...real, coverage: { ...real.coverage, configurationDigest: "e".repeat(64) } },
-    { ...real, coverage: { ...real.coverage, fleetCommit: "e".repeat(40) } },
-    { ...real, coverage: { ...real.coverage, environmentCommit: "e".repeat(40) } },
-    {
-      ...real,
-      coverage: {
-        ...real.coverage,
-        provider: { route: "other", model: "other", settingsDigest: "e".repeat(64), checks: {} },
-      },
-    },
-  ])
-    expect(qualifyProfile(profile, b.adapter, [fake, real, other]).liveQualified).toBe(false);
-  expect(qualifyProfile(profile, b.adapter, [fake, real, { ...real, passed: false }]).liveQualified).toBe(false);
-  expect(adapterDigest(b.adapter)).toBe(
-    adapterDigest({
-      ...b.adapter,
-      schemas: { actions: [...b.adapter.schemas.actions], observations: [...b.adapter.schemas.observations] },
+    canPromoteCapacity({
+      scope,
+      current: 2,
+      next: 4,
+      requirements,
+      samples,
+      memoryAvailability: 60,
+      providerWaiting: 0,
+      preemptions: 0,
     }),
-  );
+  ).toBe(true);
+});
+it("rejects wait-only extrapolation, duplicate replicas, old instance scope, unknown usage and resource pressure", () => {
+  const base = {
+    scope,
+    current: 2,
+    next: 4,
+    requirements,
+    samples,
+    memoryAvailability: 60,
+    providerWaiting: 0,
+    preemptions: 0,
+  };
+  for (const bad of [
+    samples.slice(0, 2),
+    [...samples.slice(0, 3), samples[2]],
+    samples.map((x) => ({ ...x, scope: "b".repeat(64) })),
+    samples.map((x) => ({ ...x, usageKnown: false })),
+    samples.map((x) => (x.profile === "coordinator@1" ? { ...x, phases: ["worker"] } : x)),
+  ])
+    expect(canPromoteCapacity({ ...base, samples: bad })).toBe(false);
+  expect(canPromoteCapacity({ ...base, samples: [...samples, { ...samples[0], outcome: "failed" }] })).toBe(false);
+  expect(canPromoteCapacity({ ...base, providerWaiting: 1 })).toBe(false);
+  expect(canPromoteCapacity({ ...base, preemptions: 1 })).toBe(false);
+});
+it("treats accounted completed deadline deferrals as completed outcomes, without granting permission to replay", () => {
+  const turn = {
+    state: "finished",
+    ownerPhase: "completed",
+    pendingCommand: null,
+    unknownUsage: false,
+    code: "MODEL_ADMISSION_DEFERRED",
+  };
+  expect(settledTurnDisposition(turn)).toBe("completed_deferral");
+  expect(settledTurnDisposition({ ...turn, pendingCommand: "synthetic" })).toBe("review");
+  expect(settledTurnDisposition({ ...turn, unknownUsage: true })).toBe("review");
+  expect(settledTurnDisposition({ ...turn, ownerPhase: "awaiting_reconciliation" })).toBe("review");
 });
