@@ -1,12 +1,22 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "trial08 drained safely; known deadline misclassification fixed in candidate; measured coordinator exclusive lane under validation; fresh09/10 pending",
-  "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03", "c4479ed", "68c577f"],
+  "status": "final candidate1776ceb verified; full cycle09 armed with coordinator exclusive lane; independent10 pending",
+  "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03", "c4479ed", "68c577f", "1776ceb"],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
     {
       "round": 1,
-      "status": "fresh09 pending source qualification"
+      "attempt": "09",
+      "status": "armed; native acceptance pending",
+      "world": "fleet-repair-20261103-5281b3f8",
+      "source": "1776cebb7f5cbd9a08a9e80db6c78ec8068ae41a",
+      "provider": "fleet-metal-0fd80488",
+      "startsAtUtc": "2026-11-03T13:40:22.646Z",
+      "endsAtUtc": "2026-11-03T13:55:22.646Z",
+      "turnDispatchPolicy": "turn-wave",
+      "exclusiveProfiles": ["specialist-coordinator@1"],
+      "maximumParallel": 2,
+      "initialTasks": 18
     },
     {
       "round": 2,
