@@ -1,12 +1,26 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
   "status": "RESUMED by owner4November; zero-token terminal-output observer verified offline; fresh11/12 acceptance pending",
-  "sourceRepairs": ["aa55459", "bb80aee", "6711a27", "6d0053c", "0bdb80b", "c9e8c03", "c4479ed", "68c577f", "1776ceb"],
+  "sourceRepairs": [
+    "aa55459",
+    "bb80aee",
+    "6711a27",
+    "6d0053c",
+    "0bdb80b",
+    "c9e8c03",
+    "c4479ed",
+    "68c577f",
+    "1776ceb",
+    "d7b0418"
+  ],
   "plan": "docs/superpowers/plans/2026-11-03-fleet-repair-and-validation.md",
   "rounds": [
     {
       "round": 1,
-      "status": "fresh11 pending qualified provider/clock/native preflight"
+      "status": "16 fresh actors prepared; no generation; unchanged resource and finite seal gates pending",
+      "world": "fleet-repair-20261104-1bd44876",
+      "privateLedger": ".superpowers/sdd/2026-11-04-repair-round-11",
+      "provider": "fleet-metal-39988b4a"
     },
     {
       "round": 2,
@@ -46,7 +60,9 @@
     "terminalAccounting": "authenticated native abort plus atomic final journal; bounded1000ms drain",
     "boundedCycle": "one delivery per initial native task; two native charter tasks for each autonomous binding; read/final phases stay within their native turns",
     "turnDispatchPolicy": "turn-wave (follow-up candidate; native per-call waves unchanged)",
-    "exclusiveProfiles": ["specialist-coordinator@1"]
+    "exclusiveProfiles": [
+      "specialist-coordinator@1"
+    ]
   },
   "qualification": {
     "cacheAdmissionBlocks": 400,
@@ -234,7 +250,11 @@
       "closureVerification": "pass",
       "restores": 4,
       "artifactsVerified": 8190,
-      "actualRendering": ["timeline", "context/lineage", "causal graph"],
+      "actualRendering": [
+        "timeline",
+        "context/lineage",
+        "causal graph"
+      ],
       "browserErrors": 0,
       "perKingdom": [
         {
@@ -634,8 +654,14 @@
       "guardParkedTasks": 1,
       "guardCode": "MODEL_ADMISSION_DEFERRED",
       "guardedProfile": "reactive-cognition@2",
-      "providerQueueMsBeforeFirstTwoCalls": [19833, 18424],
-      "providerGenerationMs": [15130.092375, 15182.214458],
+      "providerQueueMsBeforeFirstTwoCalls": [
+        19833,
+        18424
+      ],
+      "providerGenerationMs": [
+        15130.092375,
+        15182.214458
+      ],
       "thirdCallDispatched": false,
       "guardedTaskPreservedAwaitingReconciliation": true,
       "restores": 4,
@@ -687,7 +713,10 @@
       "matchingPactReceipts": 2,
       "modelAborts": 2,
       "abortedProfile": "specialist-coordinator@1",
-      "abortOutputTokens": [677, 681],
+      "abortOutputTokens": [
+        677,
+        681
+      ],
       "nativeTimeLimitMs": 35000,
       "oldTurnLabels": "USAGE_UNKNOWN",
       "originalThrownFailure": "MODEL_DEADLINE_EXCEEDED after reported settlement",
@@ -1325,7 +1354,21 @@
     "interrupted10ArtifactsVerified": 2243,
     "allExistingContainers": 75,
     "volumeDefinitions": 121,
-    "generationRequestsDuringInvestigation": 0
+    "generationRequestsDuringInvestigation": 0,
+    "fullRootUnits": {
+      "passed": 1313,
+      "skipped": 23,
+      "filesPassed": 243,
+      "filesSkipped": 1
+    },
+    "temporalPrelaunch": {
+      "sampleMiB": 690.6171875,
+      "drainMiB": 650,
+      "limitMiB": 768,
+      "generationCalls": 0,
+      "action": "two encrypted verified native database snapshots, restart exact isolated research Temporal only with unchanged configuration; no original services restarted",
+      "privateEvidence": ".superpowers/sdd/2026-11-04-repair-round-11/temporal-pre-restart-preservation.json"
+    }
   },
   "roundsBeforeResume": [
     {
@@ -1338,7 +1381,9 @@
       "startsAtUtc": "2026-11-03T13:40:22.646Z",
       "endsAtUtc": "2026-11-03T13:55:22.646Z",
       "turnDispatchPolicy": "turn-wave",
-      "exclusiveProfiles": ["specialist-coordinator@1"],
+      "exclusiveProfiles": [
+        "specialist-coordinator@1"
+      ],
       "maximumParallel": 2,
       "initialTasks": 18,
       "totals": {
@@ -1950,7 +1995,9 @@
       "startsAtUtc": "2026-11-03T13:57:35.241Z",
       "endsAtUtc": "2026-11-03T14:12:35.241Z",
       "turnDispatchPolicy": "turn-wave",
-      "exclusiveProfiles": ["specialist-coordinator@1"],
+      "exclusiveProfiles": [
+        "specialist-coordinator@1"
+      ],
       "maximumParallel": 2,
       "initialTasks": 18,
       "ownerStop": {
