@@ -1,6 +1,6 @@
 # Fleet repair validation —3November2026
 
-Resumed at the owner’s explicit request on4November2026. The interrupted10call remains quarantined with its full40000token reservation/null measurements. A zero-token terminal-output bridge correction has passed offline checks; two fresh11/12cycles remain pending. All earlier stopped/failed/accepted runs remain retained. [Exact results](fleet-repair-validation-20261103.json).
+Completed after the owner’s4November resumption: fresh12/13each completed all16kingdoms/18initial tasks, with54reported calls/eightPACT-confirmed effects/zero new unknowns or model errors. Eight restores/15531artifact references and actual visualizations verify. [Final report and per-kingdom comparison](fleet-repair-final-20261104.md); [exact evidence](fleet-repair-validation-20261103.json). Earlier checkpoints below retain their original pending/failed/stopped status as dated history. Interrupted10unknown40000tokens/null and older holds remain unchanged.
 
 The repairs add explicitly shorter model deadlines with workflow-envelope checks, a native command census covering legacy and platform paths, optional prefill admission waves, conservative profile/phase capacity qualification, and authenticated native abort/final-usage accounting. Exact matching waiting projections and known completed deferrals are recognized without resetting or replaying tasks. Atomic journal or identity failures retain unknown usage. Aborted or recovered-accounting-only answers cannot execute commands.
 

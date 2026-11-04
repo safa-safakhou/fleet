@@ -1,6 +1,6 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "post-bridge cycle12 accepted; fresh13 independent repeat armed",
+  "status": "COMPLETE: two fresh post-bridge full-roster bounded cycles12/13 accepted; owned execution stopped; limitations retained",
   "sourceRepairs": [
     "aa55459",
     "bb80aee",
@@ -18,7 +18,7 @@
     {
       "round": 1,
       "attempt": "12",
-      "status": "accepted complete bounded initial cycle; all native accounting/restores/evidence/rendering pass",
+      "status": "accepted complete bounded initial cycle; native accounting/restores/evidence/rendering pass",
       "world": "fleet-repair-20261104-437cc79a",
       "namespace": "fleet-repair-20261104-437cc79a",
       "privateLedger": ".superpowers/sdd/2026-11-04-repair-round-12",
@@ -144,7 +144,6 @@
         "sha256Match": true
       },
       "actualRendering": {
-        "status": "pass",
         "events": 519,
         "allocations": 2,
         "browserErrors": []
@@ -645,12 +644,73 @@
         "providerGuard": true,
         "awake": true,
         "watchdog": true
+      },
+      "exclusiveProfiles": ["specialist-coordinator@1"],
+      "source": "acc9259eceddffd1a9f7819de781f47b2434b4b6",
+      "sealedStartUtc": "2026-11-04T01:26:42.419Z",
+      "sealedEndUtc": "2026-11-04T01:41:42.419Z",
+      "actualBoundedCycleSeconds": 392.985,
+      "committedEffects": 4,
+      "unknowns": 0,
+      "peakNativeCalls": 2,
+      "peakProviderRunning": 2,
+      "peakProviderWaiting": 1,
+      "preemptions": 0,
+      "minimumMemoryAvailabilityPercent": 49,
+      "maximumTemporalMiB": 500.140625,
+      "logicalQueueMs": {
+        "samples": 18,
+        "min": 461,
+        "p50": 185182,
+        "p95": 371452,
+        "max": 371452
+      },
+      "nativeTurnWallMs": {
+        "samples": 18,
+        "min": 12184,
+        "p50": 29601,
+        "p95": 59739,
+        "max": 59739
+      },
+      "modelCapacityQueueMs": {
+        "samples": 27,
+        "min": 31,
+        "p50": 39,
+        "p95": 13441,
+        "max": 15573
+      },
+      "modelEndToEndMs": {
+        "samples": 27,
+        "min": 10228,
+        "p50": 18693,
+        "p95": 32180,
+        "max": 33435
+      },
+      "providerElapsedMs": {
+        "samples": 27,
+        "min": 10130.238291000016,
+        "p50": 15541.371875000012,
+        "p95": 32000.897499999963,
+        "max": 33242.76679199998
+      },
+      "providerFirstContentMs": {
+        "samples": 27,
+        "min": 7083.424499999994,
+        "p50": 12182.473790999997,
+        "p95": 23405.099749999994,
+        "max": 28915.013124999998
+      },
+      "restoredDatabases": 4,
+      "allServices": {
+        "containers": 75,
+        "volumeDefinitions": 121,
+        "substantiveDifferences": 0
       }
     },
     {
       "round": 2,
       "attempt": "13",
-      "status": "armed; actual native completion pending",
+      "status": "accepted complete bounded initial cycle; native accounting/restores/evidence/rendering pass",
       "world": "fleet-repair-20261104-943f79d5",
       "namespace": "fleet-repair-20261104-943f79d5",
       "privateLedger": ".superpowers/sdd/2026-11-04-repair-round-13",
@@ -662,7 +722,675 @@
       "providerPinsSha256": "35c7d0bedc5b20b32bde51b86db83952c5b1a4273f17625febea45961d919777",
       "sourceHash": "f986a687d024d1657cee3d50e9c1cb9bc2a3f4506f4ab56c0bb8aaff91fb34b6",
       "buildHash": "7ca7e623cd187ffc8d9db888d0fdd1dc7d5769259c6a0ae54370ada1bcd44379",
-      "dependenciesHash": "74ae0befe5de6c0edc90790522b905ae7b8a65a04bc9aceb97a0beee0c3467ca"
+      "dependenciesHash": "74ae0befe5de6c0edc90790522b905ae7b8a65a04bc9aceb97a0beee0c3467ca",
+      "scopeProvenance": [
+        {
+          "provenance": "research",
+          "count": 18
+        }
+      ],
+      "exclusiveProfiles": ["specialist-coordinator@1"],
+      "turnWaveVerification": {
+        "status": "pass",
+        "nativeInitialTaskProjections": 18,
+        "turnWaves": 10,
+        "newBindingWhilePreviousWaveActive": 0,
+        "coordinatorTurnsExclusive": 2,
+        "waves": [
+          {
+            "waveId": 1,
+            "start": 1793756522136,
+            "end": 1793756553974,
+            "turns": 2,
+            "exclusive": false
+          },
+          {
+            "waveId": 2,
+            "start": 1793756553980,
+            "end": 1793756580977,
+            "turns": 2,
+            "exclusive": false
+          },
+          {
+            "waveId": 3,
+            "start": 1793756580983,
+            "end": 1793756633387,
+            "turns": 2,
+            "exclusive": false
+          },
+          {
+            "waveId": 4,
+            "start": 1793756633393,
+            "end": 1793756692800,
+            "turns": 2,
+            "exclusive": false
+          },
+          {
+            "waveId": 5,
+            "start": 1793756692806,
+            "end": 1793756721510,
+            "turns": 2,
+            "exclusive": false
+          },
+          {
+            "waveId": 6,
+            "start": 1793756721516,
+            "end": 1793756759125,
+            "turns": 1,
+            "exclusive": true
+          },
+          {
+            "waveId": 7,
+            "start": 1793756759132,
+            "end": 1793756823256,
+            "turns": 2,
+            "exclusive": false
+          },
+          {
+            "waveId": 8,
+            "start": 1793756823259,
+            "end": 1793756860814,
+            "turns": 1,
+            "exclusive": true
+          },
+          {
+            "waveId": 9,
+            "start": 1793756860817,
+            "end": 1793756888967,
+            "turns": 2,
+            "exclusive": false
+          },
+          {
+            "waveId": 10,
+            "start": 1793756888979,
+            "end": 1793756909690,
+            "turns": 2,
+            "exclusive": false
+          }
+        ]
+      },
+      "source": "fa8a72ede720299cf1492356a1e0eed3fd5e5c9a",
+      "sealedStartUtc": "2026-11-04T01:42:01.800Z",
+      "sealedEndUtc": "2026-11-04T01:57:01.800Z",
+      "actualBoundedCycleSeconds": 389.73,
+      "totals": {
+        "reportedCalls": 27,
+        "inputTokens": 191625,
+        "outputTokens": 5562,
+        "initialTasks": 18,
+        "visitedInitialTasks": 18
+      },
+      "knownAdmissionDeferrals": 0,
+      "committedEffects": 4,
+      "unknowns": 0,
+      "modelErrors": 0,
+      "peakNativeCalls": 2,
+      "peakProviderRunning": 2,
+      "peakProviderWaiting": 2,
+      "preemptions": 0,
+      "minimumMemoryAvailabilityPercent": 48,
+      "maximumTemporalMiB": 585.21875,
+      "logicalQueueMs": {
+        "samples": 18,
+        "min": 336,
+        "p50": 171006,
+        "p95": 367179,
+        "max": 367179
+      },
+      "nativeTurnWallMs": {
+        "samples": 18,
+        "min": 20708,
+        "p50": 28704,
+        "p95": 64124,
+        "max": 64124
+      },
+      "modelCapacityQueueMs": {
+        "samples": 27,
+        "min": 29,
+        "p50": 41,
+        "p95": 13902,
+        "max": 17611
+      },
+      "modelEndToEndMs": {
+        "samples": 27,
+        "min": 10262,
+        "p50": 23426,
+        "p95": 30623,
+        "max": 31068
+      },
+      "providerElapsedMs": {
+        "samples": 27,
+        "min": 10158.480666999996,
+        "p50": 20478.9755,
+        "p95": 29115.554875000016,
+        "max": 30489.229666999992
+      },
+      "providerFirstContentMs": {
+        "samples": 27,
+        "min": 8206.685666000005,
+        "p50": 12305.334374999977,
+        "p95": 23185.986584,
+        "max": 26258.521332999997
+      },
+      "restoredDatabases": 4,
+      "artifactsVerified": 7902,
+      "stateTree": {
+        "files": 408,
+        "bytes": 63928116,
+        "sha256Match": true
+      },
+      "allServices": {
+        "containers": 75,
+        "volumeDefinitions": 121,
+        "substantiveDifferences": 0
+      },
+      "actualRendering": {
+        "events": 849,
+        "allocations": 3,
+        "browserErrors": []
+      },
+      "perKingdom": [
+        {
+          "name": "legacy-loop-1-1",
+          "profile": {
+            "id": "legacy-loop",
+            "version": "1"
+          },
+          "bindingId": "8f4644f7-cc0f-4a12-8189-f6eecb77d29b",
+          "calls": 3,
+          "turns": [
+            {
+              "code": "TURN_ACTION_LIMIT",
+              "actions": 1,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "5012ee16-681b-479f-a6bb-6e3f7b3bee58",
+              "participantId": null,
+              "logicalQueueMs": 59183,
+              "turnWallMs": 52404,
+              "completedAt": 1793756633387,
+              "nativeCode": "TURN_ACTION_LIMIT"
+            }
+          ],
+          "commands": [
+            {
+              "state": "confirmed",
+              "code": "COMMITTED",
+              "conflict": false
+            }
+          ]
+        },
+        {
+          "name": "legacy-loop-1-2",
+          "profile": {
+            "id": "legacy-loop",
+            "version": "1"
+          },
+          "bindingId": "4d902776-c339-41e4-a02f-eb558de3b58c",
+          "calls": 2,
+          "turns": [
+            {
+              "code": "TURN_ACTION_LIMIT",
+              "actions": 1,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "a923a374-bb01-4520-a7ae-958784ff36c4",
+              "participantId": null,
+              "logicalQueueMs": 237332,
+              "turnWallMs": 50357,
+              "completedAt": 1793756809489,
+              "nativeCode": "TURN_ACTION_LIMIT"
+            }
+          ],
+          "commands": [
+            {
+              "state": "confirmed",
+              "code": "COMMITTED",
+              "conflict": false
+            }
+          ]
+        },
+        {
+          "name": "legacy-cognition-1-1",
+          "profile": {
+            "id": "legacy-cognition",
+            "version": "1"
+          },
+          "bindingId": "eb47588b-49a9-47e8-9211-46d598969f90",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "ec8a6dba-fc19-4cf4-abd1-6534813eb34a",
+              "participantId": null,
+              "logicalQueueMs": 339017,
+              "turnWallMs": 28150,
+              "completedAt": 1793756888967,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "legacy-cognition-1-2",
+          "profile": {
+            "id": "legacy-cognition",
+            "version": "1"
+          },
+          "bindingId": "73e29625-013e-43ed-87df-24b938c092c2",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "0293052c-a94b-49fb-9bdb-07839735c826",
+              "participantId": null,
+              "logicalQueueMs": 336,
+              "turnWallMs": 31838,
+              "completedAt": 1793756553974,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-basic-1-1",
+          "profile": {
+            "id": "reactive-basic",
+            "version": "1"
+          },
+          "bindingId": "84f53c98-be3f-49ac-af3d-6f190fc5539c",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "03a4f969-937a-4e1d-bcc6-253f57d94c44",
+              "participantId": null,
+              "logicalQueueMs": 336,
+              "turnWallMs": 30777,
+              "completedAt": 1793756552913,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-basic-1-2",
+          "profile": {
+            "id": "reactive-basic",
+            "version": "1"
+          },
+          "bindingId": "61fd04d2-3627-4523-ba56-cbe9d9a6a77a",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "6b8e5e24-72db-4ae2-9eec-801bfe0277e8",
+              "participantId": null,
+              "logicalQueueMs": 171006,
+              "turnWallMs": 28704,
+              "completedAt": 1793756721510,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-1-1",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "1"
+          },
+          "bindingId": "a669298a-2931-45e6-9db3-cd5db1302f56",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "61ab0c52-260a-44bb-8564-7b7296256d97",
+              "participantId": null,
+              "logicalQueueMs": 111593,
+              "turnWallMs": 31868,
+              "completedAt": 1793756665261,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-1-2",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "1"
+          },
+          "bindingId": "4ebc07c5-3579-4ba5-9d02-b3f30aeabd91",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "4841b696-ccf4-4b3d-9ea7-78b0d8a68229",
+              "participantId": null,
+              "logicalQueueMs": 32180,
+              "turnWallMs": 26997,
+              "completedAt": 1793756580977,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-2-1",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "2"
+          },
+          "bindingId": "a7d94c16-b5ad-4e22-b30f-ecfdea41eeb5",
+          "calls": 3,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "ae31f1f0-50bb-4485-9adc-e8e13c0f6c9d",
+              "participantId": null,
+              "logicalQueueMs": 237332,
+              "turnWallMs": 64124,
+              "completedAt": 1793756823256,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-2-2",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "2"
+          },
+          "bindingId": "c82d56a2-7878-41b7-a916-2b9b14c4a45e",
+          "calls": 3,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "54ff001c-dba5-4e46-9e8c-54102be95666",
+              "participantId": null,
+              "logicalQueueMs": 111593,
+              "turnWallMs": 59407,
+              "completedAt": 1793756692800,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-1.1-1",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "1.1"
+          },
+          "bindingId": "21d2997d-2aef-4b8b-b650-554d3ca17f17",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "f24352a4-79c5-413a-b0e1-2a27d9edff8c",
+              "participantId": null,
+              "logicalQueueMs": 339017,
+              "turnWallMs": 27619,
+              "completedAt": 1793756888436,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "reactive-cognition-1.1-2",
+          "profile": {
+            "id": "reactive-cognition",
+            "version": "1.1"
+          },
+          "bindingId": "27228cc3-cb9d-4952-a9c8-2edfe3bf2bb8",
+          "calls": 1,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "51647cd1-efda-40cc-b48d-e5163dfe780c",
+              "participantId": null,
+              "logicalQueueMs": 59183,
+              "turnWallMs": 24913,
+              "completedAt": 1793756605896,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "specialist-coordinator-1-1",
+          "profile": {
+            "id": "specialist-coordinator",
+            "version": "1"
+          },
+          "bindingId": "8a2b5423-b9f5-42eb-a0c6-9727f3fc1458",
+          "calls": 2,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 1,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "ea9eb0c3-8de6-4522-bc7a-8fd605d000c4",
+              "participantId": null,
+              "logicalQueueMs": 301459,
+              "turnWallMs": 37555,
+              "completedAt": 1793756860814,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": [
+            {
+              "state": "confirmed",
+              "code": "COMMITTED",
+              "conflict": false
+            }
+          ]
+        },
+        {
+          "name": "specialist-coordinator-1-2",
+          "profile": {
+            "id": "specialist-coordinator",
+            "version": "1"
+          },
+          "bindingId": "2bdba774-8e36-4d96-b752-210dcc805cba",
+          "calls": 2,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 1,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "9d382bf8-5737-43a3-9060-9a210c25353f",
+              "participantId": null,
+              "logicalQueueMs": 199716,
+              "turnWallMs": 37609,
+              "completedAt": 1793756759125,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": [
+            {
+              "state": "confirmed",
+              "code": "COMMITTED",
+              "conflict": false
+            }
+          ]
+        },
+        {
+          "name": "autonomous-specialists-1-1",
+          "profile": {
+            "id": "autonomous-specialists",
+            "version": "1"
+          },
+          "bindingId": "f931852a-eaa3-41bf-92aa-71e9690a770d",
+          "calls": 2,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            },
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "0f4c3d4d-d3e3-4c23-aaae-c0b963a1dfab",
+              "participantId": "diplomacy",
+              "logicalQueueMs": 32180,
+              "turnWallMs": 26995,
+              "completedAt": 1793756580975,
+              "nativeCode": "WAIT"
+            },
+            {
+              "taskId": "7eb75913-effd-42f9-b0a2-105a4ef6bbd0",
+              "participantId": "resources",
+              "logicalQueueMs": 367179,
+              "turnWallMs": 20708,
+              "completedAt": 1793756909687,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        },
+        {
+          "name": "autonomous-specialists-1-2",
+          "profile": {
+            "id": "autonomous-specialists",
+            "version": "1"
+          },
+          "bindingId": "4584b4d6-6007-4af2-8524-10178f1c8bf7",
+          "calls": 2,
+          "turns": [
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            },
+            {
+              "code": "WAIT",
+              "actions": 0,
+              "unknown": false
+            }
+          ],
+          "dispatches": [
+            {
+              "taskId": "88492013-8f1f-4da6-8310-78d2bd99aaf6",
+              "participantId": "diplomacy",
+              "logicalQueueMs": 171006,
+              "turnWallMs": 28183,
+              "completedAt": 1793756720989,
+              "nativeCode": "WAIT"
+            },
+            {
+              "taskId": "df735ae2-b405-4ef7-95f0-621174967ddf",
+              "participantId": "resources",
+              "logicalQueueMs": 367179,
+              "turnWallMs": 20711,
+              "completedAt": 1793756909690,
+              "nativeCode": "WAIT"
+            }
+          ],
+          "commands": []
+        }
+      ],
+      "actualCycleSeconds": 389.73,
+      "actualUnknowns": 0,
+      "commands": 4,
+      "matchingPactReceipts": 4,
+      "restores": 4,
+      "worldState": {
+        "status": "paused",
+        "tick": "6",
+        "gameTimeMs": 1793756580000
+      },
+      "stoppedProcesses": {
+        "controller": true,
+        "rules": true,
+        "provider": true,
+        "providerGuard": true,
+        "awake": true,
+        "watchdog": true
+      }
     }
   ],
   "configuration": {
@@ -698,9 +1426,7 @@
     "terminalAccounting": "authenticated native abort plus atomic final journal; bounded1000ms drain",
     "boundedCycle": "one delivery per initial native task; two native charter tasks for each autonomous binding; read/final phases stay within their native turns",
     "turnDispatchPolicy": "turn-wave (follow-up candidate; native per-call waves unchanged)",
-    "exclusiveProfiles": [
-      "specialist-coordinator@1"
-    ]
+    "exclusiveProfiles": ["specialist-coordinator@1"]
   },
   "qualification": {
     "cacheAdmissionBlocks": 400,
@@ -709,28 +1435,30 @@
     "metadataGenerationCalls": 0,
     "commonPackets": 16,
     "largestCommonPacketBytes": 42045,
-    "wholeArchitectureGenerationAcceptance": "fresh12 accepted complete initial cycle; fresh13 independent repeat pending; no continuous/higher-capacity/real-time claim"
+    "wholeArchitectureGenerationAcceptance": "two independent fresh full-roster initial cycles12/13 accepted at coordinator1/othersmax2; no full-hour/continuous/real-time/higher-capacity claim"
   },
   "protectedHistory": {
     "recentUnknownAllocations": 6,
     "reservedUnknownTokens": 240000,
     "historicalQ3OverheadPercent": 16.29,
     "historicalQ3LimitPercent": 10,
-    "q3AcceptedExceptionStillFailsLimit": true
+    "q3AcceptedExceptionStillFailsLimit": true,
+    "interrupted10AdditionalUnknownAllocations": 1,
+    "interrupted10AdditionalReservedUnknownTokens": 40000
   },
   "prerequisites": {
     "freshDockerFixtureForwarding": "host auto forwarding refused fresh ports; owned SSH fixture tunnel passed32integration checks without changing original services",
     "temporal": "research server OOM-killed2026-11-03T07:11:39Z; encrypted snapshots retained; pinned service restarted with unchanged768MiB container/600MiB Go limits;254MiB sampled after restart;650MiB trial drain threshold"
   },
   "validation": {
-    "rootUnitPasses": 1302,
+    "rootUnitPasses": 1313,
     "platformUnitSkips": 23,
     "matchedWaitingFocusedTests": 4,
-    "transportModelFocusedTests": 31,
+    "transportModelFocusedTests": 32,
     "ownedPoolAndWaveTests": 32,
     "ownedCaptureCensusTests": 7,
-    "ownedAbortAccountingTests": 1,
-    "pythonAsgiTests": 3,
+    "ownedAbortAccountingTests": 4,
+    "pythonAsgiTests": 12,
     "typesStyleBuildBoundariesContracts": "pass; baseline405warnings/83infos"
   },
   "collectorRepair": {
@@ -905,11 +1633,7 @@
       "closureVerification": "pass",
       "restores": 4,
       "artifactsVerified": 8190,
-      "actualRendering": [
-        "timeline",
-        "context/lineage",
-        "causal graph"
-      ],
+      "actualRendering": ["timeline", "context/lineage", "causal graph"],
       "browserErrors": 0,
       "perKingdom": [
         {
@@ -1309,14 +2033,8 @@
       "guardParkedTasks": 1,
       "guardCode": "MODEL_ADMISSION_DEFERRED",
       "guardedProfile": "reactive-cognition@2",
-      "providerQueueMsBeforeFirstTwoCalls": [
-        19833,
-        18424
-      ],
-      "providerGenerationMs": [
-        15130.092375,
-        15182.214458
-      ],
+      "providerQueueMsBeforeFirstTwoCalls": [19833, 18424],
+      "providerGenerationMs": [15130.092375, 15182.214458],
       "thirdCallDispatched": false,
       "guardedTaskPreservedAwaitingReconciliation": true,
       "restores": 4,
@@ -1368,10 +2086,7 @@
       "matchingPactReceipts": 2,
       "modelAborts": 2,
       "abortedProfile": "specialist-coordinator@1",
-      "abortOutputTokens": [
-        677,
-        681
-      ],
+      "abortOutputTokens": [677, 681],
       "nativeTimeLimitMs": 35000,
       "oldTurnLabels": "USAGE_UNKNOWN",
       "originalThrownFailure": "MODEL_DEADLINE_EXCEEDED after reported settlement",
@@ -1390,8 +2105,8 @@
       "volumeDefinitions": 121
     }
   ],
-  "consumedCombinedCalls": 178,
-  "consumedCombinedReservedTokens": 7120000,
+  "consumedCombinedCalls": 205,
+  "consumedCombinedReservedTokens": 8200000,
   "followupValidation": {
     "rootUnitPasses": 1307,
     "platformUnitSkips": 23,
@@ -2038,7 +2753,14 @@
       "sourceArchiveNote": "git archive includes different commit provenance; original source archive pins retained, runtime git diff and build/dependency bytes verified",
       "freshNamespacesAndIdentities": true,
       "sameNumericBudgetsFreshAbsoluteWindows": true
-    }
+    },
+    "finalHistorical10UnknownHoldRecheck": {
+      "preserved": true,
+      "reservedTokens": 40000,
+      "inputTokens": null,
+      "outputTokens": null
+    },
+    "zeroTokenAbortAcceptance": "12synthetic native/ASGI cases plus transport/accounting integrations; successful real cycles did not force a zero-token abort"
   },
   "roundsBeforeResume": [
     {
@@ -2051,9 +2773,7 @@
       "startsAtUtc": "2026-11-03T13:40:22.646Z",
       "endsAtUtc": "2026-11-03T13:55:22.646Z",
       "turnDispatchPolicy": "turn-wave",
-      "exclusiveProfiles": [
-        "specialist-coordinator@1"
-      ],
+      "exclusiveProfiles": ["specialist-coordinator@1"],
       "maximumParallel": 2,
       "initialTasks": 18,
       "totals": {
@@ -2665,9 +3385,7 @@
       "startsAtUtc": "2026-11-03T13:57:35.241Z",
       "endsAtUtc": "2026-11-03T14:12:35.241Z",
       "turnDispatchPolicy": "turn-wave",
-      "exclusiveProfiles": [
-        "specialist-coordinator@1"
-      ],
+      "exclusiveProfiles": ["specialist-coordinator@1"],
       "maximumParallel": 2,
       "initialTasks": 18,
       "ownerStop": {
@@ -2700,5 +3418,28 @@
       "operatorLatchReason": "OWNER_STOP",
       "automaticMonitorDeleted": true
     }
+  ],
+  "finalTotals": {
+    "kingdoms": 32,
+    "initialTasks": 36,
+    "reportedCalls": 54,
+    "inputTokens": 384799,
+    "outputTokens": 10844,
+    "knownAdmissionDeferrals": 0,
+    "committedEffects": 8,
+    "unknowns": 0,
+    "modelErrors": 0,
+    "restoredDatabases": 8,
+    "artifactsVerified": 15531
+  },
+  "finalReport": "docs/research/fleet-repair-final-20261104.md",
+  "finalLimitations": [
+    "one bounded initial task cycle per fresh world, not continuous or one-hour operation",
+    "actual observed phases only; unexercised read/correction/social/strategic variants remain unqualified",
+    "capacity remains2; higher capacity and real-time event responsiveness not qualified",
+    "fresh-world/model-serving tuning plus source repairs are not an isolated causal benchmark",
+    "historical unknowns and accepted16.29percent overhead versus10percent remain unchanged",
+    "zero-token cancellation root cause exercised synthetically, not forced in these successful real cycles",
+    "observer proof covers subscribed intake/native captured execution; no continuous passive observation claim"
   ]
 }
