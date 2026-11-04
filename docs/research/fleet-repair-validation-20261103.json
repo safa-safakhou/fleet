@@ -1,6 +1,6 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "first post-bridge cycle12 accepted; fresh13 repeat pending",
+  "status": "post-bridge cycle12 accepted; fresh13 independent repeat armed",
   "sourceRepairs": [
     "aa55459",
     "bb80aee",
@@ -649,7 +649,20 @@
     },
     {
       "round": 2,
-      "status": "fresh13 independent post-bridge repeat pending"
+      "attempt": "13",
+      "status": "armed; actual native completion pending",
+      "world": "fleet-repair-20261104-943f79d5",
+      "namespace": "fleet-repair-20261104-943f79d5",
+      "privateLedger": ".superpowers/sdd/2026-11-04-repair-round-13",
+      "sourceCommit": "fa8a72ede720299cf1492356a1e0eed3fd5e5c9a",
+      "startsAtUtc": "2026-11-04T01:42:01.800Z",
+      "endsAtUtc": "2026-11-04T01:57:01.800Z",
+      "controllerSha256": "5f0b5b547ab9ead865ed16ee2293bf74b87a48c25161db84f8ca40937c0d0c22",
+      "watchdogSha256": "a20c48460c3146e612fb5c2e3200d98f06a2d558439d433411edb31ac6886129",
+      "providerPinsSha256": "35c7d0bedc5b20b32bde51b86db83952c5b1a4273f17625febea45961d919777",
+      "sourceHash": "f986a687d024d1657cee3d50e9c1cb9bc2a3f4506f4ab56c0bb8aaff91fb34b6",
+      "buildHash": "7ca7e623cd187ffc8d9db888d0fdd1dc7d5769259c6a0ae54370ada1bcd44379",
+      "dependenciesHash": "74ae0befe5de6c0edc90790522b905ae7b8a65a04bc9aceb97a0beee0c3467ca"
     }
   ],
   "configuration": {
@@ -2011,7 +2024,21 @@
       "action": "two encrypted verified native database snapshots, restart exact isolated research Temporal only with unchanged configuration; no original services restarted",
       "privateEvidence": ".superpowers/sdd/2026-11-04-repair-round-11/temporal-pre-restart-preservation.json"
     },
-    "snapshotOperatorRepair": "retained Temporal dump exceeded private15second prelaunch deadline; future prelaunch/final encrypted snapshots use bounded60seconds, matching independently verified restore path; no original task retiming"
+    "snapshotOperatorRepair": "retained Temporal dump exceeded private15second prelaunch deadline; future prelaunch/final encrypted snapshots use bounded60seconds, matching independently verified restore path; no original task retiming",
+    "repeatRuntimeVerification": {
+      "status": "pass",
+      "firstSource": "acc9259eceddffd1a9f7819de781f47b2434b4b6",
+      "repeatSource": "fa8a72ede720299cf1492356a1e0eed3fd5e5c9a",
+      "runtimeFilesUnchanged": true,
+      "buildHashEqual": true,
+      "dependencyHashEqual": true,
+      "operatorHashesEqual": true,
+      "modelManifestEqual": true,
+      "sourceArchiveHashesEqual": false,
+      "sourceArchiveNote": "git archive includes different commit provenance; original source archive pins retained, runtime git diff and build/dependency bytes verified",
+      "freshNamespacesAndIdentities": true,
+      "sameNumericBudgetsFreshAbsoluteWindows": true
+    }
   },
   "roundsBeforeResume": [
     {
