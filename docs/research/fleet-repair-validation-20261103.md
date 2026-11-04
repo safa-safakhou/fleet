@@ -74,3 +74,11 @@ Fresh11 did not seal: its Temporal snapshot exceeded the private15second subproc
 ### Fresh post-bridge cycle12 armed —4November2026
 
 World `fleet-repair-20261104-437cc79a`, source `acc9259`, sealed `2026-11-04T01:26:42.419Z`–`2026-11-04T01:41:42.419Z` (02:26:42–02:41:42Europe/Berlin). Controller and independent watchdog identities verified;16manual workers/shared pool16, coordinator exclusive/othersmax2. All16packet checks,12resource samples,61lid-open clock samples and four encrypted prelaunch snapshots pass. This is readiness evidence; actual native task completion, accounting, restore/visualization acceptance and a fresh13repeat are still pending.
+
+### Fresh post-bridge cycle12 accepted —4November2026
+
+All16kingdoms/18initial native tasks completed in392.99seconds. All27calls match authenticated native terminal records (193,174input/5,282output tokens), with zero model response errors/unknowns/admission deferrals. Four commands match four PACT COMMITTED receipts. All18scopes are research provenance with complete coverage. Eleven verified turn waves have no replacement overlap; both coordinator turns ran alone.
+
+Four independent database restores match;7,629artifact references and411state files/64,774,607bytes verify. Actual timeline/context/causal rendering passes on the inspected scope (519events/two allocations), with zero browser errors. All75container configurations/121volume definitions and three original services verify. World paused tick6; controller/rules/provider/guard/watchdog/awake processes stopped, no native running turns/capacity leases/active worker sessions.
+
+Logical queue p50/p95/max185.18/371.45/371.45seconds; native turn p50/p95/max29.60/59.74/59.74seconds; provider elapsed p50/p95/max15.54/32.00/33.24seconds. These are observed initial-cycle measurements, not real-time or continuous-game qualification. Fresh13still required. Total current-work consumption178calls/7,120,000reserved tokens including the preserved historical40,000token unknown hold; no refund or original limit change.
