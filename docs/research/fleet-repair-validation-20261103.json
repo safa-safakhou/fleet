@@ -17,14 +17,11 @@
   "rounds": [
     {
       "round": 1,
-      "status": "16 fresh actors prepared; no generation; unchanged resource and finite seal gates pending",
-      "world": "fleet-repair-20261104-1bd44876",
-      "privateLedger": ".superpowers/sdd/2026-11-04-repair-round-11",
-      "provider": "fleet-metal-39988b4a"
+      "status": "fresh12 metadata qualification pending"
     },
     {
       "round": 2,
-      "status": "fresh12 independent post-bridge repeat pending"
+      "status": "fresh13 independent post-bridge repeat pending"
     }
   ],
   "configuration": {
@@ -197,6 +194,23 @@
       "preservationVerifiedAfterFullWake": true,
       "allCurrentContainerConfigs": 75,
       "allVolumeDefinitions": 121
+    },
+    {
+      "attempt": "11",
+      "world": "fleet-repair-20261104-1bd44876",
+      "privateLedger": ".superpowers/sdd/2026-11-04-repair-round-11",
+      "status": "sealed preparation refused on15second Temporal snapshot timeout; no execution; permanently closed",
+      "generationCalls": 0,
+      "nativeTurns": 0,
+      "commands": 0,
+      "unknowns": 0,
+      "retainedUndispatchedTasks": 18,
+      "restoredDatabases": 4,
+      "allContainerConfigurations": 75,
+      "allVolumeDefinitions": 121,
+      "originalServicesHealthy": 3,
+      "providerStopped": true,
+      "followup": "fresh12/13 only; bounded60second snapshot deadlines, native15minute window/model/validation limits unchanged"
     }
   ],
   "nativeGatePreflight": {
@@ -1368,7 +1382,8 @@
       "generationCalls": 0,
       "action": "two encrypted verified native database snapshots, restart exact isolated research Temporal only with unchanged configuration; no original services restarted",
       "privateEvidence": ".superpowers/sdd/2026-11-04-repair-round-11/temporal-pre-restart-preservation.json"
-    }
+    },
+    "snapshotOperatorRepair": "retained Temporal dump exceeded private15second prelaunch deadline; future prelaunch/final encrypted snapshots use bounded60seconds, matching independently verified restore path; no original task retiming"
   },
   "roundsBeforeResume": [
     {
