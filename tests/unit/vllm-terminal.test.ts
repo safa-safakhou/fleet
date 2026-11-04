@@ -6,14 +6,14 @@ import { vllmCompletion } from "../../src/vllm-transport.js";
 
 afterEach(() => vi.restoreAllMocks());
 const packet = (x: unknown) => `data: ${JSON.stringify(x)}\n\n`;
-function receipt(client: string) {
+function receipt(client: string, completion = 3) {
   const value = {
     clientRequestId: client,
     finishReason: "abort",
     instanceId: "synthetic-instance",
     nativeRequestId: "native-exact",
     schemaVersion: "fleet.vllm-terminal.v1",
-    usage: { completion_tokens: 3, prompt_tokens: 17, total_tokens: 20 },
+    usage: { completion_tokens: completion, prompt_tokens: 17, total_tokens: 17 + completion },
   };
   return { ...value, sha256: createHash("sha256").update(JSON.stringify(value)).digest("hex") };
 }
@@ -181,4 +181,38 @@ it("an aborted native response retains usage and can never provide an executable
     signal: AbortSignal.timeout(1000),
   });
   expect(result).toMatchObject({ inputTokens: 17, outputTokens: 3, decision: null, decisionError: "MODEL_ABORTED" });
+});
+
+it("recovers exact zero-token terminal usage when upstream suppresses its empty finish choice", async () => {
+  let client = "";
+  vi.spyOn(globalThis, "fetch").mockImplementation(async (url, init) => {
+    if (String(url).endsWith("/chat/completions")) {
+      client = JSON.parse(String(init?.body)).request_id;
+      return new Response(
+        packet({ id: "native-exact", choices: [{ index: 0, delta: { content: "" }, finish_reason: null }] }) +
+          packet({
+            id: "native-exact",
+            choices: [],
+            usage: { prompt_tokens: 17, completion_tokens: 0, total_tokens: 17 },
+          }) +
+          "data: [DONE]\n\n",
+        { headers: { "content-type": "text/event-stream" } },
+      );
+    }
+    return Response.json(receipt(client, 0));
+  });
+  const result = await vllmCompletion(
+    "http://synthetic.invalid/v1/chat/completions",
+    {},
+    "fake",
+    new AbortController().signal,
+    undefined,
+    undefined,
+    { instanceId: "synthetic-instance" },
+  );
+  expect(result.accountingOnly).toBe(true);
+  expect(result.data).toMatchObject({
+    usage: { prompt_tokens: 17, completion_tokens: 0 },
+    choices: [{ message: { content: "" }, finish_reason: "abort" }],
+  });
 });

@@ -1,6 +1,7 @@
 """Authenticated exact-native-request abort and final usage journal. No inference/content logging."""
 import hashlib
 import hmac
+import inspect
 import json
 import os
 import re
@@ -27,6 +28,66 @@ class TerminalAccountingMiddleware:
         if self.directory.stat().st_mode & 0o077 or any(self.directory.iterdir()):
             raise ValueError('FRESH_PRIVATE_TERMINAL_DIRECTORY_REQUIRED')
         self.requests = {}
+        self.native_finishes = {}
+
+    def observe_native_chat(self, scope):
+        """Observe exact finished engine output before the pinned SSE handler filters it.
+
+        No generated output is altered. Abort acknowledgements are never terminal facts.
+        """
+        chat = getattr(scope['app'].state, 'openai_serving_chat', None)
+        if chat is None:
+            return False
+        owner = getattr(chat, '_fleet_terminal_observer', None)
+        if owner is not None:
+            return owner is self
+        original = chat.chat_completion_stream_generator
+        expected = ['request', 'result_generator', 'request_id', 'model_name',
+                    'conversation', 'tokenizer', 'request_metadata']
+        if list(inspect.signature(original).parameters)[:7] != expected:
+            return False
+
+        async def observed(request, result_generator, request_id, model_name, conversation,
+                           tokenizer, request_metadata, **kwargs):
+            async def outputs():
+                try:
+                    async for result in result_generator:
+                        if getattr(result, 'finished', False) is True:
+                            reason = None
+                            choices = getattr(result, 'outputs', [])
+                            if (getattr(result, 'request_id', None) == request_id
+                                    and getattr(request_metadata, 'request_id', None) == request_id
+                                    and (getattr(request, 'n', None) or 1) == 1
+                                    and isinstance(choices, (list, tuple)) and len(choices) == 1
+                                    and getattr(choices[0], 'index', None) == 0
+                                    and getattr(choices[0], 'finish_reason', None) in FINISH):
+                                reason = choices[0].finish_reason
+                            if request_id in self.native_finishes:
+                                # Multiple terminal outputs are ambiguous, even if reasons match.
+                                reason = None
+                            if len(self.native_finishes) < 4096 or request_id in self.native_finishes:
+                                self.native_finishes[request_id] = reason
+                        yield result
+                finally:
+                    close = getattr(result_generator, 'aclose', None)
+                    if close is not None:
+                        await close()
+            tapped = outputs()
+            stream = original(request, tapped, request_id, model_name, conversation,
+                              tokenizer, request_metadata, **kwargs)
+            try:
+                async for packet in stream:
+                    yield packet
+            finally:
+                try:
+                    close = getattr(stream, 'aclose', None)
+                    if close is not None:
+                        await close()
+                finally:
+                    await tapped.aclose()
+        chat.chat_completion_stream_generator = observed
+        chat._fleet_terminal_observer = self
+        return True
 
     async def reply(self, send, status, data):
         body = json.dumps(data, separators=(',', ':')).encode()
@@ -37,6 +98,11 @@ class TerminalAccountingMiddleware:
     def journal(self, client, entry, finish):
         metadata = entry.get('scope', {}).get('state', {}).get('request_metadata')
         native = getattr(metadata, 'request_id', '')
+        if entry.get('native_observer'):
+            native_finish = self.native_finishes.get(native)
+            if native_finish not in FINISH or (finish is not None and finish != native_finish):
+                return
+            finish = native_finish
         usage = getattr(metadata, 'final_usage_info', None)
         values = {name: getattr(usage, name, None) for name in ('prompt_tokens','completion_tokens','total_tokens')}
         if (not NATIVE.fullmatch(native) or finish not in FINISH
@@ -77,7 +143,8 @@ class TerminalAccountingMiddleware:
         if control:
             if path == '/fleet/terminal-accounting' and method == 'GET':
                 return await self.reply(send, 200, {'schemaVersion':'fleet.vllm-terminal-capabilities.v1',
-                    'instanceId':self.instance, 'nativeAbort':True, 'atomicTerminalJournal':True})
+                    'instanceId':self.instance, 'nativeAbort':True, 'atomicTerminalJournal':True,
+                    'nativeTerminalOutput':self.observe_native_chat(scope)})
             parts = path.split('/')
             if len(parts) != 5 or parts[2] != 'requests' or not UUID.fullmatch(parts[3]):
                 return await self.reply(send, 404, {'error':'REQUEST_NOT_FOUND'})
@@ -106,7 +173,7 @@ class TerminalAccountingMiddleware:
         if client in self.requests or len(self.requests) >= 4096:
             return await self.reply(send, 409, {'error':'REQUEST_ID_OR_JOURNAL_CAPACITY'})
         scope.setdefault('state', {})
-        entry = self.requests[client] = {'scope':scope}
+        entry = self.requests[client] = {'scope':scope, 'native_observer':self.observe_native_chat(scope)}
         pending, finish, native_id, failed, sse = b'', None, None, False, False
         async def observe(message):
             nonlocal pending, finish, native_id, failed, sse
@@ -145,5 +212,7 @@ class TerminalAccountingMiddleware:
         try:
             await self.app(scope, receive, observe)
         finally:
+            metadata = scope.get('state', {}).get('request_metadata')
+            self.native_finishes.pop(getattr(metadata, 'request_id', None), None)
             entry['closed'] = True
             entry.pop('scope', None)  # Do not retain prompts, content or ASGI request state.
