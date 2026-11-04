@@ -1,6 +1,6 @@
 {
   "schemaVersion": "fleet.repair-validation.v1",
-  "status": "RESUMED by owner4November; zero-token terminal-output observer verified offline; fresh11/12 acceptance pending",
+  "status": "fresh12 sealed and controller/watchdog ready; two post-bridge acceptance cycles pending",
   "sourceRepairs": [
     "aa55459",
     "bb80aee",
@@ -17,7 +17,20 @@
   "rounds": [
     {
       "round": 1,
-      "status": "fresh12 metadata qualification pending"
+      "attempt": "12",
+      "status": "armed; actual native completion pending",
+      "world": "fleet-repair-20261104-437cc79a",
+      "namespace": "fleet-repair-20261104-437cc79a",
+      "privateLedger": ".superpowers/sdd/2026-11-04-repair-round-12",
+      "sourceCommit": "acc9259eceddffd1a9f7819de781f47b2434b4b6",
+      "startsAtUtc": "2026-11-04T01:26:42.419Z",
+      "endsAtUtc": "2026-11-04T01:41:42.419Z",
+      "controllerSha256": "5f0b5b547ab9ead865ed16ee2293bf74b87a48c25161db84f8ca40937c0d0c22",
+      "watchdogSha256": "a20c48460c3146e612fb5c2e3200d98f06a2d558439d433411edb31ac6886129",
+      "providerPinsSha256": "5907c31964cad097fcb576cf7f7d2bcffe183db93a7b15a013a73ae56e29fb5e",
+      "sourceHash": "8a11ccd1ce0ae8b2f4049e042247c196206154d62dc0d4764db9f74aa41d18eb",
+      "buildHash": "7ca7e623cd187ffc8d9db888d0fdd1dc7d5769259c6a0ae54370ada1bcd44379",
+      "dependenciesHash": "74ae0befe5de6c0edc90790522b905ae7b8a65a04bc9aceb97a0beee0c3467ca"
     },
     {
       "round": 2,
@@ -68,7 +81,7 @@
     "metadataGenerationCalls": 0,
     "commonPackets": 16,
     "largestCommonPacketBytes": 42045,
-    "wholeArchitectureGenerationAcceptance": "one final complete cycle09 accepted under coordinator1/othersmax2 policy; requested repeat10 stopped by owner, no two-cycle qualification"
+    "wholeArchitectureGenerationAcceptance": "fresh12 armed, fresh13 repeat pending; historical09 retained, interrupted10 and preparation-only11 unaccepted"
   },
   "protectedHistory": {
     "recentUnknownAllocations": 6,
